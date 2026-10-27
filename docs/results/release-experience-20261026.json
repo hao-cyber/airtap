@@ -1,6 +1,6 @@
 {
   "_source_distribution": {
-    "notice": "Only deployment addresses/private paths were replaced. Historical source_snapshots hashes refer to the original audited artifacts, not these redacted bytes. See SOURCE-MANIFEST.json.",
+    "notice": "Only deployment addresses/private paths were replaced. Historical source_snapshots hashes refer to the original audited artifacts, not these redacted bytes.",
     "original_sha256": "eb13dcee6b23b0dec201d91c259f091ad068d3cc623fd70c090fddb33551dc14",
     "status": "redacted_distribution_copy"
   },

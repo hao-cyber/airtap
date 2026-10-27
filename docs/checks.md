@@ -68,12 +68,8 @@ python3 tools/check.py --suite android
 
 ## 按账单故障停用工作流，本地检查继续
 
-以下账单拒绝、`disabled_manually`、运行记录及仓库保护配置描述的是迁移前私有仓库在 2026-10-27 的历史状态，不是新公开仓库的运行记录。新仓采用干净历史，保留停用的参考模板和本地检查入口；不复制旧 Actions 记录，也不因迁移自动恢复该工作流。上面的每夜构建是迁移后另行授权的新工作流。迁移范围见[公开源码基线](open-source-baseline.md)。
-
-2026-10-27 根据机主澄清，Airtap 仓库的 GitHub Actions 总开关保持开启，只将有明确 payments／spending-limit 拒绝证据的 `Reproducible checks` 工作流停用。此前仓库级关闭范围过大，已纠正。核查时没有排队或运行中的任务，Actions 制品与缓存数量均为零；默认分支没有强制 CI 的保护规则。
-
-原工作流保留于 [`tools/ci/github-actions-check.yml.disabled`](../tools/ci/github-actions-check.yml.disabled)，仅作为不执行的参考；当前交付源码分支和新源码包不再自动触发这套检查。历史分支、冻结源码包及旧运行记录不改写，仓库中的该工作流也已标记为 `disabled_manually`。Actions 的其他功能以及后续有条件运行的其他工作流并未被一概禁用。
+GitHub Actions 功能保持开启。曾有明确 payments／spending-limit 拒绝证据的 `Reproducible checks` 继续停用，仅保留不执行的参考模板 [`tools/ci/github-actions-check.yml.disabled`](../tools/ci/github-actions-check.yml.disabled)。上面的 Android 每夜构建是另行授权的独立工作流，不受这一模板的停用影响。
 
 当前继续使用上面的本地命令完成检查，记录结果及实际验收范围。普通测试失败不能当作账单故障停用；其他工作流须逐项根据实际失败注释判断，不由品牌、runner 名称或 failure 状态推定。恢复这套受账单限制的工作流须先解决运行条件并经机主明确授权，不因支付状态恢复而自动重开，也不擅自购买额度或升级套餐。
 
-此前云端任务在执行步骤前即被拒绝，本地通过与云端状态分开记录。工作流停用的行为见 [GitHub 官方说明](https://docs.github.com/en/actions/how-tos/manage-workflow-runs/disable-and-enable-workflows)。这套检查不负责 Airtap 中继、手机客户端或网站的部署。
+本地通过与云端状态分开记录。工作流停用的行为见 [GitHub 官方说明](https://docs.github.com/en/actions/how-tos/manage-workflow-runs/disable-and-enable-workflows)。这套检查不负责 Airtap 中继、手机客户端或网站的部署。

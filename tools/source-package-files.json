@@ -633,10 +633,6 @@
     },
     {
       "kind": "document",
-      "path": "docs/open-source-baseline.md"
-    },
-    {
-      "kind": "document",
       "path": "docs/paged-observation.md"
     },
     {
