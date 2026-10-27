@@ -124,6 +124,54 @@ class FrozenSiteVerification(unittest.TestCase):
             verify_site.verify(self.build, 'https://example.test', failed)
         self.assertEqual(str(raised.exception), 'Public request failed: GET /release-notes (OSError)')
 
+    def test_managed_robots_requires_the_explicit_reviewed_exact_prefix(self):
+        prefix = b'# Reviewed hosting policy\nUser-agent: ExampleBot\nDisallow: /\n\n'
+        def managed(url, method, limit):
+            status, headers, data = self.response(url, method, limit)
+            if urlsplit(url).path == '/robots.txt':
+                headers['Content-Type'] = 'text/plain; charset=utf-8'
+                data = prefix + data
+            return status, headers, data
+        with self.assertRaisesRegex(ValueError, 'Public content differs'):
+            verify_site.verify(self.build, 'https://example.test', managed)
+        result = verify_site.verify(self.build, 'https://example.test', managed, prefix)
+        change, = result['public_transformations']
+        self.assertEqual(change['path'], '/robots.txt')
+        self.assertEqual(change['prefix_sha256'], verify_site.sha(prefix))
+        self.assertEqual(change['source_sha256'], verify_site.sha((self.build / 'site/robots.txt').read_bytes()))
+        self.assertEqual(change['public_sha256'], verify_site.sha(prefix + (self.build / 'site/robots.txt').read_bytes()))
+
+    def test_managed_robots_does_not_allow_other_changes(self):
+        prefix = b'# Reviewed hosting policy\n'
+        for mutation in ('prefix', 'source', 'suffix', 'html', 'type'):
+            def changed(url, method, limit):
+                status, headers, data = self.response(url, method, limit)
+                if urlsplit(url).path == '/robots.txt':
+                    headers['Content-Type'] = 'text/html' if mutation == 'type' else 'text/plain'
+                    data = prefix + data
+                    if mutation == 'prefix':
+                        data = b'# Changed hosting policy\n' + data
+                    elif mutation == 'source':
+                        data = data.replace(b'Allow: /', b'Disallow: /')
+                    elif mutation == 'suffix':
+                        data += b'\nUser-agent: *\nDisallow: /\n'
+                elif mutation == 'html' and urlsplit(url).path == '/':
+                    data += b'<script>injected</script>'
+                return status, headers, data
+            with self.subTest(mutation=mutation), self.assertRaises(ValueError):
+                verify_site.verify(self.build, 'https://example.test', changed, prefix)
+
+    def test_unused_managed_robots_prefix_does_not_change_plain_verification(self):
+        result = verify_site.verify(self.build, 'https://example.test', self.response, b'# Reviewed policy\n')
+        self.assertEqual(result['public_transformations'], [])
+
+    def test_invalid_managed_robots_prefix_is_rejected(self):
+        for prefix in (b'', b'x' * 16385, 'not bytes', b'\x00', b'\xff'):
+            with self.subTest(prefix_type=type(prefix).__name__), self.assertRaises(ValueError):
+                verify_site.verify(self.build, 'https://example.test', self.response, prefix)
+        with self.assertRaises(ValueError):
+            verify_site.verify(self.build, managed_robots_prefix=b'# Reviewed policy\n')
+
     def test_private_or_non_https_origin_is_rejected_before_fetch(self):
         for origin in ['http://example.test', 'https://user:pass@example.test',
                        'https://example.test/private', 'https://example.test/?token=secret']:

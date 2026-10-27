@@ -54,4 +54,6 @@ python3 release/verify_site.py --build /private/frozen-site --base-url https://a
 
 脚本检查推荐跳转、全部页面与静态资源、更新 JSON、APK 字节和响应头，包含未退役的旧 APK；对退役地址检查 GET／HEAD 的 410、升级链接及禁止缓存。旧 APK 曾使用长期不可变缓存，需记录 Worker 优先路由及额外响应缓存配置，并现场重查；仅在相应缓存策略需要时执行定向 CDN 清理；不能据此声称已经清除他人的本地下载或浏览器缓存。若失败，保留实际错误，定位部署、缓存或网络问题后再恢复，不应仅因某个浏览器能打开就宣布通过。
 
+Cloudflare 开启 [Managed robots.txt](https://developers.cloudflare.com/bots/additional-configurations/managed-robots-txt/) 时，会在已有抓取规则前附加托管规则。遇到这个差异时，先单独保存并阅读公网全文，核对所有新增规则，再将确切前缀保存为本地文件，使用 `--managed-robots-prefix /private/reviewed-robots-prefix.txt` 重新验证。该参数只接受此前缀与冻结 `robots.txt` 原文的逐字拼接；前缀变化、原文变化或其他资源变化仍报错。报告单独列出转换及摘要，不将其描述为线上文件与源码完全一致，不自动抓取并信任新前缀。也不要为了通过网站检查改变共享域名的安全或爬虫策略。Cloudflare 托管规则可能单独拒绝部分搜索或 AI 爬虫，须按实际规则记录可发现性限制；通用 `Allow: /` 不会覆盖更具体的拒绝规则。
+
 另用实际浏览器打开 `/install` 和帮助直达链接。新 APK 还需要正常覆盖升级与对应变更回归；沿用同 APK 的网站修正不要求重复安装。记录 Git 提交、冻结构建摘要、Cloudflare 部署 ID、公网检查以及手机/AI 验收的明确边界。无法招募独立用户时保留“独立普通用户全程试用未验证”，不虚构替代记录。

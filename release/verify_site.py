@@ -76,9 +76,17 @@ def request(url, method, max_bytes):
         return response.status, dict(response.headers.items()), data
 
 
-def verify(build, base_url=None, fetch=request):
+def verify(build, base_url=None, fetch=request, managed_robots_prefix=None):
     release, contents = read_build(build)
     checked = []
+    transformations = []
+    if managed_robots_prefix is not None:
+        if (not isinstance(managed_robots_prefix, bytes) or not 1 <= len(managed_robots_prefix) <= 16384
+                or not base_url or 'site/robots.txt' not in contents):
+            raise ValueError('A reviewed robots prefix requires public robots.txt and at most 16384 bytes')
+        if b'\x00' in managed_robots_prefix:
+            raise ValueError('A reviewed robots prefix must be UTF-8 text without NUL bytes')
+        managed_robots_prefix.decode('utf-8')
     if base_url:
         parsed = urlsplit(base_url)
         if parsed.scheme != 'https' or not parsed.hostname or parsed.username or parsed.password or parsed.path not in ('', '/') or parsed.query or parsed.fragment:
@@ -96,10 +104,21 @@ def verify(build, base_url=None, fetch=request):
         paths.update({'/' + name.removeprefix('site/'): name for name in contents if name.startswith('site/')})
         for path, name in paths.items():
             expected = contents[name]
-            status, headers, data = public_request(path, 'GET', len(expected))
+            prefix = managed_robots_prefix if path == '/robots.txt' else None
+            status, headers, data = public_request(path, 'GET', len(expected) + len(prefix or b''))
             headers = {key.lower(): value for key, value in headers.items()}
-            if status != 200 or data != expected:
+            # A host may prepend managed crawler policy. Only an explicitly
+            # reviewed, byte-for-byte prefix is accepted; never strip arbitrary
+            # comments or ignore rules. Frozen source bytes remain unchanged.
+            transformed = prefix is not None and data == prefix + expected
+            if status != 200 or (data != expected and not transformed):
                 raise ValueError('Public content differs from the frozen build: ' + path)
+            if transformed:
+                if headers.get('content-type', '').split(';', 1)[0].strip().lower() != 'text/plain':
+                    raise ValueError('Unexpected managed robots content type')
+                transformations.append({'path': path, 'kind': 'reviewed_managed_robots_prefix',
+                                        'prefix_bytes': len(prefix), 'prefix_sha256': sha(prefix),
+                                        'source_sha256': sha(expected), 'public_sha256': sha(data)})
             apk = path.endswith('.apk')
             cache = 'public, max-age=31536000, immutable' if apk else 'no-store' if path in ('/updates/android.json', '/updates/retired-android.json') else 'public, no-cache, no-transform'
             if headers.get('cache-control') != cache:
@@ -139,6 +158,7 @@ def verify(build, base_url=None, fetch=request):
     return {'schema': 'airtap-site-verification-v1', 'version_code': release['version_code'],
             'apk_sha256': release['apk_sha256'], 'local_files_verified': len(contents),
             'public_origin': base_url, 'public_checks': checked, 'passed': True,
+            'public_transformations': transformations,
             'scope': 'Frozen site integrity and optional public HTTP content; not phone or personal-AI acceptance.'}
 
 
@@ -146,8 +166,14 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--build', type=Path, required=True)
     parser.add_argument('--base-url', help='Optional deployed public HTTPS origin')
+    parser.add_argument('--managed-robots-prefix', type=Path,
+                        help='Optional local file containing a separately reviewed exact public robots.txt prefix')
     args = parser.parse_args()
     try:
-        print(json.dumps(verify(args.build, args.base_url), ensure_ascii=False, indent=2))
+        prefix = None
+        if args.managed_robots_prefix:
+            with args.managed_robots_prefix.open('rb') as file:
+                prefix = file.read(16385)
+        print(json.dumps(verify(args.build, args.base_url, managed_robots_prefix=prefix), ensure_ascii=False, indent=2))
     except (ValueError, KeyError, OSError, TypeError) as failure:
         parser.exit(1, 'Verification failed: ' + str(failure) + '\n')
