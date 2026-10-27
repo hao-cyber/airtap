@@ -20,6 +20,7 @@ TREES = ('apps/android/app/src/main', 'apps/android/scripts', 'apps/android/test
 DIRECT_SOURCE = {'relay/service': {'.py', '.mjs', '.json'}, 'tools': {'.py'},
                  'release': {'.py', '.mjs'}}
 FIXED = {'apps/android/app/build.gradle', 'apps/android/build.gradle',
+         '.github/workflows/android-nightly.yml',
          'apps/android/app/tls-proguard-rules.pro',
          'apps/android/gradle.properties', 'apps/android/settings.gradle',
          'apps/android/gradlew', 'apps/android/gradlew.bat',

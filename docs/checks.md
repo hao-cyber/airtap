@@ -1,6 +1,6 @@
 # 可复现代码检查
 
-`tools/check.py` 是本地验证入口。GitHub Actions 功能保留，仅停用当前因账单限制无法启动的 `Reproducible checks` 工作流。它运行主机上的真实生产 helper、受控 Android 平台替身、本机 workerd/SQLite、CLI 和 MCP 测试；可另行调用 Android SDK 编译和 lint。**检查通过不是实体手机、OEM、Muse/Instinct 或普通用户首用验收，也不证明发布 APK 已验签。** 这些证据仍单独记录。
+`tools/check.py` 是本地验证入口。它运行主机上的真实生产 helper、受控 Android 平台替身、本机 workerd/SQLite、CLI 和 MCP 测试；可另行调用 Android SDK 编译和 lint。新公开仓库另有下述 Android 每夜构建；历史上因账单限制无法启动的 `Reproducible checks` 继续停用。**检查通过不是实体手机、OEM、Muse/Instinct 或普通用户首用验收，也不证明发布 APK 已验签。** 这些证据仍单独记录。
 
 ## 本地运行
 
@@ -53,9 +53,22 @@ python3 tools/check.py --suite android
 
 [本轮维护与旧包下架记录](results/maintenance-cleanup-20261027.json)记录实际 CI 停用范围、6 个旧公开 APK 退役及线上检查；历史副本和兼容服务保留。
 
+## Android 每夜构建
+
+2026-10-27 用户授权在新公开仓库配置 [`Android nightly`](../.github/workflows/android-nightly.yml)。工作流使用标准 `ubuntu-24.04` runner、Temurin Java 17 和项目 Gradle wrapper，安装所需 Android SDK 后执行 `:app:assembleDebug :app:lintDebug`，生成开发验证 APK 并检查 lint；不替代上面的完整 `core` 检查、手机验收或个人 AI 验收。
+
+- 每天北京时间 **03:17** 调度，对应 UTC 前一天 19:17（`17 19 * * *`），以默认分支代码构建；维护者也可在 GitHub Actions 页面手动触发。
+- GitHub 调度可能延迟，高负载时可能丢弃排队任务；公开仓库连续 60 天没有活动时，计划任务可能被自动停用。不能把配置时间当作准时完成的承诺。[调度说明](https://docs.github.com/en/actions/reference/workflows-and-actions/events-that-trigger-workflows#schedule)
+- 产物仅包含 debug APK、SHA256 摘要与构建元数据；每次上传前检查合计不超过 **20 MiB**，保留 **3 天**，不上传 Gradle 缓存或整个构建目录，不配置 Actions 缓存。
+- 标准 GitHub 托管 runner 在公开仓库的计算用量免费；Actions 产物存储仍需关注账号与 GitHub Packages 共享的额度。本配置预期不新增收费，但不保证整个账号账单为零，其他仓库、手动重复运行和额度变化也会影响用量；不自动购买额度或升级套餐。[GitHub 费用说明](https://docs.github.com/en/billing/concepts/product-billing/github-actions)
+
+构建产物在对应运行的 **Artifacts** 中下载，可能要求登录 GitHub。它使用临时 debug 签名，包名与正式版相同，**不能覆盖升级现有正式安装，跨夜开发包也不保证可覆盖升级**。不要通过卸载正式版或清除数据来安装测试包，以免丢失配对和用户数据。该包未预配置公共中继，开发者须自行配置服务；普通用户继续从[官网安装入口](https://airtap.memtrix.dev/install)安装推荐版本。
+
+工作流不持有正式签名私钥、不发布 GitHub Release、不部署中继或网站，也不会切换推荐安装包。云端成功与否以具体运行记录为准；工作流文件存在、本地构建成功都不能代替云端实跑结果。
+
 ## 按账单故障停用工作流，本地检查继续
 
-以下账单拒绝、`disabled_manually`、运行记录及仓库保护配置描述的是迁移前私有仓库在 2026-10-27 的历史状态，不是新公开仓库的运行记录。新仓采用干净历史，只保留停用的参考模板和本地检查入口；不复制旧 Actions 记录，也不因迁移自动恢复该工作流。迁移范围见[公开源码基线](open-source-baseline.md)。
+以下账单拒绝、`disabled_manually`、运行记录及仓库保护配置描述的是迁移前私有仓库在 2026-10-27 的历史状态，不是新公开仓库的运行记录。新仓采用干净历史，保留停用的参考模板和本地检查入口；不复制旧 Actions 记录，也不因迁移自动恢复该工作流。上面的每夜构建是迁移后另行授权的新工作流。迁移范围见[公开源码基线](open-source-baseline.md)。
 
 2026-10-27 根据机主澄清，Airtap 仓库的 GitHub Actions 总开关保持开启，只将有明确 payments／spending-limit 拒绝证据的 `Reproducible checks` 工作流停用。此前仓库级关闭范围过大，已纠正。核查时没有排队或运行中的任务，Actions 制品与缓存数量均为零；默认分支没有强制 CI 的保护规则。
 

@@ -1,0 +1,88 @@
+name: Android nightly
+
+on:
+  schedule:
+    # 19:17 UTC = 03:17 Asia/Shanghai on the following day.
+    - cron: '17 19 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: android-nightly-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  android:
+    # Do not consume paid private-repository minutes after a visibility change.
+    if: github.event.repository.private == false && github.ref == format('refs/heads/{0}', github.event.repository.default_branch)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    defaults:
+      run:
+        shell: bash
+        working-directory: apps/android
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6.1.0
+        with:
+          distribution: temurin
+          java-version: '17'
+          # No dependency cache or release signing inputs are configured.
+      - name: Install Android SDK build dependencies
+        run: |
+          test -n "$ANDROID_HOME"
+          "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --install "platforms;android-36" "build-tools;35.0.0"
+      - name: Build development APK and run lint
+        env:
+          GRADLE_USER_HOME: ${{ runner.temp }}/airtap-gradle
+        run: ./gradlew --no-daemon --no-build-cache --console=plain :app:assembleDebug :app:lintDebug
+      - name: Verify and prepare bounded development artifact
+        run: |
+          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose app/build/outputs/apk/debug/app-debug.apk
+          python3 - <<'PY'
+          import hashlib
+          import json
+          import os
+          from pathlib import Path
+
+          apk = Path('app/build/outputs/apk/debug/app-debug.apk').read_bytes()
+          destination = Path(os.environ['GITHUB_WORKSPACE']) / 'dist/nightly'
+          destination.mkdir(parents=True, exist_ok=True)
+          filename = 'Airtap-debug.apk'
+          metadata = {
+              'commit': os.environ['GITHUB_SHA'],
+              'run_id': os.environ['GITHUB_RUN_ID'],
+              'run_attempt': os.environ['GITHUB_RUN_ATTEMPT'],
+              'apk_bytes': len(apk),
+              'apk_sha256': hashlib.sha256(apk).hexdigest(),
+              'channel': 'development-debug',
+              'notice': 'Not an update for the official app. Temporary debug signing; no preconfigured relay. See release/README.md.',
+          }
+          files = {
+              filename: apk,
+              'SHA256SUMS': (metadata['apk_sha256'] + '  ' + filename + '\n').encode(),
+              'BUILD-INFO.json': (json.dumps(metadata, indent=2) + '\n').encode(),
+          }
+          if sum(len(data) for data in files.values()) > 20 * 1024 * 1024:
+              raise SystemExit('Development artifact exceeds the 20 MiB upload limit.')
+          for name, data in files.items():
+              (destination / name).write_bytes(data)
+          with open(os.environ['GITHUB_STEP_SUMMARY'], 'a') as summary:
+              summary.write('Development APK built and verified. Artifacts expire after 3 days.\n\n')
+              summary.write(metadata['notice'] + '\n')
+          PY
+      - name: Upload development APK for three days
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: airtap-debug-${{ github.run_number }}-${{ github.run_attempt }}
+          path: |
+            dist/nightly/Airtap-debug.apk
+            dist/nightly/SHA256SUMS
+            dist/nightly/BUILD-INFO.json
+          retention-days: 3
+          compression-level: 0
+          if-no-files-found: error

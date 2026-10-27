@@ -7,6 +7,10 @@
   "files": [
     {
       "kind": "source",
+      "path": ".github/workflows/android-nightly.yml"
+    },
+    {
+      "kind": "source",
       "path": ".gitignore"
     },
     {
