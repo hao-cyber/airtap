@@ -1,0 +1,66 @@
+# 可复现代码检查
+
+`tools/check.py` 是本地验证入口。GitHub Actions 功能保留，仅停用当前因账单限制无法启动的 `Reproducible checks` 工作流。它运行主机上的真实生产 helper、受控 Android 平台替身、本机 workerd/SQLite、CLI 和 MCP 测试；可另行调用 Android SDK 编译和 lint。**检查通过不是实体手机、OEM、Muse/Instinct 或普通用户首用验收，也不证明发布 APK 已验签。** 这些证据仍单独记录。
+
+## 本地运行
+
+准备 Python 3.12+、Node.js 22+（包含 npm）、JDK 17+；`JAVA_HOME` 指向实际 JDK。停用的云端模板记录 Node 22、Temurin 17、Python 3.12，当前不执行。主机 Java 测试以 `--release 17` 编译。无需模型 key、Cloudflare 登录、SSH、手机、USB 或正式签名。
+
+```sh
+python3 tools/check.py --suite core --install-deps
+```
+
+`npm ci` 使用仓库既有的 `relay/worker/package-lock.json`，禁用生命周期脚本及 audit/fund，不改依赖锁。平台 workerd 二进制随锁定的可选依赖安装。首次需要访问 npm 官方包源；随后可不带 `--install-deps` 复用当前工作树的依赖。npm 用户/全局配置使用独立空文件，测试子进程不继承签名、Cloudflare、GitHub 或 SSH 凭据变量。
+
+可单独运行：
+
+```sh
+python3 tools/check.py --suite host
+python3 tools/check.py --suite protocol --install-deps
+python3 tools/check.py --suite android
+```
+
+`android` 还需要 Android SDK，设置 `ANDROID_HOME`，并按 SDK 许可安装 `platforms;android-36` 和 `build-tools;35.0.0`。它使用项目校验过分发 SHA 的 Gradle wrapper，执行 `:app:compileDebugJavaWithJavac :app:lintDebug`；没有 release 打包、签名或上传步骤。`--suite all --install-deps` 依次运行全部检查。项目内已有 SDK 路径配置也可供本地 Gradle 使用。
+
+输出默认写到忽略提交的 `dist/checks/`，可用 `--output-dir` 指定独立目录。`summary.json` 记录运行时版本、每项退出码、耗时和证据范围；测试遇到失败或超时立即返回非零，不用跳过失败伪造成功。测试报告是合成数据；不要把真实手机内容或凭据替换进公共测试。
+
+## 当前覆盖
+
+- 分页树与长文本的稳定快照、UTF-16 边界和敏感字段遮蔽，以及 range、动作标签/集合、collection 等已导出元数据变化导致旧页失效的 Java helper 检查。
+- 输入编辑、触摸计划/执行、语义控件、窗口、音量、文件状态机、授权恢复/调度、反馈 UI、邀请反馈和连接关闭处理的 Java helper 检查；文件检查包含旧 SAF 暂存回收、配对/epoch 变化及接收方读取与其他文件操作竞争的反例。
+- 当前源码允许清单与生产／测试依赖闭包检查，以及源码导出隐私规则、字节一致性、确定性 ZIP 与不可覆盖的正反测试。
+- Android 与 Python 的证书策略检查保留系统信任及主机名验证，并覆盖受影响公钥、不可检查时拒绝联网、代理路径在向目标服务发送凭据前拒绝等情况；不会修改系统信任库。
+- 首次接入恢复与邀请摘要检查覆盖原身份／票据保留、旧保存状态缺摘要时拒绝导出、未知结果不重发；通知恢复检查区分暂停、恢复和机主主动停止。
+- Python 文件校验、URL、维护报告/部署冻结逻辑和静态下载站检查；部署逻辑仅使用临时目录和合成对象，不调用部署服务。
+- 真实本地 workerd 的核心协议/CLI/MCP、文件传输、SQLite 用量迁移/并发、配对恢复和私有反馈协议；手机端是受控连接替身。
+- Android SDK 源码编译与 lint；不启动模拟器、不安装 APK、不替代真实手势/文件提供者/断线恢复记录。
+
+实际 v4 邀请摘要检查还可单独运行 `node relay/service/tests/invitation-artifacts.mjs`（先准备上述 Node 依赖）。它核对邀请摘要与实际文件字节，并确认缺失或非法摘要配置不会先签发票据；使用合成身份，不操作手机。
+
+新增测试文件后应检查本入口是否需要加入；新增 case 若属于现有 suite 则自动随该 suite 执行。不要把固定历史测试总数当作未来版本证明。
+
+本轮增量的可查证记录：
+
+- [分页与长文本](results/paged-observation-20261027.json)、[分页元数据一致性主机检查](results/paged-metadata-host-20261027.json)。原生模拟器记录使用实际 Android 节点，但测试授权由夹具提供；`core` 不重复运行该模拟器流程。
+- [文件分享与回收主机检查](results/file-sharing-cleanup-host-20261027.json)、[真实协议检查](results/file-sharing-cleanup-protocol-20261027.json)和[独立接收 App 模拟器检查](results/file-sharing-cleanup-emulator-20261027.json)。接收夹具源码及人工复核步骤见[shares 测试说明](../apps/android/tests/shares/README.md)；core 中的合成手机不代替 Android ContentProvider、正常分享界面或本地回收操作。
+- [code36 正常首用](results/beta7-code36-clean-install-20261027.json)另外验证正常安装器、权限、核码和公共 CLI 的 Clock → Files → Clock 任务；它是维护者模拟器验收，包含人工网络恢复，且 APK 预先由 ADB 放入下载目录。code37 分页补丁、code38 新改动、实体手机与新版 Muse 任务不能沿用该记录宣称全部通过。
+
+当前推荐为 beta.8/code38 与 CLI.8。证书专项证据见 [CLI 与事件复核](results/tls-incident-20261027.json)、[Android 主机及模拟器检查](results/android-tls-20261027.json)；code38 的[模拟器升级与恢复](results/beta8-code38-recovery-20261027.json)和 [Muse WPS → 便签短回归](results/beta8-code38-muse-20261027.json)分别记录实际范围，不能由源码、主机或专项探测代替。code37 的 [Muse 补验](results/beta7-code37-muse-followup-20261027.json)确认 WPS 小文本显示、小红书搜索与部分详情、抖音结果列表及便签保存重开，抖音详情仍未完成；结果保持绑定 code37。
+
+[证书安全维护补充记录](results/security-maintenance-20261027.json)记录服务器 Tunnel 升级、故障报告维护工具的 TLS 修复和两个旧预览入口的兼容资产更新；旧 APK 与已下载 CLI 不会因此自动升级。
+
+视频暂缓交付，测试结果以源码和上述独立记录为准，不以旧演示剪辑证明新版已验收。
+
+[本轮维护与旧包下架记录](results/maintenance-cleanup-20261027.json)记录实际 CI 停用范围、6 个旧公开 APK 退役及线上检查；历史副本和兼容服务保留。
+
+## 按账单故障停用工作流，本地检查继续
+
+以下账单拒绝、`disabled_manually`、运行记录及仓库保护配置描述的是迁移前私有仓库在 2026-10-27 的历史状态，不是新公开仓库的运行记录。新仓采用干净历史，只保留停用的参考模板和本地检查入口；不复制旧 Actions 记录，也不因迁移自动恢复该工作流。迁移范围见[公开源码基线](open-source-baseline.md)。
+
+2026-10-27 根据机主澄清，Airtap 仓库的 GitHub Actions 总开关保持开启，只将有明确 payments／spending-limit 拒绝证据的 `Reproducible checks` 工作流停用。此前仓库级关闭范围过大，已纠正。核查时没有排队或运行中的任务，Actions 制品与缓存数量均为零；默认分支没有强制 CI 的保护规则。
+
+原工作流保留于 [`tools/ci/github-actions-check.yml.disabled`](../tools/ci/github-actions-check.yml.disabled)，仅作为不执行的参考；当前交付源码分支和新源码包不再自动触发这套检查。历史分支、冻结源码包及旧运行记录不改写，仓库中的该工作流也已标记为 `disabled_manually`。Actions 的其他功能以及后续有条件运行的其他工作流并未被一概禁用。
+
+当前继续使用上面的本地命令完成检查，记录结果及实际验收范围。普通测试失败不能当作账单故障停用；其他工作流须逐项根据实际失败注释判断，不由品牌、runner 名称或 failure 状态推定。恢复这套受账单限制的工作流须先解决运行条件并经机主明确授权，不因支付状态恢复而自动重开，也不擅自购买额度或升级套餐。
+
+此前云端任务在执行步骤前即被拒绝，本地通过与云端状态分开记录。工作流停用的行为见 [GitHub 官方说明](https://docs.github.com/en/actions/how-tos/manage-workflow-runs/disable-and-enable-workflows)。这套检查不负责 Airtap 中继、手机客户端或网站的部署。

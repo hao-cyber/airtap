@@ -1,0 +1,127 @@
+{
+  "schema": "airtap-companion-acceptance-v1",
+  "date": "2026-10-25",
+  "release": {
+    "schema": "airtap-download-release-v1",
+    "application_id": "io.airtap.preview",
+    "version_name": "0.4.0-companion-preview",
+    "version_code": 24,
+    "apk_bytes": 800953,
+    "apk_sha256": "c9ec221d144a38bf219270f3615ed591e8eb572e15528312c94245c8e2c81152",
+    "signer_sha256": "792174161f4d39c7284cb716b611bcee99a5c0a5db8899b3743e0923c4073e62",
+    "min_sdk": 34,
+    "target_sdk": 36,
+    "distribution": "invited-development-preview",
+    "debuggable": true
+  },
+  "device": {
+    "label": "小红",
+    "model": "MEIZU Note 16",
+    "android": "15",
+    "network": "WiFi"
+  },
+  "service_protocol": 4,
+  "maintainer_assisted": true,
+  "agent_used": "Codex through published CLI and direct standard MCP protocol; not Muse, Instinct or Doubao acceptance",
+  "checks": [
+    {
+      "name": "preconfigured build and Android lint",
+      "passed": true,
+      "detail": "assembleDebug + lintDebug; 0 errors; 1 wrapper update notice"
+    },
+    {
+      "name": "public browser download and Android package installer",
+      "passed": true,
+      "detail": "Physical phone downloaded code 24; device/download/build SHA256 match; normal package installer reported success; existing app first-install timestamp retained"
+    },
+    {
+      "name": "persistent pairing",
+      "passed": true,
+      "detail": "Same owner-approved pairing reused across code 22, 23 and 24, a relay deployment, network outage and process death; no new code required. Over 50 minutes wall time; not a continuous unattended soak."
+    },
+    {
+      "name": "native node actions and visual verification",
+      "passed": true,
+      "detail": "Calculator 37+5=42 visually confirmed; Chinese note input re-read and viewed; cross-app launch and back/home verified"
+    },
+    {
+      "name": "screenshot coordinate tap and swipe",
+      "passed": true,
+      "detail": "Calculator clear and Settings scroll on code 22; final full-display mapping tapped My phone and observed destination on code 24"
+    },
+    {
+      "name": "remote MCP on real device",
+      "passed": true,
+      "detail": "2025-11-25 initialize, 17 tools, actual JPEG image content, same-sequence rejection; repeated on code 24"
+    },
+    {
+      "name": "lock and unlock",
+      "passed": true,
+      "detail": "Locked command returned device_locked; same pairing resumed after local unlock"
+    },
+    {
+      "name": "20-second WiFi outage",
+      "passed": true,
+      "detail": "Reconnected with same pairing and new socket; follow-up read succeeded"
+    },
+    {
+      "name": "normal process death automatic recovery",
+      "ok": true,
+      "new_connection": true,
+      "same_pairing": true,
+      "owner_relaunch_required": false
+    },
+    {
+      "name": "owner stop",
+      "passed": true,
+      "owner_ui_protected": true,
+      "owner_stop_http_410": true,
+      "restart_does_not_restore": true,
+      "phone_ui_invite_again": true
+    },
+    {
+      "name": "synthetic phone integration",
+      "passed": true,
+      "detail": "8 workerd/real CLI integration groups, including more than 200 commands, sequence replay, malformed requests, MCP native images and revoke"
+    },
+    {
+      "name": "transport failure injection",
+      "passed": true,
+      "detail": "Two pre-send connection failures -> exactly one request sent; lost response -> no resend; three pre-send failures -> zero request sent"
+    }
+  ],
+  "observed_failures": [
+    "A guessed calculator package was unavailable; retried only after selecting actual app directory package.",
+    "Several network requests reached the overall deadline; unknown actions were not automatically replayed. A later CLI revision retries only connection setup before transmitting an application request.",
+    "Force-stop disabled this OEM accessibility permission. Normal relaunch alone did not restore service; visible system permission was re-enabled, then the original pairing resumed.",
+    "Maintainer coordinate inspection encountered Flyme mini-window scaling. Production capture was changed to full physical-display images. Final full-display coordinate mapping was verified; an exhaustive OEM mini-window test is not claimed.",
+    "The OEM permission details intent fell back to the general accessibility page; navigation assistance was required.",
+    "Browser download completion contained advertisements and a non-clickable file label; used its Downloads screen and the system package installer."
+  ],
+  "not_verified": [
+    "Independent ordinary-user first installation",
+    "Current Muse, Instinct, Doubao, dots or Claude product-specific end-to-end integration",
+    "iOS",
+    "Other physical models, Android 14 physical hardware or cellular networks",
+    "Multi-day background operation, every App or every OEM floating/overlay window",
+    "Native long-click and long-press task outcomes were not separately accepted in this round"
+  ],
+  "test_assistance": [
+    "Initial maintenance ADB upgrade and owner approval automation; final code 24 upgrade through phone browser and system installer",
+    "Temporary local UI inspector using UiAutomation without suppressing accessibility; removed after acceptance",
+    "Test-only network outage, screen lock/unlock and process termination",
+    "Screen timeout temporarily adjusted during setup and restored"
+  ],
+  "final_phone_state": "Owner control stopped and remote access revoked; app retained for next user invitation",
+  "source_hashes": {
+    "apps/android/app/src/main/java/io/airtap/preview/MainActivity.java": "6a7c4fa144cd829ec1e94a00f5a95302d04c6e5502325a1394668081eae11809",
+    "apps/android/app/src/main/java/io/airtap/preview/CompanionUi.java": "8a2ad456d826b284dc8e3c0196bf02579fb4df22516f39581a9f421eb7ffb664",
+    "apps/android/app/src/main/java/io/airtap/preview/PreviewService.java": "ff911374d6f73b93734fee3988d5054a0433d7bd371a6fb92ce38704aa5cc3fe",
+    "apps/android/app/src/main/java/io/airtap/preview/TrustedGrant.java": "da215e770df780300773832906de878c2953c55afb336a3708140cf99a13a901",
+    "apps/android/app/src/main/java/io/airtap/preview/SessionService.java": "77df6b0b6256ef6d273c262b8d432cebe5d69ad26b901d4aefe2de2a6eebf1c0",
+    "relay/service/service.mjs": "11d6fb16e43210d40e700c14e892bc049f9bb355df1697a53300eae43a9e9d90",
+    "relay/worker/worker.mjs": "917b24df737ea04faab744a28b9c07bed191b35d012aa32c22773ff39935d03a",
+    "cli/airtap.py": "ecdb6134b0ad28c68dd1be8e5aa3abd48c7fa04bf858211aab78f21b3a2be95a",
+    "docs/agent.md": "4ff1323e169b39725eae31570a72da7ef6968090cb313ce86b5ef7fe7789e312"
+  }
+}

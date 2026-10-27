@@ -1,0 +1,134 @@
+{
+  "recorded_at": "2026-10-27",
+  "status": "implemented; host/protocol/native-emulator accepted, integration/physical/personal-AI pending",
+  "features": [
+    "paged_tree_v1",
+    "node_text_v1"
+  ],
+  "host": {
+    "passed": 12,
+    "tests": [
+      "300 visible nodes span three exact stable pages with no omissions",
+      "byte budget produces a continuation even before128 nodes",
+      "oversized single public item cannot create a nonadvancing page",
+      "topology order native replacement and hidden-state changes invalidate",
+      "changed text beyond200 UTF16 units invalidates original snapshot",
+      "node scan and byte limits fail explicitly without partial totals",
+      "missing child cancellation and deadline stop snapshot publication",
+      "page range validation and exact end page",
+      "long Unicode text reconstructs exactly with returned UTF16 offsets",
+      "surrogate edge avoids split and rejects middle offset",
+      "empty exact-end and invalid text ranges",
+      "masked observations never inspect measure hash or return private value"
+    ],
+    "limitations": [
+      "Production PagedTree/ObservedText/TreeReadBudget compiled unchanged; native nodes and JSON are explicit synthetic fixtures.",
+      "Does not replace actual Android CompanionUi/window/permission or personal-AI acceptance."
+    ]
+  },
+  "atomic_input_regression_passed": 49,
+  "workerd": {
+    "checks_passed": 31,
+    "execution": "Real local workerd and production Python CLI/MCP with synthetic phone"
+  },
+  "android": {
+    "build": "debug assemble and lint passed; production version unchanged35 in feature branch",
+    "native_fixture": {
+      "checks": [
+        {
+          "name": "actual Android full snapshot captures >128 visible nodes",
+          "passed": true
+        },
+        {
+          "name": "actual Android continuation offset65",
+          "passed": true
+        },
+        {
+          "name": "actual Android continuation offset130",
+          "passed": true
+        },
+        {
+          "name": "actual Android continuation offset195",
+          "passed": true
+        },
+        {
+          "name": "actual Android continuation offset260",
+          "passed": true
+        },
+        {
+          "name": "all pages cover exactly total nodes without duplicate IDs",
+          "passed": true
+        },
+        {
+          "name": "password metadata omits content length and hidden strings",
+          "passed": true
+        },
+        {
+          "name": "long field advertises truncation",
+          "passed": true
+        },
+        {
+          "name": "actual Android long Unicode text reassembles all12000 UTF16 units",
+          "passed": true
+        },
+        {
+          "name": "actual Android password read rejected with no text or length",
+          "passed": true
+        },
+        {
+          "name": "revoked authorization blocks cached page",
+          "passed": true
+        },
+        {
+          "name": "stopped transport blocks cached page",
+          "passed": true
+        },
+        {
+          "name": "same-window text suffix mutation rejects original chunk",
+          "passed": true
+        },
+        {
+          "name": "same-window content mutation rejects cached page",
+          "passed": true
+        },
+        {
+          "name": "original30s expiry rejects continuation without renewal",
+          "passed": true
+        },
+        {
+          "name": "changed native tree rejects prior page",
+          "passed": true
+        },
+        {
+          "name": "over2048 native nodes fail explicitly not partial success",
+          "passed": true
+        }
+      ],
+      "complete": true,
+      "total_nodes": 303,
+      "long_utf16": 12000
+    },
+    "evidence": "Installed unchanged production CompanionUi in debug APK. Test-only Instrumentation supplies explicit authorization/transport BooleanSuppliers; actual native Android nodes and windows, not real pairing/relay/AI.",
+    "physical_phone": false,
+    "personal_ai": false
+  },
+  "retained_fixture_failures": [
+    "Instrumentation restart initially marked the accessibility service crashed; private harness now explicitly rebinds it. No product code workaround.",
+    "Initial first-row long editor was under the status bar and not visible to accessibility. Moved the fixture row below the status bar. No product visibility bypass."
+  ],
+  "limits": {
+    "snapshot_ttl_ms": 30000,
+    "page_nodes": 128,
+    "page_node_bytes": 56000,
+    "inspected_nodes": 2048,
+    "capture_bytes": 2097152,
+    "scan_budget_ms": 5000,
+    "text_chunk_utf16": 4096
+  },
+  "not_claimed": [
+    "Physical-device or personal-AI acceptance of these new APIs",
+    "Text absent from accessibility (WebView/canvas)",
+    "Complete contents of offscreen virtualized lists",
+    "Unlimited document reads within one snapshot"
+  ]
+}

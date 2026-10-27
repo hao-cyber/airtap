@@ -1,0 +1,1056 @@
+{
+  "allowlist_path": "tools/source-package-files.json",
+  "android_version": "0.4.0-beta.8",
+  "archive_root": "airtap-source-0.4.0-beta.8-code38",
+  "cli_version": "0.4.0-cli.8",
+  "closure_policy": "airtap-source-closure-v1",
+  "files": [
+    {
+      "kind": "source",
+      "path": ".gitignore"
+    },
+    {
+      "kind": "source",
+      "path": "LICENSE"
+    },
+    {
+      "kind": "document",
+      "path": "README.md"
+    },
+    {
+      "kind": "document",
+      "path": "SECURITY.md"
+    },
+    {
+      "kind": "source",
+      "path": "apps/android/app/build.gradle"
+    },
+    {
+      "kind": "source",
+      "path": "apps/android/app/src/main/AndroidManifest.xml"
+    },
+    {
+      "kind": "source",
+      "path": "apps/android/app/src/main/assets/LICENSE-APACHE-2.0.txt"
+    },
+    {
+      "kind": "source",
+      "path": "apps/android/app/src/main/assets/THIRD_PARTY_NOTICES.txt"
+    },
+    {
+      "kind": "source",
+      "path": "apps/android/app/src/main/java/io/airtap/preview/AppCatalog.java"
+    },
+    {
+      "kind": "source",
+      "path": "apps/android/app/src/main/java/io/airtap/preview/AppUi.java"
+    },
+    {
+      "kind": "source",
+      "path": "apps/android/app/src/main/java/io/airtap/preview/ApprovalRecovery.java"
+    },
+    {
+      "kind": "source",
+      "path": "apps/android/app/src/main/java/io/airtap/preview/AtomicInput.java"
+    },
+    {
+      "kind": "source",
+      "path": "apps/android/app/src/main/java/io/airtap/preview/AudioVolume.java"
+    },
+    {
+      "kind": "source",
+      "path": "apps/android/app/src/main/java/io/airtap/preview/BrowserUrl.java"
+    },
+    {
+      "kind": "source",
+      "path": "apps/android/app/src/main/java/io/airtap/preview/CommandFence.java"
+    },
+    {
+      "kind": "source",
+      "path": "apps/android/app/src/main/java/io/airtap/preview/CompanionUi.java"
+    },
+    {
+      "kind": "source",
+      "path": "apps/android/app/src/main/java/io/airtap/preview/CompleteTree.java"
+    },
+    {
+      "kind": "source",
+      "path": "apps/android/app/src/main/java/io/airtap/preview/CompromisedKeys.java"
+    },
+    {
+      "kind": "source",
+      "path": "apps/android/app/src/main/java/io/airtap/preview/ConnectionFeedback.java"
+    },
+    {
+      "kind": "source",
+      "path": "apps/android/app/src/main/java/io/airtap/preview/DragPlan.java"
+    },
+    {
+      "kind": "source",
+      "path": "apps/android/app/src/main/java/io/airtap/preview/EnrollmentStore.java"
+    },
+    {
+      "kind": "source",
+      "path": "apps/android/app/src/main/java/io/airtap/preview/FeedbackActivity.java"
+    },
+    {
+      "kind": "source",
+      "path": "apps/android/app/src/main/java/io/airtap/preview/FeedbackApi.java"
+    },
+    {
+      "kind": "source",
+      "path": "apps/android/app/src/main/java/io/airtap/preview/FeedbackReport.java"
+    },
+    {
+      "kind": "source",
+      "path": "apps/android/app/src/main/java/io/airtap/preview/FeedbackRequestGate.java"
+    },
+    {
+      "kind": "source",
+      "path": "apps/android/app/src/main/java/io/airtap/preview/FeedbackText.java"
+    },
+    {
+      "kind": "source",
+      "path": "apps/android/app/src/main/java/io/airtap/preview/FileGrantAttempt.java"
+    },
+    {
+      "kind": "source",
+      "path": "apps/android/app/src/main/java/io/airtap/preview/FileMaintenanceFence.java"
+    },
+    {
+      "kind": "source",
+      "path": "apps/android/app/src/main/java/io/airtap/preview/FileScopes.java"
+    },
+    {
+      "kind": "source",
+      "path": "apps/android/app/src/main/java/io/airtap/preview/FileTransferStore.java"
+    },
+    {
+      "kind": "source",
+      "path": "apps/android/app/src/main/java/io/airtap/preview/GesturePlan.java"
+    },
+    {
+      "kind": "source",
+      "path": "apps/android/app/src/main/java/io/airtap/preview/GuardedInputMethod.java"
+    },
+    {
+      "kind": "source",
+      "path": "apps/android/app/src/main/java/io/airtap/preview/HomePhase.java"
+    },
+    {
+      "kind": "source",
+      "path": "apps/android/app/src/main/java/io/airtap/preview/InvitationArtifacts.java"
+    },
+    {
+      "kind": "source",
+      "path": "apps/android/app/src/main/java/io/airtap/preview/InvitationFeedback.java"
+    },
+    {
+      "kind": "source",
+      "path": "apps/android/app/src/main/java/io/airtap/preview/MainActivity.java"
+    },
+    {
+      "kind": "source",
+      "path": "apps/android/app/src/main/java/io/airtap/preview/NativePairDiagnostics.java"
+    },
+    {
+      "kind": "source",
+      "path": "apps/android/app/src/main/java/io/airtap/preview/NodeFieldSlices.java"
+    },
+    {
+      "kind": "source",
+      "path": "apps/android/app/src/main/java/io/airtap/preview/ObservedText.java"
+    },
+    {
+      "kind": "source",
+      "path": "apps/android/app/src/main/java/io/airtap/preview/PagedTree.java"
+    },
+    {
+      "kind": "source",
+      "path": "apps/android/app/src/main/java/io/airtap/preview/PreviewDiagnostics.java"
+    },
+    {
+      "kind": "source",
+      "path": "apps/android/app/src/main/java/io/airtap/preview/PreviewService.java"
+    },
+    {
+      "kind": "source",
+      "path": "apps/android/app/src/main/java/io/airtap/preview/PreviewState.java"
+    },
+    {
+      "kind": "source",
+      "path": "apps/android/app/src/main/java/io/airtap/preview/PrivateFileStorage.java"
+    },
+    {
+      "kind": "source",
+      "path": "apps/android/app/src/main/java/io/airtap/preview/RecoveryStatus.java"
+    },
+    {
+      "kind": "source",
+      "path": "apps/android/app/src/main/java/io/airtap/preview/RelayAddress.java"
+    },
+    {
+      "kind": "source",
+      "path": "apps/android/app/src/main/java/io/airtap/preview/RelayApi.java"
+    },
+    {
+      "kind": "source",
+      "path": "apps/android/app/src/main/java/io/airtap/preview/RelayErrors.java"
+    },
+    {
+      "kind": "source",
+      "path": "apps/android/app/src/main/java/io/airtap/preview/RemoteReadiness.java"
+    },
+    {
+      "kind": "source",
+      "path": "apps/android/app/src/main/java/io/airtap/preview/SafPublicationStore.java"
+    },
+    {
+      "kind": "source",
+      "path": "apps/android/app/src/main/java/io/airtap/preview/SafStagingCleanup.java"
+    },
+    {
+      "kind": "source",
+      "path": "apps/android/app/src/main/java/io/airtap/preview/ScopedUi.java"
+    },
+    {
+      "kind": "source",
+      "path": "apps/android/app/src/main/java/io/airtap/preview/ScreenPreparation.java"
+    },
+    {
+      "kind": "source",
+      "path": "apps/android/app/src/main/java/io/airtap/preview/ScreenRecovery.java"
+    },
+    {
+      "kind": "source",
+      "path": "apps/android/app/src/main/java/io/airtap/preview/ScreenRecoveryActivity.java"
+    },
+    {
+      "kind": "source",
+      "path": "apps/android/app/src/main/java/io/airtap/preview/SemanticNodeActions.java"
+    },
+    {
+      "kind": "source",
+      "path": "apps/android/app/src/main/java/io/airtap/preview/ServiceProtocol.java"
+    },
+    {
+      "kind": "source",
+      "path": "apps/android/app/src/main/java/io/airtap/preview/SessionScreenLease.java"
+    },
+    {
+      "kind": "source",
+      "path": "apps/android/app/src/main/java/io/airtap/preview/SessionService.java"
+    },
+    {
+      "kind": "source",
+      "path": "apps/android/app/src/main/java/io/airtap/preview/SetupRecovery.java"
+    },
+    {
+      "kind": "source",
+      "path": "apps/android/app/src/main/java/io/airtap/preview/SharedFileIo.java"
+    },
+    {
+      "kind": "source",
+      "path": "apps/android/app/src/main/java/io/airtap/preview/SnapshotDiagnostics.java"
+    },
+    {
+      "kind": "source",
+      "path": "apps/android/app/src/main/java/io/airtap/preview/SnapshotGuard.java"
+    },
+    {
+      "kind": "source",
+      "path": "apps/android/app/src/main/java/io/airtap/preview/SystemActions.java"
+    },
+    {
+      "kind": "source",
+      "path": "apps/android/app/src/main/java/io/airtap/preview/TestActivity.java"
+    },
+    {
+      "kind": "source",
+      "path": "apps/android/app/src/main/java/io/airtap/preview/TlsPolicy.java"
+    },
+    {
+      "kind": "source",
+      "path": "apps/android/app/src/main/java/io/airtap/preview/TouchGesture.java"
+    },
+    {
+      "kind": "source",
+      "path": "apps/android/app/src/main/java/io/airtap/preview/TreeChangeDiagnostics.java"
+    },
+    {
+      "kind": "source",
+      "path": "apps/android/app/src/main/java/io/airtap/preview/TreeFieldDiagnostics.java"
+    },
+    {
+      "kind": "source",
+      "path": "apps/android/app/src/main/java/io/airtap/preview/TreeReadBudget.java"
+    },
+    {
+      "kind": "source",
+      "path": "apps/android/app/src/main/java/io/airtap/preview/TrustedGrant.java"
+    },
+    {
+      "kind": "source",
+      "path": "apps/android/app/src/main/java/io/airtap/preview/UiRequestOwner.java"
+    },
+    {
+      "kind": "source",
+      "path": "apps/android/app/src/main/java/io/airtap/preview/UpdateNotice.java"
+    },
+    {
+      "kind": "source",
+      "path": "apps/android/app/src/main/java/io/airtap/preview/WindowInventory.java"
+    },
+    {
+      "kind": "source",
+      "path": "apps/android/app/src/main/java/io/airtap/preview/WorkspaceShareProvider.java"
+    },
+    {
+      "kind": "source",
+      "path": "apps/android/app/src/main/java/io/airtap/preview/WorkspaceShares.java"
+    },
+    {
+      "kind": "source",
+      "path": "apps/android/app/src/main/res/drawable/ic_launcher.xml"
+    },
+    {
+      "kind": "source",
+      "path": "apps/android/app/src/main/res/values/strings.xml"
+    },
+    {
+      "kind": "source",
+      "path": "apps/android/app/src/main/res/values/styles.xml"
+    },
+    {
+      "kind": "source",
+      "path": "apps/android/app/src/main/res/xml/accessibility_service.xml"
+    },
+    {
+      "kind": "source",
+      "path": "apps/android/app/src/main/res/xml/data_extraction_rules.xml"
+    },
+    {
+      "kind": "source",
+      "path": "apps/android/app/tls-proguard-rules.pro"
+    },
+    {
+      "kind": "source",
+      "path": "apps/android/build.gradle"
+    },
+    {
+      "kind": "source",
+      "path": "apps/android/gradle.properties"
+    },
+    {
+      "kind": "binary",
+      "path": "apps/android/gradle/wrapper/gradle-wrapper.jar",
+      "review": "Unchanged bytes from reviewed beta4 public baseline; no new binary approval implied.",
+      "sha256": "7d3a4ac4de1c32b59bc6a4eb8ecb8e612ccd0cf1ae1e99f66902da64df296172"
+    },
+    {
+      "kind": "source",
+      "path": "apps/android/gradle/wrapper/gradle-wrapper.properties"
+    },
+    {
+      "kind": "source",
+      "path": "apps/android/gradlew"
+    },
+    {
+      "kind": "source",
+      "path": "apps/android/gradlew.bat"
+    },
+    {
+      "kind": "source",
+      "path": "apps/android/scripts/test_approval_recovery.py"
+    },
+    {
+      "kind": "source",
+      "path": "apps/android/scripts/test_approval_scheduling.py"
+    },
+    {
+      "kind": "source",
+      "path": "apps/android/scripts/test_atomic_input.py"
+    },
+    {
+      "kind": "source",
+      "path": "apps/android/scripts/test_audio_volume.py"
+    },
+    {
+      "kind": "source",
+      "path": "apps/android/scripts/test_drag.py"
+    },
+    {
+      "kind": "source",
+      "path": "apps/android/scripts/test_feedback.py"
+    },
+    {
+      "kind": "source",
+      "path": "apps/android/scripts/test_file_transfer.py"
+    },
+    {
+      "kind": "source",
+      "path": "apps/android/scripts/test_invitation_feedback.py"
+    },
+    {
+      "kind": "source",
+      "path": "apps/android/scripts/test_observation_pages.py"
+    },
+    {
+      "kind": "source",
+      "path": "apps/android/scripts/test_observation_pages_emulator.py"
+    },
+    {
+      "kind": "source",
+      "path": "apps/android/scripts/test_semantic_nodes.py"
+    },
+    {
+      "kind": "source",
+      "path": "apps/android/scripts/test_session_screen.py"
+    },
+    {
+      "kind": "source",
+      "path": "apps/android/scripts/test_setup_recovery.py"
+    },
+    {
+      "kind": "source",
+      "path": "apps/android/scripts/test_tls_emulator.py"
+    },
+    {
+      "kind": "source",
+      "path": "apps/android/scripts/test_tls_policy.py"
+    },
+    {
+      "kind": "source",
+      "path": "apps/android/scripts/test_windows.py"
+    },
+    {
+      "kind": "source",
+      "path": "apps/android/settings.gradle"
+    },
+    {
+      "kind": "source",
+      "path": "apps/android/tests/DragGestureTest.java"
+    },
+    {
+      "kind": "source",
+      "path": "apps/android/tests/ScreenPreparationTest.java"
+    },
+    {
+      "kind": "source",
+      "path": "apps/android/tests/SessionServiceTest.java"
+    },
+    {
+      "kind": "source",
+      "path": "apps/android/tests/TouchGestureTest.java"
+    },
+    {
+      "kind": "source",
+      "path": "apps/android/tests/WindowInventoryTest.java"
+    },
+    {
+      "kind": "source",
+      "path": "apps/android/tests/approvalrecovery/ApprovalRecoveryTest.java"
+    },
+    {
+      "kind": "source",
+      "path": "apps/android/tests/approvalrecovery/ApprovalSchedulingTest.java"
+    },
+    {
+      "kind": "source",
+      "path": "apps/android/tests/approvalrecovery/platform_fakes.py"
+    },
+    {
+      "kind": "source",
+      "path": "apps/android/tests/atomicinput/AtomicInputTest.java"
+    },
+    {
+      "kind": "source",
+      "path": "apps/android/tests/atomicinput/platform_fakes.py"
+    },
+    {
+      "kind": "source",
+      "path": "apps/android/tests/feedback/FeedbackTest.java"
+    },
+    {
+      "kind": "source",
+      "path": "apps/android/tests/files/FileTransferStoreTest.java"
+    },
+    {
+      "kind": "source",
+      "path": "apps/android/tests/files/PrivateFileStorageTest.java"
+    },
+    {
+      "kind": "source",
+      "path": "apps/android/tests/files/SafPublicationStoreTest.java"
+    },
+    {
+      "kind": "source",
+      "path": "apps/android/tests/invitation/InvitationFeedbackTest.java"
+    },
+    {
+      "kind": "source",
+      "path": "apps/android/tests/observationpages/ObservationPagesTest.java"
+    },
+    {
+      "kind": "source",
+      "path": "apps/android/tests/observationpages/emulator/AndroidManifest.xml"
+    },
+    {
+      "kind": "source",
+      "path": "apps/android/tests/observationpages/emulator/README.md"
+    },
+    {
+      "kind": "source",
+      "path": "apps/android/tests/observationpages/emulator/res/values/strings.xml"
+    },
+    {
+      "kind": "source",
+      "path": "apps/android/tests/observationpages/emulator/src/test/pages/PageActivity.java"
+    },
+    {
+      "kind": "source",
+      "path": "apps/android/tests/observationpages/emulator/src/test/pages/PageRunner.java"
+    },
+    {
+      "kind": "source",
+      "path": "apps/android/tests/semanticnodes/SemanticNodeTest.java"
+    },
+    {
+      "kind": "source",
+      "path": "apps/android/tests/semanticnodes/platform_fakes.py"
+    },
+    {
+      "kind": "source",
+      "path": "apps/android/tests/setuprecovery/SetupRecoveryTest.java"
+    },
+    {
+      "kind": "source",
+      "path": "apps/android/tests/setuprecovery/platform_fakes.py"
+    },
+    {
+      "kind": "source",
+      "path": "apps/android/tests/shares/AndroidManifest.xml"
+    },
+    {
+      "kind": "source",
+      "path": "apps/android/tests/shares/README.md"
+    },
+    {
+      "kind": "source",
+      "path": "apps/android/tests/shares/ReceiverActivity.java"
+    },
+    {
+      "kind": "source",
+      "path": "apps/android/tests/shares/build.py"
+    },
+    {
+      "kind": "source",
+      "path": "apps/android/tests/test_connection_closing.py"
+    },
+    {
+      "kind": "source",
+      "path": "apps/android/tests/tls/README.md"
+    },
+    {
+      "kind": "source",
+      "path": "apps/android/tests/tls/emulator/AndroidManifest.xml"
+    },
+    {
+      "kind": "source",
+      "path": "apps/android/tests/tls/emulator/src/test/tls/TlsRunner.java"
+    },
+    {
+      "kind": "source",
+      "path": "apps/android/tests/tls/host/android/net/http/X509TrustManagerExtensions.java"
+    },
+    {
+      "kind": "source",
+      "path": "apps/android/tests/tls/host/io/airtap/preview/TlsPolicyTest.java"
+    },
+    {
+      "kind": "source",
+      "path": "apps/android/tests/tls/host/okhttp3/OkHttpClient.java"
+    },
+    {
+      "kind": "source",
+      "path": "apps/android/tests/tls/impacted-intermediates.json"
+    },
+    {
+      "kind": "source",
+      "path": "apps/android/tests/tls/roots.json"
+    },
+    {
+      "kind": "source",
+      "path": "apps/android/tests/volume/AudioVolumeTest.java"
+    },
+    {
+      "kind": "source",
+      "path": "apps/android/tests/volume/platform_fakes.py"
+    },
+    {
+      "kind": "source",
+      "path": "cli/airtap.py"
+    },
+    {
+      "kind": "document",
+      "path": "docs/acceptance-beta4-plan.md"
+    },
+    {
+      "kind": "source",
+      "path": "docs/agent.md"
+    },
+    {
+      "kind": "document",
+      "path": "docs/android-file-executor.md"
+    },
+    {
+      "kind": "document",
+      "path": "docs/atomic-capabilities.md"
+    },
+    {
+      "kind": "document",
+      "path": "docs/checks.md"
+    },
+    {
+      "kind": "document",
+      "path": "docs/client-recovery-v040.md"
+    },
+    {
+      "kind": "document",
+      "path": "docs/companion-upgrade-plan.md"
+    },
+    {
+      "kind": "document",
+      "path": "docs/feedback-design.md"
+    },
+    {
+      "kind": "document",
+      "path": "docs/feedback-operations.md"
+    },
+    {
+      "kind": "document",
+      "path": "docs/open-source-baseline.md"
+    },
+    {
+      "kind": "document",
+      "path": "docs/paged-observation.md"
+    },
+    {
+      "kind": "document",
+      "path": "docs/personal-ai-acceptance-v040.md"
+    },
+    {
+      "kind": "document",
+      "path": "docs/project-conventions.md"
+    },
+    {
+      "kind": "document",
+      "path": "docs/relay-usage-storage.md"
+    },
+    {
+      "kind": "document",
+      "path": "docs/reproduce-v040.md"
+    },
+    {
+      "kind": "document",
+      "path": "docs/reproduce.md"
+    },
+    {
+      "kind": "result",
+      "path": "docs/results/android-tls-20261027.json"
+    },
+    {
+      "kind": "result",
+      "path": "docs/results/beta3-remote-recovery-20261026.json"
+    },
+    {
+      "kind": "result",
+      "path": "docs/results/beta4-clean-install-20261026.json"
+    },
+    {
+      "kind": "result",
+      "path": "docs/results/beta4-delivery-20261026.json"
+    },
+    {
+      "kind": "result",
+      "path": "docs/results/beta4-feedback-live-20261026.json"
+    },
+    {
+      "kind": "result",
+      "path": "docs/results/beta4-feedback-protocol-20261026.json"
+    },
+    {
+      "kind": "result",
+      "path": "docs/results/beta4-feedback-ui-20261026.json"
+    },
+    {
+      "kind": "result",
+      "path": "docs/results/beta4-muse-idle-20261026.json"
+    },
+    {
+      "kind": "result",
+      "path": "docs/results/beta4-muse-preidle-20261026.json"
+    },
+    {
+      "kind": "result",
+      "path": "docs/results/beta4-public-site-20261026.json"
+    },
+    {
+      "kind": "result",
+      "path": "docs/results/beta5-atomic-development-20261026.json"
+    },
+    {
+      "kind": "result",
+      "path": "docs/results/beta6-code34-muse-20261027.json"
+    },
+    {
+      "kind": "result",
+      "path": "docs/results/beta6-code35-muse-demo-20261027.json"
+    },
+    {
+      "kind": "result",
+      "path": "docs/results/beta6-code35-physical-screen-20261027.json"
+    },
+    {
+      "kind": "result",
+      "path": "docs/results/beta7-code36-clean-install-20261027.json"
+    },
+    {
+      "kind": "result",
+      "path": "docs/results/beta7-code37-muse-20261027.json"
+    },
+    {
+      "kind": "result",
+      "path": "docs/results/beta7-code37-muse-followup-20261027.json"
+    },
+    {
+      "kind": "result",
+      "path": "docs/results/beta7-code37-upgrade-revoke-20261027.json"
+    },
+    {
+      "kind": "result",
+      "path": "docs/results/beta8-code38-muse-20261027.json"
+    },
+    {
+      "kind": "result",
+      "path": "docs/results/beta8-code38-recovery-20261027.json"
+    },
+    {
+      "kind": "result",
+      "path": "docs/results/beta8-delivery-20261027.json"
+    },
+    {
+      "kind": "result",
+      "path": "docs/results/client-recovery-v040-delivery.json"
+    },
+    {
+      "kind": "result",
+      "path": "docs/results/cloudflare-v040-bootstrap-verification.json"
+    },
+    {
+      "kind": "result",
+      "path": "docs/results/companion-v040-physical-acceptance.json"
+    },
+    {
+      "kind": "result",
+      "path": "docs/results/composing-delete-20261027.json"
+    },
+    {
+      "kind": "result",
+      "path": "docs/results/doubao-v040-entry-check.json"
+    },
+    {
+      "kind": "result",
+      "path": "docs/results/file-sharing-cleanup-emulator-20261027.json"
+    },
+    {
+      "kind": "result",
+      "path": "docs/results/file-sharing-cleanup-host-20261027.json"
+    },
+    {
+      "kind": "result",
+      "path": "docs/results/file-sharing-cleanup-protocol-20261027.json"
+    },
+    {
+      "kind": "result",
+      "path": "docs/results/maintenance-cleanup-20261027.json"
+    },
+    {
+      "kind": "result",
+      "path": "docs/results/node-select-all-20261027.json"
+    },
+    {
+      "kind": "result",
+      "path": "docs/results/observation-text-metadata-20261027.json"
+    },
+    {
+      "kind": "result",
+      "path": "docs/results/paged-metadata-host-20261027.json"
+    },
+    {
+      "kind": "result",
+      "path": "docs/results/paged-metadata-native-20261027.json"
+    },
+    {
+      "kind": "result",
+      "path": "docs/results/paged-observation-20261027.json"
+    },
+    {
+      "kind": "result",
+      "path": "docs/results/personal-ai-v040-acceptance.json"
+    },
+    {
+      "kind": "result",
+      "path": "docs/results/release-experience-20261026.json"
+    },
+    {
+      "kind": "result",
+      "path": "docs/results/release-owner-feedback-20261026.json"
+    },
+    {
+      "kind": "result",
+      "path": "docs/results/release-postpublication-20261026.json"
+    },
+    {
+      "kind": "result",
+      "path": "docs/results/screen-lease-renewal-20261027.json"
+    },
+    {
+      "kind": "result",
+      "path": "docs/results/security-maintenance-20261027.json"
+    },
+    {
+      "kind": "result",
+      "path": "docs/results/semantic-widgets-emulator-20261027.json"
+    },
+    {
+      "kind": "result",
+      "path": "docs/results/snapshot-text-fingerprint-20261027.json"
+    },
+    {
+      "kind": "result",
+      "path": "docs/results/tls-incident-20261027.json"
+    },
+    {
+      "kind": "result",
+      "path": "docs/results/website-onboarding-20261027.json"
+    },
+    {
+      "kind": "document",
+      "path": "docs/source-distribution.md"
+    },
+    {
+      "kind": "document",
+      "path": "docs/user-guide-v040.md"
+    },
+    {
+      "kind": "source",
+      "path": "relay/service/deploy.py"
+    },
+    {
+      "kind": "source",
+      "path": "relay/service/feedback-contract.json"
+    },
+    {
+      "kind": "source",
+      "path": "relay/service/feedback.mjs"
+    },
+    {
+      "kind": "source",
+      "path": "relay/service/reports.py"
+    },
+    {
+      "kind": "result",
+      "path": "relay/service/results/companion-roundtrip-v040.json"
+    },
+    {
+      "kind": "result",
+      "path": "relay/service/results/pair-recovery-v040.json"
+    },
+    {
+      "kind": "source",
+      "path": "relay/service/service.mjs"
+    },
+    {
+      "kind": "source",
+      "path": "relay/service/tests/companion-roundtrip.mjs"
+    },
+    {
+      "kind": "source",
+      "path": "relay/service/tests/feedback-roundtrip.mjs"
+    },
+    {
+      "kind": "source",
+      "path": "relay/service/tests/file-transfer-roundtrip.mjs"
+    },
+    {
+      "kind": "source",
+      "path": "relay/service/tests/fixtures/emudhra-20261027.json"
+    },
+    {
+      "kind": "source",
+      "path": "relay/service/tests/fixtures/open-url-cases.json"
+    },
+    {
+      "kind": "source",
+      "path": "relay/service/tests/invitation-artifacts.mjs"
+    },
+    {
+      "kind": "source",
+      "path": "relay/service/tests/pair-recovery.mjs"
+    },
+    {
+      "kind": "source",
+      "path": "relay/service/tests/test_cli_tls.py"
+    },
+    {
+      "kind": "source",
+      "path": "relay/service/tests/test_deploy.py"
+    },
+    {
+      "kind": "source",
+      "path": "relay/service/tests/test_file_rate_wait.py"
+    },
+    {
+      "kind": "source",
+      "path": "relay/service/tests/test_file_transfer.py"
+    },
+    {
+      "kind": "source",
+      "path": "relay/service/tests/test_open_url.py"
+    },
+    {
+      "kind": "source",
+      "path": "relay/service/tests/test_reports.py"
+    },
+    {
+      "kind": "source",
+      "path": "relay/service/tests/usage-storage.mjs"
+    },
+    {
+      "kind": "source",
+      "path": "relay/worker/package-lock.json"
+    },
+    {
+      "kind": "source",
+      "path": "relay/worker/package.json"
+    },
+    {
+      "kind": "source",
+      "path": "relay/worker/worker.mjs"
+    },
+    {
+      "kind": "document",
+      "path": "release/README.md"
+    },
+    {
+      "kind": "source",
+      "path": "release/android/25.json"
+    },
+    {
+      "kind": "source",
+      "path": "release/android/26.json"
+    },
+    {
+      "kind": "source",
+      "path": "release/android/27.json"
+    },
+    {
+      "kind": "source",
+      "path": "release/android/28.json"
+    },
+    {
+      "kind": "source",
+      "path": "release/android/38.json"
+    },
+    {
+      "kind": "source",
+      "path": "release/build_android.py"
+    },
+    {
+      "kind": "source",
+      "path": "release/build_site.py"
+    },
+    {
+      "kind": "source",
+      "path": "release/retired-apks.json"
+    },
+    {
+      "kind": "document",
+      "path": "release/site-acceptance.md"
+    },
+    {
+      "kind": "source",
+      "path": "release/site/app.js"
+    },
+    {
+      "kind": "source",
+      "path": "release/site/index.html"
+    },
+    {
+      "kind": "source",
+      "path": "release/site/install-qr.svg"
+    },
+    {
+      "kind": "source",
+      "path": "release/site/mark.svg"
+    },
+    {
+      "kind": "source",
+      "path": "release/site/style.css"
+    },
+    {
+      "kind": "source",
+      "path": "release/test_build_site.py"
+    },
+    {
+      "kind": "source",
+      "path": "release/test_verify_site.py"
+    },
+    {
+      "kind": "source",
+      "path": "release/verify_site.py"
+    },
+    {
+      "kind": "source",
+      "path": "release/worker.mjs"
+    },
+    {
+      "kind": "source",
+      "path": "release/worker.test.mjs"
+    },
+    {
+      "kind": "source",
+      "path": "tools/check.py"
+    },
+    {
+      "kind": "source",
+      "path": "tools/ci/github-actions-check.yml.disabled"
+    },
+    {
+      "kind": "source",
+      "path": "tools/package_download.py"
+    },
+    {
+      "kind": "source",
+      "path": "tools/package_source.py"
+    },
+    {
+      "kind": "source",
+      "path": "tools/source-package-files.json"
+    },
+    {
+      "kind": "source",
+      "path": "tools/source_manifest.py"
+    },
+    {
+      "kind": "source",
+      "path": "tools/tests/test_package_source.py"
+    }
+  ],
+  "protocol_version": 4,
+  "schema": "airtap-source-allowlist-v1",
+  "scope": "Reviewed current Android, CLI, relay, site, build, CI and test source closure. No Git history, credentials, private deployment state, APK, or raw phone evidence. Historical acceptance retains its original version and scope; a source ZIP is not public release approval.",
+  "version": "0.4.0-beta.8-code38",
+  "version_code": 38
+}

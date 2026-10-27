@@ -1,0 +1,479 @@
+{
+  "schema": "airtap-maintainer-native-acceptance-v1",
+  "status": "technical_subset_passed_with_retained_failures",
+  "recorded_at_utc": "2026-10-27T07:37:13.168121+00:00",
+  "test_date": "2026-10-27",
+  "scope": {
+    "platform": "Android16/API36 isolated emulator",
+    "test_actor": "maintainer using the real remote CLI and normal Android system UI",
+    "public_relay_used": true,
+    "physical_phone": false,
+    "personal_ai_or_muse": false,
+    "independent_user": false,
+    "all_user_journeys_complete": false,
+    "audio_played": false
+  },
+  "build": {
+    "before": {
+      "version_code": 37,
+      "version_name": "0.4.0-beta.7",
+      "build_type": "release"
+    },
+    "after": {
+      "version_code": 38,
+      "version_name": "0.4.0-beta.8",
+      "build_type": "release"
+    },
+    "confirmation": "Version fields came from the phone executor in successful remote ping responses, including wait-ready embedded ping.",
+    "final_apk_sha256": "6978cadee77ef78b350dfe91e29b76ab74273c6ee946050b5cd2a76dee02d09c",
+    "final_build_source_commit": "dec86af62446789cd04f80b398b4e8b61a2bbf43"
+  },
+  "cli_provenance": {
+    "executed_version": "0.4.0-cli.8",
+    "executed_artifact_sha256": "4f9af83799764b6573ae03f22b7921a141fa1de0b6c1121977cc1492ad95b508",
+    "exact_invocation_version_confirmed": true,
+    "evidence": [
+      "Root maintainer tool records: pre/post upgrade ready and ping invoked the complete canonical CLI path directly.",
+      "Subsequent status and HOME receipts were generated through private call.py; reviewer read that helper and confirmed it invokes the same canonical CLI path.",
+      "Reviewer independently hashed the current canonical CLI, checked VERSION, and matched the SHA to the downloaded invitation artifact."
+    ],
+    "private_call_helper_sha256": "1cf06bcb016cfc15a7825fda6d1a75489bd90914b102741c3008060887998a81",
+    "legacy_attempt_excluded": "Old local pair.py, airtap.py and remote.py were retained from an earlier failed attempt and were not used by attempt2. Their CLI.7 pin does not describe this run.",
+    "runtime_scope": "Maintainer Python CLI, not Muse or another personal-AI runtime."
+  },
+  "evidence_types": {
+    "remote_receipts": "Existing private CLI JSON files were read and reduced to allowlisted operational fields. Device URL, controller token, claim/code, connection ID and arbitrary content are excluded.",
+    "system_ui": "Direct observations reported by the root maintainer operating the emulator. Not every UI observation has an independent saved screenshot attachment.",
+    "ui_driver": "Root confirmed the UiAutomation driver uses FLAG_DONT_SUPPRESS_ACCESSIBILITY_SERVICES. The reviewer did not run it or touch the device.",
+    "timestamps": "File modification timestamps indicate receipt capture, not exact UI-action time or continuous observation."
+  },
+  "upgrade": {
+    "outcome": "normal_installer_upgrade_and_original_pair_ready_verified_with_one_later_ping_timeout",
+    "normal_ui_sequence": [
+      "ADB placed the APK only; Files opened the APK",
+      "Continue on the unknown-app prompt",
+      "Update in Android installer",
+      "Play Protect More details then Install without scanning",
+      "App updated then Open"
+    ],
+    "ui_sequence_source": "maintainer_direct_ui_observation",
+    "uninstall_or_data_clear_used": false,
+    "new_pair_or_six_digit_confirmation_for_upgrade": false,
+    "same_private_identity_independently_compared": {
+      "url": true,
+      "controller_token": true,
+      "claim_id": true
+    },
+    "command_sequence_not_reset": true,
+    "successful_after_upgrade_ready": "after-upgrade-ready",
+    "failure_retained": {
+      "artifact": "after-upgrade-ping",
+      "error": "total_deadline_exceeded",
+      "outcome": "unknown",
+      "retry_action": false,
+      "interpretation": "A separate ping after the successful ready result timed out. This run is not represented as uniformly successful or zero-failure connectivity."
+    }
+  },
+  "notification_off": {
+    "ui_action": "Airtap notifications switched off through normal Android system notification UI",
+    "system_appops_observed": "POST_NOTIFICATION ignore",
+    "system_observation_source": "maintainer_readonly_diagnostic",
+    "initial_status": "approved; deviceConnected=true; pending0",
+    "home_request": {
+      "status": 504,
+      "elapsed_ms": 16021.14,
+      "outcome": "unknown",
+      "retry_action": false
+    },
+    "ui_result": "The same system notification page remained visible; HOME was not observed to execute.",
+    "later_status": "approved; deviceConnected=false; pending0",
+    "app_ui": "Original AI connection retained; restore the missing permission without pairing again.",
+    "interpretation": "There was a stale online indicator, followed by a timed-out command and later offline state. Outcome unknown is not an explicit denial receipt. Source review shows synchronous notification gating before actions; the observable evidence supports no HOME effect in this test, not proof of all possible in-flight actions being instantly cancelled.",
+    "immediate_server_disconnect_proven": false,
+    "all_inflight_gesture_cancellation_native_verified": false
+  },
+  "notification_restore": {
+    "ui_action": "Only the existing notification permission was switched back on",
+    "system_appops_observed": "POST_NOTIFICATION allow",
+    "new_invitation_or_pairing_used": false,
+    "ready_result": {
+      "ok": true,
+      "ready": true,
+      "attempts": 2,
+      "executor_version_code": 38
+    },
+    "remote_home": {
+      "ok": true,
+      "elapsed_ms": 2324.93,
+      "actual_desktop_observed": true
+    },
+    "interpretation": "The original pair resumed after notification restoration and a real remote HOME completed. This does not measure an exact restoration latency or establish long-duration unattended behavior."
+  },
+  "remote_preparation_ui": {
+    "observed": true,
+    "source": "maintainer_direct_ui_observation",
+    "dynamic_categories": [
+      "network",
+      "phone operation service",
+      "connection notifications",
+      "background restrictions",
+      "system authentication"
+    ],
+    "battery_optimization_observed": "still subject to system battery optimization",
+    "other_exact_values_not_transcribed": true,
+    "boundary_shown_in_ui": "These are current settings checks, not proof that screen-off, network recovery, or unattended tasks have passed."
+  },
+  "owner_stop": {
+    "path": "notification action: stop control",
+    "type": "local owner stop, not whole relay revocation",
+    "direct_ui_observations": [
+      "Control notification removed",
+      "Airtap offered a new invitation",
+      "After notification off/on and opening Airtap again, it did not automatically resume the old control session"
+    ],
+    "first_remote_status": {
+      "state": "approved",
+      "deviceConnected": false,
+      "pending": 0
+    },
+    "first_home": {
+      "ok": false,
+      "status": 503,
+      "outcome": "unknown",
+      "retry_action": false
+    },
+    "after_notification_toggle_remote_status": {
+      "state": "approved",
+      "deviceConnected": false,
+      "pending": 0
+    },
+    "after_notification_toggle_home": {
+      "ok": false,
+      "status": 503,
+      "outcome": "unknown",
+      "retry_action": false
+    },
+    "interpretation": "Local trust was stopped and the old remote session remained unavailable after the tested owner actions. Approved relay metadata is expected for notification-only local stop; it is not evidence of unauthorized execution. The generic CLI503 receipts are retained as unknown outcomes, not mislabeled as confirmed server revocation.",
+    "server_revoke_verified": false,
+    "background_timer_or_process_death_coverage": "not separately demonstrated by these native observations"
+  },
+  "not_claimed": [
+    "Muse or any other personal-AI independent execution",
+    "Physical Android phone behavior or other OS/OEM versions",
+    "Fresh user installation from zero rather than upgrade",
+    "Instantaneous relay disconnection on notification disable",
+    "Explicit refusal evidence for commands whose actual receipt says outcome unknown",
+    "Every possible in-flight gesture or late callback race native-tested",
+    "Unattended operation merely because readiness settings were shown",
+    "Full server-side revocation from the notification-only stop action",
+    "Fresh controller or personal-AI bootstrap/pairing acceptance from the artifact-integrity check alone"
+  ],
+  "receipts": [
+    {
+      "artifact": "before-upgrade-ready",
+      "original_private_receipt_sha256": "c9e1657d8331e4c4c40fd53f292a5b95a588bd56f1fdd3b9afad5839f2d17343",
+      "file_last_modified_utc": "2026-10-27T07:13:50.762367+00:00",
+      "result": {
+        "ok": true,
+        "ready": true,
+        "connection_ready": true,
+        "screen_state": "ready",
+        "screen_ready": true,
+        "will_prepare_screen": false,
+        "attempts": 2,
+        "ping": {
+          "ok": true,
+          "elapsed_ms": 2109.28,
+          "result": {
+            "authorized": true,
+            "persistent": true,
+            "all_apps": true,
+            "allow_control": true,
+            "screen_state": "ready",
+            "client": {
+              "platform": "android",
+              "version_name": "0.4.0-beta.7",
+              "version_code": 37,
+              "build_type": "release"
+            }
+          }
+        },
+        "status": {
+          "ok": true,
+          "state": "approved",
+          "persistent": true,
+          "all_apps": true,
+          "allow_control": true,
+          "deviceConnected": true,
+          "pending": 0,
+          "elapsed_ms": 1465.91
+        }
+      }
+    },
+    {
+      "artifact": "before-upgrade-ping",
+      "original_private_receipt_sha256": "ea39295899415ff06dce7716b07d0bff850b1e3088f808477232e8ecf080d66a",
+      "file_last_modified_utc": "2026-10-27T07:14:34.434515+00:00",
+      "result": {
+        "ok": true,
+        "elapsed_ms": 1672.0,
+        "result": {
+          "authorized": true,
+          "persistent": true,
+          "all_apps": true,
+          "allow_control": true,
+          "screen_state": "ready",
+          "client": {
+            "platform": "android",
+            "version_name": "0.4.0-beta.7",
+            "version_code": 37,
+            "build_type": "release"
+          }
+        }
+      }
+    },
+    {
+      "artifact": "after-upgrade-ready",
+      "original_private_receipt_sha256": "1de427fc894cf8719363337c670ed5d650eb8934caf799e7783a94ce775b1215",
+      "file_last_modified_utc": "2026-10-27T07:20:13.109910+00:00",
+      "result": {
+        "ok": true,
+        "ready": true,
+        "connection_ready": true,
+        "screen_state": "ready",
+        "screen_ready": true,
+        "will_prepare_screen": false,
+        "attempts": 1,
+        "ping": {
+          "ok": true,
+          "elapsed_ms": 2137.0,
+          "result": {
+            "authorized": true,
+            "persistent": true,
+            "all_apps": true,
+            "allow_control": true,
+            "screen_state": "ready",
+            "client": {
+              "platform": "android",
+              "version_name": "0.4.0-beta.8",
+              "version_code": 38,
+              "build_type": "release"
+            }
+          }
+        },
+        "status": {
+          "ok": true,
+          "state": "approved",
+          "persistent": true,
+          "all_apps": true,
+          "allow_control": true,
+          "deviceConnected": true,
+          "pending": 0,
+          "elapsed_ms": 1225.05
+        }
+      }
+    },
+    {
+      "artifact": "after-upgrade-ping",
+      "original_private_receipt_sha256": "3ec84e8393b20510ffb19fa1af4aa2a843f0a8be28b0d88c43e4210b5693d033",
+      "file_last_modified_utc": "2026-10-27T07:20:38.161699+00:00",
+      "result": {
+        "ok": false,
+        "error": "total_deadline_exceeded",
+        "outcome": "unknown",
+        "retry_action": false
+      }
+    },
+    {
+      "artifact": "notification-off-status",
+      "original_private_receipt_sha256": "3bd86f114336c625046f2c56c47f4c1a7907ff3c6f32be7441da56fb8146a95a",
+      "file_last_modified_utc": "2026-10-27T07:24:07.429054+00:00",
+      "result": {
+        "ok": true,
+        "state": "approved",
+        "persistent": true,
+        "all_apps": true,
+        "allow_control": true,
+        "deviceConnected": true,
+        "pending": 0,
+        "elapsed_ms": 919.73
+      }
+    },
+    {
+      "artifact": "notification-off-home",
+      "original_private_receipt_sha256": "fd5e0b49a69e48fec72a0ae51cc3f6407238ea6bf5f101da387a00d80684ce2e",
+      "file_last_modified_utc": "2026-10-27T07:24:23.521483+00:00",
+      "result": {
+        "ok": false,
+        "error": "http_error",
+        "status": 504,
+        "elapsed_ms": 16021.14,
+        "outcome": "unknown",
+        "retry_action": false
+      }
+    },
+    {
+      "artifact": "notification-off-status-later",
+      "original_private_receipt_sha256": "ab645ef1dfe184cac397e5c4c96ad1fbbabb9527961aaa9e2199122456a85349",
+      "file_last_modified_utc": "2026-10-27T07:25:07.917774+00:00",
+      "result": {
+        "ok": true,
+        "state": "approved",
+        "persistent": true,
+        "all_apps": true,
+        "allow_control": true,
+        "deviceConnected": false,
+        "pending": 0,
+        "elapsed_ms": 1231.04
+      }
+    },
+    {
+      "artifact": "notification-restored-ready",
+      "original_private_receipt_sha256": "d75c929c9a09ac1386b194e398ac0e048984f58ce2bd434a9b2c59925112f7ea",
+      "file_last_modified_utc": "2026-10-27T07:25:31.706447+00:00",
+      "result": {
+        "ok": true,
+        "ready": true,
+        "connection_ready": true,
+        "screen_state": "ready",
+        "screen_ready": true,
+        "will_prepare_screen": false,
+        "attempts": 2,
+        "ping": {
+          "ok": true,
+          "elapsed_ms": 1260.27,
+          "result": {
+            "authorized": true,
+            "persistent": true,
+            "all_apps": true,
+            "allow_control": true,
+            "screen_state": "ready",
+            "client": {
+              "platform": "android",
+              "version_name": "0.4.0-beta.8",
+              "version_code": 38,
+              "build_type": "release"
+            }
+          }
+        },
+        "status": {
+          "ok": true,
+          "state": "approved",
+          "persistent": true,
+          "all_apps": true,
+          "allow_control": true,
+          "deviceConnected": true,
+          "pending": 0,
+          "elapsed_ms": 1825.75
+        }
+      }
+    },
+    {
+      "artifact": "notification-restored-home",
+      "original_private_receipt_sha256": "1c88efa17891dcfd1782c183c0cf4e7018604fb4f1b43b800c7feefc14065058",
+      "file_last_modified_utc": "2026-10-27T07:25:42.360281+00:00",
+      "result": {
+        "ok": true,
+        "elapsed_ms": 2324.93
+      }
+    },
+    {
+      "artifact": "owner-stopped-status",
+      "original_private_receipt_sha256": "12a21636005aafbef171ecf8dbf9c41ae957770614cbaebd397b3b78eff63b78",
+      "file_last_modified_utc": "2026-10-27T07:28:28.701995+00:00",
+      "result": {
+        "ok": true,
+        "state": "approved",
+        "persistent": true,
+        "all_apps": true,
+        "allow_control": true,
+        "deviceConnected": false,
+        "pending": 0,
+        "elapsed_ms": 1059.45
+      }
+    },
+    {
+      "artifact": "owner-stopped-home",
+      "original_private_receipt_sha256": "c695196a0e28a1f031ef15f1143c312c8cf82849fa35594fbdda4079830139d1",
+      "file_last_modified_utc": "2026-10-27T07:28:29.672112+00:00",
+      "result": {
+        "ok": false,
+        "error": "http_error",
+        "status": 503,
+        "elapsed_ms": 895.53,
+        "outcome": "unknown",
+        "retry_action": false
+      }
+    },
+    {
+      "artifact": "owner-stopped-after-toggle-status",
+      "original_private_receipt_sha256": "198fe2c8a490a119e24d2d47c2b608e01d1e882500dc1c4d5ea128e8ed408600",
+      "file_last_modified_utc": "2026-10-27T07:30:18.372121+00:00",
+      "result": {
+        "ok": true,
+        "state": "approved",
+        "persistent": true,
+        "all_apps": true,
+        "allow_control": true,
+        "deviceConnected": false,
+        "pending": 0,
+        "elapsed_ms": 990.34
+      }
+    },
+    {
+      "artifact": "owner-stopped-after-toggle-home",
+      "original_private_receipt_sha256": "6afa10195ff90d093417f1912959b095b8d3efc7e28b0bcc1c3185fd2245234c",
+      "file_last_modified_utc": "2026-10-27T07:30:19.522974+00:00",
+      "result": {
+        "ok": false,
+        "error": "http_error",
+        "status": 503,
+        "elapsed_ms": 1088.25,
+        "outcome": "unknown",
+        "retry_action": false
+      }
+    }
+  ],
+  "new_invitation_artifact_integrity": {
+    "status": "passed",
+    "client_version_code": 38,
+    "sequence": "Only after explicit local stop and owner selection to issue a new invitation; original pair had remained unchanged during upgrade and notification recovery.",
+    "method": "Actual phone invitation from authenticated live v4 service; compare expectations from phone UI before reading guide or executing downloaded code",
+    "checks": [
+      {
+        "artifact": "/agent.md",
+        "bytes": 71040,
+        "sha256": "b65e7764f6ca4c5faad23c767cd7a83ad5a676dbcb76862e239ff83bbbdd79ce",
+        "matches_phone_invitation": true
+      },
+      {
+        "artifact": "/cli/airtap.py",
+        "bytes": 78954,
+        "sha256": "4f9af83799764b6573ae03f22b7921a141fa1de0b6c1121977cc1492ad95b508",
+        "matches_phone_invitation": true
+      }
+    ],
+    "new_controller_or_pairing_started": false,
+    "downloaded_cli_matches_executed_canonical_cli": true,
+    "source_artifact_sha256": "a48568281af7a594f341fb0d27e004a43660bf892fab32533f2f727cc3b04239",
+    "boundary": "Proves actual phone invitation SHA expectations match downloaded guide and CLI on the live public service. It is not a new personal-AI first connection or a fresh-controller pairing acceptance."
+  },
+  "old_controller_after_explicit_new_invitation": {
+    "action": "Owner explicitly requested a new invitation after the local stop test",
+    "response": {
+      "ok": false,
+      "error": "http_error",
+      "status": 401,
+      "elapsed_ms": 1682.71,
+      "outcome": "not_available",
+      "retry_action": false
+    },
+    "interpretation": "The old controller was refused with HTTP401 after the explicit new-invitation action. This is separate from notification-only local stop, whose relay metadata had remained approved; it must not be used as evidence that the earlier notification stop itself performed relay revocation.",
+    "source_artifact_sha256": "631570fdeaa7334c500912ada6db517e8791e3dc737f6aaa2537b1605cd4f62f"
+  },
+  "cleanup": {
+    "isolated_emulator_stopped_by_maintainer": true,
+    "other_emulator_or_phone_stopped": false,
+    "new_invitation": "No controller or approval was created. Test emulator was stopped; invitation expiry was not separately observed."
+  }
+}

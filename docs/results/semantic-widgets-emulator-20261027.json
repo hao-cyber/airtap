@@ -1,0 +1,28 @@
+{
+  "environment": "Android API36.1 emulator-5584; maintenance CLI via local relay, not physical phone or personal AI",
+  "fixture": "standard native Android SeekBar and ListView, no custom accessibility action overrides",
+  "set_progress": {
+    "original": 25,
+    "requested": 72,
+    "readback": 72,
+    "native_callback_from_user": true,
+    "rejected_out_of_range": 101,
+    "restored": 25
+  },
+  "scroll_to_position": {
+    "row": 40,
+    "column": 0,
+    "target_row_visible": true,
+    "first_visible_actual": 25,
+    "first_run_failed_assertion": "Initially expected row40 top; native Android scroll_to_position brings requested row into view, current first row25. Failure retained.",
+    "restored_first_visible": 0,
+    "reported_collection_counts": [
+      -1,
+      -1
+    ]
+  },
+  "events_sha256": "191b6374669d9aec1c01f4fb039de908bbd570feeed7668dd06c9092479511e4",
+  "final_home": true,
+  "fixture_apk_sha256": "aaa349e961664cc10e9591bbef6b0e189571e210a64f43cc7785e60573e60b4d",
+  "native_noop": "Reapplying value72 when already72 returned action_rejected; readback remained72. Preserved, not classified as dispatch success."
+}

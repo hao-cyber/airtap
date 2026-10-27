@@ -1,0 +1,61 @@
+{
+  "schema": "airtap-client-delivery-verification-v1",
+  "verified_at": "2026-10-25T15:47:09.198886+00:00",
+  "protocol_version": 4,
+  "artifact_version": "service4-042d0f7f-c9a96807-749abdc6",
+  "service_id_unchanged": true,
+  "service_metadata_stable_during_check": true,
+  "service_registration_open": true,
+  "service_control_open": true,
+  "source_sha256": "042d0f7f9d4b545f619ee4a2ab40841a39986a1cd97098f0aba6cd7476c806e8",
+  "artifacts": [
+    {
+      "path": "/cli/airtap.py",
+      "source_path": "cli/airtap.py",
+      "bytes": 38314,
+      "sha256": "c9a968076e83d90f10350b1ffc86fe5675facb11bf33939402c162bfa66cc53c",
+      "advertised_digest_matches": true,
+      "source_bytes_match": true,
+      "artifact_version": "service4-042d0f7f-c9a96807-749abdc6",
+      "cache_control": "no-store, no-cache, no-transform"
+    },
+    {
+      "path": "/agent.md",
+      "source_path": "docs/agent.md",
+      "bytes": 8590,
+      "sha256": "749abdc6b4cf3cc8eba965b2eeb6578890c553de3fdf76dea28d457891d06f0d",
+      "advertised_digest_matches": true,
+      "source_bytes_match": true,
+      "artifact_version": "service4-042d0f7f-c9a96807-749abdc6",
+      "cache_control": "no-store, no-cache, no-transform"
+    }
+  ],
+  "requests": [
+    {
+      "path": "/v1/service",
+      "attempt": 1,
+      "status": 200,
+      "elapsed_seconds": 0.288
+    },
+    {
+      "path": "/cli/airtap.py",
+      "attempt": 1,
+      "status": 200,
+      "elapsed_seconds": 1.081
+    },
+    {
+      "path": "/agent.md",
+      "attempt": 1,
+      "status": 200,
+      "elapsed_seconds": 0.611
+    },
+    {
+      "path": "/v1/service",
+      "attempt": 1,
+      "status": 200,
+      "elapsed_seconds": 0.415
+    }
+  ],
+  "all_checks_passed": true,
+  "scope": "Read-only HTTPS downloads from the maintainer Mac of the default public v4 service metadata, CLI and guide. No device enrollment, pairing, phone command, personal AI or geographic reachability test."
+}

@@ -1,0 +1,51 @@
+{
+  "checkedAt": "2026-10-25T15:32:31.726Z",
+  "scope": "Real workerd, production relay + real Python CLI + remote MCP. Synthetic phone. Test ingress limit raised to allow >200-command regression in one minute.",
+  "serviceSourceSha256": "11d6fb16e43210d40e700c14e892bc049f9bb355df1697a53300eae43a9e9d90",
+  "coreSourceSha256": "917b24df737ea04faab744a28b9c07bed191b35d012aa32c22773ff39935d03a",
+  "cliSha256": "c9a968076e83d90f10350b1ffc86fe5675facb11bf33939402c162bfa66cc53c",
+  "passed": 8,
+  "total": 8,
+  "checks": [
+    {
+      "name": "v4 discovery, no duration/command cap, enrollment and integrity-checked CLI delivery",
+      "ok": true,
+      "elapsedMs": 53
+    },
+    {
+      "name": "CLI pair, pending denial, explicit full-phone persistent approval",
+      "ok": true,
+      "elapsedMs": 168
+    },
+    {
+      "name": "real CLI ready, native tree action and automatic post-action image observation",
+      "ok": true,
+      "elapsedMs": 1164
+    },
+    {
+      "name": "more than 200 commands remain usable; original sequence replay stays rejected",
+      "ok": true,
+      "elapsedMs": 465
+    },
+    {
+      "name": "malformed/unauthorized calls never reach the phone",
+      "ok": true,
+      "elapsedMs": 9
+    },
+    {
+      "name": "remote MCP discovery, image content, sequence fencing and unknown-tool errors",
+      "ok": true,
+      "elapsedMs": 10
+    },
+    {
+      "name": "transport takeover preserves scope and monotonic replay state",
+      "ok": true,
+      "elapsedMs": 75
+    },
+    {
+      "name": "CLI revoke invalidates both HTTP and MCP credentials",
+      "ok": true,
+      "elapsedMs": 77
+    }
+  ]
+}

@@ -1,0 +1,26 @@
+{
+  "passed": 17,
+  "tests": [
+    "300 visible nodes span three exact stable pages with no omissions",
+    "byte budget produces a continuation even before128 nodes",
+    "oversized single public item cannot create a nonadvancing page",
+    "topology order native replacement and hidden-state changes invalidate",
+    "changed text beyond200 UTF16 units invalidates original snapshot",
+    "range-only change rejects old page without changing target text or native identity",
+    "custom action label-only change rejects old page",
+    "advertised action set-only change rejects old page",
+    "collection accessibility focus and newly exported metadata participate in consistency",
+    "equivalent nested metadata keeps valid pages independent of object key order",
+    "node scan and byte limits fail explicitly without partial totals",
+    "missing child cancellation and deadline stop snapshot publication",
+    "page range validation and exact end page",
+    "long Unicode text reconstructs exactly with returned UTF16 offsets",
+    "surrogate edge avoids split and rejects middle offset",
+    "empty exact-end and invalid text ranges",
+    "masked observations never inspect measure hash or return private value"
+  ],
+  "limitations": [
+    "Production PagedTree/ObservedText/TreeReadBudget compiled unchanged; native nodes and JSON are explicit synthetic fixtures.",
+    "Does not replace actual Android CompanionUi/window/permission or personal-AI acceptance."
+  ]
+}

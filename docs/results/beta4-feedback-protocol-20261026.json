@@ -1,0 +1,87 @@
+{
+  "checked_at": "2026-10-26T06:50:57.944Z",
+  "scope": "Production relay and FeedbackStore in real local workerd; test-only DO subclass injects storage time/failure and inspects stored records. Fake phone. No production deployment or physical device.",
+  "passed": 15,
+  "checks": [
+    {
+      "name": "disabled and malformed administrator configuration do not expose feedback capability or routes",
+      "ok": true,
+      "elapsed_ms": 373
+    },
+    {
+      "name": "authentication roles, pending denial and unknown body fields never consume report write quota",
+      "ok": true,
+      "elapsed_ms": 57
+    },
+    {
+      "name": "creation returns only receipt; idempotency, same-scope deduplication and private details persist",
+      "ok": true,
+      "elapsed_ms": 25
+    },
+    {
+      "name": "pagination cursors bind authorization domain and filters; lists never include body",
+      "ok": true,
+      "elapsed_ms": 29
+    },
+    {
+      "name": "supplements and administrator responses are private, bounded and owner-readable",
+      "ok": true,
+      "elapsed_ms": 32
+    },
+    {
+      "name": "deletion erases body and indexes; idempotent retries cannot resurrect original content",
+      "ok": true,
+      "elapsed_ms": 16
+    },
+    {
+      "name": "revocation denies all old AI feedback operations while owner retains management across new claim",
+      "ok": true,
+      "elapsed_ms": 56
+    },
+    {
+      "name": "anonymous receipts support lost-response retry but cannot enumerate or cross-authorize",
+      "ok": true,
+      "elapsed_ms": 48
+    },
+    {
+      "name": "origin, JSON size, malformed text and disallowed methods give static errors without input reflection",
+      "ok": true,
+      "elapsed_ms": 18
+    },
+    {
+      "name": "feedback rate/failure does not alter phone sequence or command admission",
+      "ok": true,
+      "elapsed_ms": 111
+    },
+    {
+      "name": "report content, tombstones and hashed receipts survive workerd restart",
+      "ok": true,
+      "elapsed_ms": 68
+    },
+    {
+      "name": "retention deletes actual stored content on read and alarm, removes private receipt hashes and renews cleanup",
+      "ok": true,
+      "elapsed_ms": 31
+    },
+    {
+      "name": "bounded claim capacity includes deletion tombstones and cannot be bypassed by retrying deletes",
+      "ok": true,
+      "elapsed_ms": 601
+    },
+    {
+      "name": "alarm cleanup drains multiple bounded batches without dropping its next wakeup",
+      "ok": true,
+      "elapsed_ms": 16
+    },
+    {
+      "name": "feedback implementation and runtime logs never emit submitted bodies or credentials",
+      "ok": true,
+      "elapsed_ms": 3
+    }
+  ],
+  "source_sha256": {
+    "relay/service/service.mjs": "651b94031058444c43aeb97a482d33a18959d11ca00c1bbb19ee7d9bea3c7cb3",
+    "relay/service/feedback.mjs": "36f17098e3652a9aa7eba61985b59087346bc1dbe60a3351dec8ce5098506538",
+    "relay/worker/worker.mjs": "ac71b03621763f84f1a270707cbb84dc87be6683e2caf34abefff4b47d3f36a2"
+  }
+}

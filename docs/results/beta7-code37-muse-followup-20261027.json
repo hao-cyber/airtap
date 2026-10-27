@@ -1,0 +1,283 @@
+{
+  "status": "partial_pass_with_explicit_detail_blocker",
+  "recorded_at": "2026-10-27T06:45:12.447104+00:00",
+  "scope": "Read-only semantic review of a separate Muse code37 follow-up evidence package. No device, Muse, USB, network, account or deployment actions were performed by this reviewer. No package scripts were executed.",
+  "artifact": {
+    "package_files": 237,
+    "raw_response_count": 171,
+    "response_counts": {
+      "ok": 149,
+      "failed": 22
+    },
+    "actual_jpeg_files": 57,
+    "image_receipts": 80,
+    "receipts_with_matching_attached_image_sha256": 67,
+    "missing_receipt_image_count": 13,
+    "missing_receipt_images": [
+      "01-wps-agree-tap.json",
+      "02-xhs-launch.json",
+      "01-share-open-tap.json",
+      "02-xhs-back-recovery.json",
+      "03-notes-back-to-list.json",
+      "02-douyin-search-tap.json",
+      "02-xhs-open-tap.json",
+      "03-notes-new-tap2.json",
+      "02-xhs-detail-swipe.json",
+      "03-notes-back-save.json",
+      "02-xhs-search-tap.json",
+      "02-douyin-back-recovery.json",
+      "02-douyin-launch.json"
+    ],
+    "command_log_entries": 174,
+    "zip_sha256": "298e35703412e160735dfc4827f585660cc784dc45a91288a30590c21e7914ba",
+    "zip_bytes": 5780502,
+    "integrity": "Maintainer read Muse completion message, copied the completed archive over existing SSH, checked announced size/SHA and extracted with bounded ZIP validation and CRC. No contained script was executed.",
+    "retained_transfer_failure": "A first copy made while Muse was still uploading had no ZIP directory and was rejected. Only the later complete archive with the announced SHA was reviewed."
+  },
+  "authorization_and_intervention": {
+    "source": "Maintainer observed the Muse conversation and delivered the existing owner authorization for these three current first-use agreements at 14:12 CST. Muse performed the phone task through its existing pairing; no reviewer used USB to substitute for task actions.",
+    "delegated_identity": "Run is reported as assistant-delegated testing, not owner-hand execution.",
+    "recovery_actor": "The Back operations described as manual in RUNLOG are present as Muse-issued Airtap CLI commands and actual accepted response receipts. They are deliberate agent recovery actions, not evidence of a human or USB performing the task.",
+    "maintainer_actions_during_run": "RUNLOG reports none; available command logs show no maintenance installation or re-pairing. Evidence acquisition and this review are maintainer activities after the run.",
+    "outside_scope": "No identity verification, account login/registration, posting, messaging or account changes are evidenced as performed. This is not proof of those capabilities."
+  },
+  "verified": {
+    "wps": {
+      "result": "passed_for_rendered_plain_text_open",
+      "input_bytes": 52,
+      "input_stat_size_matches": true,
+      "input_stat_sha256_matches_reconstructed_fixture": true,
+      "destination_observation_package": "cn.wps.moffice_eng",
+      "two_displayed_lines_visually_match_expected": true,
+      "share_ack_is_not_delivery_proof": true,
+      "evidence": [
+        "01-file-stat.json",
+        "01-file-share-wps.json",
+        "01-wps-after-agree.json",
+        "01-wps-after-agree.jpg",
+        "01-wps-verification.json"
+      ],
+      "limits": [
+        "WPS exposes no document body in its four-node accessibility tree; visible text was inspected in the screenshot. This is semantic display verification, not a WPS export byte-for-byte round trip."
+      ]
+    },
+    "xiaohongshu": {
+      "search": "passed",
+      "detail": "passed_for_first_eight_visible_routes",
+      "logged_out_ui_visible": true,
+      "evidence": [
+        "02-xhs-results.jpg",
+        "02-xhs-results-tree-full.json",
+        "02-xhs-detail-after-swipe.jpg",
+        "02-xhs-detail-tree-after-swipe.json"
+      ],
+      "limits": [
+        "The screenshot, not the truncated body node alone, supports routes 1 through 8. Route 9 is partly covered; routes 10 through 17 were not observed. No full-article or all-account-mode claim."
+      ]
+    },
+    "douyin": {
+      "search": "passed",
+      "list_browsing": "passed_six_distinct_results_across_two_views",
+      "detail": "not_completed",
+      "evidence": [
+        "02-douyin-results.jpg",
+        "02-douyin-results-tree-full.json",
+        "02-douyin-after-scroll.jpg",
+        "02-douyin-tree-after-scroll.json",
+        "02-douyin-open-tap.json",
+        "02-douyin-perm-deny-tap2.json",
+        "02-douyin-perm-deny-tap3.json",
+        "02-douyin-after-deny2.jpg",
+        "02-douyin-after-deny3.jpg",
+        "02-douyin-perm-back.json"
+      ],
+      "blocker": "An unrelated local-network permission prompt remained unchanged after two accepted deny-tap receipts. A deliberate Back dismissed it and list browsing resumed. The attempted detail tap reported fresh_observation_required; no opened detail is evidenced.",
+      "unchanged_permission_prompt_images_equal": true,
+      "limits": [
+        "Accepted tap is not proof that a protected dialog accepted the action. Platform input protection is a plausible explanation, not a verified root cause.",
+        "No Allow action is recorded; final OS permission state was not independently read, so report no grant action rather than a proven permission-bit denial.",
+        "There is no observed detail screen or full video/article content."
+      ]
+    },
+    "notes": {
+      "result": "passed_save_and_reopen",
+      "title_characters": 27,
+      "body_characters": 191,
+      "after_write": {
+        "title_equal_to_draft": true,
+        "body_equal_to_draft": true
+      },
+      "after_reopen": {
+        "title_equal_to_draft": true,
+        "body_equal_to_draft": true
+      },
+      "reopened_screenshot_visually_reviewed": true,
+      "evidence": [
+        "03-note-draft.txt",
+        "03-notes-tree-after-write.json",
+        "03-notes-back-save.json",
+        "03-notes-list-tree-after-save.json",
+        "03-notes-reopen-tree.json",
+        "03-notes-reopen-observe.jpg"
+      ],
+      "limits": [
+        "An initial mistaken toolbar tap was followed by Back and creation from the list; this recovery is preserved.",
+        "One list-tree output was overwritten by a later observe in the same log sequence. Use the separately retained list-tree-after-save file; do not count the overwritten file as tree evidence.",
+        "The stored note contains Muse’s account of permission denial; that narrative is not an independent OS permission-state check."
+      ]
+    },
+    "continuity_and_finish": {
+      "client_version_codes": [
+        37,
+        37
+      ],
+      "approved_persistent_before_and_after": true,
+      "same_connection_identifier_before_after": true,
+      "command_sequence_increases_without_reset": true,
+      "original_pair_scope": "The logs name the original configuration and first/final receipts retain the same connection identifier and increasing sequence. Credentials and claim identity are intentionally absent, so the package alone is not a cryptographic comparison with the prior run.",
+      "audio_states_equal": true,
+      "music_volume_zero_before_after": true,
+      "music_muted_flag": false,
+      "audio_limit": "Music volume is zero, but its muted flag is false. Ring/notification/system have muted=true and volume zero. No volume mutation command appears in supplied logs; endpoint checks do not prove continuous acoustic silence.",
+      "finished_at_launcher": true,
+      "evidence": [
+        "00-status.json",
+        "04-final-status.json",
+        "00-ping.json",
+        "04-final-ping.json",
+        "00-audio-state.json",
+        "04-final-audio-state.json",
+        "04-final-home.jpg",
+        "04-final-foreground.json"
+      ]
+    }
+  },
+  "failures_retained": {
+    "counts": {
+      "window_root_unavailable": 12,
+      "fresh_snapshot_required": 3,
+      "window_metadata_unavailable": 1,
+      "gesture_interrupted_outcome_unknown": 2,
+      "fresh_observation_required": 2,
+      "not_foreground": 2
+    },
+    "files": [
+      {
+        "file": "02-douyin-recovery2-observe.json",
+        "error": "window_root_unavailable"
+      },
+      {
+        "file": "02-xhs-after-agree.json",
+        "error": "window_root_unavailable"
+      },
+      {
+        "file": "02-douyin-after-agree.json",
+        "error": "window_root_unavailable"
+      },
+      {
+        "file": "02-douyin-recovery-observe.json",
+        "error": "window_root_unavailable"
+      },
+      {
+        "file": "02-xhs-recovery-tree.json",
+        "error": "window_root_unavailable"
+      },
+      {
+        "file": "02-xhs-recovery-foreground.json",
+        "error": "window_root_unavailable"
+      },
+      {
+        "file": "02-xhs-recovery-observe.json",
+        "error": "window_root_unavailable"
+      },
+      {
+        "file": "02-douyin-tree-after-back.json",
+        "error": "fresh_snapshot_required"
+      },
+      {
+        "file": "02-douyin-feed-tree.json",
+        "error": "fresh_snapshot_required"
+      },
+      {
+        "file": "02-xhs-recovery2-observe.json",
+        "error": "window_root_unavailable"
+      },
+      {
+        "file": "02-xhs-after-back.json",
+        "error": "window_metadata_unavailable"
+      },
+      {
+        "file": "02-xhs-exit-tap.json",
+        "error": "gesture_interrupted_outcome_unknown"
+      },
+      {
+        "file": "02-xhs-recovery2-tree.json",
+        "error": "window_root_unavailable"
+      },
+      {
+        "file": "02-xhs-tree-after-agree.json",
+        "error": "window_root_unavailable"
+      },
+      {
+        "file": "02-douyin-tree-after-back2.json",
+        "error": "fresh_snapshot_required"
+      },
+      {
+        "file": "02-douyin-tree-after-agree.json",
+        "error": "window_root_unavailable"
+      },
+      {
+        "file": "02-douyin-perm-deny-tap.json",
+        "error": "fresh_observation_required"
+      },
+      {
+        "file": "02-douyin-detail-tree.json",
+        "error": "not_foreground"
+      },
+      {
+        "file": "02-xhs-agree-tap.json",
+        "error": "gesture_interrupted_outcome_unknown"
+      },
+      {
+        "file": "02-douyin-open-tap.json",
+        "error": "fresh_observation_required"
+      },
+      {
+        "file": "02-douyin-recovery-tree.json",
+        "error": "window_root_unavailable"
+      },
+      {
+        "file": "02-douyin-perm-tree.json",
+        "error": "not_foreground"
+      }
+    ],
+    "unknown_outcomes": "Two gesture_interrupted_outcome_unknown receipts are retained. Subsequent observations support that the intended UI transitions occurred; they are not relabeled as ordinary successful tap receipts.",
+    "documentation_corrections": [
+      "RUNLOG prose omits distinct window_metadata_unavailable and two not_foreground failures; retain the complete raw error histogram.",
+      "RUNLOG original-directory item/byte counts differ from the extracted sanitized package. Use the parent-verified package inventory and this review’s actual file counts.",
+      "Do not call deliberate Muse-issued Back operations maintainer manual intervention."
+    ]
+  },
+  "visual_review": {
+    "reviewed_images": [
+      "01-wps-after-agree.jpg",
+      "02-xhs-detail-after-swipe.jpg",
+      "02-douyin-results.jpg",
+      "02-douyin-after-scroll.jpg",
+      "02-douyin-after-deny2.jpg",
+      "02-douyin-after-deny3.jpg",
+      "03-notes-reopen-observe.jpg",
+      "04-final-home.jpg",
+      "02-xhs-results.jpg"
+    ],
+    "only_necessary_screenshots_reviewed": true,
+    "not_all_images_reviewed": true
+  },
+  "publication_boundary": [
+    "Raw images, private output paths, connection/window identifiers and the raw package are not publication material. Publish only a separately reviewed minimal summary.",
+    "This summary omits private domains, connection identifiers, account names, public-content authors and phone UI images. It does not certify all raw files free of private data.",
+    "This code37 follow-up does not verify the new code38 notification/onboarding/TLS changes, iOS/other devices, independent first-user setup, a new long-idle run or all-app support.",
+    "No new video was recorded or accepted."
+  ],
+  "schema": "airtap-personal-ai-evidence-review-v1"
+}

@@ -1,0 +1,25 @@
+{
+  "schema": "airtap-release-owner-feedback-v1",
+  "recorded_at": "2026-10-26T04:45:51.555580+00:00",
+  "associated_release": "v0.4.0-beta.2",
+  "evidence_type": "Direct owner report in this chat; not a device package or screenshot attestation",
+  "owner_confirmed": {
+    "question_scope": "Updated from the canonical download entry and followed the new permission guidance on the physical phone without a computer connection",
+    "result": "Saw the new step-by-step guidance and reached Invite my AI"
+  },
+  "scope_limit": "Confirms the updated onboarding reaches invitation. Does not establish completed AI pairing, a new GUI task, or physical update-check success. Earlier assistance during the preceding version is retained in prior reports.",
+  "signing_custody_decision": {
+    "choice": "Keep signing materials on this computer for now; independent backup deferred by owner",
+    "independent_backup_completed": false,
+    "further_destination_request_needed_now": false
+  },
+  "remaining_current_release_check": [
+    "Physical phone Settings > Check updates after the scoped download-rule fix"
+  ],
+  "later_pairing_report": {
+    "source": "Owner supplied screenshot of Muse conversation",
+    "state_reported": "approved and deviceConnected true",
+    "current_obstacle_reported": "device_locked",
+    "scope": "AI report relayed by owner, not independent package or screen-state attestation; prior 401 root cause not established"
+  }
+}

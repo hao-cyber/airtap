@@ -1,0 +1,415 @@
+{
+  "_source_distribution": {
+    "notice": "Only deployment addresses/private paths were replaced. Historical source_snapshots hashes refer to the original audited artifacts, not these redacted bytes. See SOURCE-MANIFEST.json.",
+    "original_sha256": "2cc11ab32e9344a37ba78bfae6191eb5f3f10f268d91e37cd34a2108a39bf672",
+    "status": "redacted_distribution_copy"
+  },
+  "android_emulator": {
+    "checks": [
+      {
+        "evidence": {
+          "authorized_password_write": true,
+          "tree_remains_redacted": true
+        },
+        "name": "password_input_and_redaction",
+        "passed": true
+      },
+      {
+        "evidence": {
+          "observe_woke_screen": true,
+          "ping_kept_screen_off": true
+        },
+        "name": "screen_off_auto_recovery",
+        "passed": true
+      },
+      {
+        "evidence": {
+          "initial_state": "dismissible_keyguard",
+          "observe_dismissed": true
+        },
+        "name": "swipe_keyguard_auto_recovery",
+        "passed": true
+      },
+      {
+        "evidence": {
+          "error": "fresh_observation_required",
+          "screen_state": "ready"
+        },
+        "name": "old_image_rejected_after_recovery",
+        "passed": true
+      },
+      {
+        "evidence": {
+          "connection_ready": true,
+          "error": "device_authentication_required",
+          "ready": false
+        },
+        "name": "secure_lock_preserves_pairing_and_requests_authentication",
+        "passed": true
+      },
+      {
+        "evidence": {
+          "read_tree_success": true
+        },
+        "name": "same_pairing_after_authentication",
+        "passed": true
+      },
+      {
+        "evidence": {
+          "error": "approval_required"
+        },
+        "name": "remote_revocation_does_not_wake",
+        "passed": true
+      },
+      {
+        "evidence": {},
+        "name": "reopening_does_not_restore_revoked_control",
+        "passed": true
+      },
+      {
+        "evidence": {
+          "connection_ready": true,
+          "foreground": "io.airtap.acceptance.target",
+          "screen_ready": true
+        },
+        "name": "approval_then_back_400ms_connects_without_reopening",
+        "passed": true
+      },
+      {
+        "evidence": {
+          "package": "io.airtap.acceptance.target"
+        },
+        "name": "new_pairing_can_wake_and_observe",
+        "passed": true
+      },
+      {
+        "evidence": {},
+        "name": "test_pairing_revoked_after_acceptance",
+        "passed": true
+      }
+    ],
+    "in_app_update_check": "Actual signed final APK checked the live public site and displayed 已是当前推荐版本。",
+    "navigation": [
+      {
+        "input": "HTTP://Router.LOCAL:80/#Status",
+        "intent_uri_received": "http://Router.LOCAL:80/#Status",
+        "network_fetch_tested": false,
+        "passed": true
+      },
+      {
+        "input": "http://192.168.1.1:8080/#status",
+        "intent_uri_received": "http://192.168.1.1:8080/#status",
+        "network_fetch_tested": false,
+        "passed": true
+      },
+      {
+        "input": "http://[2001:db8::1]:8080/#status",
+        "intent_uri_received": "http://[2001:db8::1]:8080/#status",
+        "network_fetch_tested": false,
+        "passed": true
+      },
+      {
+        "input": "http://service.1a:8080/#status",
+        "intent_uri_received": "http://service.1a:8080/#status",
+        "network_fetch_tested": false,
+        "passed": true
+      },
+      {
+        "input": "https://example.org/path?q=test#part",
+        "intent_uri_received": "https://example.org/path?q=test#part",
+        "network_fetch_tested": false,
+        "passed": true
+      }
+    ],
+    "platform": "Android 16 / API 36.1; isolated maintainer-controlled phone emulator",
+    "secure_lock_test": "Synthetic PIN configured and removed by maintenance ADB; remote observe returned device_authentication_required. No remote credential unlock was performed.",
+    "setup": "Permissions and first pairing prepared with maintenance automation; not an independent ordinary-user trial",
+    "synthetic_data_only": true,
+    "transport": "Real published Cloudflare relay, production Python CLI, signed release APK",
+    "ui": "Remote preparation and background guidance present; Android battery optimization entry opened correct system list and retained pairing. OEM-specific path tested separately.",
+    "upgrade": "Existing code26 data and pairing retained through unpublished code27 candidates and final signed code27; no uninstall"
+  },
+  "automated_checks": {
+    "native_apk_manifest_and_signature_verified": true,
+    "release_build_and_lint": true,
+    "screen_preparation_jvm_scenarios": 12,
+    "suites": [
+      {
+        "passed": 40,
+        "scope": "Durable approval and late response",
+        "source_sha256": {
+          "app/src/main/java/io/airtap/preview/ApprovalRecovery.java": "0ed98f5ba2ff8c9dd34be5fdb0bbd4a1b50befe1f86dce68cc8e82517591e9ba",
+          "app/src/main/java/io/airtap/preview/ConnectionFeedback.java": "c1580a6980a737ce78cbbd3e150d745879b4b0492a462158c15b1409db4282a4",
+          "app/src/main/java/io/airtap/preview/ServiceProtocol.java": "878d58fdad32eac5ced7b1a6f35fc2cc512d948dd68f31abb93e70b2017fb44a",
+          "app/src/main/java/io/airtap/preview/TrustedGrant.java": "146d611c65672996170c2b44daf4a1c31b27327b3b0f404dd8030a4ca076fb1f",
+          "scripts/test_approval_recovery.py": "990ef1b5ae38e1a91a8d91f9e29adad8cc655ee93a9e7c613b1f29fdb15dc042",
+          "tests/approvalrecovery/ApprovalRecoveryTest.java": "3e1afe231e09e32923321a5b8a3f13350cb4fee736bfe192e8da588b7feba023",
+          "tests/approvalrecovery/platform_fakes.py": "a4539d5aeaa3ec0f2ecdf63f7b5a6d33f48f72f824b73831998bff8a3a7eab4f"
+        },
+        "total": 40
+      },
+      {
+        "passed": 14,
+        "scope": "Production Activity and service scheduling",
+        "source_sha256": {
+          "app/src/main/java/io/airtap/preview/ApprovalRecovery.java": "0ed98f5ba2ff8c9dd34be5fdb0bbd4a1b50befe1f86dce68cc8e82517591e9ba",
+          "app/src/main/java/io/airtap/preview/ConnectionFeedback.java": "c1580a6980a737ce78cbbd3e150d745879b4b0492a462158c15b1409db4282a4",
+          "app/src/main/java/io/airtap/preview/MainActivity.java": "ae0082e984ee923d282f933f7da987910b48be385d9a4cd657835c4f6a77aef0",
+          "app/src/main/java/io/airtap/preview/PreviewService.java": "7c223c99a94d1aeb78bdf0d8773b0f867af8deab57bb94c7cb3ec0105f075d99",
+          "app/src/main/java/io/airtap/preview/ServiceProtocol.java": "878d58fdad32eac5ced7b1a6f35fc2cc512d948dd68f31abb93e70b2017fb44a",
+          "app/src/main/java/io/airtap/preview/TrustedGrant.java": "146d611c65672996170c2b44daf4a1c31b27327b3b0f404dd8030a4ca076fb1f",
+          "scripts/test_approval_scheduling.py": "1af17c281547fe413dfaef808cf83c075176aa3610c9ed4976269630317f7474",
+          "tests/approvalrecovery/ApprovalSchedulingTest.java": "d8488f3e148c77d6fbb1c1d3a3d512ed11524f865cd823a83e04cefe206cc8de",
+          "tests/approvalrecovery/platform_fakes.py": "a4539d5aeaa3ec0f2ecdf63f7b5a6d33f48f72f824b73831998bff8a3a7eab4f"
+        },
+        "total": 14
+      },
+      {
+        "passed": 6,
+        "scope": "Closing/closed/failure transport fencing",
+        "source_sha256": {
+          "PreviewService.java": "7c223c99a94d1aeb78bdf0d8773b0f867af8deab57bb94c7cb3ec0105f075d99",
+          "ScreenPreparation.java": "040b2dcd7733b6e2ef34d034a33de7f9b3e75dbdb43caa32e64a7a4bb21cc08f"
+        },
+        "total": 6
+      },
+      {
+        "passed": 10,
+        "scope": "Real workerd, CLI and MCP, synthetic device",
+        "source_sha256": {},
+        "total": 10
+      },
+      {
+        "passed": 7,
+        "scope": "CLI pairing recovery, fault-injected loopback",
+        "source_sha256": {},
+        "total": 7
+      }
+    ],
+    "url_contract_cases_java_python_js": 51,
+    "website_tests": 8
+  },
+  "deployment": {
+    "online_checks": [
+      {
+        "bytes": 10445,
+        "cache_control": "no-cache",
+        "content_disposition": null,
+        "final_url": "https://airtap.memtrix.dev/",
+        "path": "/",
+        "sha256": "108c0078b91b525e460ee41b552f4f6e97e5dae9a66a3ad09455032323648099",
+        "status": 200
+      },
+      {
+        "bytes": 10445,
+        "cache_control": "no-cache",
+        "content_disposition": null,
+        "final_url": "https://airtap.memtrix.dev/install",
+        "path": "/install",
+        "sha256": "108c0078b91b525e460ee41b552f4f6e97e5dae9a66a3ad09455032323648099",
+        "status": 200
+      },
+      {
+        "bytes": 10445,
+        "cache_control": "no-cache",
+        "content_disposition": null,
+        "final_url": "https://airtap.memtrix.dev/help",
+        "path": "/help",
+        "sha256": "108c0078b91b525e460ee41b552f4f6e97e5dae9a66a3ad09455032323648099",
+        "status": 200
+      },
+      {
+        "bytes": 1631,
+        "cache_control": "no-cache",
+        "content_disposition": null,
+        "final_url": "https://airtap.memtrix.dev/privacy",
+        "path": "/privacy",
+        "sha256": "e79b040b7fad88ae273ccda95c6ad7f5bed5dcc91b59b705670ed7b2b5d10839",
+        "status": 200
+      },
+      {
+        "bytes": 1739,
+        "cache_control": "no-cache",
+        "content_disposition": null,
+        "final_url": "https://airtap.memtrix.dev/release-notes",
+        "path": "/release-notes",
+        "sha256": "6b738eb031ada3fc1ff8d413bd7e7abccebed6e1e2ad4c7e0d2973684ced6e70",
+        "status": 200
+      },
+      {
+        "bytes": 1269,
+        "cache_control": "no-store",
+        "content_disposition": null,
+        "final_url": "https://airtap.memtrix.dev/updates/android.json",
+        "path": "/updates/android.json",
+        "sha256": "3b1245661b3e1f935869abfc934fea0499504ad2c1d3e36b62d4635631b75b24",
+        "status": 200
+      },
+      {
+        "bytes": 390605,
+        "cache_control": "public, max-age=31536000, immutable",
+        "content_disposition": "attachment; filename=\"Airtap.apk\"",
+        "final_url": "https://redacted-relay.example.invalid/downloads/47620e9572e7a4ab3971926e577f9c35bf590ab0948ee358f2d6f9fbc99878b4.apk",
+        "path": "/download/android",
+        "sha256": "47620e9572e7a4ab3971926e577f9c35bf590ab0948ee358f2d6f9fbc99878b4",
+        "status": 200
+      },
+      {
+        "bytes": 374221,
+        "cache_control": "public, max-age=31536000, immutable",
+        "content_disposition": "attachment; filename=\"Airtap.apk\"",
+        "final_url": "https://redacted-relay.example.invalid/downloads/e15ca5307391699f7f4d71d10def1ded7f275de1bec4c2d465da3cdfe40037f5.apk",
+        "path": "/downloads/e15ca5307391699f7f4d71d10def1ded7f275de1bec4c2d465da3cdfe40037f5.apk",
+        "sha256": "e15ca5307391699f7f4d71d10def1ded7f275de1bec4c2d465da3cdfe40037f5",
+        "status": 200
+      }
+    ],
+    "previous_immutable_apk_preserved": true,
+    "version_id": "dd8ff65d-ea36-440b-97e9-5f92e7add206",
+    "worker": "airtap-install"
+  },
+  "feedback_reporting": {
+    "collection_enabled": false,
+    "implemented": false,
+    "responsibility": "Personal AI chooses and redacts report content under user authorization; Airtap is planned to provide private HTTPS receiving, authorization, access isolation and deletion. No automatic GitHub publication.",
+    "state": "design_only"
+  },
+  "limits": [
+    "Emulator success does not establish physical unattended operation for all phones.",
+    "HTTP navigation fixture confirms URI dispatch and displayed receipt; it does not fetch LAN network resources.",
+    "Independent ordinary-user complete journey and current Muse/Instinct version regression remain separate acceptance.",
+    "iOS remains unimplemented and unverified.",
+    "Signing key independent backup was explicitly deferred by the owner; local key retention is not disaster recovery."
+  ],
+  "observed_nonfinal_failure": {
+    "claim": "No uncertain input was replayed and no product success was inferred from the rejection.",
+    "result": "fresh_snapshot_required before input; fresh tree after the transition allowed completion",
+    "stage": "r3 initial test after foreground navigation"
+  },
+  "physical_phone": {
+    "android_battery_unrestricted": "After setting Android app battery usage to Unrestricted, 631.9 seconds explicit screen-off with same process and kernel cgroup.freeze=0",
+    "conditions": "USB connected for power and diagnostic observation; no physical unplug; screen off and app not foreground",
+    "device": "Meizu Note 16 / Android 15",
+    "evidence_source": "Coordinated physical-device acceptance, separate from emulator tests",
+    "final_beta3_network_recovery": {
+      "network_interruption_seconds": 6,
+      "network_restored": true,
+      "reconnected_within_seconds": 10.65,
+      "same_pairing": true,
+      "same_process": true,
+      "source": "Coordinated maintenance observation of network_lost and second socket_open; no Muse task was sent"
+    },
+    "final_beta3_upgrade": {
+      "apk_sha256": "47620e9572e7a4ab3971926e577f9c35bf590ab0948ee358f2d6f9fbc99878b4",
+      "from_code": 26,
+      "owner_app_opened_after_install": false,
+      "pairing_replaced": false,
+      "result": "Accessibility and foreground connection service restarted; socket_open 101 while authorized=true, interactive=false, app_foreground=false, battery_exempt=true",
+      "same_signer": true,
+      "scope": "Coordinated maintenance installation and logs; current Muse task not yet performed",
+      "to_code": 27,
+      "uninstalled": false
+    },
+    "in_app_update_check": "Actual final code27 App opened Settings → Check update and displayed 已是当前推荐版本。",
+    "not_established": [
+      "Final beta3 real Muse task regression",
+      "Whole-day unattended reliability",
+      "All networks or manufacturers"
+    ],
+    "oem_background_only": "After enabling manufacturer Allow background operation, screen-off still froze process; not sufficient by itself",
+    "version_code": 26
+  },
+  "recorded_at": "2026-10-26T05:40:01.455678+00:00",
+  "relay": {
+    "artifacts": [
+      {
+        "matches_source": true,
+        "path": "/cli/airtap.py",
+        "sha256": "dcc8cde6e25b8514614d0cf3374f2a075373d2324990b7ab0352b6e9ff5e2216",
+        "status": 200
+      },
+      {
+        "matches_source": true,
+        "path": "/agent.md",
+        "sha256": "e6f437329e13f1ae77075a10c27aab8a559f225014f86047b0d03732ef1632c1",
+        "status": 200
+      }
+    ],
+    "deployment_note": "First API attempt timed out; resumed exactly the same frozen revision successfully.",
+    "revision": 5,
+    "service_identity_and_existing_pairing_preserved": true,
+    "source_sha256": "bfd0a2ffb51a21a679737383f5885f74a5ca214ec5608eda35088be669c8442a"
+  },
+  "release": {
+    "apk_bytes": 390605,
+    "apk_sha256": "47620e9572e7a4ab3971926e577f9c35bf590ab0948ee358f2d6f9fbc99878b4",
+    "application_id": "io.airtap.preview",
+    "channel": "beta",
+    "debuggable": false,
+    "download_path": "/download/android",
+    "min_sdk": 34,
+    "notes": [
+      "已授权任务可按需亮屏，并退出系统允许退出的锁屏；需要系统身份验证时说明原因，保持配对。",
+      "新增远程使用准备和后台设置指引，帮助检查手机放在远处时能否持续收到任务。",
+      "确认连接后可离开 App，后台继续完成接入；停止、撤销或断线会取消尚未执行的恢复动作。",
+      "支持将机主提供并授权使用的内容输入应用密码框，读屏仍遮蔽密码。",
+      "网页导航支持合法 HTTP/HTTPS、局域网地址、IP、端口和片段；完善个人 AI 就绪状态与恢复提示。",
+      "使用原发布签名覆盖更新，保留配对；新增恢复能力已在 Android 模拟器验证，各真机后台表现需分别确认。"
+    ],
+    "published_at": "2026-10-26",
+    "schema": "airtap-android-update-v1",
+    "signer_sha256": "a2aa0c1b6fdaf1baa37aa20817387524a1318b5dab82bf7c185663141daba60f",
+    "target_sdk": 36,
+    "version_code": 27,
+    "version_name": "0.4.0-beta.3"
+  },
+  "schema": "airtap-beta3-remote-recovery-verification-v1",
+  "source_sha256": {
+    "apps/android/app/build.gradle": "19f73bde3698b7d76634e6087994e679197f968cd2f1f398b5a782c72795dc73",
+    "apps/android/app/src/main/AndroidManifest.xml": "072c0240c84ebc6c0ba2a6d37c981b0a676a8ea8fb1f252ecc76e015d224f45b",
+    "apps/android/app/src/main/assets/LICENSE-APACHE-2.0.txt": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30",
+    "apps/android/app/src/main/assets/THIRD_PARTY_NOTICES.txt": "af12156ebdfb1989a78d7729dacddadc69eb4adfa0541b18207b6886d2ccdcb4",
+    "apps/android/app/src/main/java/io/airtap/preview/AppCatalog.java": "5d1a423bf8b484a3afd41bcb975f6fc59a7101cb027b90c5789d0a6cb04389e4",
+    "apps/android/app/src/main/java/io/airtap/preview/AppUi.java": "629a935c69bc11c7f8f453a8318e586e96372a6eba1101827c17385ef08830ce",
+    "apps/android/app/src/main/java/io/airtap/preview/ApprovalRecovery.java": "0ed98f5ba2ff8c9dd34be5fdb0bbd4a1b50befe1f86dce68cc8e82517591e9ba",
+    "apps/android/app/src/main/java/io/airtap/preview/BrowserUrl.java": "f62ab7b2a27b93e714e54e4370bff342c83872bde1560ae5c7c07fa70edac2ed",
+    "apps/android/app/src/main/java/io/airtap/preview/CompanionUi.java": "89cab2b8f64245d72fc19911d466aeb64f7652e6c704924534be35242920365d",
+    "apps/android/app/src/main/java/io/airtap/preview/CompleteTree.java": "c9b83b8f77e1e96cf335cc365fcd3b034d555bd7958cc691f3ed04748bc08c0d",
+    "apps/android/app/src/main/java/io/airtap/preview/ConnectionFeedback.java": "c1580a6980a737ce78cbbd3e150d745879b4b0492a462158c15b1409db4282a4",
+    "apps/android/app/src/main/java/io/airtap/preview/EnrollmentStore.java": "e175e6909b8cfcdefd52426d032e98411641e5afa2404e6df29a9a4bd6aefb61",
+    "apps/android/app/src/main/java/io/airtap/preview/HomePhase.java": "c267cc26781d92c833bbefadf076425752e2007ab7bd3a2497b54e41b1b3bd85",
+    "apps/android/app/src/main/java/io/airtap/preview/MainActivity.java": "ae0082e984ee923d282f933f7da987910b48be385d9a4cd657835c4f6a77aef0",
+    "apps/android/app/src/main/java/io/airtap/preview/NativePairDiagnostics.java": "b62940dced4a9a32f67f3fe20199085b555d8fb4addd42dcdb1b4a1b3d5edc65",
+    "apps/android/app/src/main/java/io/airtap/preview/NodeFieldSlices.java": "bb6f9a79f7da88866367512958541107594f9ee154d20eed9ea5199c08e0ab2e",
+    "apps/android/app/src/main/java/io/airtap/preview/PreviewDiagnostics.java": "7e96ee28acaae333b5055d4b15e7da3a5b31d469601d83aacc741ede224394a9",
+    "apps/android/app/src/main/java/io/airtap/preview/PreviewService.java": "7c223c99a94d1aeb78bdf0d8773b0f867af8deab57bb94c7cb3ec0105f075d99",
+    "apps/android/app/src/main/java/io/airtap/preview/PreviewState.java": "4bb1b9466e8f893e755ec44b2ccae731281e56e69ec384857af0af2156ac8f77",
+    "apps/android/app/src/main/java/io/airtap/preview/RelayAddress.java": "ce4c5c7ff728804ec0b8e8b41f8556bae3b9c424ed6cd5441f9be0e1ea29738d",
+    "apps/android/app/src/main/java/io/airtap/preview/RelayApi.java": "86582d4024bb321488020cfe9ec01d912caac17d62ccc5ba1dbb319013cb8fc7",
+    "apps/android/app/src/main/java/io/airtap/preview/RelayErrors.java": "46e711279fc576bfd2199f592159790f8ca5cff950142d434c82c823b8f719bf",
+    "apps/android/app/src/main/java/io/airtap/preview/ScopedUi.java": "102e9f30fd3b5c8c761d5d27814c5c4b8b41479d3d3c0c818f27c9dcb2b6345b",
+    "apps/android/app/src/main/java/io/airtap/preview/ScreenPreparation.java": "040b2dcd7733b6e2ef34d034a33de7f9b3e75dbdb43caa32e64a7a4bb21cc08f",
+    "apps/android/app/src/main/java/io/airtap/preview/ScreenRecovery.java": "d7917695d2174a3e3b3a49d5bbde48ae5c3173a84006816c1b23e0e0c0ce830d",
+    "apps/android/app/src/main/java/io/airtap/preview/ScreenRecoveryActivity.java": "5d54fb71852d0a815cfd669c6c6f580a9c8b4ccdb3dcae4ac0a07cebb297e12a",
+    "apps/android/app/src/main/java/io/airtap/preview/ServiceProtocol.java": "878d58fdad32eac5ced7b1a6f35fc2cc512d948dd68f31abb93e70b2017fb44a",
+    "apps/android/app/src/main/java/io/airtap/preview/SessionScreenLease.java": "a448c572d300c4970ff525bc122b15bd9aa31046048a32920229cdb5abc1f73e",
+    "apps/android/app/src/main/java/io/airtap/preview/SessionService.java": "a2ccde93ce04290c708eb3bc58761a9a390b6c5aff2ad702806bba3dd9529149",
+    "apps/android/app/src/main/java/io/airtap/preview/SnapshotDiagnostics.java": "d6754fc4f58582b669027a0ea2564c9183eca88838f554b40b960a3679ed78e2",
+    "apps/android/app/src/main/java/io/airtap/preview/SnapshotGuard.java": "30c0cdee58ffb414f109d2b951832f5dc420f1d7220d9852c90af218310cd52e",
+    "apps/android/app/src/main/java/io/airtap/preview/TestActivity.java": "5f1b179293ee60d2e478305281b312bb5df16ce600eb87146b240e80c4e8a99d",
+    "apps/android/app/src/main/java/io/airtap/preview/TreeChangeDiagnostics.java": "01091cd44f13665fb35ee733739f6f76ff9d01422a77c295ed3a3bebaebc6acb",
+    "apps/android/app/src/main/java/io/airtap/preview/TreeFieldDiagnostics.java": "0b33b0ee51bbe4ed8705055b72d791a125c6ec7bb569048c9dd435f820ef1356",
+    "apps/android/app/src/main/java/io/airtap/preview/TrustedGrant.java": "146d611c65672996170c2b44daf4a1c31b27327b3b0f404dd8030a4ca076fb1f",
+    "apps/android/app/src/main/java/io/airtap/preview/UiRequestOwner.java": "0ffe54f98cd6dee9740604814d70df83b588ed8b4390dc96cc18de90dfede663",
+    "apps/android/app/src/main/java/io/airtap/preview/UpdateNotice.java": "9b5de50f04f666d02d5d201baed20f2273b350108c84253898335f18f7ec5106",
+    "apps/android/app/src/main/res/drawable/ic_launcher.xml": "48908a83c35d557a5cea25b5cd6426ecab75da36fc1c779be86616adaaa65fa1",
+    "apps/android/app/src/main/res/values/strings.xml": "dcaf8e0146f0cdd5fd086623915fbee25ee4eefd73377b4bb515fe7c0ecf5c66",
+    "apps/android/app/src/main/res/values/styles.xml": "031018e543b4a31cf525ff71620e178dffaa856c99a9768d6329745a658f2cff",
+    "apps/android/app/src/main/res/xml/accessibility_service.xml": "5f834553b9122fd15907ca1c6216d8ffdebba728b4d277a9f3a15c49da431f5c",
+    "apps/android/app/src/main/res/xml/data_extraction_rules.xml": "6238bab9fd5d86e6604b3b4735235d10e1921eeb1c2403178854bced1983e21c",
+    "cli/airtap.py": "dcc8cde6e25b8514614d0cf3374f2a075373d2324990b7ab0352b6e9ff5e2216",
+    "docs/agent.md": "e6f437329e13f1ae77075a10c27aab8a559f225014f86047b0d03732ef1632c1",
+    "relay/service/service.mjs": "695ecce6303aaa902af7bd1f2779bcb7e36012ed147c7581e6a7908f3db1e84b",
+    "relay/worker/worker.mjs": "ac71b03621763f84f1a270707cbb84dc87be6683e2caf34abefff4b47d3f36a2"
+  }
+}

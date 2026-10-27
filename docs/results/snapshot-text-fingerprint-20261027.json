@@ -1,0 +1,16 @@
+{
+  "change": "Snapshot-local fingerprints compare all non-sensitive UTF-16 text and descriptions, including beyond the 200-unit display prefix.",
+  "storage": "Only in current in-memory Target identity; not returned, logged or persisted.",
+  "sensitive_fields": "Do not fetch content for the digest, hash content or compute length; existing masking remains.",
+  "tests": {
+    "host_atomic_input_total": 39,
+    "new_cases": [
+      "same-length change after shared first220 characters produces different fingerprint",
+      "exact UTF16 surrogate units and 4096-byte chunk boundary remain distinct",
+      "masked inaccessible CharSequence never inspected or hashed"
+    ]
+  },
+  "android": "compileDebugJavaWithJavac passed",
+  "device_acceptance": "Not run for this patch; emulator5584 handed to independent files acceptance.",
+  "existing_guards": "No edits to window, node, editor or command guard checks."
+}

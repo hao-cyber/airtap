@@ -1,0 +1,257 @@
+[
+  {
+    "name": "public HTTPS unchanged",
+    "url": "https://example.com/path?a=1",
+    "valid": true
+  },
+  {
+    "name": "plain HTTP page",
+    "url": "http://example.com/",
+    "valid": true
+  },
+  {
+    "name": "LAN IPv4 port and fragment",
+    "url": "http://192.168.1.1:8080/settings#network",
+    "valid": true
+  },
+  {
+    "name": "loopback phone web service",
+    "url": "http://127.0.0.1:8765/",
+    "valid": true
+  },
+  {
+    "name": "IPv6 service",
+    "url": "http://[fd00::1]:8080/#status",
+    "valid": true
+  },
+  {
+    "name": "IPv6 loopback",
+    "url": "https://[::1]/",
+    "valid": true
+  },
+  {
+    "name": "IPv4 mapped IPv6",
+    "url": "http://[::ffff:192.168.1.1]/",
+    "valid": true
+  },
+  {
+    "name": "local network hostname",
+    "url": "http://printer.local/",
+    "valid": true
+  },
+  {
+    "name": "single hostname",
+    "url": "http://router/",
+    "valid": true
+  },
+  {
+    "name": "localhost",
+    "url": "http://localhost:8080/",
+    "valid": true
+  },
+  {
+    "name": "local DNS suffix starting with a digit",
+    "url": "http://service.1a:8080/#status",
+    "valid": true
+  },
+  {
+    "name": "private DNS and custom TLS port",
+    "url": "https://service.internal:8443/",
+    "valid": true
+  },
+  {
+    "name": "port upper boundary",
+    "url": "https://example.com:65535/",
+    "valid": true
+  },
+  {
+    "name": "fragment route",
+    "url": "https://example.com/#/settings?tab=network",
+    "valid": true
+  },
+  {
+    "name": "hash within browser fragment",
+    "url": "https://example.com/#one#two",
+    "valid": true
+  },
+  {
+    "name": "encoded space and Unicode",
+    "url": "https://example.com/search?q=hello%20%E4%B8%AD%E6%96%87",
+    "valid": true
+  },
+  {
+    "name": "case insensitive scheme and host",
+    "url": "HTTP://Router.LOCAL:80/#Status",
+    "valid": true
+  },
+  {
+    "name": "DNS trailing dot",
+    "url": "https://example.com./",
+    "valid": true
+  },
+  {
+    "name": "at sign in path is not credentials",
+    "url": "https://example.com/users/@owner",
+    "valid": true
+  },
+  {
+    "name": "username password",
+    "url": "https://name:password@example.com/",
+    "valid": false
+  },
+  {
+    "name": "empty username",
+    "url": "https://@example.com/",
+    "valid": false
+  },
+  {
+    "name": "escaped authority",
+    "url": "https://example%2ecom/",
+    "valid": false
+  },
+  {
+    "name": "raw whitespace",
+    "url": "https://example.com/a b",
+    "valid": false
+  },
+  {
+    "name": "raw newline",
+    "url": "https://example.com/\nnext",
+    "valid": false
+  },
+  {
+    "name": "raw tab",
+    "url": "https://example.com/\tnext",
+    "valid": false
+  },
+  {
+    "name": "encoded newline",
+    "url": "https://example.com/%0a",
+    "valid": false
+  },
+  {
+    "name": "encoded null",
+    "url": "https://example.com/%00",
+    "valid": false
+  },
+  {
+    "name": "encoded delete",
+    "url": "https://example.com/%7F",
+    "valid": false
+  },
+  {
+    "name": "malformed escape",
+    "url": "https://example.com/%zz",
+    "valid": false
+  },
+  {
+    "name": "bare percent",
+    "url": "https://example.com/%",
+    "valid": false
+  },
+  {
+    "name": "backslash host confusion",
+    "url": "https://example.com\\@other.test/",
+    "valid": false
+  },
+  {
+    "name": "missing authority",
+    "url": "https:///path",
+    "valid": false
+  },
+  {
+    "name": "empty port",
+    "url": "https://example.com:/",
+    "valid": false
+  },
+  {
+    "name": "port zero",
+    "url": "https://example.com:0/",
+    "valid": false
+  },
+  {
+    "name": "port too large",
+    "url": "https://example.com:65536/",
+    "valid": false
+  },
+  {
+    "name": "nonnumeric port",
+    "url": "https://example.com:port/",
+    "valid": false
+  },
+  {
+    "name": "invalid IPv4",
+    "url": "http://256.1.1.1/",
+    "valid": false
+  },
+  {
+    "name": "abbreviated IPv4",
+    "url": "http://127.1/",
+    "valid": false
+  },
+  {
+    "name": "octal IPv4",
+    "url": "http://0177.0.0.1/",
+    "valid": false
+  },
+  {
+    "name": "hex IPv4",
+    "url": "http://0x7f000001/",
+    "valid": false
+  },
+  {
+    "name": "unbracketed IPv6",
+    "url": "http://::1/",
+    "valid": false
+  },
+  {
+    "name": "invalid IPv6",
+    "url": "http://[:::1]/",
+    "valid": false
+  },
+  {
+    "name": "invalid embedded IPv4",
+    "url": "http://[::ffff:256.168.1.1]/",
+    "valid": false
+  },
+  {
+    "name": "ambiguous embedded IPv4",
+    "url": "http://[::ffff:192.168.001.1]/",
+    "valid": false
+  },
+  {
+    "name": "bracketed DNS",
+    "url": "http://[example.com]/",
+    "valid": false
+  },
+  {
+    "name": "empty DNS label",
+    "url": "https://example..com/",
+    "valid": false
+  },
+  {
+    "name": "invalid DNS label",
+    "url": "https://-example.com/",
+    "valid": false
+  },
+  {
+    "name": "custom intent scheme",
+    "url": "intent://example.com/#Intent;end",
+    "valid": false
+  },
+  {
+    "name": "javascript scheme",
+    "url": "javascript:alert(1)",
+    "valid": false
+  },
+  {
+    "name": "file scheme",
+    "url": "file:///sdcard/test.txt",
+    "valid": false
+  },
+  {
+    "name": "data scheme",
+    "url": "data:text/plain,hello",
+    "valid": false
+  }
+]

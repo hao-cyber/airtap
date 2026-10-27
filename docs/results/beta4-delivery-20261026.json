@@ -1,0 +1,936 @@
+{
+  "_source_distribution": {
+    "notice": "Only deployment addresses/private paths were replaced. Historical source_snapshots hashes refer to the original audited artifacts, not these redacted bytes. See SOURCE-MANIFEST.json.",
+    "original_sha256": "0921185b1bd3cddfb06cebb796d82f2e2f49847205d50a11a1ffbbd6557cfbbb",
+    "status": "redacted_distribution_copy"
+  },
+  "apk_source_sha256": {
+    "apps/android/app/build.gradle": "734c89ae54cbec77bbb5a3c22e76bbb668d5a0dd88ba6e34f350463b20899c88",
+    "apps/android/app/src/main/AndroidManifest.xml": "966feb5674bb2a5a4145cf3b9f38ceb3170dfc77ff972c03c0cdf9b370df3336",
+    "apps/android/app/src/main/java/io/airtap/preview/AppCatalog.java": "5d1a423bf8b484a3afd41bcb975f6fc59a7101cb027b90c5789d0a6cb04389e4",
+    "apps/android/app/src/main/java/io/airtap/preview/AppUi.java": "629a935c69bc11c7f8f453a8318e586e96372a6eba1101827c17385ef08830ce",
+    "apps/android/app/src/main/java/io/airtap/preview/ApprovalRecovery.java": "0ed98f5ba2ff8c9dd34be5fdb0bbd4a1b50befe1f86dce68cc8e82517591e9ba",
+    "apps/android/app/src/main/java/io/airtap/preview/BrowserUrl.java": "f62ab7b2a27b93e714e54e4370bff342c83872bde1560ae5c7c07fa70edac2ed",
+    "apps/android/app/src/main/java/io/airtap/preview/CompanionUi.java": "89cab2b8f64245d72fc19911d466aeb64f7652e6c704924534be35242920365d",
+    "apps/android/app/src/main/java/io/airtap/preview/CompleteTree.java": "c9b83b8f77e1e96cf335cc365fcd3b034d555bd7958cc691f3ed04748bc08c0d",
+    "apps/android/app/src/main/java/io/airtap/preview/ConnectionFeedback.java": "c1580a6980a737ce78cbbd3e150d745879b4b0492a462158c15b1409db4282a4",
+    "apps/android/app/src/main/java/io/airtap/preview/EnrollmentStore.java": "e175e6909b8cfcdefd52426d032e98411641e5afa2404e6df29a9a4bd6aefb61",
+    "apps/android/app/src/main/java/io/airtap/preview/FeedbackActivity.java": "52a78963069cbfaf2444c6d13c50eb948a293d10e6c9cc7422b180bb93edb246",
+    "apps/android/app/src/main/java/io/airtap/preview/FeedbackApi.java": "015e962869f03a3df86fcccbb79e5006bb9eb04f19a4f3c875c2155f43f9f199",
+    "apps/android/app/src/main/java/io/airtap/preview/FeedbackReport.java": "b498d47083d520d3884a80f21f45e45b9743287cc9feba23f5342f9a96a01c9d",
+    "apps/android/app/src/main/java/io/airtap/preview/FeedbackRequestGate.java": "a73748aab3e9f0437ce68ab48d2dc587ae8bd1d408863b26ba4572b6afbc1b0c",
+    "apps/android/app/src/main/java/io/airtap/preview/FeedbackText.java": "d11739e1a2f67ab5bcf1c91aec7dbc190c59c8a85839589accf3feb99f83a88b",
+    "apps/android/app/src/main/java/io/airtap/preview/HomePhase.java": "c267cc26781d92c833bbefadf076425752e2007ab7bd3a2497b54e41b1b3bd85",
+    "apps/android/app/src/main/java/io/airtap/preview/MainActivity.java": "90da3965cad839f10820ef9e209e173d6dab1c1e76e6669ee03a5405184bcd67",
+    "apps/android/app/src/main/java/io/airtap/preview/NativePairDiagnostics.java": "b62940dced4a9a32f67f3fe20199085b555d8fb4addd42dcdb1b4a1b3d5edc65",
+    "apps/android/app/src/main/java/io/airtap/preview/NodeFieldSlices.java": "bb6f9a79f7da88866367512958541107594f9ee154d20eed9ea5199c08e0ab2e",
+    "apps/android/app/src/main/java/io/airtap/preview/PreviewDiagnostics.java": "7e96ee28acaae333b5055d4b15e7da3a5b31d469601d83aacc741ede224394a9",
+    "apps/android/app/src/main/java/io/airtap/preview/PreviewService.java": "7c223c99a94d1aeb78bdf0d8773b0f867af8deab57bb94c7cb3ec0105f075d99",
+    "apps/android/app/src/main/java/io/airtap/preview/PreviewState.java": "4bb1b9466e8f893e755ec44b2ccae731281e56e69ec384857af0af2156ac8f77",
+    "apps/android/app/src/main/java/io/airtap/preview/RelayAddress.java": "ce4c5c7ff728804ec0b8e8b41f8556bae3b9c424ed6cd5441f9be0e1ea29738d",
+    "apps/android/app/src/main/java/io/airtap/preview/RelayApi.java": "86582d4024bb321488020cfe9ec01d912caac17d62ccc5ba1dbb319013cb8fc7",
+    "apps/android/app/src/main/java/io/airtap/preview/RelayErrors.java": "46e711279fc576bfd2199f592159790f8ca5cff950142d434c82c823b8f719bf",
+    "apps/android/app/src/main/java/io/airtap/preview/ScopedUi.java": "102e9f30fd3b5c8c761d5d27814c5c4b8b41479d3d3c0c818f27c9dcb2b6345b",
+    "apps/android/app/src/main/java/io/airtap/preview/ScreenPreparation.java": "040b2dcd7733b6e2ef34d034a33de7f9b3e75dbdb43caa32e64a7a4bb21cc08f",
+    "apps/android/app/src/main/java/io/airtap/preview/ScreenRecovery.java": "d7917695d2174a3e3b3a49d5bbde48ae5c3173a84006816c1b23e0e0c0ce830d",
+    "apps/android/app/src/main/java/io/airtap/preview/ScreenRecoveryActivity.java": "5d54fb71852d0a815cfd669c6c6f580a9c8b4ccdb3dcae4ac0a07cebb297e12a",
+    "apps/android/app/src/main/java/io/airtap/preview/ServiceProtocol.java": "878d58fdad32eac5ced7b1a6f35fc2cc512d948dd68f31abb93e70b2017fb44a",
+    "apps/android/app/src/main/java/io/airtap/preview/SessionScreenLease.java": "a448c572d300c4970ff525bc122b15bd9aa31046048a32920229cdb5abc1f73e",
+    "apps/android/app/src/main/java/io/airtap/preview/SessionService.java": "a2ccde93ce04290c708eb3bc58761a9a390b6c5aff2ad702806bba3dd9529149",
+    "apps/android/app/src/main/java/io/airtap/preview/SnapshotDiagnostics.java": "d6754fc4f58582b669027a0ea2564c9183eca88838f554b40b960a3679ed78e2",
+    "apps/android/app/src/main/java/io/airtap/preview/SnapshotGuard.java": "30c0cdee58ffb414f109d2b951832f5dc420f1d7220d9852c90af218310cd52e",
+    "apps/android/app/src/main/java/io/airtap/preview/TestActivity.java": "5f1b179293ee60d2e478305281b312bb5df16ce600eb87146b240e80c4e8a99d",
+    "apps/android/app/src/main/java/io/airtap/preview/TreeChangeDiagnostics.java": "01091cd44f13665fb35ee733739f6f76ff9d01422a77c295ed3a3bebaebc6acb",
+    "apps/android/app/src/main/java/io/airtap/preview/TreeFieldDiagnostics.java": "0b33b0ee51bbe4ed8705055b72d791a125c6ec7bb569048c9dd435f820ef1356",
+    "apps/android/app/src/main/java/io/airtap/preview/TrustedGrant.java": "146d611c65672996170c2b44daf4a1c31b27327b3b0f404dd8030a4ca076fb1f",
+    "apps/android/app/src/main/java/io/airtap/preview/UiRequestOwner.java": "0ffe54f98cd6dee9740604814d70df83b588ed8b4390dc96cc18de90dfede663",
+    "apps/android/app/src/main/java/io/airtap/preview/UpdateNotice.java": "9b5de50f04f666d02d5d201baed20f2273b350108c84253898335f18f7ec5106"
+  },
+  "build": {
+    "assembleRelease": "passed",
+    "final_apk_source_inputs_match": 40,
+    "lintRelease": "passed",
+    "release_signer_verified": true
+  },
+  "canonical_AGENTS_sha256": "c25df0188eb2c7f4f1c8d34fb6b49b2918fba2f5cfe6778cf9da714736c23b97",
+  "evidence": {
+    "docs/results/beta4-clean-install-20261026.json": {
+      "record": {
+        "actual_checks": [
+          "Public official download SHA matches signed final APK; code28 installed by PackageInstaller.",
+          "App guide recovers a real Controlled by Restricted Setting state via normal system settings, then automatically progresses to notifications/invitation.",
+          "Native Apps directory, Contacts creation of synthetic Airtap beta4 703, Save, navigate back to list, reopen and verify same name.",
+          "Chrome open_url release-notes route accepted and observed correct URL; returned to Contacts and verified saved contact. Page body was still loading at immediate observation, so no claim of complete webpage content read.",
+          "Screen sent to sleep for test; real ping returned screen_off with auto_wake; real read_tree recovered the screen and read Contacts without manual wake.",
+          "Paired HTTP reports create, two pages, no device sequence consumption; invalid report rejected while ping still succeeds.",
+          "Phone report list/detail, status and actual maintenance_reply shown; owner single-click deletion followed by AI GET410.",
+          "Update check says already current recommended version.",
+          "Report-management UI rejects remote read_tree as protected_or_unavailable_window.",
+          "Owner stopped connection; old AI report GET/POST denied and phone ping HTTP410. Owner still opened remaining report and deleted it; admin GET410 confirmed. Phone list empty.",
+          "Actual FeedbackActivity screenshot captured by maintenance screencap was black except system chrome; report page FLAG_SECURE protection verified."
+        ],
+        "apk": {
+          "apk_bytes": 402893,
+          "apk_sha256": "fc3d3b9f969c5c335d793357469a3187a8bec232bfbcf2081da94854d9cc2f0a",
+          "application_id": "io.airtap.preview",
+          "channel": "beta",
+          "debuggable": false,
+          "download_path": "/download/android",
+          "min_sdk": 34,
+          "notes": [
+            "个人 AI 可直接通过 HTTPS 私有提交故障反馈，无需 GitHub 账号或额外插件；由 AI 整理并去除私人信息。",
+            "新增“设置 → 问题反馈”，可查看报告、处理状态与回复，并删除单份报告；解除 AI 连接后仍可管理。",
+            "报告保留 30 天，支持查询、补充、删除和安全重试，不自动公开到 GitHub；反馈失败不影响手机操作。",
+            "沿用原签名覆盖更新，保留已有配对、屏幕恢复与后台准备能力。",
+            "当前是 Android 公开测试版，各机型与个人 AI 的实际兼容和无人值守表现按验收记录分别说明。"
+          ],
+          "published_at": "2026-10-26",
+          "schema": "airtap-android-update-v1",
+          "signer_sha256": "a2aa0c1b6fdaf1baa37aa20817387524a1318b5dab82bf7c185663141daba60f",
+          "target_sdk": 36,
+          "version_code": 28,
+          "version_name": "0.4.0-beta.4"
+        },
+        "assistance": [
+          {
+            "detail": "Normal owner setup steps through UI; exact six-digit confirmation. No independent novice participant.",
+            "stage": "Airtap install/enrollment/permissions/pairing",
+            "who": "maintainer"
+          },
+          {
+            "detail": "Contacts requested notification permission; remote tree returned protected_or_unavailable_window. Maintainer chose Don’t allow in system UI, then all contact task actions used Airtap HTTP/CLI.",
+            "stage": "first Contacts launch",
+            "who": "maintainer"
+          }
+        ],
+        "cleanup": {
+          "AI": "isolated emulator grant revoked; old device command denied",
+          "emulator": "owned emulator-5594 stopped; fixture state retained for future same-device tests",
+          "reports": "all three synthetic public reports deleted (anonymous, paired, owner-after-revoke)"
+        },
+        "environment": {
+          "avd": "Airtap_Beta4_Fresh",
+          "device": "isolated fresh emulator-5594",
+          "network": "Host DNS resolved service to a local 198.18.x.x interception address; this is not a direct or mobile-only network proof.",
+          "operator": "maintainer using system UI plus real public HTTPS/CLI; not independent human or Muse",
+          "os": "Android 16 / API 36.1",
+          "state": "new AVD directory, no preexisting Airtap or grant"
+        },
+        "failures_and_recovery": [
+          {
+            "failure": "Contacts first-run system permission overlay",
+            "recovery": "One recorded owner UI denial, then task continued; not claimed as AI-independent first-run permission handling."
+          },
+          {
+            "failure": "Several host urllib TCP connection timeouts during report creation/query/reply checks",
+            "recovery": "Queries retried; creation reused identical saved report ID/body, maintenance state queried before retry; no duplicate report or phone command replay."
+          }
+        ],
+        "install": {
+          "download": "Chrome UI download button; downloaded /sdcard/Download/Airtap.apk SHA matched final release",
+          "install_method": "normal system installer; no adb install for Airtap",
+          "installer": "com.google.android.packageinstaller",
+          "pairing": "original invite text from viewer, real CLI pair-start, compared six digits and owner UI approval; wait-ready approved/persistent/all_apps",
+          "permissions": "Chrome install-source permission, Airtap restricted-settings help to app-info menu, accessibility service and notification permission through normal system UI; no direct settings/grants/db writes",
+          "play_protect": "App scan recommended → Scan app → This app looks safe → Install",
+          "source": "https://airtap.memtrix.dev/"
+        },
+        "limits": [
+          "Maintainer-controlled clean emulator, not independent ordinary-user usability proof.",
+          "No physical-device or mobile-only claim from emulator.",
+          "Actual 75-minute USB-powered Muse sample recorded separately in beta4-muse-idle-20261026.json."
+        ],
+        "owner_after_revoke": {
+          "admin_get_status": 410,
+          "ok": true,
+          "owner_ui_deleted_after_AI_revoked": true
+        },
+        "paired_http_checks": [
+          {
+            "name": "first private creation",
+            "ok": true,
+            "time": 1792999105.406742
+          },
+          {
+            "name": "first private creation",
+            "ok": true,
+            "time": 1792999205.66885
+          },
+          {
+            "name": "owner private creation",
+            "ok": true,
+            "time": 1792999207.896978
+          },
+          {
+            "name": "live paired pagination has cursor",
+            "ok": true,
+            "time": 1792999208.972954
+          },
+          {
+            "name": "live second page isolated and complete",
+            "ok": true,
+            "time": 1792999210.0360599
+          },
+          {
+            "name": "reports do not consume device sequence",
+            "ok": true,
+            "time": 1792999211.235709
+          },
+          {
+            "name": "bad report rejected without phone failure",
+            "ok": true,
+            "time": 1792999214.038229
+          },
+          {
+            "name": "first deleted through phone UI",
+            "ok": true,
+            "time": 1792999712.6811361
+          },
+          {
+            "name": "revoked AI report read denied",
+            "ok": true,
+            "time": 1792999790.412051
+          },
+          {
+            "name": "revoked AI report write denied",
+            "ok": true,
+            "time": 1792999791.9445398
+          }
+        ],
+        "recorded_at": "2026-10-26T07:33:14Z",
+        "schema": "airtap-clean-install-acceptance-v1",
+        "status": "passed_with_recorded_maintainer_assistance"
+      },
+      "sha256": "ffc868544821cef89f04637a12e2cf8ecbac7d70b592af08c33d987a800b5aa9"
+    },
+    "docs/results/beta4-feedback-live-20261026.json": {
+      "record": {
+        "checked_at": "2026-10-26T06:53:50Z",
+        "checks": [
+          {
+            "name": "live discovery feedback enabled",
+            "ok": true
+          },
+          {
+            "name": "anonymous create private receipt",
+            "ok": true
+          },
+          {
+            "name": "same private receipt safely retries",
+            "ok": true
+          },
+          {
+            "name": "missing receipt denied",
+            "ok": true
+          },
+          {
+            "name": "wrong receipt cannot read",
+            "ok": true
+          },
+          {
+            "name": "wrong admin denied",
+            "ok": true
+          },
+          {
+            "name": "operator CLI reads only known test report",
+            "ok": true
+          },
+          {
+            "name": "operator CLI updates processing status",
+            "ok": true
+          },
+          {
+            "name": "private receipt sees maintenance reply",
+            "ok": true
+          },
+          {
+            "name": "receipt deletes report",
+            "ok": true
+          },
+          {
+            "name": "deleted body no longer readable",
+            "ok": true
+          },
+          {
+            "name": "late creation does not resurrect",
+            "ok": true
+          },
+          {
+            "name": "repeat deletion idempotent",
+            "ok": true
+          }
+        ],
+        "passed": 13,
+        "scope": "Public HTTPS with synthetic anonymous report and private operator CLI; no phone or real user content."
+      },
+      "sha256": "ae6709a1dc9e0bfef13929baca154257e46810d3681c73fbbed011b5c3616409"
+    },
+    "docs/results/beta4-feedback-protocol-20261026.json": {
+      "record": {
+        "checked_at": "2026-10-26T06:50:57.944Z",
+        "checks": [
+          {
+            "elapsed_ms": 373,
+            "name": "disabled and malformed administrator configuration do not expose feedback capability or routes",
+            "ok": true
+          },
+          {
+            "elapsed_ms": 57,
+            "name": "authentication roles, pending denial and unknown body fields never consume report write quota",
+            "ok": true
+          },
+          {
+            "elapsed_ms": 25,
+            "name": "creation returns only receipt; idempotency, same-scope deduplication and private details persist",
+            "ok": true
+          },
+          {
+            "elapsed_ms": 29,
+            "name": "pagination cursors bind authorization domain and filters; lists never include body",
+            "ok": true
+          },
+          {
+            "elapsed_ms": 32,
+            "name": "supplements and administrator responses are private, bounded and owner-readable",
+            "ok": true
+          },
+          {
+            "elapsed_ms": 16,
+            "name": "deletion erases body and indexes; idempotent retries cannot resurrect original content",
+            "ok": true
+          },
+          {
+            "elapsed_ms": 56,
+            "name": "revocation denies all old AI feedback operations while owner retains management across new claim",
+            "ok": true
+          },
+          {
+            "elapsed_ms": 48,
+            "name": "anonymous receipts support lost-response retry but cannot enumerate or cross-authorize",
+            "ok": true
+          },
+          {
+            "elapsed_ms": 18,
+            "name": "origin, JSON size, malformed text and disallowed methods give static errors without input reflection",
+            "ok": true
+          },
+          {
+            "elapsed_ms": 111,
+            "name": "feedback rate/failure does not alter phone sequence or command admission",
+            "ok": true
+          },
+          {
+            "elapsed_ms": 68,
+            "name": "report content, tombstones and hashed receipts survive workerd restart",
+            "ok": true
+          },
+          {
+            "elapsed_ms": 31,
+            "name": "retention deletes actual stored content on read and alarm, removes private receipt hashes and renews cleanup",
+            "ok": true
+          },
+          {
+            "elapsed_ms": 601,
+            "name": "bounded claim capacity includes deletion tombstones and cannot be bypassed by retrying deletes",
+            "ok": true
+          },
+          {
+            "elapsed_ms": 16,
+            "name": "alarm cleanup drains multiple bounded batches without dropping its next wakeup",
+            "ok": true
+          },
+          {
+            "elapsed_ms": 3,
+            "name": "feedback implementation and runtime logs never emit submitted bodies or credentials",
+            "ok": true
+          }
+        ],
+        "passed": 15,
+        "scope": "Production relay and FeedbackStore in real local workerd; test-only DO subclass injects storage time/failure and inspects stored records. Fake phone. No production deployment or physical device.",
+        "source_sha256": {
+          "relay/service/feedback.mjs": "36f17098e3652a9aa7eba61985b59087346bc1dbe60a3351dec8ce5098506538",
+          "relay/service/service.mjs": "651b94031058444c43aeb97a482d33a18959d11ca00c1bbb19ee7d9bea3c7cb3",
+          "relay/worker/worker.mjs": "ac71b03621763f84f1a270707cbb84dc87be6683e2caf34abefff4b47d3f36a2"
+        }
+      },
+      "sha256": "a54dbf54a596a3d91d59d32b0a3520f9f8ed37a9bb397b13b66de9666cea16ec"
+    },
+    "docs/results/beta4-feedback-ui-20261026.json": {
+      "record": {
+        "limits": [
+          "Production parser, text, request gate compiled verbatim; Activity lifecycle/read/delete callback methods extracted verbatim with explicit view/network/enrollment fixtures.",
+          "Does not replace device UI, actual TLS/API integration, Android FLAG_SECURE or real encrypted enrollment tests."
+        ],
+        "passed": 39,
+        "recorded_at": "2026-10-26T06:46:10.556939+00:00",
+        "source_sha256": {
+          "app/src/main/java/io/airtap/preview/FeedbackActivity.java": "52a78963069cbfaf2444c6d13c50eb948a293d10e6c9cc7422b180bb93edb246",
+          "app/src/main/java/io/airtap/preview/FeedbackReport.java": "b498d47083d520d3884a80f21f45e45b9743287cc9feba23f5342f9a96a01c9d",
+          "app/src/main/java/io/airtap/preview/FeedbackRequestGate.java": "a73748aab3e9f0437ce68ab48d2dc587ae8bd1d408863b26ba4572b6afbc1b0c",
+          "app/src/main/java/io/airtap/preview/FeedbackText.java": "d11739e1a2f67ab5bcf1c91aec7dbc190c59c8a85839589accf3feb99f83a88b",
+          "scripts/test_feedback.py": "ad863c9c7763cbe224e1556b3ba64a97b3169144506b74681bf9b00bd206381b",
+          "tests/feedback/FeedbackTest.java": "db85ca3dacee84c7b719caaaca4be0631c36b2dd97219e8f43126e7ed03236a9"
+        },
+        "status": "passed",
+        "tests": [
+          "owner list works independently of controller grant",
+          "pause cancels request clears content and rejects delayed response",
+          "resume fences old response before accepting new request",
+          "destroy fences pending response",
+          "new request cannot be released by older success",
+          "new request cannot be released by older failure",
+          "token replacement rejects old report even at same service",
+          "service replacement rejects detail and removes old page",
+          "forgotten enrollment rejects late reply",
+          "unenrolled device cannot send owner request",
+          "storage read failure does not display old report",
+          "resume after identity switch does not automatically use new device",
+          "single explicit delete cannot be double sent",
+          "unknown deletion is not automatically repeated",
+          "refresh verifies successful deletion after lost response",
+          "refresh verifies report remains before permitting fresh explicit delete",
+          "pause during deletion never replays mutation on resume",
+          "delete success requires matching report id",
+          "confirmed delete refreshes owner list exactly once",
+          "config rechecked before deleting instead of only on callback",
+          "cursor round trip and previous-page history stay opaque",
+          "failed next-page read preserves previous navigation",
+          "cursor cycles rejected without losing loaded page",
+          "successful resume clears earlier list failure",
+          "detail body is bound to selected report id",
+          "non-BMP description respects code points not UTF16 units",
+          "non-BMP title respects backend 160 character bound",
+          "description beyond contract rejected rather than silently truncated",
+          "malformed numeric dates rejected",
+          "date overflow rejected",
+          "raw server objects never coerced into displayed text",
+          "unknown fields do not enter displayed report sections",
+          "report text remains literal including HTML URLs and code",
+          "only known device token exact matches hidden",
+          "unknown status is local fallback not untrusted label",
+          "path traversal and hostile cursor rejected",
+          "missing pagination token not silently treated as last page",
+          "malformed delete success is unconfirmed",
+          "supplement limit is enforced without truncation"
+        ]
+      },
+      "sha256": "c9c34b1810d5193766ee021a10d5526de12d378bbbe71e22928d4a05cb2da65e"
+    },
+    "docs/results/beta4-muse-idle-20261026.json": {
+      "record": {
+        "Muse_execution": {
+          "calculator": {
+            "expression": "48 × 23",
+            "result": 1104,
+            "screenshot": "beta4-muse-evidence/calc-48x23-1104.jpg"
+          },
+          "final": "HOME, launcher, original approved persistent connection remained; task completed before independent16:42:09 check",
+          "initial_screen": "screen_off",
+          "note": {
+            "body": "计算器结果1104；仅用于Airtap恢复测试",
+            "saved_left_and_reopened": true,
+            "screenshot": "beta4-muse-evidence/note-airtap-beta4-idle-reopen.jpg",
+            "title": "Airtap beta4静置验收"
+          },
+          "observe_at": "2026-10-26T16:34:38+08:00",
+          "observe_attempts": 1,
+          "observe_result": "launcher seen; no lock/authentication dialog",
+          "pairing": "approved, deviceConnected true, persistent, original pairing retained",
+          "reported_observe_seconds": 3.26,
+          "status_at": "2026-10-26T16:34:30+08:00",
+          "system_authentication_required": false,
+          "wait_ready_at": "2026-10-26T16:34:32+08:00"
+        },
+        "apk": {
+          "apk_bytes": 402893,
+          "apk_sha256": "fc3d3b9f969c5c335d793357469a3187a8bec232bfbcf2081da94854d9cc2f0a",
+          "application_id": "io.airtap.preview",
+          "channel": "beta",
+          "debuggable": false,
+          "download_path": "/download/android",
+          "min_sdk": 34,
+          "notes": [
+            "个人 AI 可直接通过 HTTPS 私有提交故障反馈，无需 GitHub 账号或额外插件；由 AI 整理并去除私人信息。",
+            "新增“设置 → 问题反馈”，可查看报告、处理状态与回复，并删除单份报告；解除 AI 连接后仍可管理。",
+            "报告保留 30 天，支持查询、补充、删除和安全重试，不自动公开到 GitHub；反馈失败不影响手机操作。",
+            "沿用原签名覆盖更新，保留已有配对、屏幕恢复与后台准备能力。",
+            "当前是 Android 公开测试版，各机型与个人 AI 的实际兼容和无人值守表现按验收记录分别说明。"
+          ],
+          "published_at": "2026-10-26",
+          "schema": "airtap-android-update-v1",
+          "signer_sha256": "a2aa0c1b6fdaf1baa37aa20817387524a1318b5dab82bf7c185663141daba60f",
+          "target_sdk": 36,
+          "version_code": 28,
+          "version_name": "0.4.0-beta.4"
+        },
+        "device": "Meizu Note 16 (小红), Android 15",
+        "evidence_archive": {
+          "bytes": 57562,
+          "crc_passed": true,
+          "member_sha256": {
+            "RECEIPTS.md": "9661b15a2f8c401c6686e88bd1d260887310e613440e8dc64cdc9c808ef162c1",
+            "calc-48x23-1104.jpg": "fb744b9d37e2c4d245ef45c95d9b7458f3047b7395f420129bfcf7b2489a8438",
+            "feedback-create-body.json": "fb11f27a843dde9c5aac4176dba635b9c8a2c7a7f7dd1e050fc1808e37e8858a",
+            "feedback-create.json": "55577f5454a68b0db27dc1bb9f9e956005f3da1fa4cb58e2e300341640607a59",
+            "feedback-delete.json": "b3a4622a799c8daa7f0ccfd44d8904dd5f24d83731b06dd5aa4558b1715e783d",
+            "feedback-get1.json": "5604a4f4fdc3cb713ab0c1d4580637c695e9d2d87266abbfe696346f13733800",
+            "feedback-get2.json": "3edbf5d48c49d450853ef112ab6bef441675995b6408612f77112ee47767432b",
+            "note-airtap-beta4-idle-reopen.jpg": "5d603e1ecf7cd2808b2d182308e71c9c01488f61d5f7bdedae9bd8d337789273"
+          },
+          "sha256": "8c0d08b5f70bc8e1687807aaecf829b36228decdebc3d057822ba9a76c5d7525"
+        },
+        "evidence_classification": {
+          "RECEIPTS.md": "Muse-produced redacted command-result excerpts, not complete raw status/wait-ready/observe/home JSON. Full device identifiers and those raw files were intentionally not included.",
+          "feedback_JSON": "Five Muse-exported synthetic-report request/response JSON copies; verified consistent ID and POST201/GET200/DELETE200/GET410. This feedback ran before idle, not a new post-idle feedback submission.",
+          "independent_phone_check": "Read-only installed APK hash/package, power/service/process diagnostics after Muse task; no maintainer device actions performed task.",
+          "independent_report_check": "Release maintainer queried only the known synthetic report through report-admin API after retrieval; HTTP410 confirmed on2026-10-26.",
+          "screenshots": "Two actual phone screenshots opened and visually inspected by release maintainer: calculator1104 and reopened synthetic note. No desktop or note-list images included."
+        },
+        "failure_and_recovery": [
+          {
+            "effect": "Theme-not-implemented notice; no new note and prior note reported unchanged.",
+            "failure": "Notes reopened prior beta3 editor; Muse mistook editor theme control for list new-note control.",
+            "recovery": "Returned to list, checked screen, selected actual new-note control, confirmed empty editor, created test note and verified after reopen."
+          }
+        ],
+        "human_assistance": [
+          {
+            "detail": "Muse requested an extra direct-owner task confirmation. User actually clicked 执行本轮静置验收 at16:34. No claim of autonomous confirmation; this was a Muse task-rule interaction, not a phone system authentication or tool-enforced identity step.",
+            "stage": "before execution"
+          }
+        ],
+        "independent_phone_check": {
+          "accessibility_service_present": true,
+          "actions": "read package/version, pull installed APK, read power/service/process and Airtap diagnostic tag only; no input/UI/screenshot/network changes",
+          "diagnostic_log_sha256": "cab03076e44dcfe812cef9710ab9360e631accf8563c82dc235787de93f67ac7",
+          "expected_apk_sha256": "fc3d3b9f969c5c335d793357469a3187a8bec232bfbcf2081da94854d9cc2f0a",
+          "foreground_service": true,
+          "freeze_process_fields": {
+            "isFreezeExempt": "false",
+            "isFrozen": "0",
+            "isPendingFreeze": "0"
+          },
+          "installed_apk_matches_expected": true,
+          "installed_apk_sha256": "fc3d3b9f969c5c335d793357469a3187a8bec232bfbcf2081da94854d9cc2f0a",
+          "observed_at": "2026-10-26T16:42:09.969069+08:00",
+          "performed_after": "Muse UI reported final HOME and stopped; no maintenance ADB requests issued during quiet window or Muse execution",
+          "session_service_present": true,
+          "usb_powered": true,
+          "version_code": 28,
+          "version_name": "0.4.0-beta.4",
+          "wakefulness": "Dozing"
+        },
+        "limits": [
+          "USB remained physically connected and powered; this is not an unplugged or mobile-only test.",
+          "One approximately75-minute sample does not establish overnight or multi-day reliability.",
+          "Initial setup and extra task confirmation had human involvement; not an independent novice or unattended setup proof.",
+          "No exact per-key timestamps or full original device command JSON in shared evidence.",
+          "Earlier Muse/Instinct code24 acceptance is separate; this result does not validate Instinct on beta4 or other devices."
+        ],
+        "personal_ai": {
+          "app_model_version": "not independently recorded; results apply to this tested session",
+          "product": "Muse native client and its cloud tool environment"
+        },
+        "quiet_window": {
+          "Muse_evidence": "Muse local receipt says its prior phone HOME was15:08:46; later15:09 feedback did not consume phone commands. Muse only attests its own activity, not all actors.",
+          "battery_settings": "OEM background allowed and Android battery unrestricted set earlier in the same day on code26, retained across in-place upgrades; not rechecked during idle.",
+          "first_Muse_status": "2026-10-26T16:34:30+08:00",
+          "maintenance_evidence": "No maintainer ADB requests or phone input during this window or Muse task; independent read-only checks started after task at16:42:09.",
+          "minimum_seconds": 3600,
+          "phone_requests_by_maintainer_during_window_and_task": 0,
+          "seconds": 4530.007,
+          "start": "2026-10-26T15:18:59.992803+08:00",
+          "usb_powered": true
+        },
+        "recorded_at": "2026-10-26T08:49:22.953741+00:00",
+        "schema": "airtap-muse-physical-idle-acceptance-v1",
+        "status": "passed_bounded_USB_powered_sample"
+      },
+      "sha256": "3e3730fa657fd124cefc4c647bc56a09fb8dc52739ef398299f97ff533de9595"
+    },
+    "docs/results/beta4-muse-preidle-20261026.json": {
+      "record": {
+        "apk": {
+          "sha256": "fc3d3b9f969c5c335d793357469a3187a8bec232bfbcf2081da94854d9cc2f0a",
+          "verified_by": "maintainer apksigner/aapt/hash preflight and post-install package manager; Muse did not independently read code28",
+          "version_code": 28,
+          "version_name": "0.4.0-beta.4"
+        },
+        "authorization": {
+          "automatic_confirmation_verified": false,
+          "delegated_request": "Muse refused Codex-delegated request citing direct-owner authorization rules",
+          "required_owner_intervention": true,
+          "subsequent_visible_user_message": "两项都执行"
+        },
+        "limitations": [
+          "No raw HTTP files retrieved yet",
+          "Muse task did not independently confirm installed APK version",
+          "One short successful wake is not 60-minute or long-term stability",
+          "Does not validate fresh pairing or novice replication"
+        ],
+        "muse_report": {
+          "actions": [
+            {
+              "action": "observe",
+              "attempts": 1,
+              "reported_result": "launcher visually confirmed; no lock/auth prompt",
+              "seconds": 3.49
+            },
+            {
+              "action": "home",
+              "reported_result": "launcher, device_unlocked=true"
+            }
+          ],
+          "cli": {
+            "bytes": 41371,
+            "digest_matches_header": true,
+            "http": 200,
+            "version": "0.4.0-cli.2"
+          },
+          "failures": [],
+          "feedback": {
+            "attachments": false,
+            "body": "synthetic placeholder text only",
+            "capability": "feedback_v1",
+            "capability_probe_http": 200,
+            "github_issue_created": false,
+            "retries": 0,
+            "steps": [
+              {
+                "duplicate_of": null,
+                "http": 201,
+                "method": "POST",
+                "status": "new"
+              },
+              {
+                "assertions": [
+                  "same report",
+                  "state new",
+                  "same title"
+                ],
+                "http": 200,
+                "method": "GET"
+              },
+              {
+                "deleted": true,
+                "http": 200,
+                "method": "DELETE"
+              },
+              {
+                "error": "report_deleted",
+                "http": 410,
+                "method": "GET"
+              }
+            ],
+            "tokens_in_chat": false
+          },
+          "guide": {
+            "bytes": 20819,
+            "digest_matches_header": true,
+            "http": 200,
+            "new_beta4_feedback_section": true
+          },
+          "ping": {
+            "auto_wake": true,
+            "capabilities": [
+              "companion_v1",
+              "screen_recovery_v1"
+            ]
+          },
+          "stated_time": "2026-10-26T15:08:00+08:00",
+          "status": {
+            "allow_control": true,
+            "deviceConnected": true,
+            "persistent": true,
+            "state": "approved"
+          },
+          "wait_ready": {
+            "needs_system_authentication": false,
+            "screen_state": "screen_off",
+            "will_prepare_screen": true
+          }
+        },
+        "recorded_at": "2026-10-26T16:05:36.337031+08:00",
+        "scope": "beta4/code28 original-pairing check and synthetic feedback; before 60-minute standby follow-up",
+        "source_classification": {
+          "independent_observations": [
+            "beta4-upgrade-preflight.json",
+            "beta4-upgrade-result.json"
+          ],
+          "muse_raw_result_files": "Muse stated five redacted JSON files are saved in its cloud workspace; not yet retrieved for independent inspection",
+          "muse_results": "Maintainer transcription of visible Muse native UI report; not original HTTP/CLI logs"
+        },
+        "source_record": "Coordination chat 规划安卓远程控制开源项目; maintainer transcription of visible Muse report. Original source record filename beta4-muse-pre-idle-evidence.json.",
+        "standby_test": "pending; see beta4-idle-window.json",
+        "subsequent_evidence": "The five synthetic feedback JSON copies were subsequently retrieved and inspected in beta4-muse-evidence; final post-idle result is beta4-muse-idle-20261026.json. Earlier pending/no-raw-file statements describe the original pre-idle record time.",
+        "usb": "Physically connected and powered. Maintainer used USB for upgrade and diagnostics; Muse task itself used network. Not an unplugged test."
+      },
+      "sha256": "b0410a9139262291843030333dd7766f953147db97660a1e5ac4e2f56bdde22e"
+    },
+    "docs/results/beta4-public-site-20261026.json": {
+      "record": {
+        "browser_check": "In-app browser: feedback help expands within FAQ; privacy text separates online retention and provider recovery. At 390x844, privacy and install page text and download button render within the viewport.",
+        "checked_at": "2026-10-26T08:00:52.644528+00:00",
+        "checks": [
+          {
+            "analytics_beacon_absent": true,
+            "attempt": 1,
+            "bytes": 10551,
+            "cache": "public, no-cache, no-transform",
+            "matches_frozen_asset": true,
+            "path": "/",
+            "prior_failures": [],
+            "sha256": "bf50ce669911918bc5e3d1980b3c8495872c1c879e4d85917b70b461e883a9ad",
+            "status": 200
+          },
+          {
+            "analytics_beacon_absent": true,
+            "attempt": 1,
+            "bytes": 10551,
+            "cache": "public, no-cache, no-transform",
+            "matches_frozen_asset": true,
+            "path": "/help",
+            "prior_failures": [],
+            "sha256": "bf50ce669911918bc5e3d1980b3c8495872c1c879e4d85917b70b461e883a9ad",
+            "status": 200
+          },
+          {
+            "analytics_beacon_absent": true,
+            "attempt": 2,
+            "bytes": 2390,
+            "cache": "public, no-cache, no-transform",
+            "matches_frozen_asset": true,
+            "path": "/privacy",
+            "prior_failures": [
+              "URLError"
+            ],
+            "sha256": "05d7ae9139d6a2ac16076c72fa29686c114f24d50d34b972fdb4a15fb167969e",
+            "status": 200
+          },
+          {
+            "analytics_beacon_absent": true,
+            "attempt": 1,
+            "bytes": 1263,
+            "cache": "public, no-cache, no-transform",
+            "matches_frozen_asset": true,
+            "path": "/release-notes",
+            "prior_failures": [],
+            "sha256": "f18e6c50081372c2e54167413783c9fa5c02715413f4267f90cc501df77baedf",
+            "status": 200
+          },
+          {
+            "attempt": 1,
+            "bytes": 1161,
+            "cache": "no-store",
+            "matches_frozen_asset": true,
+            "path": "/updates/android.json",
+            "prior_failures": [],
+            "sha256": "0a7281a0bc5537e274cff1c41cdbb6bc18854bca642c3432df7e2087854f5f62",
+            "status": 200
+          },
+          {
+            "attempt": 1,
+            "bytes": 402893,
+            "cache": "public, max-age=31536000, immutable",
+            "matches_frozen_asset": true,
+            "path": "/download/android",
+            "prior_failures": [],
+            "sha256": "fc3d3b9f969c5c335d793357469a3187a8bec232bfbcf2081da94854d9cc2f0a",
+            "status": 200
+          }
+        ],
+        "correction": "Observed Cloudflare-injected analytics beacon before correction. Site-only public,no-cache,no-transform now prevents injection; all public HTML matches frozen source exactly. Relay and zone-wide settings unchanged.",
+        "deployment_retry": "First r4 Cloudflare API deployment timed out; public homepage was still r3. Retried identical frozen r4 and verified all assets.",
+        "faq_version_boundary": "Muse/Instinct earlier acceptance explicitly identified as earlier-version results.",
+        "prior_site_version_id": "0ea78723-07f6-4ec3-94cf-89594fd5f50e",
+        "retention": "Privacy distinguishes online deletion/30-day retention from Cloudflare SQLite DO PITR history.",
+        "schema": "airtap-public-site-acceptance-v1",
+        "site_version_id": "912c593d-4f1d-4a55-9ab8-d9d99bd1cac0"
+      },
+      "sha256": "922e7aa12ef9b7575ad9ca673f8dda3ecf6002ddceca88482008780ed92acb0a"
+    }
+  },
+  "gates": [
+    {
+      "name": "Final artifact identity and build",
+      "number": 1,
+      "status": "passed"
+    },
+    {
+      "name": "Private feedback end-to-end",
+      "number": 2,
+      "status": "passed"
+    },
+    {
+      "name": "Isolation and lifecycle",
+      "number": 3,
+      "status": "passed"
+    },
+    {
+      "name": "Clean final-APK first use",
+      "number": 4,
+      "status": "passed"
+    },
+    {
+      "evidence": "docs/results/beta4-muse-idle-20261026.json",
+      "name": "Actual Muse after 60-minute physical idle",
+      "number": 5,
+      "qualification": "75min30sec, USB powered; actual Muse task; one explicit human task confirmation.",
+      "status": "passed"
+    },
+    {
+      "name": "Public release and download verification",
+      "number": 6,
+      "status": "passed"
+    }
+  ],
+  "implementation_commit": "a68d62149f11722950a9bb3307e68e2fa7f62c9a",
+  "limitations": [
+    "Fresh install is maintainer-controlled Android 16 emulator, including one Contacts first-run notification assistance; not an independent novice test.",
+    "Physical idle sample uses USB power and the already-configured battery unrestricted setting; not unplugged, overnight, mobile-only or multi-day validation.",
+    "Other personal AI products on this version, other physical devices and iOS remain unverified.",
+    "Feedback attachments and optional MCP report wrapper are not implemented; direct HTTPS is implemented.",
+    "Online deletion does not immediately erase Cloudflare SQLite DO PITR history; privacy documentation distinguishes these.",
+    "Signing key independent backup deferred by explicit publisher choice; current private local custody only."
+  ],
+  "recorded_at": "2026-10-26T08:49:22.956206+00:00",
+  "regression": {
+    "companion_protocol_groups": 10,
+    "deployment_tests": 11,
+    "feedback_android_logic": 39,
+    "feedback_protocol_groups": 15,
+    "operator_cli_tests": 5,
+    "pair_recovery_groups": 7,
+    "public_feedback_checks": 13,
+    "website_python_tests": 3,
+    "website_worker_tests": 6
+  },
+  "relay": {
+    "agent_sha256": "9e7ca412a3d4f9dca345891e36d907f4742faf39b280b103bf6156bbadf2a523",
+    "cli_sha256": "dcc8cde6e25b8514614d0cf3374f2a075373d2324990b7ab0352b6e9ff5e2216",
+    "revision": 6,
+    "scope": "Same service identity and existing DO bindings; feedback added without resetting physical pairing.",
+    "source_sha256": "85e2cddcf6b640d11fc9f980a9c54091291dbf6576b6a83dae1dd3670e44fa91"
+  },
+  "release": {
+    "apk_bytes": 402893,
+    "apk_sha256": "fc3d3b9f969c5c335d793357469a3187a8bec232bfbcf2081da94854d9cc2f0a",
+    "application_id": "io.airtap.preview",
+    "channel": "beta",
+    "debuggable": false,
+    "download_path": "/download/android",
+    "min_sdk": 34,
+    "notes": [
+      "个人 AI 可直接通过 HTTPS 私有提交故障反馈，无需 GitHub 账号或额外插件；由 AI 整理并去除私人信息。",
+      "新增“设置 → 问题反馈”，可查看报告、处理状态与回复，并删除单份报告；解除 AI 连接后仍可管理。",
+      "报告保留 30 天，支持查询、补充、删除和安全重试，不自动公开到 GitHub；反馈失败不影响手机操作。",
+      "沿用原签名覆盖更新，保留已有配对、屏幕恢复与后台准备能力。",
+      "当前是 Android 公开测试版，各机型与个人 AI 的实际兼容和无人值守表现按验收记录分别说明。"
+    ],
+    "published_at": "2026-10-26",
+    "schema": "airtap-android-update-v1",
+    "signer_sha256": "a2aa0c1b6fdaf1baa37aa20817387524a1318b5dab82bf7c185663141daba60f",
+    "target_sdk": 36,
+    "version_code": 28,
+    "version_name": "0.4.0-beta.4"
+  },
+  "release_archive_verification": "Exact final source commit and downloaded release asset checks are carried in the external release-manifest.json and SHA256SUMS; archive creation does not retroactively change these technical results.",
+  "schema": "airtap-beta4-delivery-verification-v1",
+  "site": {
+    "frozen_build_manifest_sha256": "71c8b54f5182005d6d68a9a8c9ec0b1305356b5472a35faf127b732974fc44a7",
+    "url": "https://airtap.memtrix.dev/",
+    "version_id": "912c593d-4f1d-4a55-9ab8-d9d99bd1cac0"
+  },
+  "status": "completed_bounded_technical_scope",
+  "workspace_merge": {
+    "android_record": {
+      "backup": "<private-path-omitted>",
+      "compileDebugJavaWithJavac": "passed",
+      "copied_source_sha256": {
+        "apps/android/app/src/main/java/io/airtap/preview/FeedbackActivity.java": "52a78963069cbfaf2444c6d13c50eb948a293d10e6c9cc7422b180bb93edb246",
+        "apps/android/app/src/main/java/io/airtap/preview/FeedbackApi.java": "015e962869f03a3df86fcccbb79e5006bb9eb04f19a4f3c875c2155f43f9f199",
+        "apps/android/app/src/main/java/io/airtap/preview/FeedbackReport.java": "b498d47083d520d3884a80f21f45e45b9743287cc9feba23f5342f9a96a01c9d",
+        "apps/android/app/src/main/java/io/airtap/preview/FeedbackRequestGate.java": "a73748aab3e9f0437ce68ab48d2dc587ae8bd1d408863b26ba4572b6afbc1b0c",
+        "apps/android/app/src/main/java/io/airtap/preview/FeedbackText.java": "d11739e1a2f67ab5bcf1c91aec7dbc190c59c8a85839589accf3feb99f83a88b",
+        "apps/android/scripts/test_feedback.py": "ad863c9c7763cbe224e1556b3ba64a97b3169144506b74681bf9b00bd206381b",
+        "apps/android/tests/feedback/FeedbackTest.java": "db85ca3dacee84c7b719caaaca4be0631c36b2dd97219e8f43126e7ed03236a9"
+      },
+      "device_expansion_tests": 39,
+      "feedback_tests": 39,
+      "lintDebug": "passed",
+      "precise_insertions_verified": true,
+      "protected_source_sha256": {
+        "apps/android/app/build.gradle": "e6f7ae7b993247aaef8fc63b015b4dda2404bf35877e69e4ad45a7e160e8adb9",
+        "apps/android/app/src/main/java/io/airtap/preview/AppCatalog.java": "57edb056e89a61230e26f3b9a2e8afdc8bd970d79e16a56b38da25404b7f5a3f",
+        "apps/android/app/src/main/java/io/airtap/preview/AppUi.java": "813ba1db7b5b4dceed51b58af43182bfc5c2c0309d8bd70652747f10136cfba8",
+        "apps/android/app/src/main/java/io/airtap/preview/CompanionUi.java": "1cc8fcebb07690b33822682471e07594914dea8813d5701c1ad4060dd1173927",
+        "apps/android/app/src/main/java/io/airtap/preview/DeviceCapabilities.java": "d6678c19aae9a1ac72f37216ce6a3af2cdf558b96068bfe5fc4c55adf0db394b",
+        "apps/android/app/src/main/java/io/airtap/preview/InvitationQr.java": "a45fe3de084ec15d8769eea8d43bcef5f0ed172210c9d7cc13e970a54d7256e6",
+        "apps/android/app/src/main/java/io/airtap/preview/PreviewService.java": "eb1d8790e21c9f458211def0f85dae2783d6e3615f1a828a7a3e9bc387247ea8"
+      },
+      "recorded_at": "2026-10-26T06:49:41.097427+00:00",
+      "release_sources_equal": true,
+      "status": "passed",
+      "updated_source_sha256": {
+        "apps/android/app/src/main/AndroidManifest.xml": "30d21f292b6afd24ebccf02f61d263c8410eba94e96e0c4f08655402d0d9bf45",
+        "apps/android/app/src/main/java/io/airtap/preview/MainActivity.java": "dbc5e840281ec6493bc91941c1962624da197dec617b5902c7df497095ab7d2a"
+      },
+      "versionCode": 25,
+      "versionName": "0.4.1-device-preview"
+    },
+    "backend_record": {
+      "backup": "<private-path-omitted>",
+      "copied": {
+        "relay/service/deploy.py": {
+          "identical": true,
+          "release_sha256": "694dcb47559894b1b1d975430db95c73fb3529c95fa604e7d69f543cf87c926b",
+          "root_sha256": "694dcb47559894b1b1d975430db95c73fb3529c95fa604e7d69f543cf87c926b"
+        },
+        "relay/service/feedback-contract.json": {
+          "identical": true,
+          "release_sha256": "d144f4b03dab72b5b1a25b83b17feebd1f03e8145c2ba5d0ce4cc8eb9e73179a",
+          "root_sha256": "d144f4b03dab72b5b1a25b83b17feebd1f03e8145c2ba5d0ce4cc8eb9e73179a"
+        },
+        "relay/service/feedback.mjs": {
+          "identical": true,
+          "release_sha256": "36f17098e3652a9aa7eba61985b59087346bc1dbe60a3351dec8ce5098506538",
+          "root_sha256": "36f17098e3652a9aa7eba61985b59087346bc1dbe60a3351dec8ce5098506538"
+        },
+        "relay/service/reports.py": {
+          "identical": true,
+          "release_sha256": "dab3eecd52cfcf0d7e39653efc46b9e2cfeda5078d35a57fa9e07d2d86a972ab",
+          "root_sha256": "dab3eecd52cfcf0d7e39653efc46b9e2cfeda5078d35a57fa9e07d2d86a972ab"
+        },
+        "relay/service/tests/feedback-roundtrip.mjs": {
+          "identical": true,
+          "release_sha256": "01dbb66ddc08ff41d1b3fc58723f3079e3ddc0b99d39b85578b2e89cb372f916",
+          "root_sha256": "01dbb66ddc08ff41d1b3fc58723f3079e3ddc0b99d39b85578b2e89cb372f916"
+        },
+        "relay/service/tests/test_deploy.py": {
+          "identical": true,
+          "release_sha256": "bba28f1600a91970554b1cf6487b76306867565d6895963414497221f9101738",
+          "root_sha256": "bba28f1600a91970554b1cf6487b76306867565d6895963414497221f9101738"
+        },
+        "relay/service/tests/test_reports.py": {
+          "identical": true,
+          "release_sha256": "bfe8c9407074b71d8b9d76c091a3bc6c37ac388f949042a5e5b02e7d06771830",
+          "root_sha256": "bfe8c9407074b71d8b9d76c091a3bc6c37ac388f949042a5e5b02e7d06771830"
+        }
+      },
+      "legacy_test_preserved": "relay/service/tests/test_deploy_legacy.py",
+      "root": "<private-path-omitted>",
+      "root_service_sha256": "bfaa904eeef1442d1a6ed438940ab862b2211f47e8365d34a0a8c9d4d3bd4cf1",
+      "root_worker_sha256": "fffe8d32bfe86487846f03e0922645c41da9a28f108c3f2061b0a06f72cb3142",
+      "scope": "Local code/protocol tests only; no production deployment or device operations",
+      "service_merge": "Applied base 1a3a123 release patch, preserving root capability_scope/device_capabilities_source fields; reverse patch check passed. Retained device_info, DPAD, and service 0.4.1 / CLI 0.4.1-device-preview. Worker and CLI unchanged.",
+      "validation": {
+        "deployment_current": 11,
+        "deployment_preserved_legacy": 11,
+        "device_expansion": 14,
+        "feedback_roundtrip": 15,
+        "reports_operator": 5
+      }
+    },
+    "scope": "Precisely merged feedback implementation into separate 0.4.1-device-preview working directory; existing device expansion features/version retained. No claim that its old APK changed."
+  }
+}

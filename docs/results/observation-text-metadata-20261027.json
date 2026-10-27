@@ -1,0 +1,24 @@
+{
+  "environment": "Android API36.1 emulator-5584; maintenance CLI via local relay, not physical phone or Muse",
+  "long_text_length_utf16": 202,
+  "display_length_utf16": 199,
+  "surrogate_boundary_preserved": true,
+  "select_all_true_length": [
+    0,
+    202
+  ],
+  "empty_text_length": 0,
+  "hint_length_separate": true,
+  "bound_primary_ime_option": "search",
+  "bound_secondary_ime_option": "done",
+  "default_route_native_is_native_enter": true,
+  "unbound_hint_absent": true,
+  "fields_restored": true,
+  "final_home": true,
+  "host_tests": 36,
+  "android_build": "assembleDebug passed",
+  "sensitive_length_masking": "host coverage passed; no new physical-device acceptance",
+  "default_action_semantics": "native_enter is not relabeled as explicit DONE",
+  "evidence": "Local private atomic-observation-20261027 metadata captures and shared emulator command receipts",
+  "fixtures_restored": true
+}

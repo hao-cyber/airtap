@@ -1,0 +1,948 @@
+{
+  "_source_distribution": {
+    "notice": "Only deployment addresses/private paths were replaced. Historical source_snapshots hashes refer to the original audited artifacts, not these redacted bytes. See SOURCE-MANIFEST.json.",
+    "original_sha256": "0b226b53050fee396281f0e77b0384187f5ea3ba3711209eb872428e256660b9",
+    "status": "redacted_distribution_copy"
+  },
+  "android": {
+    "android_release": "16",
+    "android_sdk": 36,
+    "apk_sha256": "ab0cad64a06aa3b7830829bf93c9d599252ec1e787414635af21d78da1c1b37b",
+    "security_patch": "2026-01-05"
+  },
+  "base_commit": "3423623cee28b6f7b84318c9b3311a4d16dfbaee",
+  "builds": [
+    "debug assemble + lint passed",
+    "release R8 shrinking + lint passed; no signed release APK produced",
+    "release mapping retains public host-aware trust methods"
+  ],
+  "final_mapped_build_native_offline": {
+    "apk_sha256": "2ce348a0a8815dbcf5e16ac603c26f4a75cd0cfe230b16919073b2cf59b8a0e3",
+    "fixture_apk_sha256": "41a76422c978a2f14d7302366b9dc0eaf8376f43bba45c6e89654275d3aca901",
+    "passed": 40,
+    "result_sha256": "e0fe4eedac772511dc7c46555cc993ce03f33172016041d05f1431b4dc15d1a9",
+    "scope": "Same compiled final policy including fixed user-message classification; native public certificate/cache-path and forced safe-unavailable HTTPS/HTTP/WSS checks only. The previous live network matrix was not repeated."
+  },
+  "host_checks_passed": 74,
+  "interpretation": {
+    "android_default_rejected_all_14_affected_hosts": true,
+    "application_additive_checks": "Actual production key policy parsed/rejected all16 public certs/8SPKIs under JDK and Android. Synthetic verified-path providers returned a compromised intermediate absent from the peer list; wrapper rejection was verified through real Android X509TrustManagerExtensions. That provider is a test seam, not a replacement for real network trust.",
+    "normal_endpoints": "Airtap update metadata and example.com both returned HTTP200 with application policy; wrong hostname, expired chain and untrusted self-signed certificate remained rejected.",
+    "reason": "System public-key blocklist rejection, not a network timeout. This emulator already had the system mitigation; the added app policy must not receive credit for that default-platform rejection.",
+    "unavailable_verifier": "Empty connection specs and a pre-network denying interceptor allowed client construction while HTTP/HTTPS/WSS to a reserved .invalid hostname all failed with fixed policy error, before DNS."
+  },
+  "limits": [
+    "Native device scope is the isolated Android16/API36 emulator only; no physical phone, older Android trust store or personal-AI runtime validation.",
+    "Eight keys are blocked bySPKI across16 certificate representations. Live endpoints cover sixTLS intermediates and twoNoCT variants, not a live TLS endpoint for two code-signing-only intermediates.",
+    "System socket/engine verification runs first with its handshake context. A second host-aware verified-chain check may additionally reject future CT-enforcing configurations that only supply SCTs via TLS/OCSP; it does not weaken CT or use hidden APIs.",
+    "The live probe APK precedes only the final fixed user-facing security-error mapping; that mapping has type-classification host tests and compile/lint validation.",
+    "No active interception or compromised Airtap service was established."
+  ],
+  "live_probe_fixture_apk_sha256": "8c8152f9524a6140e06165e40de20cc63c3e63739b428105c3e9430fde957dae",
+  "native_checks": [
+    {
+      "name": "native certificate and SPKI metadata agree 0",
+      "passed": true
+    },
+    {
+      "name": "actual Android policy rejects public certificate 0",
+      "passed": true
+    },
+    {
+      "name": "native certificate and SPKI metadata agree 1",
+      "passed": true
+    },
+    {
+      "name": "actual Android policy rejects public certificate 1",
+      "passed": true
+    },
+    {
+      "name": "native certificate and SPKI metadata agree 2",
+      "passed": true
+    },
+    {
+      "name": "actual Android policy rejects public certificate 2",
+      "passed": true
+    },
+    {
+      "name": "native certificate and SPKI metadata agree 3",
+      "passed": true
+    },
+    {
+      "name": "actual Android policy rejects public certificate 3",
+      "passed": true
+    },
+    {
+      "name": "native certificate and SPKI metadata agree 4",
+      "passed": true
+    },
+    {
+      "name": "actual Android policy rejects public certificate 4",
+      "passed": true
+    },
+    {
+      "name": "native certificate and SPKI metadata agree 5",
+      "passed": true
+    },
+    {
+      "name": "actual Android policy rejects public certificate 5",
+      "passed": true
+    },
+    {
+      "name": "native certificate and SPKI metadata agree 6",
+      "passed": true
+    },
+    {
+      "name": "actual Android policy rejects public certificate 6",
+      "passed": true
+    },
+    {
+      "name": "native certificate and SPKI metadata agree 7",
+      "passed": true
+    },
+    {
+      "name": "actual Android policy rejects public certificate 7",
+      "passed": true
+    },
+    {
+      "name": "native certificate and SPKI metadata agree 8",
+      "passed": true
+    },
+    {
+      "name": "actual Android policy rejects public certificate 8",
+      "passed": true
+    },
+    {
+      "name": "native certificate and SPKI metadata agree 9",
+      "passed": true
+    },
+    {
+      "name": "actual Android policy rejects public certificate 9",
+      "passed": true
+    },
+    {
+      "name": "native certificate and SPKI metadata agree 10",
+      "passed": true
+    },
+    {
+      "name": "actual Android policy rejects public certificate 10",
+      "passed": true
+    },
+    {
+      "name": "native certificate and SPKI metadata agree 11",
+      "passed": true
+    },
+    {
+      "name": "actual Android policy rejects public certificate 11",
+      "passed": true
+    },
+    {
+      "name": "native certificate and SPKI metadata agree 12",
+      "passed": true
+    },
+    {
+      "name": "actual Android policy rejects public certificate 12",
+      "passed": true
+    },
+    {
+      "name": "native certificate and SPKI metadata agree 13",
+      "passed": true
+    },
+    {
+      "name": "actual Android policy rejects public certificate 13",
+      "passed": true
+    },
+    {
+      "name": "native certificate and SPKI metadata agree 14",
+      "passed": true
+    },
+    {
+      "name": "actual Android policy rejects public certificate 14",
+      "passed": true
+    },
+    {
+      "name": "native certificate and SPKI metadata agree 15",
+      "passed": true
+    },
+    {
+      "name": "actual Android policy rejects public certificate 15",
+      "passed": true
+    },
+    {
+      "name": "native certificate fixture contains all eight keys",
+      "passed": true
+    },
+    {
+      "name": "unaffected root is not rejected by additive policy",
+      "passed": true
+    },
+    {
+      "name": "real Android extensions return cached intermediate and wrapper rejects it",
+      "passed": true
+    },
+    {
+      "name": "real Android extensions preserve clean verified path",
+      "passed": true
+    },
+    {
+      "name": "real Android extensions propagate underlying trust rejection",
+      "passed": true
+    },
+    {
+      "name": "unavailable policy fails before DNS and network: https",
+      "passed": true
+    },
+    {
+      "name": "unavailable policy fails before DNS and network: http",
+      "passed": true
+    },
+    {
+      "name": "unavailable policy rejects WebSocket before DNS/network",
+      "passed": true
+    },
+    {
+      "name": "normal certificate succeeds: https://redacted-relay.example.invalid/updates/android.json",
+      "passed": true
+    },
+    {
+      "name": "normal certificate succeeds: https://example.com/",
+      "passed": true
+    },
+    {
+      "name": "baseline produced a TLS result: dv-g3b",
+      "passed": true
+    },
+    {
+      "name": "affected path explicitly rejected: dv-g3b",
+      "passed": true
+    },
+    {
+      "name": "baseline produced a TLS result: dv-g3b-aaa",
+      "passed": true
+    },
+    {
+      "name": "affected path explicitly rejected: dv-g3b-aaa",
+      "passed": true
+    },
+    {
+      "name": "baseline produced a TLS result: dv-g3b-noct",
+      "passed": true
+    },
+    {
+      "name": "affected path explicitly rejected: dv-g3b-noct",
+      "passed": true
+    },
+    {
+      "name": "baseline produced a TLS result: dv-g3b-aaa-noct",
+      "passed": true
+    },
+    {
+      "name": "affected path explicitly rejected: dv-g3b-aaa-noct",
+      "passed": true
+    },
+    {
+      "name": "baseline produced a TLS result: dv-g3c",
+      "passed": true
+    },
+    {
+      "name": "affected path explicitly rejected: dv-g3c",
+      "passed": true
+    },
+    {
+      "name": "baseline produced a TLS result: dv-g3c-aaa",
+      "passed": true
+    },
+    {
+      "name": "affected path explicitly rejected: dv-g3c-aaa",
+      "passed": true
+    },
+    {
+      "name": "baseline produced a TLS result: ev-g3b",
+      "passed": true
+    },
+    {
+      "name": "affected path explicitly rejected: ev-g3b",
+      "passed": true
+    },
+    {
+      "name": "baseline produced a TLS result: ev-g3b-aaa",
+      "passed": true
+    },
+    {
+      "name": "affected path explicitly rejected: ev-g3b-aaa",
+      "passed": true
+    },
+    {
+      "name": "baseline produced a TLS result: ev-g3c",
+      "passed": true
+    },
+    {
+      "name": "affected path explicitly rejected: ev-g3c",
+      "passed": true
+    },
+    {
+      "name": "baseline produced a TLS result: ev-g3c-aaa",
+      "passed": true
+    },
+    {
+      "name": "affected path explicitly rejected: ev-g3c-aaa",
+      "passed": true
+    },
+    {
+      "name": "baseline produced a TLS result: ov-g3b",
+      "passed": true
+    },
+    {
+      "name": "affected path explicitly rejected: ov-g3b",
+      "passed": true
+    },
+    {
+      "name": "baseline produced a TLS result: ov-g3b-aaa",
+      "passed": true
+    },
+    {
+      "name": "affected path explicitly rejected: ov-g3b-aaa",
+      "passed": true
+    },
+    {
+      "name": "baseline produced a TLS result: ov-g3c",
+      "passed": true
+    },
+    {
+      "name": "affected path explicitly rejected: ov-g3c",
+      "passed": true
+    },
+    {
+      "name": "baseline produced a TLS result: ov-g3c-aaa",
+      "passed": true
+    },
+    {
+      "name": "affected path explicitly rejected: ov-g3c-aaa",
+      "passed": true
+    },
+    {
+      "name": "existing system/hostname validation preserved: wrong.host.badssl.com",
+      "passed": true
+    },
+    {
+      "name": "existing system/hostname validation preserved: expired.badssl.com",
+      "passed": true
+    },
+    {
+      "name": "existing system/hostname validation preserved: self-signed.badssl.com",
+      "passed": true
+    },
+    {
+      "name": "WebSocket handshake uses the same TLS policy",
+      "passed": true
+    }
+  ],
+  "native_checks_passed": 74,
+  "original_report_sha256": "5cf138ee588842e3917c3e7e9a766d248fd308ab2db1027db307939ecff80c3a",
+  "production_source_sha256": {
+    "apps/android/app/src/main/java/io/airtap/preview/CompromisedKeys.java": "b7661c4d26f27613f2cf011bdf6ce9c3947d6bde7d808ce1bdfcd26d9d1c9023",
+    "apps/android/app/src/main/java/io/airtap/preview/FeedbackApi.java": "eb847029fe66b1241258c01447c0a67bd8952a9ae128005da1380ccd0f5d2d51",
+    "apps/android/app/src/main/java/io/airtap/preview/PreviewService.java": "228d5007ab8fff86f6f60e29bbf6a6ef03215e9b3e4d4ca33a95c6c70efbbd0d",
+    "apps/android/app/src/main/java/io/airtap/preview/RecoveryStatus.java": "074b45bc3f2ab6cce554a08112b9e673302e4f79d83952bac36b19d32efe819b",
+    "apps/android/app/src/main/java/io/airtap/preview/RelayApi.java": "80922d0777a62b2a7be2a7aec362a4b02c9b6865d7ac903ec433f08dbe886ff6",
+    "apps/android/app/src/main/java/io/airtap/preview/TlsPolicy.java": "04f8c199e5ef6725dcc023bc3356bbc1466ace7047da02b1eedea38edd1a43b2",
+    "apps/android/app/src/main/java/io/airtap/preview/UpdateNotice.java": "e63398f5d62271fd3da376a732af7dda755d9aca56e6b9f7b53fc8e550f59ee0"
+  },
+  "recorded_at_utc": "2026-10-27T06:59:06.898635+00:00",
+  "regression_checks": {
+    "approval_scheduling": 25
+  },
+  "requests": [
+    {
+      "accepted": false,
+      "elapsed_ms": 8,
+      "failures": [
+        {
+          "class": "java.io.IOException",
+          "message": "Airtap TLS policy unavailable"
+        }
+      ],
+      "mode": "forced_policy_unavailable",
+      "tls_rejected": false,
+      "url": "https://airtap-tls-probe.invalid/"
+    },
+    {
+      "accepted": false,
+      "elapsed_ms": 1,
+      "failures": [
+        {
+          "class": "java.io.IOException",
+          "message": "Airtap TLS policy unavailable"
+        }
+      ],
+      "mode": "forced_policy_unavailable",
+      "tls_rejected": false,
+      "url": "http://airtap-tls-probe.invalid/"
+    },
+    {
+      "accepted": true,
+      "elapsed_ms": 11072,
+      "http_status": 200,
+      "mode": "airtap_policy",
+      "url": "https://airtap.memtrix.dev/updates/android.json"
+    },
+    {
+      "accepted": true,
+      "elapsed_ms": 381,
+      "http_status": 200,
+      "mode": "airtap_policy",
+      "url": "https://example.com/"
+    },
+    {
+      "accepted": false,
+      "elapsed_ms": 1203,
+      "failures": [
+        {
+          "class": "javax.net.ssl.SSLHandshakeException",
+          "message": "Certificate blocklisted by public key: Certificate:"
+        },
+        {
+          "class": "java.security.cert.CertificateException",
+          "message": "Certificate blocklisted by public key: Certificate:"
+        }
+      ],
+      "mode": "android_default",
+      "tls_rejected": true,
+      "url": "https://dv-g3b-emudhra.we-have-a-problem.com/"
+    },
+    {
+      "accepted": false,
+      "elapsed_ms": 841,
+      "failures": [
+        {
+          "class": "javax.net.ssl.SSLHandshakeException",
+          "message": "Certificate blocklisted by public key: Certificate:"
+        },
+        {
+          "class": "java.security.cert.CertificateException",
+          "message": "Certificate blocklisted by public key: Certificate:"
+        }
+      ],
+      "mode": "airtap_policy",
+      "tls_rejected": true,
+      "url": "https://dv-g3b-emudhra.we-have-a-problem.com/"
+    },
+    {
+      "accepted": false,
+      "elapsed_ms": 1203,
+      "failures": [
+        {
+          "class": "javax.net.ssl.SSLHandshakeException",
+          "message": "Certificate blocklisted by public key: Certificate:"
+        },
+        {
+          "class": "java.security.cert.CertificateException",
+          "message": "Certificate blocklisted by public key: Certificate:"
+        }
+      ],
+      "mode": "android_default",
+      "tls_rejected": true,
+      "url": "https://dv-g3b-aaa-emudhra.we-have-a-problem.com/"
+    },
+    {
+      "accepted": false,
+      "elapsed_ms": 824,
+      "failures": [
+        {
+          "class": "javax.net.ssl.SSLHandshakeException",
+          "message": "Certificate blocklisted by public key: Certificate:"
+        },
+        {
+          "class": "java.security.cert.CertificateException",
+          "message": "Certificate blocklisted by public key: Certificate:"
+        }
+      ],
+      "mode": "airtap_policy",
+      "tls_rejected": true,
+      "url": "https://dv-g3b-aaa-emudhra.we-have-a-problem.com/"
+    },
+    {
+      "accepted": false,
+      "elapsed_ms": 1618,
+      "failures": [
+        {
+          "class": "javax.net.ssl.SSLHandshakeException",
+          "message": "Certificate blocklisted by public key: Certificate:"
+        },
+        {
+          "class": "java.security.cert.CertificateException",
+          "message": "Certificate blocklisted by public key: Certificate:"
+        }
+      ],
+      "mode": "android_default",
+      "tls_rejected": true,
+      "url": "https://dv-g3b-noct-emudhra.we-have-a-problem.com/"
+    },
+    {
+      "accepted": false,
+      "elapsed_ms": 902,
+      "failures": [
+        {
+          "class": "javax.net.ssl.SSLHandshakeException",
+          "message": "Certificate blocklisted by public key: Certificate:"
+        },
+        {
+          "class": "java.security.cert.CertificateException",
+          "message": "Certificate blocklisted by public key: Certificate:"
+        }
+      ],
+      "mode": "airtap_policy",
+      "tls_rejected": true,
+      "url": "https://dv-g3b-noct-emudhra.we-have-a-problem.com/"
+    },
+    {
+      "accepted": false,
+      "elapsed_ms": 1602,
+      "failures": [
+        {
+          "class": "javax.net.ssl.SSLHandshakeException",
+          "message": "Certificate blocklisted by public key: Certificate:"
+        },
+        {
+          "class": "java.security.cert.CertificateException",
+          "message": "Certificate blocklisted by public key: Certificate:"
+        }
+      ],
+      "mode": "android_default",
+      "tls_rejected": true,
+      "url": "https://dv-g3b-aaa-noct-emudhra.we-have-a-problem.com/"
+    },
+    {
+      "accepted": false,
+      "elapsed_ms": 952,
+      "failures": [
+        {
+          "class": "javax.net.ssl.SSLHandshakeException",
+          "message": "Certificate blocklisted by public key: Certificate:"
+        },
+        {
+          "class": "java.security.cert.CertificateException",
+          "message": "Certificate blocklisted by public key: Certificate:"
+        }
+      ],
+      "mode": "airtap_policy",
+      "tls_rejected": true,
+      "url": "https://dv-g3b-aaa-noct-emudhra.we-have-a-problem.com/"
+    },
+    {
+      "accepted": false,
+      "elapsed_ms": 1507,
+      "failures": [
+        {
+          "class": "javax.net.ssl.SSLHandshakeException",
+          "message": "Certificate blocklisted by public key: Certificate:"
+        },
+        {
+          "class": "java.security.cert.CertificateException",
+          "message": "Certificate blocklisted by public key: Certificate:"
+        }
+      ],
+      "mode": "android_default",
+      "tls_rejected": true,
+      "url": "https://dv-g3c-emudhra.we-have-a-problem.com/"
+    },
+    {
+      "accepted": false,
+      "elapsed_ms": 2093,
+      "failures": [
+        {
+          "class": "javax.net.ssl.SSLHandshakeException",
+          "message": "Certificate blocklisted by public key: Certificate:"
+        },
+        {
+          "class": "java.security.cert.CertificateException",
+          "message": "Certificate blocklisted by public key: Certificate:"
+        }
+      ],
+      "mode": "airtap_policy",
+      "tls_rejected": true,
+      "url": "https://dv-g3c-emudhra.we-have-a-problem.com/"
+    },
+    {
+      "accepted": false,
+      "elapsed_ms": 1600,
+      "failures": [
+        {
+          "class": "javax.net.ssl.SSLHandshakeException",
+          "message": "Certificate blocklisted by public key: Certificate:"
+        },
+        {
+          "class": "java.security.cert.CertificateException",
+          "message": "Certificate blocklisted by public key: Certificate:"
+        }
+      ],
+      "mode": "android_default",
+      "tls_rejected": true,
+      "url": "https://dv-g3c-aaa-emudhra.we-have-a-problem.com/"
+    },
+    {
+      "accepted": false,
+      "elapsed_ms": 865,
+      "failures": [
+        {
+          "class": "javax.net.ssl.SSLHandshakeException",
+          "message": "Certificate blocklisted by public key: Certificate:"
+        },
+        {
+          "class": "java.security.cert.CertificateException",
+          "message": "Certificate blocklisted by public key: Certificate:"
+        }
+      ],
+      "mode": "airtap_policy",
+      "tls_rejected": true,
+      "url": "https://dv-g3c-aaa-emudhra.we-have-a-problem.com/"
+    },
+    {
+      "accepted": false,
+      "elapsed_ms": 1497,
+      "failures": [
+        {
+          "class": "javax.net.ssl.SSLHandshakeException",
+          "message": "Certificate blocklisted by public key: Certificate:"
+        },
+        {
+          "class": "java.security.cert.CertificateException",
+          "message": "Certificate blocklisted by public key: Certificate:"
+        }
+      ],
+      "mode": "android_default",
+      "tls_rejected": true,
+      "url": "https://ev-g3b-emudhra.we-have-a-problem.com/"
+    },
+    {
+      "accepted": false,
+      "elapsed_ms": 832,
+      "failures": [
+        {
+          "class": "javax.net.ssl.SSLHandshakeException",
+          "message": "Certificate blocklisted by public key: Certificate:"
+        },
+        {
+          "class": "java.security.cert.CertificateException",
+          "message": "Certificate blocklisted by public key: Certificate:"
+        }
+      ],
+      "mode": "airtap_policy",
+      "tls_rejected": true,
+      "url": "https://ev-g3b-emudhra.we-have-a-problem.com/"
+    },
+    {
+      "accepted": false,
+      "elapsed_ms": 1389,
+      "failures": [
+        {
+          "class": "javax.net.ssl.SSLHandshakeException",
+          "message": "Certificate blocklisted by public key: Certificate:"
+        },
+        {
+          "class": "java.security.cert.CertificateException",
+          "message": "Certificate blocklisted by public key: Certificate:"
+        }
+      ],
+      "mode": "android_default",
+      "tls_rejected": true,
+      "url": "https://ev-g3b-aaa-emudhra.we-have-a-problem.com/"
+    },
+    {
+      "accepted": false,
+      "elapsed_ms": 834,
+      "failures": [
+        {
+          "class": "javax.net.ssl.SSLHandshakeException",
+          "message": "Certificate blocklisted by public key: Certificate:"
+        },
+        {
+          "class": "java.security.cert.CertificateException",
+          "message": "Certificate blocklisted by public key: Certificate:"
+        }
+      ],
+      "mode": "airtap_policy",
+      "tls_rejected": true,
+      "url": "https://ev-g3b-aaa-emudhra.we-have-a-problem.com/"
+    },
+    {
+      "accepted": false,
+      "elapsed_ms": 1523,
+      "failures": [
+        {
+          "class": "javax.net.ssl.SSLHandshakeException",
+          "message": "Certificate blocklisted by public key: Certificate:"
+        },
+        {
+          "class": "java.security.cert.CertificateException",
+          "message": "Certificate blocklisted by public key: Certificate:"
+        }
+      ],
+      "mode": "android_default",
+      "tls_rejected": true,
+      "url": "https://ev-g3c-emudhra.we-have-a-problem.com/"
+    },
+    {
+      "accepted": false,
+      "elapsed_ms": 1507,
+      "failures": [
+        {
+          "class": "javax.net.ssl.SSLHandshakeException",
+          "message": "Certificate blocklisted by public key: Certificate:"
+        },
+        {
+          "class": "java.security.cert.CertificateException",
+          "message": "Certificate blocklisted by public key: Certificate:"
+        }
+      ],
+      "mode": "airtap_policy",
+      "tls_rejected": true,
+      "url": "https://ev-g3c-emudhra.we-have-a-problem.com/"
+    },
+    {
+      "accepted": false,
+      "elapsed_ms": 1529,
+      "failures": [
+        {
+          "class": "javax.net.ssl.SSLHandshakeException",
+          "message": "Certificate blocklisted by public key: Certificate:"
+        },
+        {
+          "class": "java.security.cert.CertificateException",
+          "message": "Certificate blocklisted by public key: Certificate:"
+        }
+      ],
+      "mode": "android_default",
+      "tls_rejected": true,
+      "url": "https://ev-g3c-aaa-emudhra.we-have-a-problem.com/"
+    },
+    {
+      "accepted": false,
+      "elapsed_ms": 851,
+      "failures": [
+        {
+          "class": "javax.net.ssl.SSLHandshakeException",
+          "message": "Certificate blocklisted by public key: Certificate:"
+        },
+        {
+          "class": "java.security.cert.CertificateException",
+          "message": "Certificate blocklisted by public key: Certificate:"
+        }
+      ],
+      "mode": "airtap_policy",
+      "tls_rejected": true,
+      "url": "https://ev-g3c-aaa-emudhra.we-have-a-problem.com/"
+    },
+    {
+      "accepted": false,
+      "elapsed_ms": 1518,
+      "failures": [
+        {
+          "class": "javax.net.ssl.SSLHandshakeException",
+          "message": "Certificate blocklisted by public key: Certificate:"
+        },
+        {
+          "class": "java.security.cert.CertificateException",
+          "message": "Certificate blocklisted by public key: Certificate:"
+        }
+      ],
+      "mode": "android_default",
+      "tls_rejected": true,
+      "url": "https://ov-g3b-emudhra.we-have-a-problem.com/"
+    },
+    {
+      "accepted": false,
+      "elapsed_ms": 819,
+      "failures": [
+        {
+          "class": "javax.net.ssl.SSLHandshakeException",
+          "message": "Certificate blocklisted by public key: Certificate:"
+        },
+        {
+          "class": "java.security.cert.CertificateException",
+          "message": "Certificate blocklisted by public key: Certificate:"
+        }
+      ],
+      "mode": "airtap_policy",
+      "tls_rejected": true,
+      "url": "https://ov-g3b-emudhra.we-have-a-problem.com/"
+    },
+    {
+      "accepted": false,
+      "elapsed_ms": 1654,
+      "failures": [
+        {
+          "class": "javax.net.ssl.SSLHandshakeException",
+          "message": "Certificate blocklisted by public key: Certificate:"
+        },
+        {
+          "class": "java.security.cert.CertificateException",
+          "message": "Certificate blocklisted by public key: Certificate:"
+        }
+      ],
+      "mode": "android_default",
+      "tls_rejected": true,
+      "url": "https://ov-g3b-aaa-emudhra.we-have-a-problem.com/"
+    },
+    {
+      "accepted": false,
+      "elapsed_ms": 817,
+      "failures": [
+        {
+          "class": "javax.net.ssl.SSLHandshakeException",
+          "message": "Certificate blocklisted by public key: Certificate:"
+        },
+        {
+          "class": "java.security.cert.CertificateException",
+          "message": "Certificate blocklisted by public key: Certificate:"
+        }
+      ],
+      "mode": "airtap_policy",
+      "tls_rejected": true,
+      "url": "https://ov-g3b-aaa-emudhra.we-have-a-problem.com/"
+    },
+    {
+      "accepted": false,
+      "elapsed_ms": 1238,
+      "failures": [
+        {
+          "class": "javax.net.ssl.SSLHandshakeException",
+          "message": "Certificate blocklisted by public key: Certificate:"
+        },
+        {
+          "class": "java.security.cert.CertificateException",
+          "message": "Certificate blocklisted by public key: Certificate:"
+        }
+      ],
+      "mode": "android_default",
+      "tls_rejected": true,
+      "url": "https://ov-g3c-emudhra.we-have-a-problem.com/"
+    },
+    {
+      "accepted": false,
+      "elapsed_ms": 832,
+      "failures": [
+        {
+          "class": "javax.net.ssl.SSLHandshakeException",
+          "message": "Certificate blocklisted by public key: Certificate:"
+        },
+        {
+          "class": "java.security.cert.CertificateException",
+          "message": "Certificate blocklisted by public key: Certificate:"
+        }
+      ],
+      "mode": "airtap_policy",
+      "tls_rejected": true,
+      "url": "https://ov-g3c-emudhra.we-have-a-problem.com/"
+    },
+    {
+      "accepted": false,
+      "elapsed_ms": 11547,
+      "failures": [
+        {
+          "class": "javax.net.ssl.SSLHandshakeException",
+          "message": "Certificate blocklisted by public key: Certificate:"
+        },
+        {
+          "class": "java.security.cert.CertificateException",
+          "message": "Certificate blocklisted by public key: Certificate:"
+        }
+      ],
+      "mode": "android_default",
+      "tls_rejected": true,
+      "url": "https://ov-g3c-aaa-emudhra.we-have-a-problem.com/"
+    },
+    {
+      "accepted": false,
+      "elapsed_ms": 823,
+      "failures": [
+        {
+          "class": "javax.net.ssl.SSLHandshakeException",
+          "message": "Certificate blocklisted by public key: Certificate:"
+        },
+        {
+          "class": "java.security.cert.CertificateException",
+          "message": "Certificate blocklisted by public key: Certificate:"
+        }
+      ],
+      "mode": "airtap_policy",
+      "tls_rejected": true,
+      "url": "https://ov-g3c-aaa-emudhra.we-have-a-problem.com/"
+    },
+    {
+      "accepted": false,
+      "elapsed_ms": 1066,
+      "failures": [
+        {
+          "class": "javax.net.ssl.SSLPeerUnverifiedException",
+          "message": "Hostname wrong.host.badssl.com not verified:"
+        }
+      ],
+      "mode": "airtap_policy",
+      "tls_rejected": true,
+      "url": "https://wrong.host.badssl.com/"
+    },
+    {
+      "accepted": false,
+      "elapsed_ms": 659,
+      "failures": [
+        {
+          "class": "javax.net.ssl.SSLHandshakeException",
+          "message": "Unacceptable certificate: CN=COMODO RSA Certification Authority, O=COMODO CA Limited, L=Salford, ST=Greater Manchester, C=GB"
+        },
+        {
+          "class": "java.security.cert.CertificateException",
+          "message": "Unacceptable certificate: CN=COMODO RSA Certification Authority, O=COMODO CA Limited, L=Salford, ST=Greater Manchester, C=GB"
+        },
+        {
+          "class": "java.security.cert.CertificateExpiredException",
+          "message": "Certificate expired at Sat May 30 18:48:38 GMT+08:00 2020 (compared to Tue Oct 27 14:55:36 GMT+08:00 2026)"
+        }
+      ],
+      "mode": "airtap_policy",
+      "tls_rejected": true,
+      "url": "https://expired.badssl.com/"
+    },
+    {
+      "accepted": false,
+      "elapsed_ms": 651,
+      "failures": [
+        {
+          "class": "javax.net.ssl.SSLHandshakeException",
+          "message": "java.security.cert.CertPathValidatorException: Trust anchor for certification path not found."
+        },
+        {
+          "class": "java.security.cert.CertificateException",
+          "message": "java.security.cert.CertPathValidatorException: Trust anchor for certification path not found."
+        },
+        {
+          "class": "java.security.cert.CertPathValidatorException",
+          "message": "Trust anchor for certification path not found."
+        }
+      ],
+      "mode": "airtap_policy",
+      "tls_rejected": true,
+      "url": "https://self-signed.badssl.com/"
+    },
+    {
+      "failures": [
+        {
+          "class": "javax.net.ssl.SSLHandshakeException",
+          "message": "Certificate blocklisted by public key: Certificate:"
+        },
+        {
+          "class": "java.security.cert.CertificateException",
+          "message": "Certificate blocklisted by public key: Certificate:"
+        }
+      ],
+      "mode": "airtap_policy_websocket"
+    }
+  ],
+  "scope": "Application-local Android TLS defense and no-credential probe, not phone/pairing/Muse acceptance. No system trust store changes.",
+  "sources": [
+    "https://blog.cloudflare.com/emudhra-certificate-compromise/",
+    "https://emudhra.we-have-a-problem.com/",
+    "https://developer.android.com/reference/android/net/http/X509TrustManagerExtensions"
+  ],
+  "status": "passed_with_explicit_platform_scope"
+}

@@ -1,0 +1,16 @@
+Airtap native Android experiment dependency notices
+
+OkHttp 4.12.0 — Copyright Square, Inc. — Apache License 2.0
+https://github.com/square/okhttp/tree/parent-4.12.0
+
+Okio 3.6.0 — Copyright Square, Inc. — Apache License 2.0
+https://github.com/square/okio/tree/3.6.0
+
+Kotlin standard library 1.9.10 — Copyright JetBrains s.r.o. and Kotlin contributors — Apache License 2.0
+https://github.com/JetBrains/kotlin/tree/v1.9.10
+
+JetBrains annotations 13.0 — Copyright JetBrains s.r.o. — Apache License 2.0
+https://github.com/JetBrains/java-annotations
+
+See LICENSE-APACHE-2.0.txt in this assets directory.
+OkHttp's public-suffix data retains its packaged okhttp3/internal/publicsuffix/NOTICE.

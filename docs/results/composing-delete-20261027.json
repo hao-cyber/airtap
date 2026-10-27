@@ -1,0 +1,35 @@
+{
+  "environment": "isolated emulator5586 API36.1; real workerd/CLI/device execution, no Muse or physical phone",
+  "old_failure_reproduced": "composition17..25 + selection25..25 + deleteBefore3 deletes14..16 instead of22..24",
+  "after_fix": "composition-expanded delete rejected before native dispatch",
+  "explicit_selection_empty_insert": "restores exact baseline; primary unchanged",
+  "noncollapsed_original_selection_preserved": {
+    "input": "Airtap secondary checkXYZ",
+    "selection": [
+      14,
+      22
+    ],
+    "before": 2,
+    "after": 2,
+    "result": "Airtap seconry checkZ",
+    "result_selection": [
+      12,
+      20
+    ]
+  },
+  "noncollapsed_native": "Gboard finished composition after selection; native before2/after2 preserved originally selected characters, cursor settled20,20",
+  "noncomposing_delete": "native deleteBefore3 succeeds",
+  "final_home": true,
+  "retained_recovery": "first explicit-selection insert was rejected fresh_snapshot_required; new tree confirmed unchanged text/selection before retry",
+  "events_sha256": "a1c512e37aec4687c538aa22537ec9c2b3ba9214a1841f2dac5cdbc7bf2e3ff0",
+  "host_atomic_input_tests": 45,
+  "android_build": "assembleDebug passed; final onFinish cleanup compiled separately",
+  "physical_device": "Muse code31 reported matching wrong deletion and restored text; original command JSON unavailable. Actual composing range on physical phone is not directly proven. Post-fix physical-device validation remains pending.",
+  "before_fixture_events_sha256": "4ba3762afce91d32685dae1d96a802b1371a8bfef49da9fd2d7aca15df3feb4d",
+  "references": [
+    "https://developer.android.com/reference/android/accessibilityservice/InputMethod.AccessibilityInputConnection#deleteSurroundingText(int,%20int)",
+    "https://android.googlesource.com/platform/frameworks/base/+/refs/heads/main/core/java/android/view/inputmethod/BaseInputConnection.java",
+    "https://android.googlesource.com/platform/frameworks/base/+/refs/heads/main/core/java/android/view/inputmethod/RemoteInputConnectionImpl.java"
+  ],
+  "scope": "No fixture, local relay, test CA, private config or production phone changes included in source commit."
+}

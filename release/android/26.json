@@ -1,0 +1,21 @@
+{
+  "schema": "airtap-android-update-v1",
+  "application_id": "io.airtap.preview",
+  "version_name": "0.4.0-beta.2",
+  "version_code": 26,
+  "apk_sha256": "e15ca5307391699f7f4d71d10def1ded7f275de1bec4c2d465da3cdfe40037f5",
+  "apk_bytes": 374221,
+  "signer_sha256": "a2aa0c1b6fdaf1baa37aa20817387524a1318b5dab82bf7c185663141daba60f",
+  "min_sdk": 34,
+  "target_sdk": 36,
+  "debuggable": false,
+  "channel": "beta",
+  "published_at": "2026-10-26",
+  "download_path": "/download/android",
+  "notes": [
+    "手机操作权限改为逐步引导，在跳转前说明要找什么、打开哪个开关、如何返回。",
+    "返回 App 后自动检查权限，成功后进入下一步；未完成时保留操作提示。",
+    "新增“找不到 Airtap”和“受限设置”帮助，可直接打开相应系统页面。",
+    "完善拒绝通知后的恢复入口，仍使用固定下载地址与原发布签名。"
+  ]
+}

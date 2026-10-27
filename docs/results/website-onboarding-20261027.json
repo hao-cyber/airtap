@@ -1,0 +1,47 @@
+{
+  "schema": "airtap-website-readiness-v1",
+  "date": "2026-10-27",
+  "scope": "Local website onboarding, immutable APK site refresh and publication verification tooling. No deployment or new Android recommendation in this record.",
+  "video_published": false,
+  "validation": {
+    "python_release_tests": 14,
+    "worker_tests": 6,
+    "tests_passed": true,
+    "signed_apk_site_refresh": {
+      "version_code": 28,
+      "apk_sha256": "fc3d3b9f969c5c335d793357469a3187a8bec232bfbcf2081da94854d9cc2f0a",
+      "native_signature_and_manifest_verified": true,
+      "deployment_kind": "site_refresh",
+      "retained_apks": 4,
+      "frozen_files_verified": 14
+    },
+    "browser": {
+      "engine": "Codex in-app browser, local Worker preview",
+      "desktop_width": 1280,
+      "mobile_width": 390,
+      "mobile_height": 844,
+      "mobile_document_width": 390,
+      "missing_local_help_anchors": [],
+      "offline_help_direct_link_expanded": true,
+      "console_warnings_or_errors": 0,
+      "review": "Maintainer visual inspection of onboarding and offline help; not an independent new-user trial."
+    }
+  },
+  "changes": [
+    "One default download; no user version choice.",
+    "Four steps lead from installation and system permission through private invitation and six-digit approval.",
+    "Tool-capable personal AI requirement is visible before setup.",
+    "First task includes a checkable result and a return-to-home instruction.",
+    "Pairing, existing-connection recovery, and preparation for remote use have separate help links.",
+    "Same APK and native identity can refresh the website without increasing versionCode; changed same-code APKs remain rejected.",
+    "Read-only frozen/local and public HTTP verifier compares all assets and APKs to the frozen build.",
+    "Wrangler preview writes tool state beside its config; use a working copy and verify against the untouched freeze."
+  ],
+  "not_claimed": [
+    "Website deployed",
+    "New recommended Android version published",
+    "New phone or personal-AI regression",
+    "Independent ordinary-user onboarding",
+    "Video approved or published"
+  ]
+}

@@ -1,0 +1,47 @@
+{
+  "checked_at": "2026-10-26T16:53:37.122288+00:00",
+  "base_commit": "6d235e4",
+  "scope": "node select-all fallback and text/hint observation",
+  "implementation": [
+    "Native advertised ACTION_SET_SELECTION selects [0, UTF16 length] without an IME resource identity",
+    "Hint text is represented separately; placeholder is not reported as entered text",
+    "Password/sensitive node hints stay masked",
+    "Hint/content distinction participates in snapshot identity",
+    "Existing IME identity and command fences retained; rejected native action not retried through IME"
+  ],
+  "host_tests": {
+    "passed": 27,
+    "new_tests": 4,
+    "boundary": "Android platform fault fixtures, not real device"
+  },
+  "android_build": "assembleDebug passed; local emulator TLS overlay excluded from production change",
+  "real_android": {
+    "environment": "isolated Android API36.1 ARM64 emulator; local workerd and CLI; existing synthetic pairing retained",
+    "original_error_reproduced": "editor_identity_unavailable on unbound select_all despite node SET_SELECTION",
+    "unicode_text": "中🫶é",
+    "selection_utf16": [
+      0,
+      5
+    ],
+    "selection_event_sequences": [
+      534,
+      583
+    ],
+    "strict_ime_insert_still_refused": true,
+    "primary_secondary_unchanged": true,
+    "empty_hint_text_correctly_separated": true,
+    "literal_text_equal_to_hint_reported_as_content": true,
+    "test_field_restored": true,
+    "final_home": true,
+    "events_sha256": "d8c3a48c9ed9631a1474da463c9d5cecc66737b220d6fe0c27773a86461f389e"
+  },
+  "retained_failures_and_limits": [
+    "Android empty EditText omitted native SET_SELECTION; select_all refused and was not counted as passed. Synthetic helper covers explicit advertised empty selection only.",
+    "Native ACTION_IME_ENTER produced editor action IME_NULL/action_id=0, not explicit DONE. Its actual UI effect was recorded; no claim that default always equals DONE.",
+    "Immediate launch after debug APK replacement returned HTTP503/unknown. Read-only status and foreground later confirmed reconnected launcher before a new task decision.",
+    "Initial build attempted new AtomicInput against older emulator source lacking CommandFence; failed. Rebuilt complete 6d235e4 candidate tree with isolated test overlay successfully.",
+    "Physical Xiaohong code31 not upgraded or tested by these emulator runs; Muse current regression tracked separately."
+  ],
+  "published": false,
+  "production_tls_changed": false
+}

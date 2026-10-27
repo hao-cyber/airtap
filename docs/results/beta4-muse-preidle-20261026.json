@@ -1,0 +1,116 @@
+{
+  "recorded_at": "2026-10-26T16:05:36.337031+08:00",
+  "scope": "beta4/code28 original-pairing check and synthetic feedback; before 60-minute standby follow-up",
+  "apk": {
+    "version_name": "0.4.0-beta.4",
+    "version_code": 28,
+    "sha256": "fc3d3b9f969c5c335d793357469a3187a8bec232bfbcf2081da94854d9cc2f0a",
+    "verified_by": "maintainer apksigner/aapt/hash preflight and post-install package manager; Muse did not independently read code28"
+  },
+  "source_classification": {
+    "muse_results": "Maintainer transcription of visible Muse native UI report; not original HTTP/CLI logs",
+    "independent_observations": [
+      "beta4-upgrade-preflight.json",
+      "beta4-upgrade-result.json"
+    ],
+    "muse_raw_result_files": "Muse stated five redacted JSON files are saved in its cloud workspace; not yet retrieved for independent inspection"
+  },
+  "authorization": {
+    "delegated_request": "Muse refused Codex-delegated request citing direct-owner authorization rules",
+    "subsequent_visible_user_message": "两项都执行",
+    "required_owner_intervention": true,
+    "automatic_confirmation_verified": false
+  },
+  "muse_report": {
+    "stated_time": "2026-10-26T15:08:00+08:00",
+    "guide": {
+      "http": 200,
+      "bytes": 20819,
+      "digest_matches_header": true,
+      "new_beta4_feedback_section": true
+    },
+    "cli": {
+      "http": 200,
+      "bytes": 41371,
+      "digest_matches_header": true,
+      "version": "0.4.0-cli.2"
+    },
+    "status": {
+      "state": "approved",
+      "deviceConnected": true,
+      "persistent": true,
+      "allow_control": true
+    },
+    "wait_ready": {
+      "screen_state": "screen_off",
+      "will_prepare_screen": true,
+      "needs_system_authentication": false
+    },
+    "ping": {
+      "auto_wake": true,
+      "capabilities": [
+        "companion_v1",
+        "screen_recovery_v1"
+      ]
+    },
+    "actions": [
+      {
+        "action": "observe",
+        "attempts": 1,
+        "seconds": 3.49,
+        "reported_result": "launcher visually confirmed; no lock/auth prompt"
+      },
+      {
+        "action": "home",
+        "reported_result": "launcher, device_unlocked=true"
+      }
+    ],
+    "failures": [],
+    "feedback": {
+      "capability_probe_http": 200,
+      "capability": "feedback_v1",
+      "body": "synthetic placeholder text only",
+      "attachments": false,
+      "github_issue_created": false,
+      "steps": [
+        {
+          "method": "POST",
+          "http": 201,
+          "status": "new",
+          "duplicate_of": null
+        },
+        {
+          "method": "GET",
+          "http": 200,
+          "assertions": [
+            "same report",
+            "state new",
+            "same title"
+          ]
+        },
+        {
+          "method": "DELETE",
+          "http": 200,
+          "deleted": true
+        },
+        {
+          "method": "GET",
+          "http": 410,
+          "error": "report_deleted"
+        }
+      ],
+      "retries": 0,
+      "tokens_in_chat": false
+    }
+  },
+  "usb": "Physically connected and powered. Maintainer used USB for upgrade and diagnostics; Muse task itself used network. Not an unplugged test.",
+  "standby_test": "pending; see beta4-idle-window.json",
+  "limitations": [
+    "No raw HTTP files retrieved yet",
+    "Muse task did not independently confirm installed APK version",
+    "One short successful wake is not 60-minute or long-term stability",
+    "Does not validate fresh pairing or novice replication"
+  ],
+  "source_record": "Coordination chat 规划安卓远程控制开源项目; maintainer transcription of visible Muse report. Original source record filename beta4-muse-pre-idle-evidence.json.",
+  "subsequent_evidence": "The five synthetic feedback JSON copies were subsequently retrieved and inspected in beta4-muse-evidence; final post-idle result is beta4-muse-idle-20261026.json. Earlier pending/no-raw-file statements describe the original pre-idle record time."
+}

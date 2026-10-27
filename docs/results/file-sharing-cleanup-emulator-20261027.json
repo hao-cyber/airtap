@@ -1,0 +1,136 @@
+{
+  "date": "2026-10-27",
+  "scope": "Maintainer Android 16 / API 36 emulator; real local Workers + production CLI and independent receiver App. Not Muse, Instinct or physical-phone acceptance.",
+  "passed": {
+    "upload_share_full_hash": {
+      "bytes": 19035,
+      "sha256": "9dc63a02bd1ba4ee3025c65e220438a643138731366061c51facd70ed9e33e7d"
+    },
+    "receiver_read_only": true,
+    "third_uid_denied": true,
+    "owner_surface_share_denied": "protected_airtap_window",
+    "stop_held_descriptor_read_denied": "IOException",
+    "stop_new_descriptor_read_denied": "SecurityException",
+    "stop_os_uri_grants_revoked": true,
+    "large_receiver_read": {
+      "bytes": 8388608,
+      "sha256": "7d212b9c884f5c77896de960ae17cc341cda43b14d6a971f34ca29ebd4badf7f",
+      "receiver_read_ms": 3690,
+      "scope": "Maintainer seeded synthetic workspace bytes using run-as on isolated emulator; actual production file_stat/file_share/ContentProvider and independent receiving App. Not an 8MiB network upload or personal-AI test.",
+      "total_to_receipt_s": 4.333284139633179
+    },
+    "natural_share_expiry": {
+      "elapsed_s": 316.76100611686707,
+      "natural_wait": true,
+      "no_clock_or_ttl_override": true,
+      "held_descriptor_after_expiry": {
+        "event": "held_read",
+        "ok": false,
+        "detail": "IOException",
+        "read_ms": 3690
+      },
+      "new_open_after_expiry": {
+        "event": "new_read",
+        "ok": false,
+        "detail": "SecurityException",
+        "read_ms": 3690
+      },
+      "system_uri_grants_revoked": true
+    },
+    "receiver_during_competing_file_commands": {
+      "receiver": {
+        "event": "received",
+        "ok": true,
+        "detail": "8388608:7d212b9c884f5c77896de960ae17cc341cda43b14d6a971f34ca29ebd4badf7f",
+        "read_ms": 4177
+      },
+      "parallel_commands": [
+        {
+          "action": "file-roots",
+          "ok": true,
+          "error": null
+        },
+        {
+          "action": "file-stat",
+          "ok": false,
+          "error": "file_busy"
+        },
+        {
+          "action": "file-roots",
+          "ok": true,
+          "error": null
+        },
+        {
+          "action": "file-stat",
+          "ok": false,
+          "error": "file_busy"
+        },
+        {
+          "action": "file-roots",
+          "ok": false,
+          "error": "file_busy"
+        },
+        {
+          "action": "file-stat",
+          "ok": false,
+          "error": "file_busy"
+        },
+        {
+          "action": "file-roots",
+          "ok": false,
+          "error": "file_busy"
+        },
+        {
+          "action": "file-stat",
+          "ok": false,
+          "error": "file_busy"
+        }
+      ],
+      "full_hash_match": true,
+      "scope": "Actual provider proxy file read while CLI roots/stat competed for the shared IO lock; only synthetic data on emulator."
+    },
+    "owner_reclaims_former_pair_staging": {
+      "used_bytes_before": 11573469,
+      "used_bytes_after": 9476408,
+      "reserved_bytes_before": 1179209,
+      "reserved_bytes_after": 1113892,
+      "old_payload_removed_bytes": 2097152,
+      "current_unexpired_payload_preserved_bytes": 1048576,
+      "unknown_identity_retained": true,
+      "external_sentinel_unchanged": true,
+      "pairing_preserved": true,
+      "new_upload_finished": true,
+      "scope": "Maintainer seeded synthetic internal records/payloads and external sentinel; actual owner UI cleanup and subsequent production CLI. No provider create/delete was invoked."
+    }
+  },
+  "boundaries": [
+    "Existing bytes copied or buffered by the receiving App cannot be recalled.",
+    "Android may directly open a sole specified receiver; chooser_requested is not observed chooser or sent state.",
+    "Setup and system permission actions were maintainer operations; no personal-AI result is claimed.",
+    "8 MiB and cleanup payloads were seeded by the maintainer on the isolated emulator. They are not cloud-AI uploads.",
+    "No external document provider create/delete was performed during the cleanup UI test; the sentinel proves its content stayed unchanged.",
+    "No production release or device version is inferred from this development emulator."
+  ],
+  "retained_failures": [
+    "Initial proxy descriptor callback returned at most 4096 bytes per FUSE read, which FUSE treated as EOF. Fixed by filling the requested range with internally fenced 4096-byte chunks; receiver then read all 19035 bytes with matching SHA256.",
+    "Normal competing file commands retained explicit file_busy in 6 of 8 attempts; 2 roots calls succeeded and the receiver completed all 8 MiB with correct SHA256. No claim that all competing commands succeeded.",
+    "The first cleanup UI assertion sampled at 200 ms, before asynchronous completion; resumed inspection observed actual success and checked files/budget without reinjecting payloads or repeating cleanup."
+  ],
+  "review_counterexamples": [
+    "Queued owner cleanup captures pairing, file epoch and session epoch; host tests reject owner switch or epoch change before subsequent deletion.",
+    "Recipient IO waits up to 5 seconds off-main with authorization rechecked every 50 ms; host thread test denies revoked waiting reads before the competing lock is released."
+  ],
+  "unverified": [
+    "Physical-phone and personal-AI file share acceptance",
+    "Third-party messaging recipients, real attachments, OEM differences and large network uploads",
+    "Real power loss and independent ordinary-user onboarding"
+  ],
+  "teardown": {
+    "synthetic_pair_stopped_through_owner_ui_after_all_checks": true,
+    "emulator_http_proxy_removed": true,
+    "test_reverse_removed": true,
+    "local_relay_and_connect_proxy_stopped": true,
+    "phone_returned_home": true,
+    "physical_devices_touched": false
+  }
+}

@@ -1,0 +1,76 @@
+{
+  "schema": "airtap-clean-install-acceptance-v1",
+  "recorded_at": "2026-10-27T03:39:04.781158+00:00",
+  "status": "first_install_and_short_task_passed; subsequent_code37_upgrade_and_revocation_completed",
+  "apk": {
+    "version_name": "0.4.0-beta.7",
+    "version_code": 36,
+    "sha256": "5067e7d27686e4596c84734ab5dcd091c8c16a20b48c3971d75ad2437c5157b1",
+    "bytes": 517581,
+    "signer_sha256": "a2aa0c1b6fdaf1baa37aa20817387524a1318b5dab82bf7c185663141daba60f",
+    "production_source": "77a81b2",
+    "installer_package": "com.google.android.packageinstaller"
+  },
+  "environment": {
+    "device": "fresh private AVD Airtap_Code36_Fresh, isolated emulator-5592",
+    "android": "16 / API 36, system image android-36.1 google_apis_playstore arm64-v8a",
+    "initial_state": "new AVD directory; pm list packages confirmed io.airtap.preview absent",
+    "operator": "maintainer, system UI setup and public HTTPS CLI; not Muse, Instinct or independent novice",
+    "audio": "emulator -no-audio; no alarm, timer, audio or volume actions",
+    "network": "Mac host DNS returns local 198.18.x.x proxy interception; emulator uses host path. Not direct mainland/mobile-only network proof."
+  },
+  "install": {
+    "transport": "Final APK copied to Download using adb push; not browser download acceptance. Airtap itself was NOT adb-installed.",
+    "flow": "Files -> Android PackageInstaller -> Continue -> Install -> Play Protect Scan app -> This app looks safe -> Install -> Open",
+    "identity_verified": true,
+    "permissions": "Normal owner UI: Airtap start, accessibility list, actual restricted-setting denial, app-info Allow restricted settings, accessibility Allow, notification Allow. No settings grants, authorization supplier, private DB edits or test replacement of Airtap.",
+    "ui_observer": "Separate local UI reader uses UiAutomation DONT_SUPPRESS_ACCESSIBILITY_SERVICES only to inspect UI text; all owner UI clicks use adb input. Reader does not load or modify Airtap execution or authorization."
+  },
+  "pairing": {
+    "relay": "real current public service, revision 12",
+    "invitation": "Original text read from normal View invitation UI; one pair-start; no fabricated or extracted enrollment credentials",
+    "cli_version": "0.4.0-cli.7",
+    "cli_sha256": "58f210a791b9360ba23463b30254cadea3a819e1cf708fa261ce4ac922270d96",
+    "download_verification": "Device-base HTTPS, redirects rejected, 512 KiB bound, SHA matches header and release expected value",
+    "six_digits_match": true,
+    "phone_approval": "Normal owner button after actual phone/CLI code comparison",
+    "wait_ready": true,
+    "credentials": "Private acceptance directory only; no tickets, grant IDs, device IDs or tokens in this report",
+    "version_verification": "Actual downloaded airtap.py --version returned airtap 0.4.0-cli.7"
+  },
+  "actual_checks": [
+    "Public CLI apps returns actual installed application directory.",
+    "Public CLI launches Clock, reads its native tree, clicks Add city, enters Tokyo using set-text stdin, selects observed Tokyo result, and confirms actual Tokyo / +1h world clock.",
+    "Public CLI switches to Files and reads its actual tree, returns to Clock, and confirms Tokyo persisted.",
+    "Public CLI observe returns the actual Clock screenshot, independently visually checked; SHA256 7942cfcf79c50465adc6f845000c5db61ec089fcac99062d42fb48ac61660c9a.",
+    "Public CLI returns phone to home. No adb input or maintainer UI was used to perform the Clock/Files task."
+  ],
+  "failures_and_recovery": [
+    {
+      "failure": "Initial fresh-emulator public registration did not complete; default Automatic Private DNS resolved public Cloudflare addresses while host resolved intercepted 198.18.x.x addresses. A later attempt displayed SocketTimeoutException and enabled retry.",
+      "recovery": "Changed only this private emulator Private DNS to Off via normal Settings UI, restarted same AVD with explicit host DNS 1.1.1.1, reopened Airtap and used Start again. Normal registration then succeeded.",
+      "limit": "This is environment-specific maintenance assistance; no claim that all direct networks work, nor that globally disabling Private DNS is required."
+    },
+    {
+      "failure": "Airtap entry said Controlled by Restricted Setting; app-info initially had no restricted-settings overflow menu.",
+      "recovery": "Actually tapped the restricted service and saw App was denied access, closed the dialog, revisited app info through Airtap help. Allow restricted settings then appeared; normal UI enabled it. Before/after screenshots retained; guide/site clarified this exact observed Android 16 path."
+    },
+    {
+      "failure": "Maintainer initially passed unsupported --text CLI argument; argparse rejected before sending a phone command.",
+      "recovery": "Read CLI syntax and used required --text-stdin; text action and observed result succeeded."
+    }
+  ],
+  "pending": [],
+  "limits": [
+    "Maintainer emulator/CLI technical acceptance, not independent ordinary-user usability or personal-AI acceptance.",
+    "No physical-device, background-duration, direct-network or cellular proof.",
+    "Final APK transfer used adb push before normal installer; published-browser-download path not exercised in this sample.",
+    "This first-install stage ended before revocation; subsequent code37 upgrade/revocation is recorded separately on this same normal pair."
+  ],
+  "evidence": {
+    "private_directory": "clean-onboarding-code36 (maintainer private storage; not packaged)",
+    "sanitized_report": "docs/results/beta7-code36-clean-install-20261027.json",
+    "source_changed": "Guide and website restricted-settings help only; no APK or production code changes"
+  },
+  "lifecycle_follow_up": "beta7-code37-upgrade-revoke-20261027.json: same pair preserved through signed overwrite, real short task passed, normal phone UI revoked and old CLI ping/launch rejected HTTP410"
+}

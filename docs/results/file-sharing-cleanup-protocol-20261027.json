@@ -1,0 +1,96 @@
+{
+  "checkedAt": "2026-10-27T03:02:49.529Z",
+  "scope": "Real workerd, production relay + real Python CLI + remote MCP. Synthetic file executor, not Android SAF or phone acceptance.",
+  "serviceSourceSha256": "adef1f770e418c4b3f7b97a31fa7f191d9a326d28a3d5ffc78a986ba8f751927",
+  "coreSourceSha256": "bb32c716eac39cc0ff02150fb2211a6da0fa010d0e8a59062a43fe171fc3da78",
+  "cliSha256": "639cbed616d1a1d0b8c8cf6ce7c91f470553bfe8d82029903770ef72c46a675b",
+  "passed": 17,
+  "total": 17,
+  "checks": [
+    {
+      "name": "v4 discovery, no duration/command cap, enrollment and integrity-checked CLI delivery",
+      "ok": true,
+      "elapsedMs": 34
+    },
+    {
+      "name": "CLI pair, pending denial, explicit full-phone persistent approval",
+      "ok": true,
+      "elapsedMs": 185
+    },
+    {
+      "name": "workspace discovery and strict MCP schemas",
+      "ok": true,
+      "elapsedMs": 88
+    },
+    {
+      "name": "real CLI upload/download verify multi-chunk binary with no base64 stdout",
+      "ok": true,
+      "elapsedMs": 709
+    },
+    {
+      "name": "workspace sharing reaches CLI and MCP as unverified read-only handoff",
+      "ok": true,
+      "elapsedMs": 362
+    },
+    {
+      "name": "read chunk and MCP binary resource retain authenticated metadata without base64 text",
+      "ok": true,
+      "elapsedMs": 254
+    },
+    {
+      "name": "strict wire rejects traversal, foreign roots, extra fields, binary abuse and bounds before dispatch",
+      "ok": true,
+      "elapsedMs": 54
+    },
+    {
+      "name": "CLI rejects local symlinks/directories and remote traversal, never overwrites outputs",
+      "ok": true,
+      "elapsedMs": 324
+    },
+    {
+      "name": "corrupted chunk hash causes no local publication or content leak",
+      "ok": true,
+      "elapsedMs": 122
+    },
+    {
+      "name": "uncertain chunk persists transfer identity, explicit resume checks status and does not duplicate bytes",
+      "ok": true,
+      "elapsedMs": 377
+    },
+    {
+      "name": "empty file and same-transfer abort/finish idempotence",
+      "ok": true,
+      "elapsedMs": 669
+    },
+    {
+      "name": "saved receipt does not falsely prove a subsequently changed file still matches",
+      "ok": true,
+      "elapsedMs": 329
+    },
+    {
+      "name": "SAF flags are per-root and provider read-only denial is preserved",
+      "ok": true,
+      "elapsedMs": 463
+    },
+    {
+      "name": "SAF publishing resumes its recorded document with one creation and fresh verification",
+      "ok": true,
+      "elapsedMs": 560
+    },
+    {
+      "name": "SAF name-conflict cleanup is explicit and never deletes a finished neighbour",
+      "ok": true,
+      "elapsedMs": 497
+    },
+    {
+      "name": "SAF unknown creation and expired receipt never trigger blind recreation or deletion",
+      "ok": true,
+      "elapsedMs": 460
+    },
+    {
+      "name": "fresh sequence remains mandatory and revoke fences file HTTP/MCP access",
+      "ok": true,
+      "elapsedMs": 97
+    }
+  ]
+}

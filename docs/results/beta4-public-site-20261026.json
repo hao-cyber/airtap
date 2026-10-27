@@ -1,0 +1,79 @@
+{
+  "schema": "airtap-public-site-acceptance-v1",
+  "checked_at": "2026-10-26T08:00:52.644528+00:00",
+  "site_version_id": "912c593d-4f1d-4a55-9ab8-d9d99bd1cac0",
+  "checks": [
+    {
+      "path": "/",
+      "status": 200,
+      "attempt": 1,
+      "bytes": 10551,
+      "sha256": "bf50ce669911918bc5e3d1980b3c8495872c1c879e4d85917b70b461e883a9ad",
+      "matches_frozen_asset": true,
+      "cache": "public, no-cache, no-transform",
+      "prior_failures": [],
+      "analytics_beacon_absent": true
+    },
+    {
+      "path": "/help",
+      "status": 200,
+      "attempt": 1,
+      "bytes": 10551,
+      "sha256": "bf50ce669911918bc5e3d1980b3c8495872c1c879e4d85917b70b461e883a9ad",
+      "matches_frozen_asset": true,
+      "cache": "public, no-cache, no-transform",
+      "prior_failures": [],
+      "analytics_beacon_absent": true
+    },
+    {
+      "path": "/privacy",
+      "status": 200,
+      "attempt": 2,
+      "bytes": 2390,
+      "sha256": "05d7ae9139d6a2ac16076c72fa29686c114f24d50d34b972fdb4a15fb167969e",
+      "matches_frozen_asset": true,
+      "cache": "public, no-cache, no-transform",
+      "prior_failures": [
+        "URLError"
+      ],
+      "analytics_beacon_absent": true
+    },
+    {
+      "path": "/release-notes",
+      "status": 200,
+      "attempt": 1,
+      "bytes": 1263,
+      "sha256": "f18e6c50081372c2e54167413783c9fa5c02715413f4267f90cc501df77baedf",
+      "matches_frozen_asset": true,
+      "cache": "public, no-cache, no-transform",
+      "prior_failures": [],
+      "analytics_beacon_absent": true
+    },
+    {
+      "path": "/updates/android.json",
+      "status": 200,
+      "attempt": 1,
+      "bytes": 1161,
+      "sha256": "0a7281a0bc5537e274cff1c41cdbb6bc18854bca642c3432df7e2087854f5f62",
+      "matches_frozen_asset": true,
+      "cache": "no-store",
+      "prior_failures": []
+    },
+    {
+      "path": "/download/android",
+      "status": 200,
+      "attempt": 1,
+      "bytes": 402893,
+      "sha256": "fc3d3b9f969c5c335d793357469a3187a8bec232bfbcf2081da94854d9cc2f0a",
+      "matches_frozen_asset": true,
+      "cache": "public, max-age=31536000, immutable",
+      "prior_failures": []
+    }
+  ],
+  "correction": "Observed Cloudflare-injected analytics beacon before correction. Site-only public,no-cache,no-transform now prevents injection; all public HTML matches frozen source exactly. Relay and zone-wide settings unchanged.",
+  "retention": "Privacy distinguishes online deletion/30-day retention from Cloudflare SQLite DO PITR history.",
+  "prior_site_version_id": "0ea78723-07f6-4ec3-94cf-89594fd5f50e",
+  "faq_version_boundary": "Muse/Instinct earlier acceptance explicitly identified as earlier-version results.",
+  "deployment_retry": "First r4 Cloudflare API deployment timed out; public homepage was still r3. Retried identical frozen r4 and verified all assets.",
+  "browser_check": "In-app browser: feedback help expands within FAQ; privacy text separates online retention and provider recovery. At 390x844, privacy and install page text and download button render within the viewport."
+}

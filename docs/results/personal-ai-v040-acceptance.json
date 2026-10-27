@@ -1,0 +1,667 @@
+{
+  "schema": "airtap-personal-ai-acceptance-v1",
+  "started_at": "2026-10-25T23:51:00+08:00",
+  "status": "completed_scoped_android_technical_acceptance",
+  "plan": "docs/personal-ai-acceptance-v040.md",
+  "inputs": {
+    "android_version": "0.4.0-companion-preview",
+    "android_version_code": 24,
+    "apk_sha256": "c9ec221d144a38bf219270f3615ed591e8eb572e15528312c94245c8e2c81152",
+    "cli_sha256": "c9a968076e83d90f10350b1ffc86fe5675facb11bf33939402c162bfa66cc53c",
+    "guide_sha256": "749abdc6b4cf3cc8eba965b2eeb6578890c553de3fdf76dea28d457891d06f0d",
+    "artifact_version": "service4-042d0f7f-c9a96807-749abdc6"
+  },
+  "device_availability": {
+    "adb_physical_devices": [
+      "Xiaohong: Meizu Note 16, USB authorized"
+    ],
+    "emulators_seen": [
+      "emulator-5580",
+      "emulator-5582"
+    ],
+    "previous_xiaohong_wireless_endpoint": "connection_refused",
+    "owner_availability_question": "resolved: phone connected; secure=false confirmed and normal system keyguard dismissal succeeded",
+    "phone_commands_executed": true,
+    "new_pairing_created": true,
+    "apk_changed": false,
+    "installed_version_code": 24,
+    "installed_version_name": "0.4.0-companion-preview",
+    "temporary_maintenance_reader_installed": false
+  },
+  "preparation_assistance": "Maintainer sent a separate preparation request through each existing product conversation before any invitation. This is assisted readiness checking, not an unassisted first-use invitation test.",
+  "clients": {
+    "Muse": {
+      "entry": "Native Muse dedicated conversation 接入 Airtap 手机",
+      "app_version": {
+        "short": "8.0",
+        "build": "1093405488",
+        "source": "installed application Info.plist; backend model/version not exposed"
+      },
+      "preflight": "reported_pass",
+      "provenance": "Observed native conversation plus downloaded original agent-supplied execution artifacts; task corroborated by independent passive phone observations. Cloud runtime execution and image-tool telemetry were not independently monitored.",
+      "reported_environment": {
+        "os": "Linux htch-runtime 7.0.0-39",
+        "python": "3.12.3",
+        "curl": "8.5.0",
+        "PIL": "10.2.0"
+      },
+      "reported_download": {
+        "http_status": 200,
+        "redirects": false,
+        "attempts": 1,
+        "bytes": 38314,
+        "seconds": 0.944,
+        "header_and_file_sha256": "c9a968076e83d90f10350b1ffc86fe5675facb11bf33939402c162bfa66cc53c",
+        "scope": "Earlier preparation curl download only; does not count all subsequent invitation bootstrap attempts."
+      },
+      "reported_cli_version": "airtap 0.4.0-companion-preview",
+      "reported_help_pass": true,
+      "image_test": "Reports opening a self-generated 720x400 JPEG with an image tool; no independent image-tool trace obtained. Not a phone image.",
+      "failures": [
+        {
+          "kind": "preflight_shell_utility",
+          "description": "bc unavailable for wall-clock calculation; curl built-in transfer timing retained. Download itself reported successful."
+        }
+      ],
+      "pairing": "passed_maintainer_assisted_owner_ui",
+      "cross_app_task": "passed_reviewed_originals_and_independent_passive_observation",
+      "note_saved_and_reopened": "passed_exact_tree_and_original_image",
+      "recovery": "passed_independent_full_network_isolation_and_post_recovery_read_with_status_and_ping_timing_limits",
+      "revocation": "passed_reviewed_agent_outputs_and_owner_UI",
+      "physical_run": {
+        "started_at": "2026-10-25T16:14:13.040279+00:00",
+        "entry": "New native Muse side conversation for this invitation; existing conversation had unrelated owner work and was not interrupted.",
+        "invitation": "Original phone UI invitation, unchanged, relayed by maintainer through Mac native UI.",
+        "invitation_sha256": "cf8aff2fbdfcb6845189bd0f22f5107a2e7a069f541848fa305818c7cbd471a3",
+        "invitation_bytes": 771,
+        "private_evidence": "muse-invitation.private.txt",
+        "scope": "Maintainer-assisted owner preparation, not independent novice first use.",
+        "pairing": "same_code_compared_and_approved_through_normal_UI",
+        "approved_at": "2026-10-25T16:17:49.025514+00:00",
+        "owner_ui_after_approval": "你的 AI 已连接",
+        "task_title": "Airtap 0.4 Muse 2026-10-26",
+        "task_body": "这是一条由 Muse 通过 Airtap 创建的测试便签。",
+        "task": "Clock time, new note, save, switch to Clock, reopen note and inspect actual image",
+        "business_task_assistance": "none; maintainer used passive foreground sampling and screen capture only during business task",
+        "task_completed_reported_at": "2026-10-25T16:25:17.672104+00:00",
+        "reported_clock_time": "2026-10-26 00:18:30 CST",
+        "reported_note_characters": 55,
+        "reported_failures": [
+          {
+            "action": "invitation_bootstrap_cli_download",
+            "error": "Agent posthoc command record reports direct Python urllib HTTP403",
+            "recovery": "Agent switched to curl using environment proxy and downloaded matching CLI",
+            "evidence_limit": "Original 403 output and headers not retained; not attributed solely to UA or Cloudflare from this record."
+          },
+          {
+            "action": "foreground",
+            "error": "protected_or_unavailable_window",
+            "recovery": "Launched Clock; no replay of foreground action."
+          },
+          {
+            "action": "observe",
+            "error": "Unsupported --package argument",
+            "recovery": "Corrected local CLI syntax, then observed."
+          },
+          {
+            "action": "reopen_note",
+            "limitation": "No actionable node on list card",
+            "recovery": "Fresh screenshot and one coordinate tap; reopened note."
+          }
+        ],
+        "independent_observation": "Passive phone foreground samples confirm Notes editor -> Clock -> Notes list -> Notes editor. Independent phone screenshot and returned original JPEG show expected body/time. Original read-tree-reopen and read-tree-after contain exact full title/body; Notes visually clips title right edge.",
+        "private_passive_images": [
+          {
+            "name": "muse-passive-current.png",
+            "sha256": "12f03366dad83ad3b8bf2c8fef5e3cbe98e187549a60171efd11b450602a0ede"
+          },
+          {
+            "name": "muse-reopened-passive.png",
+            "sha256": "60c43e5fedf4f0780649be7c2981854ec3d65e159b9a5eb5390dd05174af102b"
+          }
+        ],
+        "raw_execution_artifacts": "retrieved_and_reviewed",
+        "network_injection": {
+          "original_wifi_on": "1",
+          "maintenance_injection": true,
+          "planned_outage_seconds": 45,
+          "started_at": "2026-10-25T16:24:32.392005+00:00",
+          "disabled_at": "2026-10-25T16:24:32.462782+00:00",
+          "restore_exit_code": 0,
+          "restored_at": "2026-10-25T16:25:17.532421+00:00",
+          "elapsed_seconds": 45.14022362511605,
+          "wifi_on_after": "1"
+        },
+        "recovery_report": {
+          "status_sampling": "00:25:06 to 00:26:54 CST, initial status and nine polls reported deviceConnected=true; no sampled false state.",
+          "connection_id": "Reported once changed; uniformly redacted in archive, so not independently comparable.",
+          "post_recovery_read": "Original note body/time retained; new screenshot reportedly viewed around 00:27.",
+          "new_pairing_or_code_needed": false,
+          "boundary": "Wi-Fi interruption only; mobile data was not disabled. All status responses stayed online; no full network outage or independently timed WSS reconnect established."
+        },
+        "artifact_review": {
+          "archive_sha256": "875266b996f72a69aa87d207db9bc7f5559bcfa9f24756f07e9997079c422eba",
+          "archive_bytes": 710444,
+          "member_count": 115,
+          "private_archive": "muse-original.zip",
+          "cli_sha256_matches": true,
+          "observation_image_hash_checks": {
+            "passed": 13,
+            "total": 13
+          },
+          "reopened_title_exact": "Airtap 0.4 Muse 2026-10-26",
+          "reopened_body_exact": "这是一条由 Muse 通过 Airtap 创建的测试便签。\n手机时间：2026年10月26日 00:18:30",
+          "restored_read_matches": true,
+          "maintainer_viewed_original_reopened_jpeg": true,
+          "read_tree_reopen_sha256": "ff9d1efa0aea1203aa0bdfa0800a6d31555866467e2f2759c58c73c660424a11",
+          "limits": [
+            "Pair-start JSON and download response headers not retained in archive. Pairing code was observed live and matched on phone.",
+            "Command list and image-view receipts are agent posthoc reconstructions, not independent execution telemetry.",
+            "Connection IDs are uniformly redacted; reported ID transition cannot be independently compared.",
+            "Invalid observe --package left an empty stdout JSON file with argparse stderr; preserved as failure.",
+            "Ten status responses all deviceConnected=true; no observed offline status."
+          ],
+          "image_view_claims": {
+            "phone_images_claimed_viewed": 12,
+            "synthetic_images_claimed_viewed": 1,
+            "phone_images_saved_but_not_viewed": 1,
+            "source": "Agent posthoc receipt, not independent image-tool telemetry"
+          }
+        },
+        "revocation_review": {
+          "revoke": {
+            "ok": true,
+            "state": "revoked"
+          },
+          "old_status_http": 410,
+          "old_pair_status_http": 410,
+          "old_read_tree_error": "approval_required",
+          "phone_ui": "Returned to invitation page without active controller",
+          "next_client_pairing_started_after_revocation": true,
+          "old_read_tree_refusal_layer": "Local CLI approval guard; not a server read-tree HTTP410"
+        }
+      },
+      "full_offline_followup": {
+        "status": "passed_with_reviewed_originals_and_independent_phone_isolation",
+        "sent_at": "2026-10-26T01:07:00+08:00",
+        "invitation_sha256": "e69a5abb640b5a79f13ba2cf18054f27a9f1dd165ac7fc523147ca59125fc522",
+        "invitation_bytes": 771,
+        "scope": "Read existing Muse note, actual both-transport isolation, same identity recovery read, revoke; no duplicate note creation",
+        "owner_preparation": [
+          "Temporary reader reinstalled and screen timeout extended after prior phase cleanup.",
+          "Invitation view pressed before service response ready once and returned false; fresh UI observation then normal view/copy succeeded.",
+          "Invitation dialog closed before transmission; phone remains waiting for AI."
+        ],
+        "maintenance_fault_prevention": "New bounded45second injector captures active-SIM data state and restores in finally, including SIGTERM/SIGINT handler. No further90second injection planned.",
+        "owner_approval": {
+          "code_compared_phone_and_actual_ai_chat": true,
+          "normal_owner_button_clicked_once": true,
+          "approved_ui": "你的 AI 已连接",
+          "approval_finished_at": "2026-10-25T17:09:20.127367+00:00",
+          "private_owner_record_sha256": "df90b6415c2e420471ee2c9afd411a737d5934e9d6d7772c74f8f7784f39e21e"
+        },
+        "network_injection": {
+          "maintenance_injection": true,
+          "planned_outage_seconds": 45,
+          "disabled_at": "2026-10-25T17:14:02.856433+00:00",
+          "restored_at": "2026-10-25T17:14:48.184428+00:00",
+          "outage_wall_seconds": 45.327995,
+          "original_wifi_on": "1",
+          "wifi_on_after": "1",
+          "original_mobile_data_active_subscription": "1",
+          "mobile_data_active_subscription_after": "1",
+          "restore_exit_codes": {
+            "wifi": 0,
+            "data": 0
+          },
+          "no_default_network_samples": 9,
+          "default_network_restored": true,
+          "exception_recorded": false,
+          "private_evidence_sha256": "75b3adf8939541c2adeeb8d907f9a2ab11214ede161257383dbb9e946acaf52c"
+        },
+        "reported_read_before_isolation": "Original Muse note read and viewed; expected 00:18:30 preserved. Agent reported initial protected-window failure, home then relaunch recovery, found Instinct note and returned to list without editing before opening Muse note.",
+        "independent_passive_image": {
+          "name": "muse-followup-before-recovery-passive.png",
+          "sha256": "d473a0531e29efe849b643af80a7800ee81f5cd17a5c19d573e6919058a843e4",
+          "viewed": true,
+          "content": "Expected Muse test body and00:18:30 visible; network icons absent during recorded full isolation"
+        },
+        "artifact_review": {
+          "archive": "muse-full-offline-original.zip",
+          "archive_bytes": 315938,
+          "archive_sha256": "af79f065dd81b1e3cf42bccee4456324aa9942de4150a03b9b2a5243e063ce73",
+          "zip_members": 108,
+          "cli_sha256": "c9a968076e83d90f10350b1ffc86fe5675facb11bf33939402c162bfa66cc53c",
+          "cli_and_retained_header_match_fixed_input": true,
+          "observation_image_hash_and_size_matches": 6,
+          "unique_image_contents": 5,
+          "before_and_after_note_trees_exact_expected_title_body": true,
+          "maintainer_viewed_post_recovery_original_image": true,
+          "post_recovery_image_sha256": "913eea19fbc7f17a3a57e40f7141d3f8363dc17ea2b571b8a89a2f017998952a",
+          "local_review_inventory_sha256": "56e73bf80a227da1ed2a66ed7c04bf2bfe4866740180cb2380bfc4293591b706",
+          "provenance_limits": [
+            "Archive redacts claim_id, verification_code and connection_id uniformly. It cannot independently establish equality or changes of those identifiers; owner code matching has separate phone/chat evidence.",
+            "Image-view claims and action timestamps outside sampling logs are agent post-hoc statements, not independent cloud tool telemetry. Returned original images and JSON hashes were checked separately.",
+            "Sampling scripts are retained for inspection, not executed by maintainer. No source manifest was supplied; maintainer generated a local inventory after extraction."
+          ]
+        },
+        "recovery_review": {
+          "status_samples": 20,
+          "device_connected_false_samples": 0,
+          "ping_samples": 6,
+          "ping_successes": 5,
+          "first_ping_error": {
+            "error": "http_error",
+            "status": 503,
+            "outcome": "unknown",
+            "retry_action": false,
+            "elapsed_ms": 2598.94
+          },
+          "first_v2_sample_start_utc": "2026-10-25T17:14:47Z",
+          "first_successful_ping_sample_start_utc": "2026-10-25T17:14:59Z",
+          "timing_limit": "17:14:47Z is second-resolution time before status, not ping start. Status took791.49ms; ping took2598.94ms. No separate ping start timestamp exists. The503 is near the network-restoration boundary; it cannot be placed precisely before restoration at17:14:48.184428Z. Do not repeat the post-hoc claim that ping failed1.184seconds before restoration.",
+          "phone_no_default_network_samples": 9,
+          "controlled_data_interruption_wall_seconds": 45.327995,
+          "same_expected_note_read_after_recovery": true,
+          "new_pairing_needed_after_network_restore": false,
+          "controller_repaired_by_maintainer": false,
+          "sampling_assistance": "Maintainer requested diagnostic ping in addition to status; agent stopped status-only loop after14samples and combined loop after6samples when follow-up was complete. Neither log has a normal end line because both were deliberately stopped. No business UI hints or actions supplied.",
+          "limits": "One bounded outage on one phone. Phone-side observations establish actual network isolation; status stayed true. One ping failure near recovery and five later successes are not a continuous offline trace."
+        },
+        "revocation_review": {
+          "revoke": "revoked",
+          "old_status_http": 410,
+          "old_pair_status_http": 410,
+          "old_read_tree_error": "approval_required",
+          "read_tree_refusal_layer": "local CLI approval guard",
+          "owner_ui_after_revoke": "Connection invitation page, no active controller",
+          "new_pairing_after_revoke": false
+        },
+        "failure_recovery": "Initial launch accepted but protected_or_unavailable_window; subsequent observe/read-tree failed. Agent used home, relaunched, observed existing Instinct note, returned to list and opened Muse note without editing either note."
+      }
+    },
+    "Instinct": {
+      "entry": "Existing Instinct iMessage product conversation",
+      "app_version": "Instinct product served through iMessage; backend model/version not exposed",
+      "preflight": "reported_pass_with_receipt",
+      "pairing": "passed_with_witnessed_fresh_pairing_followup",
+      "cross_app_task": "passed_reviewed_originals_and_independent_passive_observation",
+      "note_saved_and_reopened": "passed_exact_tree_and_original_image",
+      "recovery": "passed_full_offline_to_ready_and_real_read_in_followup",
+      "revocation": "passed_both_rounds_reviewed_originals_and_final_phone_UI",
+      "provenance": "Actual Instinct iMessage conversation and downloaded original execution artifacts; maintainer independently observed physical transitions/screens and witnessed follow-up owner approval. Cloud runtime and image-tool execution not independently monitored.",
+      "reported_environment": {
+        "os": "Ubuntu 22.04.5 LTS x86_64",
+        "kernel": "6.1.158",
+        "python": "3.10.12"
+      },
+      "reported_guide_download": {
+        "http_status": 200,
+        "bytes": 8590,
+        "seconds": 0.27,
+        "attempts": 1,
+        "header_and_file_sha256": "749abdc6b4cf3cc8eba965b2eeb6578890c553de3fdf76dea28d457891d06f0d"
+      },
+      "reported_download": {
+        "http_status": 200,
+        "bytes": 38314,
+        "seconds": 0.25,
+        "attempts": 1,
+        "header_and_file_sha256": "c9a968076e83d90f10350b1ffc86fe5675facb11bf33939402c162bfa66cc53c"
+      },
+      "reported_cli_version": "airtap 0.4.0-companion-preview",
+      "reported_help_pass": true,
+      "reported_help_subcommands": 22,
+      "failures": [],
+      "receipt": {
+        "name": "instinct-preflight-receipt.md",
+        "bytes": 4282,
+        "sha256": "3e3d8827a185567312bf9c5cc34b2713550524535327a90210e9bdd214d3682a",
+        "storage": "Private acceptance directory; original attachment retained."
+      },
+      "image_test": "Agent reports viewing a self-generated 480x320 JPEG. Maintainer independently viewed returned picture in Messages Quick Look: blue rectangle, red ellipse, horizontal line, green outline around two text lines. No independent runtime image-tool trace; not a phone screenshot.",
+      "transport_app_version": {
+        "short": "26.0",
+        "build": "1448.100.1.1.84"
+      },
+      "physical_run": {
+        "invitation_sha256": "cac220398259c660aba55fcb812a9e8db0b867521202ee86c6281c065b2134fe",
+        "invitation_bytes": 771,
+        "invitation": "Original current phone UI invitation unchanged via existing Instinct iMessage conversation",
+        "invitation_sent_at": "2026-10-26T00:40:00+08:00",
+        "business_task_assistance": "none; passive foreground and screenshot observation only",
+        "scope": "Maintainer-assisted owner preparation; not independent novice first use",
+        "approval_provenance": "AI returned a six-digit code in live conversation. A subsequent maintainer UI dump showed connected and approval-success text, but the exact approval action was not observed or issued by this turn. Do not label this as a witnessed code comparison or independently attribute the approval actor. Source inspection found approve() only attached to the owner button.",
+        "task_sent_at": "2026-10-26T00:42:00+08:00",
+        "task_title": "Airtap 0.4 Instinct 2026-10-26",
+        "task_body": "这是一条由 Instinct 通过 Airtap 创建的测试便签。",
+        "passive_observation": "Observed Clock -> Notes old editor -> Notes list -> new Notes editor -> Clock -> Notes list -> reopened Notes editor. Reopened image shows expected test body and recorded 00:42:41.",
+        "private_passive_images": [
+          {
+            "name": "instinct-passive-current.png",
+            "sha256": "ff6b7d473ca356061e64c3f641add95b13ccb047842b7252811093a5f8a85be0",
+            "scope": "Pre-save editor image; not proof of reopening."
+          },
+          {
+            "name": "instinct-reopened-passive.png",
+            "sha256": "41f8aad9ed3b9d190282a5697b91c4b4b4e26b3bc1a3393ca8ec855e8dd2f05e",
+            "scope": "After Clock -> Notes list -> new editor, body/time checked visually; title clipped right."
+          }
+        ],
+        "reported_clock_time": "2026-10-26 00:42:41 CST",
+        "reported_failures": [
+          {
+            "action": "reopen_note",
+            "failure": "List node click did not navigate",
+            "recovery": "Original accepted click response and unchanged list image reviewed; fresh observe and one tap opened the note. Reopened tree/image match expected content."
+          }
+        ],
+        "approval_gap_followup": "Completed separate witnessed fresh pairing in pairing_followup. Initial unobserved approval actor remains unknown; follow-up does not retroactively identify it.",
+        "approval_gap_investigation": "Reviewed helper source: exact text match and native ancestor ACTION_CLICK; no automatic approve logic. Checked local processes before task watcher: no residual ui.py, reader or approval process found. No attribution of original approval actor.",
+        "network_injection": {
+          "maintenance_injection": true,
+          "planned_outage_seconds": 45,
+          "original_wifi_on": "1",
+          "started_at": "2026-10-25T16:47:36.352670+00:00",
+          "disabled_at": "2026-10-25T16:47:36.402527+00:00",
+          "restore_exit_code": 0,
+          "restored_at": "2026-10-25T16:48:21.458249+00:00",
+          "elapsed_seconds": 45.10417037503794,
+          "wifi_on_after": "1"
+        },
+        "returned_image_review": "Maintainer opened original Instinct iMessage note-reopen-2.jpeg with Quick Look; visible body/time match independent phone screenshot.",
+        "artifact_review": {
+          "archive": "instinct-original-v2.tar.gz",
+          "archive_bytes": 495884,
+          "archive_sha256": "532674b73c8a4eee77a91cefc1cb05a9cb0e24d1e1498379df4e82e63fe3e6b1",
+          "files": 43,
+          "manifest_entries_checked": 42,
+          "observation_image_hash_matches": 12,
+          "reopened_full_title_and_body_match": true,
+          "post_wifi_full_title_and_body_match": true,
+          "limits": [
+            "First task command log is real-time summary; full argument list reconstructed posthoc.",
+            "Initial pair-start and raw image-tool telemetry absent from this archive.",
+            "Recovery polling starts after independently recorded Wi-Fi restoration.",
+            "Package contains private observation and connection identifiers; archive stays private."
+          ],
+          "post_wifi_observation_hash_match": true
+        },
+        "recovery_report": {
+          "status_sampling": "00:48:23–00:49:16 CST; all observed statuses online; first wait-ready attempts2 then1",
+          "network_scope": "Wi-Fi disabled45 seconds; mobile_data setting observed1 after test, cellular fallback was not ruled out",
+          "new_pairing_or_code_needed": false,
+          "post_recovery_read": "Expected title/body/time exact in retained tree; returned image inspected",
+          "connection_id": "Two distinct IDs in original recovery log; cause not attributed"
+        },
+        "raw_execution_artifacts": "retrieved_and_reviewed",
+        "passive_transition_evidence": "instinct-passive-focus.jsonl; earlier instinct-passive-foreground.jsonl contained no focus fields because the limited dumpsys subcommand omitted them, so it is not used as transition evidence."
+      },
+      "pairing_followup": {
+        "status": "passed_with_reviewed_originals",
+        "invitation_sha256": "b36ee6cc2b97be46d1725601e074dd4c0a4875b23b02061e8a17caccb0bab22e",
+        "invitation_bytes": 771,
+        "sent_at": "2026-10-26T00:52:00+08:00",
+        "owner_ui_before_send": "Invitation dialog closed before send; phone visibly waiting for AI; no approval command issued",
+        "planned": "Witness code, normal owner approval, same identity ready, independent real read; then controlled full data interruption and revoke.",
+        "owner_approval": "Maintainer compared live AI code against fresh phone pending UI, invoked normal approval button once; immediate phone UI displayed approval success and reconnecting.",
+        "approved_at": "2026-10-25T16:54:15.097139+00:00",
+        "private_owner_actions_sha256": "8f138c6c242e4a5816bda25268d5a61c336d3d9ccd548e882e707ecf1b8ea77a",
+        "extra_maintenance_read": "After agent launched Notes, one read-only native tree dump confirmed the note. No business action or hint provided; not counted as agent evidence.",
+        "network_injection": {
+          "maintenance_injection": true,
+          "planned_outage_seconds": 90,
+          "started_at": "2026-10-25T16:56:19.724515+00:00",
+          "disabled_at": "2026-10-25T16:56:19.854541+00:00",
+          "injection_process_exit": 143,
+          "restore_reason": "Injection process ended unexpectedly before finally; maintainer immediately restores original requested settings.",
+          "restore_exit_codes": {
+            "wifi": 0,
+            "data": 0
+          },
+          "restored_at": "2026-10-25T16:57:47.679261+00:00",
+          "wifi_on_after": "1",
+          "mobile_data_after": "1",
+          "restoration_method": "Explicit recovery after process termination, not planned automatic finally",
+          "outage_wall_seconds": 87.82472,
+          "settings_provenance_limit": "Original global mobile_data=1 was recorded, not original per-subscription mobile_data1. svc data changed the active subscription; during isolation mobile_data1=0 while global remained1. Restored with svc data enable, now active subscription1. Original per-subscription value was not independently captured.",
+          "private_evidence_sha256": "45aef69b5a55c504fe88cb9e29ae2b2745b2419baa025423bd9d452bbedac8b5",
+          "no_default_network_observed": true,
+          "default_network_restored": true
+        },
+        "artifact_review": {
+          "archive": "instinct-round2-full-v2.tar.gz",
+          "archive_bytes": 121087,
+          "archive_sha256": "fccf184daa26451003b9efabe30c19f42c63963518905617b5438801efae12fb",
+          "files": 12,
+          "manifest_entries_verified": 11,
+          "same_claim_and_code_across_original_responses": true,
+          "state_responses_compared": 27,
+          "code_matches_independent_owner_UI_and_chat": true,
+          "first_approved_command_time_cst": "00:54:16.591",
+          "owner_button_command_finished_at": "2026-10-25T16:54:15.097139+00:00",
+          "ready_after_approval_first_attempt": true,
+          "observation_image_hash_and_size_matches": 4,
+          "all_three_note_trees_exact_expected_title_body": true,
+          "maintainer_viewed_post_recovery_original_image": true,
+          "provenance_limits": [
+            "Clock read-tree line is explicitly shortened in the combined log; full clock-tree-r2.json is retained and manifest-verified.",
+            "Image views are agent statements with returned original pictures, not independent cloud image-tool telemetry.",
+            "Same private config use follows agent execution log and stable claim across pairing responses; secret token itself is intentionally not shared."
+          ]
+        },
+        "recovery_review": {
+          "status_samples": 36,
+          "device_connected_false_samples": 14,
+          "first_offline_status_command_time_cst": "00:56:37.498",
+          "first_recovered_status_command_time_cst": "00:57:52.336",
+          "first_recovered_ready_command_time_cst": "00:57:52.850",
+          "readiness_failures_retained": "ready_wait_expired during isolation; status briefly remains online while transport times out",
+          "phone_no_default_network_samples": 6,
+          "controlled_data_interruption_wall_seconds": 87.82472,
+          "controller_repaired_by_maintainer": false,
+          "new_pairing_needed_after_network_restore": false,
+          "sequence_monotonic_in_samples": true,
+          "same_expected_note_read_after_recovery": true,
+          "limits": "Single bounded outage on one phone; not a multi-day or cross-region reliability claim. Injection process exit143 and explicit maintenance network restoration retained separately."
+        }
+      },
+      "revocation_review": [
+        {
+          "private_file": "instinct-revoke-raw-20261026.log",
+          "sha256": "d737885983b6ac94fccd392f99838edcafee10e57967bf6eab3ee88212b8959c",
+          "bytes": 1632,
+          "pre_status": "approved",
+          "revoke": "revoked",
+          "old_status_http": 410,
+          "old_pair_status_http": 410,
+          "old_read_tree_error": "approval_required",
+          "read_tree_refusal_layer": "local CLI approval guard"
+        },
+        {
+          "private_file": "instinct-revoke-round2-raw.log",
+          "sha256": "3f3aa7343a2b3e7fdb27756c8d0d214fce8f0e32c55157b0205c0e2b3a9505ba",
+          "bytes": 1601,
+          "pre_status": "approved",
+          "revoke": "revoked",
+          "old_status_http": 410,
+          "old_pair_status_http": 410,
+          "old_read_tree_error": "approval_required",
+          "read_tree_refusal_layer": "local CLI approval guard"
+        }
+      ]
+    }
+  },
+  "completion": {
+    "actual_personal_ai_phone_flow": true,
+    "independent_nontechnical_first_use": false,
+    "other_phone_models": false,
+    "cellular_network": false,
+    "multi_day_background": false,
+    "ios": false,
+    "scope": "Maintainer-assisted Android technical acceptance for these Muse and Instinct entries on this code24 Meizu Android15 phone. Independent novice installation and universal compatibility remain unverified.",
+    "unverified_followups": [
+      "Independent nontechnical first-use installation",
+      "Other phone models",
+      "Full task over cellular network",
+      "Multi-day background operation",
+      "iOS",
+      "Other personal AI products and modes; Doubao entry assessment maintained separately"
+    ]
+  },
+  "boundaries": [
+    "Historical frozen reports and input hashes remain unchanged.",
+    "This is maintainer-assisted technical acceptance, not independent ordinary-user first use.",
+    "Original image-tool telemetry is not independently available; agent receipts and returned images have separate provenance.",
+    "Initial45second Wi-Fi tests did not establish complete offline state. Separate Instinct and Muse follow-ups disabled both transports and recorded no default route; their agent-side failure evidence differs and is reported separately.",
+    "Instinct first approval transition was not observed; preserved as a gap and supplemented by a separate witnessed fresh pairing."
+  ],
+  "updated_at": "2026-10-25T17:24:44.804017+00:00",
+  "blocked_audit": {
+    "consecutive_goal_turns": 3,
+    "previous_turn_classification": "no_progress",
+    "condition": "No physical phone available for original invitation and normal owner approval. Only two emulators are connected; previous Xiaohong wireless maintenance endpoint refuses connection. Owner availability question remains unanswered.",
+    "latest_verification": "adb devices -l and adb connect to the previously verified Xiaohong endpoint",
+    "next_required_action": "Reconnect Xiaohong for maintenance acceptance, or have the owner provide a fresh invitation and complete normal code approval on the phone.",
+    "scope_preserved": true,
+    "goal_completed": false,
+    "resolved_condition": "USB restored; normal no-password keyguard dismissal, both personal AI task/recovery/revoke paths completed; final cleanup verified.",
+    "historical_only": true,
+    "resolution": "Historical device blocker resolved; technical phone acceptance now complete. Goal lifecycle and release integration handled separately."
+  },
+  "additional_findings": [
+    {
+      "kind": "public_bootstrap_transport_rejection",
+      "observed_at": "2026-10-25T15:56:43.002194+00:00",
+      "source": "Reviewed separate maintainer Mac transport record, not a Muse or Instinct execution failure.",
+      "evidence_sha256": "bc08d3b1613965d2ebd5a18b3a15966948d8d19fa64bf96fd50ac5821f112fcc",
+      "transport": "Python urllib default User-Agent",
+      "service_results": [
+        {
+          "path": "/agent.md",
+          "transport": "Python urllib default User-Agent",
+          "status": 403,
+          "body_sha256": "2938e9f1284180959e33ab1718d0793a72ff6e4cdb8108c34dcd14e69446de5c",
+          "cloudflare_1010": true,
+          "elapsed_seconds": 0.337
+        },
+        {
+          "path": "/cli/airtap.py",
+          "transport": "Python urllib default User-Agent",
+          "status": 403,
+          "body_sha256": "2938e9f1284180959e33ab1718d0793a72ff6e4cdb8108c34dcd14e69446de5c",
+          "cloudflare_1010": true,
+          "elapsed_seconds": 0.417
+        }
+      ],
+      "install_entry_results": [
+        {
+          "attempt": 1,
+          "status": 403
+        },
+        {
+          "attempt": 2,
+          "status": 403
+        }
+      ],
+      "interpretation": "HTTP 403 with Cloudflare 1010 was recorded for guide and CLI downloads. Exact Cloudflare rule and cause remain under investigation; the successful product-UA check alone does not establish user-agent as the only causal variable.",
+      "status": "scoped_remediation_verified",
+      "acceptance_requirement": "After remediation, repeat the same failing requests and retain failures. Do not relabel existing Muse/Instinct preflight successes as universal transport compatibility, or count an improvised browser-UA workaround as an unchanged invitation pass.",
+      "remediation": {
+        "evidence": "docs/results/cloudflare-v040-bootstrap-verification.json",
+        "sha256": "de0828ca618676707ed0cafa430e5689ff0e03b9584b551f0cba89dcc203d186",
+        "source": "Reviewed deployment-owner published verification record",
+        "scope": "BIC=false for exactly current service and install hosts, owner-approved; no production-code change",
+        "default_urllib_public_paths_first_try_200": 4,
+        "apk_download_first_try_200_matches": true,
+        "retained_transport_failure": "Product-UA /v1/service initial 20-second URLError; single follow-up HTTP200. Cause unconfirmed.",
+        "boundary": "Maintenance Mac transport sample, not universal client/network compatibility; no claims based on root-route 404 checks about enrolled-device authorization."
+      }
+    },
+    {
+      "kind": "status_permission_field_ambiguity",
+      "reported_by": "Instinct",
+      "observation": "Status allow_tap=false while observation-bound tap succeeds",
+      "source_review": "relay/worker/worker.mjs: CONTROL_ACTIONS includes tap; command() gates CONTROL_ACTIONS by allowControl. allowTap separately gates tap_test. Phone approval explicitly sends allow_tap=false and allow_control=true for companion protocol4.",
+      "interpretation": "Consistent with current separate action permissions; not evidence of unauthorized tap. The legacy-shaped status field can confuse new personal-AI clients.",
+      "status": "semantics_verified_and_documented",
+      "production_changed": false,
+      "clarification": "docs/personal-ai-acceptance-v040.md"
+    }
+  ],
+  "maintenance_preparation": [
+    {
+      "at": "2026-10-25T16:09:35.251069+00:00",
+      "actions": [
+        "Verified USB device identity and code 24 installation without replacing APK.",
+        "Reinstalled private read-only/native-click instrumentation helper for owner preparation.",
+        "Launched Airtap through normal activity start.",
+        "Wake and two ordinary swipe attempts did not dismiss keyguard; requested manual owner unlock."
+      ],
+      "boundary": "No personal AI invitation or phone task started. No credentials or device data injected."
+    },
+    {
+      "at": "2026-10-25T16:12:09.179924+00:00",
+      "actions": [
+        "Confirmed Android keyguard secure=false.",
+        "Normal wm dismiss-keyguard succeeded without password, credential changes or bypass of authentication.",
+        "Temporary screen timeout 600000 ms for owner preparation; original value privately saved for restoration."
+      ],
+      "boundary": "Maintenance assistance; not attributed to Airtap or personal AI capability."
+    }
+  ],
+  "current_input_verification": {
+    "installed_apk_sha256": "c9ec221d144a38bf219270f3615ed591e8eb572e15528312c94245c8e2c81152",
+    "installed_apk_matches_distributed_apk": true,
+    "source_zip_sha256": "8c2f82fd0b09630380786cf6b9ca4e81661fb3162dbb09bfc3a66e4bd51097da",
+    "source_zip_cli_and_guide_match_working_sources": {
+      "cli/airtap.py": "c9a968076e83d90f10350b1ffc86fe5675facb11bf33939402c162bfa66cc53c",
+      "docs/agent.md": "749abdc6b4cf3cc8eba965b2eeb6578890c553de3fdf76dea28d457891d06f0d"
+    },
+    "method": "Read installed APK bytes through maintainer ADB; inspected exact frozen source ZIP members. No APK replacement."
+  },
+  "release_integration": {
+    "status": "files_final_ready_for_separate_acceptance_freeze",
+    "production_sources_changed_in_this_phone_round": false,
+    "apk_cli_guide_remain_bound_to_inputs": true,
+    "frozen_historical_zip_unchanged": true,
+    "source_input_zip_sha256": "8c2f82fd0b09630380786cf6b9ca4e81661fb3162dbb09bfc3a66e4bd51097da",
+    "instruction": "Final acceptance documents belong in a new separate acceptance release. Preserve original input archive and historical reports; do not rewrite tested input hashes.",
+    "files_finalized_at": "2026-10-25T17:24:44.804017+00:00"
+  },
+  "cleanup_history": [
+    {
+      "at": "2026-10-25T17:03:13.234153+00:00",
+      "owner_ui": "Connection invitation page, no active controller",
+      "owner_ui_sha256": "202749034c3fdfcef0c71f6684f53e38a511b8c7fbe0b6852e75ed1fef858da0",
+      "screen_off_timeout_ms": 60000,
+      "screen_timeout_restored": true,
+      "temporary_reader_uninstalled": true,
+      "wifi_on": "1",
+      "mobile_data_global": "1",
+      "apk_replaced": false,
+      "application_data_cleared": false,
+      "test_notes_preserved": true,
+      "default_network_restored": true
+    }
+  ],
+  "completed_at_previous_scope": "2026-10-25T17:04:26.393122+00:00",
+  "completed_at": "2026-10-25T17:24:44.804017+00:00",
+  "cleanup": {
+    "at": "2026-10-25T17:23:52.367323+00:00",
+    "owner_ui": "Connection invitation page, no active controller after Muse final revoke",
+    "owner_ui_sha256": "202749034c3fdfcef0c71f6684f53e38a511b8c7fbe0b6852e75ed1fef858da0",
+    "screen_off_timeout_ms": 60000,
+    "screen_timeout_restored": true,
+    "temporary_reader_uninstalled": true,
+    "wifi_on": "1",
+    "mobile_data_active_subscription": "1",
+    "network_matches_pre_muse_followup": true,
+    "default_network_restored": true,
+    "apk_replaced": false,
+    "application_data_cleared": false,
+    "test_notes_preserved": true,
+    "prior_instinct_subscription_original_value_limit": "Instinct pre-isolation per-subscription value was not recorded; final state matches captured pre-Muse follow-up state, not a retrospective verification of the earlier value.",
+    "private_record_sha256": "69c84f2b6ab4d131069567d2666535d7dae38373918d1f56c72e85710c030635"
+  }
+}

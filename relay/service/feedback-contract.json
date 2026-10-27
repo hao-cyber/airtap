@@ -1,0 +1,269 @@
+{
+  "capability": "feedback_v1",
+  "protocol_version": 4,
+  "enabled_when": "FEEDBACK_ADMIN_SHA256 is a lowercase 64-hex SHA-256 digest of the administrator 64-hex Bearer secret",
+  "time_unit": "Unix seconds",
+  "retention_seconds": 2592000,
+  "paths": {
+    "controller": {
+      "base": "/d/{device_id}/v1/reports",
+      "authentication": "current approved controller Bearer",
+      "collection": [
+        "POST",
+        "GET"
+      ],
+      "item": [
+        "GET",
+        "PATCH",
+        "DELETE"
+      ],
+      "visibility": "current device and current claim only"
+    },
+    "owner": {
+      "base": "/d/{device_id}/v1/device/reports",
+      "authentication": "device Bearer",
+      "collection": [
+        "GET"
+      ],
+      "item": [
+        "GET",
+        "DELETE"
+      ],
+      "visibility": "all claims on this device, including after AI revocation"
+    },
+    "anonymous": {
+      "base": "/v1/reports",
+      "authentication": "POST can be unauthenticated; recommended: save a fresh 64-hex receipt Bearer before first POST. Item GET/DELETE and same-ID replay require that receipt Bearer. Store only its SHA-256 hash.",
+      "collection": [
+        "POST"
+      ],
+      "item": [
+        "GET",
+        "DELETE"
+      ]
+    },
+    "administrator": {
+      "base": "/v1/admin/reports",
+      "authentication": "64-hex admin Bearer whose SHA-256 equals the configured digest; no phone control authority",
+      "query": "POST /v1/admin/reports/query",
+      "item": [
+        "GET",
+        "PATCH",
+        "DELETE"
+      ]
+    }
+  },
+  "item_suffix": "/{report_id}",
+  "create": {
+    "required": [
+      "report_id",
+      "title",
+      "description"
+    ],
+    "optional": [
+      "expected",
+      "actual",
+      "steps",
+      "phase",
+      "error_code",
+      "app_version",
+      "agent",
+      "screen_state"
+    ],
+    "report_id": "lowercase UUIDv4 string; generate and save before sending",
+    "character_limits": {
+      "title": 160,
+      "description": 8000,
+      "expected": 4000,
+      "actual": 4000,
+      "steps": 4000,
+      "phase": 64,
+      "error_code": 80,
+      "app_version": 64,
+      "agent": 160
+    },
+    "screen_state": [
+      "ready",
+      "screen_off",
+      "dismissible_keyguard",
+      "authentication_required",
+      "unavailable",
+      "unknown"
+    ],
+    "max_json_bytes": 24576,
+    "unknown_fields": "rejected",
+    "multiline": [
+      "description",
+      "expected",
+      "actual",
+      "steps"
+    ],
+    "attachments": false
+  },
+  "statuses": [
+    "new",
+    "investigating",
+    "needs_info",
+    "resolved",
+    "closed"
+  ],
+  "controller_patch": {
+    "supplement": "nonempty string, at most 4000 Unicode code points; max 5 supplements per report; PATCH is not automatically retried after an uncertain response"
+  },
+  "administrator_patch": {
+    "status": "one supported status, optional",
+    "maintenance_reply": "nonempty string, at most 4000 Unicode code points, optional; at least one field required"
+  },
+  "pagination": {
+    "GET_query_fields": [
+      "limit",
+      "cursor"
+    ],
+    "administrator_POST_fields": [
+      "limit",
+      "cursor",
+      "status",
+      "device_id"
+    ],
+    "default_limit": 20,
+    "maximum_limit": 50,
+    "cursor": "opaque base64url up to 256 characters, HMAC bound to role/device/claim/filter scope; preserve exact value",
+    "ordering": "report_id lexicographic; an empty page may have next_cursor when filters skip records"
+  },
+  "idempotency": {
+    "same_id_same_original_body": "200 receipt with replayed:true, no additional write allowance consumed",
+    "same_id_different_body": "409 report_id_conflict",
+    "deleted_id": "410 report_deleted until original expiry; deletion stores only identity/authorization hashes and expiry, no body",
+    "after_expiry": "original record and tombstone are removed; generate a fresh UUID for a new report, never automatically retry expired submissions",
+    "anonymous_response_loss": "same saved report_id+receipt Bearer can retry safely; without the saved receipt credential the original report cannot be recovered by ID alone"
+  },
+  "deduplication": "duplicate_of points only to an identical original payload in the same device+claim; each report remains independent. Anonymous reports are individually private and do not cross-reference other reports.",
+  "limits": {
+    "global_retained_reports_and_tombstones": 2000,
+    "per_claim_retained_reports_and_tombstones": 100,
+    "per_claim_writes_per_hour": 20,
+    "anonymous_creates_per_ip_hash_per_hour": 5,
+    "anonymous_creates_global_per_hour": 100,
+    "administrator_updates_per_hour": 300,
+    "ingress": "independent feedback bucket; existing edge limits apply",
+    "deletes": "not charged to report write allowance",
+    "control": "no phone sequence or daily command quota is consumed"
+  },
+  "errors": {
+    "400": [
+      "invalid_report",
+      "invalid_report_update",
+      "invalid_pagination",
+      "invalid_json",
+      "body_not_permitted",
+      "body_unavailable"
+    ],
+    "401": [
+      "unauthorized"
+    ],
+    "403": [
+      "invalid_origin",
+      "phone_approval_required"
+    ],
+    "404": [
+      "not_found",
+      "report_not_found",
+      "device_not_found"
+    ],
+    "408": [
+      "body_unavailable"
+    ],
+    "409": [
+      "report_id_conflict"
+    ],
+    "410": [
+      "report_deleted",
+      "expired_or_revoked",
+      "device_unenrolled"
+    ],
+    "413": [
+      "body_too_large"
+    ],
+    "415": [
+      "json_required"
+    ],
+    "429": [
+      "feedback_rate_limited",
+      "feedback_capacity_reached",
+      "report_supplement_limit",
+      "ingress_rate_limited"
+    ],
+    "503": [
+      "feedback_unavailable",
+      "edge_identity_unavailable",
+      "service_unavailable",
+      "not_configured"
+    ]
+  },
+  "examples": {
+    "create_body": {
+      "report_id": "76515c4f-768b-4dc7-bc58-0b61c3510665",
+      "title": "Screen preparation did not finish",
+      "description": "After requesting a screenshot, the device remained asleep. No private app content is attached.",
+      "phase": "observe",
+      "screen_state": "screen_off",
+      "app_version": "0.4.0-beta.4",
+      "agent": "Example / agent mode / 1"
+    },
+    "create_response_201": {
+      "report_id": "76515c4f-768b-4dc7-bc58-0b61c3510665",
+      "status": "new",
+      "created_at": 1793000000,
+      "updated_at": 1793000000,
+      "expires_at": 1795592000,
+      "duplicate_of": null,
+      "protocol_version": 4
+    },
+    "list_response_200": {
+      "reports": [
+        {
+          "report_id": "76515c4f-768b-4dc7-bc58-0b61c3510665",
+          "title": "Screen preparation did not finish",
+          "status": "new",
+          "created_at": 1793000000,
+          "updated_at": 1793000000,
+          "expires_at": 1795592000,
+          "duplicate_of": null
+        }
+      ],
+      "next_cursor": null,
+      "protocol_version": 4
+    },
+    "detail_response_200": {
+      "report": {
+        "report_id": "76515c4f-768b-4dc7-bc58-0b61c3510665",
+        "title": "Screen preparation did not finish",
+        "description": "Synthetic redacted description.",
+        "status": "needs_info",
+        "created_at": 1793000000,
+        "updated_at": 1793000200,
+        "expires_at": 1795592000,
+        "duplicate_of": null,
+        "supplements": [
+          {
+            "text": "The device was connected.",
+            "created_at": 1793000100
+          }
+        ],
+        "maintenance_reply": "Please tell us the Android version."
+      },
+      "protocol_version": 4
+    },
+    "delete_response_200": {
+      "ok": true,
+      "report_id": "76515c4f-768b-4dc7-bc58-0b61c3510665",
+      "deleted": true,
+      "protocol_version": 4
+    },
+    "error_response": {
+      "error": "report_deleted",
+      "protocol_version": 4
+    }
+  },
+  "privacy": "No screenshots, UI trees, HTTP headers or credential fields are accepted. Free text is caller-redacted. Feedback code logs no submitted content or credentials, makes no model calls and performs no automatic GitHub synchronization. Maintainer detail additionally includes device_id and claim_id, or null for anonymous reports."
+}

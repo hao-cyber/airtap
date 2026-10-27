@@ -1,0 +1,97 @@
+{
+  "schema": "airtap-tls-incident-review-v1",
+  "date": "2026-10-27",
+  "status": "targeted_client_remediation_published_with_bounded_regression",
+  "incident": "Eight compromised eMudhra intermediate certificate public keys, including cross-signed paths",
+  "deployment_boundary": {
+    "current_default_relay": "Cloudflare Workers and Durable Objects",
+    "cloudflared_runtime_dependency": false,
+    "tunnel_notice": "The instruction to upgrade cloudflared does not directly update or repair Airtap clients. Other account services using Tunnel require their own inventory and upgrade.",
+    "availability_check": "The public download site and service discovery responded during this review. Availability is not proof of TLS client safety."
+  },
+  "baseline": {
+    "runtime": "Local maintainer CPython 3.13.12 / OpenSSL 3.5.5",
+    "path": "Unmodified Airtap CLI connection_for_url using ssl.create_default_context",
+    "requests": "Credential-free GETs; no device token, cookie, pairing ticket or private content",
+    "known_bad_chain_results": "All four researcher test hosts accepted TLS and returned HTTP 200, including both No CT hosts",
+    "verified_chain_check": "Accepted intermediate certificate fingerprints matched the published affected metadata. Alternative emSign ECC and AAA Certificate Services paths were present; removing only the direct emSign TLS root would not cover these paths.",
+    "positive_control": "Airtap public site returned HTTP 200 with a Google Trust Services WE1 leaf issuer",
+    "interpretation": "The tested client still trusts affected chains. This is not evidence of an attack or of a compromised Airtap origin. A legitimate current server certificate does not prevent a vulnerable client accepting a forged one."
+  },
+  "remaining": [
+    "Existing older installed APKs and saved older CLIs still require updates; source or relay publication alone does not update them",
+    "Direct HTTPS and MCP clients need their own actual runtime certificate policy review; CLI protections do not transfer",
+    "Muse affected-host probes remain inconclusive because of pre-certificate handshake timeouts",
+    "No claim of independent new-user code38 bootstrap or all devices/runtimes verified"
+  ],
+  "evidence_boundary": "No global trust store or unrelated Tunnel service was changed. No private raw evidence or credentials are included in this report. Test failures caused by timeout or DNS are not classified as certificate rejection.",
+  "sources": [
+    "https://blog.cloudflare.com/emudhra-certificate-compromise/",
+    "https://emudhra.we-have-a-problem.com/",
+    "https://emudhra.we-have-a-problem.com/impacted-intermediates.json",
+    "https://emudhra.we-have-a-problem.com/roots.json"
+  ],
+  "cli_remediation": {
+    "implementation": "System chain and hostname verification followed by SPKI denial across the actual verified chain, before HTTP target headers/body",
+    "affected_public_keys": 8,
+    "public_certificate_fixture_variants": 16,
+    "compatibility": "CPython3.13+public verified-chain API; isolated CPython3.10-3.12 adapter; unsupported chain inspection fails closed",
+    "runtime_matrix": [
+      "3.10.20",
+      "3.11.15",
+      "3.12.13",
+      "3.13.12"
+    ],
+    "host_tests_per_runtime": 11,
+    "live_bad_chains_rejected_per_runtime": 4,
+    "live_positive_control": "Airtap normal HTTPS200 on all four runtimes; first3.13normal request timeout retained, subsequent actual request() child path passed",
+    "independent_review": "No blocking finding in scoped review; real loopback direct and CONNECT POST verified rejected peers received neither Bearer nor body; successful target received no proxy credential",
+    "execution_outcome": "Certificate rejection before target HTTP is not_dispatched/retry_action=false; attempted HTTP followed by failure remains unknown",
+    "status": "CLI.8 published on the existing relay; release hash verified; Muse downloaded by supplied expected hash and used the original pair successfully"
+  },
+  "android_baseline": {
+    "environment": "Isolated Android16/API36 emulator, not the physical Meizu phone",
+    "result": "Default platform verifier already rejected all 14 researcher chains, including No CT; cannot attribute those rejections to new app policy.",
+    "positive_controls": "Airtap and example.com HTTP200",
+    "status": "Additive protection integrated in signed beta.8/code38. Prior isolated host/native negative checks are retained in android-tls-20261027.json; final 26-step integrated checks passed. Final APK passed emulator upgrade/recovery and physical-phone Muse WPS→note regression; not an affected-chain negative test on the physical phone."
+  },
+  "personal_ai_runtime": {
+    "agent": "Muse",
+    "environment": "Reported CPython3.12.3/OpenSSL3.0.13",
+    "direct_probe": "All5hosts including normal control failed WRONG_VERSION_NUMBER before certificate verification because direct egress was blocked. No client-safety conclusion from this probe.",
+    "actual_cli_path": "Existing CLI.7 connection_for_url through the configured CONNECT proxy: all four affected test hosts timed out during the TLS handshake with no peer certificate; normal Airtap control returned HTTPS200 in 0.93s with Google Trust Services WE1. This is inconclusive for affected-chain acceptance or rejection, not a successful security test.",
+    "phone_commands_sent": false,
+    "delegated_approvals": "Maintainer accepted four ordinary domain network prompts for this authorized credential-free diagnostic; no platform identity bypass or phone action.",
+    "patched_cli": "Muse CPython3.12.3 runtime successfully executed hash-checked CLI.8 with original pair and final code38 short cross-App task; normal TLS path succeeded. This does not replace the inconclusive affected-host test."
+  },
+  "android_remediation": {
+    "source_report": "android-tls-20261027.json",
+    "protected_paths": [
+      "relay HTTPS",
+      "device WSS",
+      "private feedback HTTPS",
+      "update-check HTTPS"
+    ],
+    "behavior": "Keep default platform and hostname validation; reject 8 affected keys across the actual verified path and presented certificates. Unsupported verifier initializes a usable local UI while all network requests fail closed before DNS.",
+    "ui": "Explicit security-connection update guidance, preserving existing pairing; does not recommend disabling verification or pairing again.",
+    "limits": "The second host-aware chain check can additionally reject CT configurations with SCTs supplied only through TLS/OCSP. Known-key blocking is not a universal replacement for runtime/CA updates."
+  },
+  "bootstrap_remediation": {
+    "status": "v4 service and signed code38 published. Live emulator invitation SHA expectations matched downloaded guide and CLI. Muse existing-pair upgrade used maintainer-supplied frozen hashes; first-time AI invitation bootstrap not independently exercised.",
+    "trust_path": "Hardened phone TLS obtains CLI and guide SHA256 with authenticated invitation; expectations bound to local identity, ticket and expiry. Original invitation instructs agent to verify guide bytes before reading and CLI bytes before execution. Download response headers cannot replace these expectations.",
+    "limits": "Integrity depends on the invitation channel and the actual agent obeying verification instructions; not an independent publisher signature or a guarantee for arbitrary agents. Existing paired configurations are preserved.",
+    "tests": "25 Android setup host, 13 invitation feedback, 3 real v4 workerd artifact, 31 companion and 15 feedback checks passed; compilation passed."
+  },
+  "release": {
+    "android_version": "0.4.0-beta.8",
+    "version_code": 38,
+    "apk_sha256": "6978cadee77ef78b350dfe91e29b76ab74273c6ee946050b5cd2a76dee02d09c",
+    "cli_version": "0.4.0-cli.8",
+    "cli_sha256": "4f9af83799764b6573ae03f22b7921a141fa1de0b6c1121977cc1492ad95b508",
+    "guide_sha256": "b65e7764f6ca4c5faad23c767cd7a83ad5a676dbcb76862e239ff83bbbdd79ce",
+    "relay_revision": 14,
+    "relay_identity_preserved": true,
+    "native_record": "beta8-code38-recovery-20261027.json",
+    "muse_record": "beta8-code38-muse-20261027.json"
+  }
+}

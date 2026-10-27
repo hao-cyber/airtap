@@ -1,0 +1,72 @@
+{
+  "schema": "airtap-maintenance-cleanup-v1",
+  "recorded_at": "2026-10-27T11:58:20.891707+00:00",
+  "status": "specific_billing_blocked_workflow_disabled_and_old_public_apks_retired",
+  "github_actions": {
+    "repository_feature_enabled": true,
+    "affected_workflow": "Reproducible checks",
+    "workflow_state": "disabled_manually",
+    "reason": "Actual job annotations reject startup because account payments or spending limit; not a test failure.",
+    "earlier_repository_wide_disable_corrected": true,
+    "billing_or_plan_changed": false,
+    "local_checks_preserved": true,
+    "other_workflows_not_blanket_disabled": true
+  },
+  "website": {
+    "origin": "https://airtap.memtrix.dev",
+    "deployment_id": "b22df2f0-6354-4654-85c5-2ba0e8397c5c",
+    "kind": "site_refresh",
+    "recommended_version_code": 38,
+    "current_apk_sha256": "6978cadee77ef78b350dfe91e29b76ab74273c6ee946050b5cd2a76dee02d09c",
+    "current_apk_signer_sha256": "a2aa0c1b6fdaf1baa37aa20817387524a1318b5dab82bf7c185663141daba60f",
+    "current_apk_bytes_unchanged": true,
+    "update_metadata_unchanged": true,
+    "public_apk_binaries_in_new_build": 1,
+    "retired_apk_count": 6,
+    "retired_sha256": [
+      "47620e9572e7a4ab3971926e577f9c35bf590ab0948ee358f2d6f9fbc99878b4",
+      "5067e7d27686e4596c84734ab5dcd091c8c16a20b48c3971d75ad2437c5157b1",
+      "707904f3767c0b41e31ba9248b756f904e652d34d1c1646cd952fae6c64601b1",
+      "e15ca5307391699f7f4d71d10def1ded7f275de1bec4c2d465da3cdfe40037f5",
+      "e42214a04d1609c012baedda027c36e394c04ac85ecfc4cd393b4e164f7d1071",
+      "fc3d3b9f969c5c335d793357469a3187a8bec232bfbcf2081da94854d9cc2f0a"
+    ],
+    "old_url_behavior": "GET and HEAD return 410 with an explicit link to the current install page, no APK attachment and no-store. Query and Range do not bypass retirement. Original hash URLs never return different APK bytes.",
+    "retirement_carried_into_future_builds": true,
+    "frozen_files_verified": 12,
+    "ordinary_public_checks_passed": 29,
+    "additional_query_range_checks_passed": 6,
+    "network_failures_retained": [
+      {
+        "path": "/release-notes",
+        "method": "GET",
+        "attempt": 1,
+        "error": "TimeoutError"
+      }
+    ],
+    "network_recovery": "One idempotent GET timeout recovered on its single retry; no certificate validation relaxation.",
+    "targeted_cdn_purge_performed": false,
+    "purge_scope": "Current deployment has run_worker_first=true, returns 410 before ASSETS APK reads, and does not use a separate response cache. Origin retirement was verified live; no cache-management privilege expansion was needed."
+  },
+  "local_checks": {
+    "worker_route_tests_passed": 9,
+    "python_release_tests_passed": 21,
+    "packaging_tests_passed": 15,
+    "actual_local_workerd_requests_passed": 29,
+    "source_dependency_closure_required_files": 192,
+    "earlier_packaging_failure": "Two new fixture URLs used the real public hostname outside the allowed public URL forms, causing the privacy scan and dependent packaging tests to reject. Fixtures now use a reserved test hostname; runtime code and scan policy were not weakened."
+  },
+  "preserved": {
+    "main_and_compatibility_relays": true,
+    "device_pairings_and_data": true,
+    "private_original_apks_and_frozen_evidence": true,
+    "historical_archive_checksums": true
+  },
+  "limits": [
+    "Public retirement does not remove existing browser caches, downloaded CLI/APK files or installed versions on other devices.",
+    "Compatibility relays may still serve existing paired clients and were not treated as unused merely because their protocol or preview version is older.",
+    "This is not a complete product/platform acceptance or a deletion of all historical files.",
+    "Retirement-aware rebuilds must be used for future website rollback; deploying an older retirement-unaware Worker can expose old downloads again.",
+    "No additional phone, personal-AI, long-idle or iOS acceptance is claimed."
+  ]
+}

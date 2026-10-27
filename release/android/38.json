@@ -1,0 +1,23 @@
+{
+  "schema": "airtap-android-update-v1",
+  "application_id": "io.airtap.preview",
+  "version_name": "0.4.0-beta.8",
+  "version_code": 38,
+  "apk_sha256": "6978cadee77ef78b350dfe91e29b76ab74273c6ee946050b5cd2a76dee02d09c",
+  "apk_bytes": 538061,
+  "signer_sha256": "a2aa0c1b6fdaf1baa37aa20817387524a1318b5dab82bf7c185663141daba60f",
+  "min_sdk": 34,
+  "target_sdk": 36,
+  "debuggable": false,
+  "channel": "beta",
+  "published_at": "2026-10-27",
+  "download_path": "/download/android",
+  "notes": [
+    "扩展按住拖动、多指手势、文字编辑和系统操作；支持分段读取长文与界面树，由 AI 按设备实际能力使用并核实结果。",
+    "新增授权范围内的文件收发与临时只读分享。默认使用 Airtap 工作目录；需要其他文件夹时，由你在系统中选择。",
+    "首次接入可在必要权限就绪后继续准备邀请；连接提示区分自动恢复与需要处理的具体步骤。通知权限恢复后可继续原连接，无需重新配对。",
+    "加强服务连接的证书校验，并在新邀请中附带接入说明与 CLI 的文件校验信息。安全连接无法验证时保留配对，提示检查更新。",
+    "已安装用户直接覆盖更新，保留原 AI 配对；无需先卸载或清除数据。主动停止或解除连接后，不会自动恢复控制。",
+    "当前仍是 Android 公开测试版。机型、个人 AI、跨 App 任务和后台恢复的验证范围分别记录，不代表所有设备或所有 App 均已验证。"
+  ]
+}

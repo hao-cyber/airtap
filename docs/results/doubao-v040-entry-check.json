@@ -1,0 +1,32 @@
+{
+  "schema": "airtap-client-entry-check-v1",
+  "checked_date": "2026-10-26",
+  "timezone": "Asia/Shanghai",
+  "client": "Doubao web",
+  "requested_entry": "https://www.doubao.com/chat",
+  "status": "login_required_before_work_mode_test",
+  "observations": [
+    "The initial page exposed New work task and Work controls.",
+    "Before a work-mode interaction completed, the page redirected to /security/doubao-region-ban?source=1.",
+    "The rendered message required sign-in because of regional restrictions and offered Dola as a different product.",
+    "The sign-in dialog offered phone, Feishu and QR sign-in. No sign-in method was submitted and no terms checkbox was accepted."
+  ],
+  "attempted": {
+    "browser_entry_inspection": true,
+    "login_dialog_inspection": true,
+    "ai_message_sent": false,
+    "guide_or_cli_download_by_agent": false,
+    "image_tool_use": false,
+    "phone_invitation": false,
+    "pairing": false,
+    "phone_operation": false
+  },
+  "next_step": "Owner signs in through the retained browser page. Then test the actual work mode, tool execution, image inspection, unchanged invitation and phone workflow.",
+  "compatibility_claim": "unverified",
+  "limits": [
+    "This is an observed account-entry prerequisite, not evidence that Doubao cannot support Airtap.",
+    "A visible Work button does not prove the selected account can execute tools or inspect phone screenshots.",
+    "No alternate product or region workaround was used.",
+    "Private browser evidence is retained outside the source distribution; no account data or phone credentials are included."
+  ]
+}

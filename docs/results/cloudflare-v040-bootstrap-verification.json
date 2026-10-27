@@ -1,0 +1,463 @@
+{
+  "schema": "airtap-cloudflare-bootstrap-verification-v1",
+  "recorded_at": "2026-10-25T16:47:32.171693+00:00",
+  "status": "tested_default_http_bootstrap_block_resolved",
+  "service_roles": [
+    "default_public_v4_service",
+    "android_apk_install_site"
+  ],
+  "change": {
+    "owner_explicitly_approved": true,
+    "approval_scope": "Only the current Airtap service and install hostnames.",
+    "applied_by": "Maintainer through the Cloudflare dashboard after owner approval; the HTTP verifier made no cloud changes.",
+    "rule_type": "Configuration Rule",
+    "phase": "http_config_settings",
+    "matched_hostname_count": 2,
+    "match_mode": "Exact complete hostnames, no wildcard or whole-zone condition.",
+    "action": "set_config",
+    "action_parameters": {
+      "bic": false
+    },
+    "zone_wide_bic_unchanged": true,
+    "other_security_features_not_selected_for_bypass": true,
+    "configuration_scope_evidence": "Dashboard confirmation and exact-host rule scope recorded by the deploying maintainer. This report independently checks HTTP outcomes, not the entire Cloudflare configuration."
+  },
+  "request_matrix": {
+    "paths_per_user_agent": 7,
+    "user_agents": {
+      "default_urllib": "Python-urllib/3.13",
+      "airtap_probe": "Airtap-probe/0.4"
+    },
+    "before_started_at": "2026-10-25T16:33:21.319626+00:00",
+    "before_finished_at": "2026-10-25T16:33:23.324447+00:00",
+    "after_started_at": "2026-10-25T16:43:01.590185+00:00",
+    "after_finished_at": "2026-10-25T16:43:21.620329+00:00",
+    "before_gets": 14,
+    "after_initial_gets": 14,
+    "followup_gets": 1,
+    "apk_gets": 1,
+    "redirects_followed": false,
+    "tls_or_proxy_configuration_changed": false,
+    "rows": [
+      {
+        "origin_kind": "service",
+        "path": "/v1/service",
+        "user_agent_kind": "default_urllib",
+        "before": {
+          "status": 403,
+          "cloudflare_1010": true,
+          "body_bytes": 17,
+          "body_sha256": "2938e9f1284180959e33ab1718d0793a72ff6e4cdb8108c34dcd14e69446de5c",
+          "correct_version": false
+        },
+        "after_first_attempt": {
+          "status": 200,
+          "cloudflare_1010": false,
+          "body_bytes": 337,
+          "body_sha256": "075c01b7ed8a13daf39532a30ddcf63de82c2fa607d719c52a630a9788bbeacb",
+          "correct_version": true,
+          "transport_error_type": null,
+          "elapsed_seconds": 0.25
+        },
+        "after_single_followup": null,
+        "final_expected_response": true
+      },
+      {
+        "origin_kind": "service",
+        "path": "/v1/service",
+        "user_agent_kind": "airtap_probe",
+        "before": {
+          "status": 200,
+          "cloudflare_1010": false,
+          "body_bytes": 337,
+          "body_sha256": "075c01b7ed8a13daf39532a30ddcf63de82c2fa607d719c52a630a9788bbeacb",
+          "correct_version": true
+        },
+        "after_first_attempt": {
+          "status": null,
+          "cloudflare_1010": null,
+          "body_bytes": null,
+          "body_sha256": null,
+          "correct_version": false,
+          "transport_error_type": "URLError",
+          "elapsed_seconds": 20.007
+        },
+        "after_single_followup": {
+          "status": 200,
+          "cloudflare_1010": false,
+          "body_bytes": 337,
+          "body_sha256": "075c01b7ed8a13daf39532a30ddcf63de82c2fa607d719c52a630a9788bbeacb",
+          "correct_version": true,
+          "elapsed_seconds": 0.241
+        },
+        "final_expected_response": true
+      },
+      {
+        "origin_kind": "service",
+        "path": "/agent.md",
+        "user_agent_kind": "default_urllib",
+        "before": {
+          "status": 403,
+          "cloudflare_1010": true,
+          "body_bytes": 17,
+          "body_sha256": "2938e9f1284180959e33ab1718d0793a72ff6e4cdb8108c34dcd14e69446de5c",
+          "correct_version": false
+        },
+        "after_first_attempt": {
+          "status": 200,
+          "cloudflare_1010": false,
+          "body_bytes": 8590,
+          "body_sha256": "749abdc6b4cf3cc8eba965b2eeb6578890c553de3fdf76dea28d457891d06f0d",
+          "correct_version": true,
+          "transport_error_type": null,
+          "elapsed_seconds": 0.263
+        },
+        "after_single_followup": null,
+        "final_expected_response": true
+      },
+      {
+        "origin_kind": "service",
+        "path": "/agent.md",
+        "user_agent_kind": "airtap_probe",
+        "before": {
+          "status": 200,
+          "cloudflare_1010": false,
+          "body_bytes": 8590,
+          "body_sha256": "749abdc6b4cf3cc8eba965b2eeb6578890c553de3fdf76dea28d457891d06f0d",
+          "correct_version": true
+        },
+        "after_first_attempt": {
+          "status": 200,
+          "cloudflare_1010": false,
+          "body_bytes": 8590,
+          "body_sha256": "749abdc6b4cf3cc8eba965b2eeb6578890c553de3fdf76dea28d457891d06f0d",
+          "correct_version": true,
+          "transport_error_type": null,
+          "elapsed_seconds": 0.28
+        },
+        "after_single_followup": null,
+        "final_expected_response": true
+      },
+      {
+        "origin_kind": "service",
+        "path": "/cli/airtap.py",
+        "user_agent_kind": "default_urllib",
+        "before": {
+          "status": 403,
+          "cloudflare_1010": true,
+          "body_bytes": 17,
+          "body_sha256": "2938e9f1284180959e33ab1718d0793a72ff6e4cdb8108c34dcd14e69446de5c",
+          "correct_version": false
+        },
+        "after_first_attempt": {
+          "status": 200,
+          "cloudflare_1010": false,
+          "body_bytes": 38314,
+          "body_sha256": "c9a968076e83d90f10350b1ffc86fe5675facb11bf33939402c162bfa66cc53c",
+          "correct_version": true,
+          "transport_error_type": null,
+          "elapsed_seconds": 0.263
+        },
+        "after_single_followup": null,
+        "final_expected_response": true
+      },
+      {
+        "origin_kind": "service",
+        "path": "/cli/airtap.py",
+        "user_agent_kind": "airtap_probe",
+        "before": {
+          "status": 200,
+          "cloudflare_1010": false,
+          "body_bytes": 38314,
+          "body_sha256": "c9a968076e83d90f10350b1ffc86fe5675facb11bf33939402c162bfa66cc53c",
+          "correct_version": true
+        },
+        "after_first_attempt": {
+          "status": 200,
+          "cloudflare_1010": false,
+          "body_bytes": 38314,
+          "body_sha256": "c9a968076e83d90f10350b1ffc86fe5675facb11bf33939402c162bfa66cc53c",
+          "correct_version": true,
+          "transport_error_type": null,
+          "elapsed_seconds": 0.378
+        },
+        "after_single_followup": null,
+        "final_expected_response": true
+      },
+      {
+        "origin_kind": "install",
+        "path": "/release.json",
+        "user_agent_kind": "default_urllib",
+        "before": {
+          "status": 403,
+          "cloudflare_1010": true,
+          "body_bytes": 17,
+          "body_sha256": "2938e9f1284180959e33ab1718d0793a72ff6e4cdb8108c34dcd14e69446de5c",
+          "correct_version": false
+        },
+        "after_first_attempt": {
+          "status": 200,
+          "cloudflare_1010": false,
+          "body_bytes": 455,
+          "body_sha256": "2e881d0daedd838e34ae1c590075aa70f72e17198ae3c7c51e608543f3ffbac0",
+          "correct_version": true,
+          "transport_error_type": null,
+          "elapsed_seconds": 0.343
+        },
+        "after_single_followup": null,
+        "final_expected_response": true
+      },
+      {
+        "origin_kind": "install",
+        "path": "/release.json",
+        "user_agent_kind": "airtap_probe",
+        "before": {
+          "status": 200,
+          "cloudflare_1010": false,
+          "body_bytes": 455,
+          "body_sha256": "2e881d0daedd838e34ae1c590075aa70f72e17198ae3c7c51e608543f3ffbac0",
+          "correct_version": true
+        },
+        "after_first_attempt": {
+          "status": 200,
+          "cloudflare_1010": false,
+          "body_bytes": 455,
+          "body_sha256": "2e881d0daedd838e34ae1c590075aa70f72e17198ae3c7c51e608543f3ffbac0",
+          "correct_version": true,
+          "transport_error_type": null,
+          "elapsed_seconds": 0.22
+        },
+        "after_single_followup": null,
+        "final_expected_response": true
+      },
+      {
+        "origin_kind": "service",
+        "path": "/v1/status",
+        "user_agent_kind": "default_urllib",
+        "before": {
+          "status": 403,
+          "cloudflare_1010": true,
+          "body_bytes": 17,
+          "body_sha256": "2938e9f1284180959e33ab1718d0793a72ff6e4cdb8108c34dcd14e69446de5c",
+          "correct_version": false
+        },
+        "after_first_attempt": {
+          "status": 404,
+          "cloudflare_1010": false,
+          "body_bytes": 42,
+          "body_sha256": "ea559ccd85a55f61b82752c81bb63550e323961d28669f39476c96ff897fb6db",
+          "correct_version": true,
+          "transport_error_type": null,
+          "elapsed_seconds": 0.266
+        },
+        "after_single_followup": null,
+        "final_expected_response": true
+      },
+      {
+        "origin_kind": "service",
+        "path": "/v1/status",
+        "user_agent_kind": "airtap_probe",
+        "before": {
+          "status": 404,
+          "cloudflare_1010": false,
+          "body_bytes": 42,
+          "body_sha256": "ea559ccd85a55f61b82752c81bb63550e323961d28669f39476c96ff897fb6db",
+          "correct_version": true
+        },
+        "after_first_attempt": {
+          "status": 404,
+          "cloudflare_1010": false,
+          "body_bytes": 42,
+          "body_sha256": "ea559ccd85a55f61b82752c81bb63550e323961d28669f39476c96ff897fb6db",
+          "correct_version": true,
+          "transport_error_type": null,
+          "elapsed_seconds": 0.281
+        },
+        "after_single_followup": null,
+        "final_expected_response": true
+      },
+      {
+        "origin_kind": "service",
+        "path": "/v1/pair/status",
+        "user_agent_kind": "default_urllib",
+        "before": {
+          "status": 403,
+          "cloudflare_1010": true,
+          "body_bytes": 17,
+          "body_sha256": "2938e9f1284180959e33ab1718d0793a72ff6e4cdb8108c34dcd14e69446de5c",
+          "correct_version": false
+        },
+        "after_first_attempt": {
+          "status": 404,
+          "cloudflare_1010": false,
+          "body_bytes": 42,
+          "body_sha256": "ea559ccd85a55f61b82752c81bb63550e323961d28669f39476c96ff897fb6db",
+          "correct_version": true,
+          "transport_error_type": null,
+          "elapsed_seconds": 0.473
+        },
+        "after_single_followup": null,
+        "final_expected_response": true
+      },
+      {
+        "origin_kind": "service",
+        "path": "/v1/pair/status",
+        "user_agent_kind": "airtap_probe",
+        "before": {
+          "status": 404,
+          "cloudflare_1010": false,
+          "body_bytes": 42,
+          "body_sha256": "ea559ccd85a55f61b82752c81bb63550e323961d28669f39476c96ff897fb6db",
+          "correct_version": true
+        },
+        "after_first_attempt": {
+          "status": 404,
+          "cloudflare_1010": false,
+          "body_bytes": 42,
+          "body_sha256": "ea559ccd85a55f61b82752c81bb63550e323961d28669f39476c96ff897fb6db",
+          "correct_version": true,
+          "transport_error_type": null,
+          "elapsed_seconds": 0.494
+        },
+        "after_single_followup": null,
+        "final_expected_response": true
+      },
+      {
+        "origin_kind": "service",
+        "path": "/v1/device/pairing",
+        "user_agent_kind": "default_urllib",
+        "before": {
+          "status": 403,
+          "cloudflare_1010": true,
+          "body_bytes": 17,
+          "body_sha256": "2938e9f1284180959e33ab1718d0793a72ff6e4cdb8108c34dcd14e69446de5c",
+          "correct_version": false
+        },
+        "after_first_attempt": {
+          "status": 404,
+          "cloudflare_1010": false,
+          "body_bytes": 42,
+          "body_sha256": "ea559ccd85a55f61b82752c81bb63550e323961d28669f39476c96ff897fb6db",
+          "correct_version": true,
+          "transport_error_type": null,
+          "elapsed_seconds": 0.284
+        },
+        "after_single_followup": null,
+        "final_expected_response": true
+      },
+      {
+        "origin_kind": "service",
+        "path": "/v1/device/pairing",
+        "user_agent_kind": "airtap_probe",
+        "before": {
+          "status": 404,
+          "cloudflare_1010": false,
+          "body_bytes": 42,
+          "body_sha256": "ea559ccd85a55f61b82752c81bb63550e323961d28669f39476c96ff897fb6db",
+          "correct_version": true
+        },
+        "after_first_attempt": {
+          "status": 404,
+          "cloudflare_1010": false,
+          "body_bytes": 42,
+          "body_sha256": "ea559ccd85a55f61b82752c81bb63550e323961d28669f39476c96ff897fb6db",
+          "correct_version": true,
+          "transport_error_type": null,
+          "elapsed_seconds": 0.316
+        },
+        "after_single_followup": null,
+        "final_expected_response": true
+      }
+    ]
+  },
+  "outcome": {
+    "default_urllib_before": {
+      "public_paths": 4,
+      "root_read_only_paths": 3,
+      "http_403_1010": 7
+    },
+    "default_urllib_after": {
+      "public_paths_first_attempt_200_with_correct_version": 4,
+      "root_read_only_paths_first_attempt_application_404": 3,
+      "http_403_1010": 0
+    },
+    "both_user_agents_final_public_file_hashes_and_metadata_match": true,
+    "all_14_matrix_rows_have_expected_final_outcome": true
+  },
+  "retained_failure": {
+    "origin_role": "default_public_v4_service",
+    "path": "/v1/service",
+    "user_agent": "Airtap-probe/0.4",
+    "initial_attempt": 1,
+    "initial_http_status": null,
+    "initial_error_type": "URLError",
+    "initial_elapsed_seconds": 20.007,
+    "followup_attempt": 2,
+    "followup_http_status": 200,
+    "followup_elapsed_seconds": 0.241,
+    "followup_correct_protocol": true,
+    "cause": "Unconfirmed transport failure; no HTTP response was obtained. Not labeled a rule propagation delay. Only this failed matrix item was retried, once."
+  },
+  "apk_download": {
+    "user_agent": "Python-urllib/3.13",
+    "default_urllib_no_header_override": true,
+    "download_path": "/downloads/c9ec221d144a38bf219270f3615ed591e8eb572e15528312c94245c8e2c81152.apk",
+    "attempt": 1,
+    "http_status": 200,
+    "bytes": 800953,
+    "sha256": "c9ec221d144a38bf219270f3615ed591e8eb572e15528312c94245c8e2c81152",
+    "version_name": "0.4.0-companion-preview",
+    "version_code": 24,
+    "identical_to_retained_original_apk": true,
+    "elapsed_seconds": 0.523,
+    "installed_or_executed": false
+  },
+  "artifact_binding": {
+    "protocol_version": 4,
+    "service_artifact_version": "service4-042d0f7f-c9a96807-749abdc6",
+    "source_files": {
+      "cli/airtap.py": {
+        "bytes": 38314,
+        "sha256": "c9a968076e83d90f10350b1ffc86fe5675facb11bf33939402c162bfa66cc53c"
+      },
+      "docs/agent.md": {
+        "bytes": 8590,
+        "sha256": "749abdc6b4cf3cc8eba965b2eeb6578890c553de3fdf76dea28d457891d06f0d"
+      },
+      "relay/service/service.mjs": {
+        "bytes": 26682,
+        "sha256": "11d6fb16e43210d40e700c14e892bc049f9bb355df1697a53300eae43a9e9d90"
+      },
+      "relay/worker/worker.mjs": {
+        "bytes": 30549,
+        "sha256": "917b24df737ea04faab744a28b9c07bed191b35d012aa32c22773ff39935d03a"
+      },
+      "apps/android/app/build.gradle": {
+        "bytes": 3201,
+        "sha256": "7d391e5a941dfe3176117bbafe3916a23bcaab9418dd161692db12816179e565"
+      }
+    },
+    "retained_apk_sha256": "c9ec221d144a38bf219270f3615ed591e8eb572e15528312c94245c8e2c81152",
+    "retained_apk_signer_sha256": "792174161f4d39c7284cb716b611bcee99a5c0a5db8899b3743e0923c4073e62",
+    "production_code_changed_for_this_edge_fix": false
+  },
+  "evidence_sha256": {
+    "before_original": "258adb6490b6b745c50bf9dddfe91b814ff6a3049076a60d71ffe086078a0610",
+    "before_classification_corrected": "f7d4c26039eef376ecfc492c63497c7d1b3804223129f283a3502cd722f839af",
+    "after_initial_matrix": "056d9de2234d1596a6374bba39266935eacc4e2b6bea857716498111698df4d6",
+    "single_followup": "b49cab740f9e170d33a20e80a8e27026a095401f790457301a0a91e0729c1cf4",
+    "apk_download_record": "f3c3f34a3773a8fe758fecb99fa6f5f2e678d4ae3282aaa5e0f857bbc47967e3",
+    "matrix_script_as_executed": "28f8e693cf4c43d5e28b349541fc851bb33f3ee0bf9c479bd34c3f731e6a2462"
+  },
+  "evidence_notes": [
+    "The initial baseline detector required the word Cloudflare inside the body and misclassified 1010 as false. A preserved derived record corrects only that flag using the exact 17-byte error-code body hash and Server header; no baseline request was repeated.",
+    "The reusable script originally described a pre-change baseline in its scope text. The retained after record timestamps and this report identify the actual post-change run; raw reports were not rewritten."
+  ],
+  "limits": [
+    "The three 404 checks used only GET /v1/status, /v1/pair/status and /v1/device/pairing at the unscoped service root. They were rejected before device resolution. This is root-route closure, not enrolled-device authentication acceptance.",
+    "No credentials, cookies, device identifiers, registration, pairing/invitation creation or phone command were sent.",
+    "No phone installation, Muse/Instinct task, other personal-agent client or independent ordinary-user reproduction was tested.",
+    "Results reflect these user agents from the maintainer Mac at the recorded time; no claim of universal client or regional network compatibility.",
+    "This public record contains no account/zone/rule identifiers, private filesystem paths, credentials, response bodies or screenshots."
+  ]
+}

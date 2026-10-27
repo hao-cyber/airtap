@@ -1,0 +1,38 @@
+{
+  "checks": [
+    {
+      "name": "native metadata snapshot captures more than one page",
+      "passed": true
+    },
+    {
+      "name": "unchanged native metadata preserves continuation",
+      "passed": true
+    },
+    {
+      "name": "native range starts at10",
+      "passed": true
+    },
+    {
+      "name": "range-only mutation rejects original cached page",
+      "passed": true
+    },
+    {
+      "name": "fresh native snapshot exposes updated range11",
+      "passed": true
+    },
+    {
+      "name": "range-only fixture kept every other exported node field unchanged",
+      "passed": true
+    }
+  ],
+  "complete": true,
+  "scope": "native range metadata regression only",
+  "evidence": "Unchanged production CompanionUi/WindowInventory/ObservedText/PagedTree in the installed debug APK with native Android accessibility nodes. Private instrumentation injects test BooleanSuppliers for authorization and transport; it does not claim pairing/relay/personal-AI acceptance.",
+  "apk_sha256": "ee501300606965ba379a4cf9ccc0b703143ebe55a3006edafd37ecb95af1cf7c",
+  "physical_phone": false,
+  "personal_ai": false,
+  "production_source_commit": "8a6d925",
+  "platform": "Isolated Android 16 / API 36 emulator",
+  "version_note": "Development debug build only; release version numbering is handled separately.",
+  "teardown": "Restored prior accessibility and screen timeout settings, stopped the fixture App and returned to Home. No physical phone or other emulator was used."
+}

@@ -1,0 +1,21 @@
+{
+  "schema": "airtap-android-update-v1",
+  "application_id": "io.airtap.preview",
+  "version_name": "0.4.0-beta.1",
+  "version_code": 25,
+  "apk_sha256": "707904f3767c0b41e31ba9248b756f904e652d34d1c1646cd952fae6c64601b1",
+  "apk_bytes": 370125,
+  "signer_sha256": "a2aa0c1b6fdaf1baa37aa20817387524a1318b5dab82bf7c185663141daba60f",
+  "min_sdk": 34,
+  "target_sdk": 36,
+  "debuggable": false,
+  "channel": "beta",
+  "published_at": "2026-10-26",
+  "download_path": "/download/android",
+  "notes": [
+    "固定官网与安装入口，不再需要寻找带日期或版本号的地址。",
+    "使用长期发布签名，支持从本项目当前预览包保留数据覆盖升级。",
+    "App 设置增加检查更新和使用帮助，自动检查不影响现有手机连接。",
+    "版本与连接技术信息收进详情，默认使用流程无需选择版本。"
+  ]
+}

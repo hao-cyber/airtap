@@ -1,0 +1,119 @@
+{
+  "schema": "airtap-beta8-delivery-verification-v1",
+  "recorded_at": "2026-10-27T07:51:58.353444+00:00",
+  "status": "published_with_bounded_technical_acceptance",
+  "release": {
+    "schema": "airtap-android-update-v1",
+    "application_id": "io.airtap.preview",
+    "version_name": "0.4.0-beta.8",
+    "version_code": 38,
+    "apk_sha256": "6978cadee77ef78b350dfe91e29b76ab74273c6ee946050b5cd2a76dee02d09c",
+    "apk_bytes": 538061,
+    "signer_sha256": "a2aa0c1b6fdaf1baa37aa20817387524a1318b5dab82bf7c185663141daba60f",
+    "min_sdk": 34,
+    "target_sdk": 36,
+    "debuggable": false,
+    "channel": "beta",
+    "published_at": "2026-10-27",
+    "download_path": "/download/android",
+    "notes": [
+      "扩展按住拖动、多指手势、文字编辑和系统操作；支持分段读取长文与界面树，由 AI 按设备实际能力使用并核实结果。",
+      "新增授权范围内的文件收发与临时只读分享。默认使用 Airtap 工作目录；需要其他文件夹时，由你在系统中选择。",
+      "首次接入可在必要权限就绪后继续准备邀请；连接提示区分自动恢复与需要处理的具体步骤。通知权限恢复后可继续原连接，无需重新配对。",
+      "加强服务连接的证书校验，并在新邀请中附带接入说明与 CLI 的文件校验信息。安全连接无法验证时保留配对，提示检查更新。",
+      "已安装用户直接覆盖更新，保留原 AI 配对；无需先卸载或清除数据。主动停止或解除连接后，不会自动恢复控制。",
+      "当前仍是 Android 公开测试版。机型、个人 AI、跨 App 任务和后台恢复的验证范围分别记录，不代表所有设备或所有 App 均已验证。"
+    ]
+  },
+  "source_binding": {
+    "apk_build_commit": "dec86af62446789cd04f80b398b4e8b61a2bbf43",
+    "website_metadata_commit": "20708fe49bc369cab3e9abbf6f0c69aa5f52e0a9",
+    "later_documentation_and_evidence_changes_do_not_modify_apk_code": true
+  },
+  "relay": {
+    "revision": 14,
+    "existing_service_identity_preserved": true,
+    "runtime": "Cloudflare Workers and Durable Objects",
+    "cli_version": "0.4.0-cli.8",
+    "cli_sha256": "4f9af83799764b6573ae03f22b7921a141fa1de0b6c1121977cc1492ad95b508",
+    "guide_sha256": "b65e7764f6ca4c5faad23c767cd7a83ad5a676dbcb76862e239ff83bbbdd79ce",
+    "published_bytes_independently_matched": true,
+    "billing_changed": false,
+    "registration_limit": 1000,
+    "limit_scope": "Configured registered-device limit, not a demonstrated 1000 concurrent active-device capacity."
+  },
+  "website": {
+    "origin": "https://airtap.memtrix.dev",
+    "version_id": "aecc02fa-29d8-4767-b742-d037702610c6",
+    "frozen_build_manifest_sha256": "f81972fccbec80978003ed9a77e34a5efa00221bb079acc4a142d08650ae431a",
+    "recommended_version_code": 38,
+    "local_files_verified": 17,
+    "public_checks": 22,
+    "fixed_download_selects_exact_immutable_apk": true,
+    "all_public_contents_match_frozen_bytes": true,
+    "cache_and_download_headers_verified": true,
+    "request_retry_policy": "Unchanged stdlib HTTPS verification, redirects disabled; at most one retry per idempotent GET/HEAD, only for timeout/connection reset.",
+    "failures_retained": [
+      {
+        "run": 1,
+        "route": "/app.js",
+        "error": "URLError",
+        "underlying_cause_not_captured": true
+      },
+      {
+        "run": 2,
+        "route": "/install",
+        "error": "URLError",
+        "underlying_cause_not_captured": true
+      },
+      {
+        "run": 3,
+        "route": "/help",
+        "error": "URLError wrapping TimeoutError",
+        "elapsed_seconds": 30.006,
+        "single_retry_passed": true
+      }
+    ],
+    "network_limit": "One local network vantage point. Final read-only verification passed after one bounded timeout retry; prior failures were not erased. No certificate-validation relaxation or security rule change."
+  },
+  "checks": {
+    "integrated_suite": "all",
+    "integrated_steps_passed": 26,
+    "includes": "Host fixtures, actual workerd/CLI protocol tests and Android compile/lint; not a replacement for physical tests.",
+    "earlier_failures": [
+      {
+        "kind": "scheduling test fixture missing invitationArtifacts",
+        "fix_commit": "2e47d50"
+      },
+      {
+        "kind": "connection-closing fixture missing TLS classification stub",
+        "fix_commit": "dec86af"
+      }
+    ],
+    "site_python_checks": 15,
+    "site_worker_route_checks": 6,
+    "signed_release_build": true
+  },
+  "device_and_ai": {
+    "physical_maintenance": "Same-signer USB in-place upgrade from37 to38; no clear/uninstall/pairing reset or network change. Maintenance is separate from Muse task execution.",
+    "native_recovery_record": "beta8-code38-recovery-20261027.json",
+    "muse_record": "beta8-code38-muse-20261027.json",
+    "muse_result": "Original pair and hash-checked CLI.8; actual WPS two-line text display, new note save/reopen and HOME; media volume zero before/after.",
+    "failures": "Retain upgrade ping deadline, notification-state lag, protected Airtap/window transition recovery and missing non-decisive image attachments in their respective records."
+  },
+  "security_record": "tls-incident-20261027.json",
+  "source_distribution": "Use the reviewed allowlist and a newly frozen export, never publish the private Git history directly. Export and extracted-package verification are recorded alongside the immutable source artifact.",
+  "not_claimed": [
+    "Independent ordinary-user first installation or code38 first-time personal-AI bootstrap",
+    "Code38 long-idle/multi-day or all network/device regression",
+    "Instinct and other personal-AI code38 acceptance",
+    "All App workflows or all atomic capabilities verified",
+    "iOS or physical tablet/TV/ESP32 support",
+    "Video acceptance",
+    "All certificates/runtimes universally safe or proof an attack did not occur"
+  ],
+  "private_materials_excluded": [
+    "Signing keys, credentials, device and connection identifiers, raw phone/Muse screenshots, logs and archives, deployment configuration"
+  ],
+  "github_ci": "Existing cloud jobs failed before steps because account billing/spend limit; local passing checks are recorded separately. No billing settings changed."
+}

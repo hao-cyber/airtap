@@ -1,0 +1,59 @@
+{
+  "checked_at": "2026-10-26T06:53:50Z",
+  "passed": 13,
+  "checks": [
+    {
+      "name": "live discovery feedback enabled",
+      "ok": true
+    },
+    {
+      "name": "anonymous create private receipt",
+      "ok": true
+    },
+    {
+      "name": "same private receipt safely retries",
+      "ok": true
+    },
+    {
+      "name": "missing receipt denied",
+      "ok": true
+    },
+    {
+      "name": "wrong receipt cannot read",
+      "ok": true
+    },
+    {
+      "name": "wrong admin denied",
+      "ok": true
+    },
+    {
+      "name": "operator CLI reads only known test report",
+      "ok": true
+    },
+    {
+      "name": "operator CLI updates processing status",
+      "ok": true
+    },
+    {
+      "name": "private receipt sees maintenance reply",
+      "ok": true
+    },
+    {
+      "name": "receipt deletes report",
+      "ok": true
+    },
+    {
+      "name": "deleted body no longer readable",
+      "ok": true
+    },
+    {
+      "name": "late creation does not resurrect",
+      "ok": true
+    },
+    {
+      "name": "repeat deletion idempotent",
+      "ok": true
+    }
+  ],
+  "scope": "Public HTTPS with synthetic anonymous report and private operator CLI; no phone or real user content."
+}

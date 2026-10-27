@@ -1,0 +1,161 @@
+{
+  "schema": "airtap-security-maintenance-supplement-v1",
+  "date": "2026-10-27",
+  "recorded_at": "2026-10-27T09:09:06.013700+00:00",
+  "status": "server_upgrade_verified_maintenance_transport_fixed_compatibility_assets_deployed",
+  "scope": "Supplement to the client TLS remediation record: existing Tunnel infrastructure, private-feedback maintenance transport, and two older preview asset distributions.",
+  "related_records": [
+    "tls-incident-20261027.json",
+    "android-tls-20261027.json",
+    "beta8-delivery-20261027.json"
+  ],
+  "server_upgrade": {
+    "execution": "A separate user-authorized maintenance conversation performed the server upgrades. The coordinating Airtap conversation independently inspected the resulting official running processes.",
+    "hosts_inspected": 2,
+    "official_running_cloudflared_processes": 3,
+    "cloudflared_version": "2026.10.4",
+    "running_binary_verified": true,
+    "all_inspected_units_active_running": true,
+    "temporary_parallel_probe_processes_counted": false,
+    "tls_verification_disabled_flag_present": false,
+    "verification_scope": "Read-only snapshots of the actual process executable versions and their service units; checking an installed package or a temporary test binary alone was not counted as an upgraded official instance.",
+    "airtap_runtime_boundary": "The default Airtap phone-control relay runs on Cloudflare Workers and Durable Objects, without a cloudflared dependency. Upgrading these other Tunnel services does not itself update Airtap Android, CLI or third-party TLS runtimes."
+  },
+  "feedback_maintenance_transport": {
+    "status": "implemented_and_locally_tested",
+    "production_files": [
+      {
+        "path": "relay/service/reports.py",
+        "sha256": "4d285e7a39a2038ad58c0fde5266a6393e7eed5f2987864564d75cf38c597d5d"
+      },
+      {
+        "path": "cli/airtap.py",
+        "sha256": "4f9af83799764b6573ae03f22b7921a141fa1de0b6c1121977cc1492ad95b508"
+      }
+    ],
+    "test_file": {
+      "path": "relay/service/tests/test_reports.py",
+      "sha256": "c0574446a735ea4961b4c061034875d68a085d331b70e5b3704afbd21dc7baf5"
+    },
+    "policy": "Load the shipped CLI transport from the fixed source-distribution layout. Preserve system CA and hostname validation, then reject known compromised public keys across the verified chain before target HTTP headers or body.",
+    "proxy_boundary": "Proxy credentials are confined to HTTP CONNECT; the target maintenance Bearer and report body are not sent before target TLS validation. No automatic direct fallback after proxy failure.",
+    "failure_behavior": "Missing transport or unavailable chain verification fails closed. Redirects are not followed. Definite certificate rejection before HTTP is not_dispatched; certificate failure after an HTTP attempt remains unknown. No automatic retry of maintenance mutations and no legacy urllib fallback.",
+    "installation_requirement": "Use the complete updated source distribution, preserving relay/service/reports.py and cli/airtap.py at their relative locations. Copying reports.py alone is insufficient.",
+    "checks": {
+      "independently_rerun_reports_tests_passed": 14,
+      "independent_invalid_proxy_scheme_check_passed": true,
+      "service_suite_tests_passed": 52,
+      "successful_log_sha256": "e50a95da9ada21551fd37a07da33e0f8f43d6b4dd167ee6972526ba7fbaad6bb",
+      "earlier_failure": {
+        "tests_attempted": 52,
+        "errors": 1,
+        "description": "The initial environment invoked the default javac and its contract-test compilation exited with an error. The same service suite passed after selecting the configured JDK. The failed run is retained.",
+        "log_sha256": "0b83a713a0936026aa73d7e1a5c48b65c5424b894da9f2867e610efd15756907"
+      },
+      "source_dependency_closure_required_files": 191,
+      "source_dependency_closure_missing_files": 0,
+      "scope": "Local ephemeral TLS/CONNECT endpoints and source checks; these do not claim a real private-report CRUD workflow, a new source ZIP export, or a complete product regression.",
+      "public_negative_auth_probe": {
+        "http_status": 401,
+        "synthetic_invalid_credential_only": true,
+        "private_report_content_accessed": false,
+        "scope": "Read-only request to a nonexistent report through the fixed transport; no valid maintenance credential or mutation."
+      }
+    }
+  },
+  "older_preview_updates": [
+    {
+      "scope": "Legacy protocol 1-3 service preview",
+      "cli_version": "0.3.7-service-preview",
+      "deployment_status": "deployed_and_public_assets_verified",
+      "deployment_status_note": "Resumed the exact reviewed frozen state; final deployment succeeded and pending pointer is clear. Public CLI and guide bytes match reviewed SHA256, and discovery retained the original service identity.",
+      "cli_sha256": "52b3d5e40a3e8603259232feb8d6dc4ac8c726d8dd28d99ce2bf6a5e35a97a90",
+      "guide_sha256": "33514d1d4cf943e6249dcdcc9fb34fcabf96032b7dd7bfd57cf197a90e0169cd",
+      "prepared_integrity": {
+        "cli_and_guide_transport_identical_to_canonical_cli8": true,
+        "frozen_assets_match_reviewed_source": true,
+        "all_four_frozen_manifest_entries_valid": true,
+        "both_relay_modules_unchanged": true,
+        "service_identity_and_private_credentials_unchanged": true,
+        "durable_objects_migrations_limits_and_settings_unchanged": true,
+        "configuration_changes": "Only the new frozen-directory references and three artifact version/hash variables differ."
+      },
+      "checks": {
+        "maintainer_offline_tls_and_real_loopback_connect_tests_passed": 11,
+        "independently_rerun_compatibility_tests_passed": 5,
+        "independent_wait_ready_tls_failure_cases": 3,
+        "wait_ready_result": "Each deterministic TLS failure terminates after one status attempt, without sleep or retry."
+      },
+      "revision": 7,
+      "post_deployment": {
+        "public_asset_hashes_match": true,
+        "discovery_http_status": 200,
+        "service_identity_matches": true,
+        "pending_state_clear": true,
+        "network_failures_retained": {
+          "discovery_initial_timeouts": 2,
+          "cli_initial_timeout": 1,
+          "cli_single_retry_passed": true,
+          "later_single_discovery_recheck_passed": true
+        }
+      }
+    },
+    {
+      "scope": "Android tablet/TV device preview",
+      "cli_version": "0.4.1-device-preview.3",
+      "deployment_status": "deployed_and_public_assets_verified",
+      "deployment_status_note": "Resumed the exact reviewed frozen state; final deployment succeeded and pending pointer is clear. Public CLI and guide bytes match reviewed SHA256, and discovery retained the original service identity.",
+      "cli_sha256": "f191c6bd37f0e0cca7706ec46e5f420e7bde2aa062e05b552138a67c67e7f3aa",
+      "guide_sha256": "f6236eec9b81807371ca9a95296c8d9e38002d7ca58f4daa839a114a9097b4ec",
+      "prepared_integrity": {
+        "cli_and_guide_transport_identical_to_canonical_cli8": true,
+        "frozen_assets_match_reviewed_source": true,
+        "all_four_frozen_manifest_entries_valid": true,
+        "both_relay_modules_unchanged": true,
+        "service_identity_and_private_credentials_unchanged": true,
+        "durable_objects_migrations_limits_and_settings_unchanged": true,
+        "configuration_changes": "Only the new frozen-directory references and three artifact version/hash variables differ."
+      },
+      "checks": {
+        "maintainer_offline_tls_and_real_loopback_connect_tests_passed": 11,
+        "independently_rerun_compatibility_tests_passed": 8,
+        "independent_wait_ready_tls_failure_cases": 3,
+        "wait_ready_result": "Each deterministic TLS failure terminates after one status attempt, without sleep or retry.",
+        "maintainer_actual_workerd_protocol_checks_passed": 14
+      },
+      "revision": 5,
+      "post_deployment": {
+        "public_asset_hashes_match": true,
+        "discovery_http_status": 200,
+        "service_identity_matches": true,
+        "pending_state_clear": true
+      }
+    }
+  ],
+  "limits": [
+    "Publishing a fixed CLI or guide does not replace files already downloaded by personal agents. Those clients require an actual update and verification.",
+    "These compatibility asset updates do not upgrade older installed Android APKs. Existing device identities and pairings must be preserved during a supported client upgrade or migration.",
+    "Older invitations do not gain code38 phone-bound expected artifact hashes. The device preview still needs independently trusted expected hashes before following downloaded guidance or executing the CLI.",
+    "Direct HTTPS tools, MCP clients, browser runtimes and other applications require their own certificate-policy review; CLI protection does not automatically transfer to them.",
+    "Known-key denial is a targeted mitigation, not a claim that every certificate, device or runtime is safe, nor evidence that an attack occurred or did not occur.",
+    "Server service readiness and local regression tests do not establish all application workflows, new-user setup, or long-term connection reliability.",
+    "The legacy service public checks encountered transient timeouts before succeeding; this one-network-vantage result is not a claim of universal or uninterrupted reachability."
+  ],
+  "privacy": {
+    "included": "Public code and artifact hashes, aggregate test counts, release versions and bounded verification outcomes.",
+    "excluded": [
+      "Internal domains, IP addresses, hostnames and service identifiers",
+      "Private filesystem paths and deployment state",
+      "Credentials, certificate private keys and pairing data",
+      "Raw logs, screenshots, report contents and user data"
+    ]
+  },
+  "main_android_recheck": {
+    "revision": 14,
+    "discovery_http_status": 200,
+    "service_identity_matches": true,
+    "cli_version": "0.4.0-cli.8",
+    "public_cli_and_guide_hashes_still_match": true,
+    "apk_changed_by_this_supplement": false
+  }
+}

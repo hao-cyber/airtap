@@ -1,0 +1,129 @@
+{
+  "schema": "airtap-muse-physical-idle-acceptance-v1",
+  "recorded_at": "2026-10-26T08:49:22.953741+00:00",
+  "status": "passed_bounded_USB_powered_sample",
+  "apk": {
+    "schema": "airtap-android-update-v1",
+    "application_id": "io.airtap.preview",
+    "version_name": "0.4.0-beta.4",
+    "version_code": 28,
+    "apk_sha256": "fc3d3b9f969c5c335d793357469a3187a8bec232bfbcf2081da94854d9cc2f0a",
+    "apk_bytes": 402893,
+    "signer_sha256": "a2aa0c1b6fdaf1baa37aa20817387524a1318b5dab82bf7c185663141daba60f",
+    "min_sdk": 34,
+    "target_sdk": 36,
+    "debuggable": false,
+    "channel": "beta",
+    "published_at": "2026-10-26",
+    "download_path": "/download/android",
+    "notes": [
+      "个人 AI 可直接通过 HTTPS 私有提交故障反馈，无需 GitHub 账号或额外插件；由 AI 整理并去除私人信息。",
+      "新增“设置 → 问题反馈”，可查看报告、处理状态与回复，并删除单份报告；解除 AI 连接后仍可管理。",
+      "报告保留 30 天，支持查询、补充、删除和安全重试，不自动公开到 GitHub；反馈失败不影响手机操作。",
+      "沿用原签名覆盖更新，保留已有配对、屏幕恢复与后台准备能力。",
+      "当前是 Android 公开测试版，各机型与个人 AI 的实际兼容和无人值守表现按验收记录分别说明。"
+    ]
+  },
+  "device": "Meizu Note 16 (小红), Android 15",
+  "personal_ai": {
+    "product": "Muse native client and its cloud tool environment",
+    "app_model_version": "not independently recorded; results apply to this tested session"
+  },
+  "quiet_window": {
+    "start": "2026-10-26T15:18:59.992803+08:00",
+    "first_Muse_status": "2026-10-26T16:34:30+08:00",
+    "seconds": 4530.007,
+    "minimum_seconds": 3600,
+    "usb_powered": true,
+    "phone_requests_by_maintainer_during_window_and_task": 0,
+    "maintenance_evidence": "No maintainer ADB requests or phone input during this window or Muse task; independent read-only checks started after task at16:42:09.",
+    "Muse_evidence": "Muse local receipt says its prior phone HOME was15:08:46; later15:09 feedback did not consume phone commands. Muse only attests its own activity, not all actors.",
+    "battery_settings": "OEM background allowed and Android battery unrestricted set earlier in the same day on code26, retained across in-place upgrades; not rechecked during idle."
+  },
+  "Muse_execution": {
+    "status_at": "2026-10-26T16:34:30+08:00",
+    "pairing": "approved, deviceConnected true, persistent, original pairing retained",
+    "wait_ready_at": "2026-10-26T16:34:32+08:00",
+    "initial_screen": "screen_off",
+    "system_authentication_required": false,
+    "observe_at": "2026-10-26T16:34:38+08:00",
+    "observe_attempts": 1,
+    "reported_observe_seconds": 3.26,
+    "observe_result": "launcher seen; no lock/authentication dialog",
+    "calculator": {
+      "expression": "48 × 23",
+      "result": 1104,
+      "screenshot": "beta4-muse-evidence/calc-48x23-1104.jpg"
+    },
+    "note": {
+      "title": "Airtap beta4静置验收",
+      "body": "计算器结果1104；仅用于Airtap恢复测试",
+      "saved_left_and_reopened": true,
+      "screenshot": "beta4-muse-evidence/note-airtap-beta4-idle-reopen.jpg"
+    },
+    "final": "HOME, launcher, original approved persistent connection remained; task completed before independent16:42:09 check"
+  },
+  "failure_and_recovery": [
+    {
+      "failure": "Notes reopened prior beta3 editor; Muse mistook editor theme control for list new-note control.",
+      "effect": "Theme-not-implemented notice; no new note and prior note reported unchanged.",
+      "recovery": "Returned to list, checked screen, selected actual new-note control, confirmed empty editor, created test note and verified after reopen."
+    }
+  ],
+  "human_assistance": [
+    {
+      "stage": "before execution",
+      "detail": "Muse requested an extra direct-owner task confirmation. User actually clicked 执行本轮静置验收 at16:34. No claim of autonomous confirmation; this was a Muse task-rule interaction, not a phone system authentication or tool-enforced identity step."
+    }
+  ],
+  "evidence_classification": {
+    "RECEIPTS.md": "Muse-produced redacted command-result excerpts, not complete raw status/wait-ready/observe/home JSON. Full device identifiers and those raw files were intentionally not included.",
+    "screenshots": "Two actual phone screenshots opened and visually inspected by release maintainer: calculator1104 and reopened synthetic note. No desktop or note-list images included.",
+    "feedback_JSON": "Five Muse-exported synthetic-report request/response JSON copies; verified consistent ID and POST201/GET200/DELETE200/GET410. This feedback ran before idle, not a new post-idle feedback submission.",
+    "independent_phone_check": "Read-only installed APK hash/package, power/service/process diagnostics after Muse task; no maintainer device actions performed task.",
+    "independent_report_check": "Release maintainer queried only the known synthetic report through report-admin API after retrieval; HTTP410 confirmed on2026-10-26."
+  },
+  "independent_phone_check": {
+    "observed_at": "2026-10-26T16:42:09.969069+08:00",
+    "performed_after": "Muse UI reported final HOME and stopped; no maintenance ADB requests issued during quiet window or Muse execution",
+    "actions": "read package/version, pull installed APK, read power/service/process and Airtap diagnostic tag only; no input/UI/screenshot/network changes",
+    "version_code": 28,
+    "version_name": "0.4.0-beta.4",
+    "installed_apk_sha256": "fc3d3b9f969c5c335d793357469a3187a8bec232bfbcf2081da94854d9cc2f0a",
+    "expected_apk_sha256": "fc3d3b9f969c5c335d793357469a3187a8bec232bfbcf2081da94854d9cc2f0a",
+    "wakefulness": "Dozing",
+    "usb_powered": true,
+    "session_service_present": true,
+    "accessibility_service_present": true,
+    "foreground_service": true,
+    "freeze_process_fields": {
+      "isFreezeExempt": "false",
+      "isPendingFreeze": "0",
+      "isFrozen": "0"
+    },
+    "diagnostic_log_sha256": "cab03076e44dcfe812cef9710ab9360e631accf8563c82dc235787de93f67ac7",
+    "installed_apk_matches_expected": true
+  },
+  "evidence_archive": {
+    "sha256": "8c0d08b5f70bc8e1687807aaecf829b36228decdebc3d057822ba9a76c5d7525",
+    "bytes": 57562,
+    "crc_passed": true,
+    "member_sha256": {
+      "RECEIPTS.md": "9661b15a2f8c401c6686e88bd1d260887310e613440e8dc64cdc9c808ef162c1",
+      "calc-48x23-1104.jpg": "fb744b9d37e2c4d245ef45c95d9b7458f3047b7395f420129bfcf7b2489a8438",
+      "feedback-create-body.json": "fb11f27a843dde9c5aac4176dba635b9c8a2c7a7f7dd1e050fc1808e37e8858a",
+      "feedback-create.json": "55577f5454a68b0db27dc1bb9f9e956005f3da1fa4cb58e2e300341640607a59",
+      "feedback-delete.json": "b3a4622a799c8daa7f0ccfd44d8904dd5f24d83731b06dd5aa4558b1715e783d",
+      "feedback-get1.json": "5604a4f4fdc3cb713ab0c1d4580637c695e9d2d87266abbfe696346f13733800",
+      "feedback-get2.json": "3edbf5d48c49d450853ef112ab6bef441675995b6408612f77112ee47767432b",
+      "note-airtap-beta4-idle-reopen.jpg": "5d603e1ecf7cd2808b2d182308e71c9c01488f61d5f7bdedae9bd8d337789273"
+    }
+  },
+  "limits": [
+    "USB remained physically connected and powered; this is not an unplugged or mobile-only test.",
+    "One approximately75-minute sample does not establish overnight or multi-day reliability.",
+    "Initial setup and extra task confirmation had human involvement; not an independent novice or unattended setup proof.",
+    "No exact per-key timestamps or full original device command JSON in shared evidence.",
+    "Earlier Muse/Instinct code24 acceptance is separate; this result does not validate Instinct on beta4 or other devices."
+  ]
+}

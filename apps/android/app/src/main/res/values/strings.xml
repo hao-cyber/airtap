@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="accessibility_description">让你自己的个人 AI 查看屏幕、切换应用、点击、长按、输入和滑动。开启此权限后，还需在 Airtap 核对数字并确认连接；确认一次后可持续使用。执行任务时按需亮屏，系统允许退出的锁屏自动恢复；正常断网自动重连。系统要求密码或生物识别时，等待验证完成。你可从 Airtap 或连接通知随时停止，停止后不会自动恢复。AI 无法操作 Airtap 的授权界面；系统受保护的画面和权限仍由 Android 管理。</string>
+    <item name="test_button" type="id" />
+    <item name="counter" type="id" />
+    <item name="relay_url" type="id" />
+    <item name="setup_code" type="id" />
+    <item name="enroll" type="id" />
+    <item name="accessibility_settings" type="id" />
+    <item name="create_pairing" type="id" />
+    <item name="copy_prompt" type="id" />
+    <item name="view_prompt" type="id" />
+    <item name="invitation_prompt" type="id" />
+    <item name="candidate_status" type="id" />
+    <item name="allow_tap" type="id" />
+    <item name="approve" type="id" />
+    <item name="enter_test" type="id" />
+    <item name="stop" type="id" />
+    <item name="revoke" type="id" />
+    <item name="status" type="id" />
+    <item name="choose_apps" type="id" />
+    <item name="package_summary" type="id" />
+    <item name="allow_control" type="id" />
+    <item name="change_relay" type="id" />
+    <item name="service_summary" type="id" />
+    <item name="advanced_settings" type="id" />
+    <item name="legacy_mode" type="id" />
+    <item name="preparation_status" type="id" />
+    <item name="notification_settings" type="id" />
+    <item name="background_settings" type="id" />
+    <item name="share_prompt" type="id" />
+    <item name="approval_source" type="id" />
+    <item name="diagnostics_options" type="id" />
+    <item name="session_remaining" type="id" />
+    <item name="session_surface" type="id" />
+    <item name="app_search" type="id" />
+</resources>

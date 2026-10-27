@@ -1,0 +1,49 @@
+{
+  "schema": "airtap-release-postpublication-verification-v1",
+  "checked_at": "2026-10-26T04:32:56.525205+00:00",
+  "release_tag": "v0.4.0-beta.2",
+  "apk_sha256": "e15ca5307391699f7f4d71d10def1ded7f275de1bec4c2d465da3cdfe40037f5",
+  "upgrade_emulator": {
+    "schema": "airtap-update-path-verification-v1",
+    "from_version_code": 25,
+    "to_version_code": 26,
+    "device": "isolated Android 16 emulator",
+    "update_offer_from_live_website": true,
+    "install_replace_success": true,
+    "app_id_preserved": true,
+    "first_install_time_preserved": true,
+    "phone_evidence": false,
+    "enrollment_retained": "After replacement, App resumed permission preparation instead of displaying first-use enrollment",
+    "first_permission_screen_layout": "Step instructions, primary action and both help buttons within 1080x2340 viewport"
+  },
+  "physical_signing_migration_reaudit": {
+    "from_code": 24,
+    "to_code": 25,
+    "package_dumps_match_original_result": true,
+    "app_id_preserved": true,
+    "first_install_time_preserved": true,
+    "scope": "Original physical signing migration evidence only; not code 26 phone evidence"
+  },
+  "immutable_previous_download": {
+    "version_code": 25,
+    "http_status": 200,
+    "bytes": 370125,
+    "sha256": "707904f3767c0b41e31ba9248b756f904e652d34d1c1646cd952fae6c64601b1"
+  },
+  "published_assets": "All five downloaded release files match the downloaded SHA256SUMS",
+  "signing_custody": {
+    "directory_owner_only": true,
+    "key_and_configuration_owner_read_write_only": true,
+    "independent_backup": "pending owner selection; no secret material uploaded"
+  },
+  "documentation_corrections": [
+    "Only reconnect if the app explicitly requests it; normal beta upgrades preserve enrollment",
+    "Current scoped BIC rule includes the service, original download host and stable website"
+  ],
+  "remaining_acceptance": [
+    "Owner confirmation of code 26 normal phone installation, guided permissions and reaching Invite my AI",
+    "Physical phone update check after download-rule repair"
+  ],
+  "remaining_owner_decision": "Signing key independent backup destination",
+  "release_acceptance": "incomplete_pending_physical_confirmation"
+}

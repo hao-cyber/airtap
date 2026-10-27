@@ -1,0 +1,116 @@
+{
+  "_source_distribution": {
+    "notice": "Only deployment addresses/private paths were replaced. Historical source_snapshots hashes refer to the original audited artifacts, not these redacted bytes. See SOURCE-MANIFEST.json.",
+    "original_sha256": "eb13dcee6b23b0dec201d91c259f091ad068d3cc623fd70c090fddb33551dc14",
+    "status": "redacted_distribution_copy"
+  },
+  "completed": {
+    "after_bic_public_downloads": "homepage, install, update JSON and APK returned HTTP 200 with matching bytes using default Python client",
+    "download_bic_scope": "existing two hostnames plus redacted-relay.example.invalid; Browser Integrity Check only",
+    "native_v3_signature_verification": true,
+    "onboarding_emulator": {
+      "activity_restart": "pending guidance persists",
+      "apk_sha256": "e15ca5307391699f7f4d71d10def1ded7f275de1bec4c2d465da3cdfe40037f5",
+      "before_leaving": "instructions and primary action visible",
+      "enable_service": "normal system switch and Allow followed by Back; automatically reaches step 2",
+      "manual_update_check": "Actual app check against live website returned 已是当前推荐版本",
+      "missing_service_help": "opens system accessibility list",
+      "notification_denial": "first denial remains recoverable; second denial offers system notification settings",
+      "notification_settings_recovery": "enabled notifications in system settings, returned to Airtap, automatically reached Invite my AI",
+      "physical_device_modified": false,
+      "platform": "fresh isolated Android 16 API 36.1 emulator",
+      "restricted_settings_help": "opens Airtap app information; actual restricted install not reproduced",
+      "return_without_permission": "stays at step 1 and shows pending guidance"
+    },
+    "prior_physical_upgrade": {
+      "data_identity_preserved": true,
+      "from_code": 24,
+      "no_uninstall": true,
+      "to_code": 25
+    },
+    "release_build_and_lint": true,
+    "site_unit_tests": 8
+  },
+  "date": "2026-10-26",
+  "deployment": {
+    "immutable_previous_apk_preserved": true,
+    "version_id": "ceffc7ed-383b-43a5-add9-9714d6872540",
+    "worker": "airtap-install"
+  },
+  "not_verified": [
+    "code 26 physical phone regression",
+    "Independent ordinary user entire onboarding and agent task",
+    "Phone in-app update check after BIC fix",
+    "Other phone brands and iOS",
+    "Off-device signing key recovery backup"
+  ],
+  "online_checks": [
+    {
+      "bytes": 9067,
+      "cache_control": "no-cache",
+      "content_disposition": null,
+      "final_url": "https://airtap.memtrix.dev/",
+      "path": "/",
+      "sha256": "d5e541d18967ae5cfb742b2db54d5d46ead5f88f4f84ea7e7f99fc3e1ca2fb12",
+      "status": 200
+    },
+    {
+      "bytes": 9067,
+      "cache_control": "no-cache",
+      "content_disposition": null,
+      "final_url": "https://airtap.memtrix.dev/help",
+      "path": "/help",
+      "sha256": "d5e541d18967ae5cfb742b2db54d5d46ead5f88f4f84ea7e7f99fc3e1ca2fb12",
+      "status": 200
+    },
+    {
+      "bytes": 920,
+      "cache_control": "no-store",
+      "content_disposition": null,
+      "final_url": "https://airtap.memtrix.dev/updates/android.json",
+      "path": "/updates/android.json",
+      "sha256": "d0b3a7024a9ee3e8600a7a11ecd712133d314caa4a662a25c7de4970c26b9f3e",
+      "status": 200
+    },
+    {
+      "bytes": 374221,
+      "cache_control": "public, max-age=31536000, immutable",
+      "content_disposition": "attachment; filename=\"Airtap.apk\"",
+      "final_url": "https://redacted-relay.example.invalid/downloads/e15ca5307391699f7f4d71d10def1ded7f275de1bec4c2d465da3cdfe40037f5.apk",
+      "path": "/download/android",
+      "sha256": "e15ca5307391699f7f4d71d10def1ded7f275de1bec4c2d465da3cdfe40037f5",
+      "status": 200
+    }
+  ],
+  "prior_failure": "Physical code 25 manual update check failed before BIC change; exact cause not independently established.",
+  "public_origin": "https://airtap.memtrix.dev",
+  "release": {
+    "apk_bytes": 374221,
+    "apk_sha256": "e15ca5307391699f7f4d71d10def1ded7f275de1bec4c2d465da3cdfe40037f5",
+    "application_id": "io.airtap.preview",
+    "channel": "beta",
+    "debuggable": false,
+    "download_path": "/download/android",
+    "min_sdk": 34,
+    "notes": [
+      "手机操作权限改为逐步引导，在跳转前说明要找什么、打开哪个开关、如何返回。",
+      "返回 App 后自动检查权限，成功后进入下一步；未完成时保留操作提示。",
+      "新增“找不到 Airtap”和“受限设置”帮助，可直接打开相应系统页面。",
+      "完善拒绝通知后的恢复入口，仍使用固定下载地址与原发布签名。"
+    ],
+    "published_at": "2026-10-26",
+    "schema": "airtap-android-update-v1",
+    "signer_sha256": "a2aa0c1b6fdaf1baa37aa20817387524a1318b5dab82bf7c185663141daba60f",
+    "target_sdk": 36,
+    "version_code": 26,
+    "version_name": "0.4.0-beta.2"
+  },
+  "schema": "airtap-release-experience-verification-v1",
+  "user_feedback": {
+    "device": "MEIZU Note 16 / Android 15",
+    "finding": "User found Airtap in accessibility after asking for help; independent onboarding did not pass",
+    "fresh_user_full_journey": "pending",
+    "installation": "User reports uninstalling prior app and installing via public download without USB",
+    "resolution": "Add instructions before leaving app, explicit return status, missing-service and restricted-setting help"
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "schema": "airtap-android-update-v1",
+  "application_id": "io.airtap.preview",
+  "version_name": "0.4.0-beta.3",
+  "version_code": 27,
+  "apk_sha256": "47620e9572e7a4ab3971926e577f9c35bf590ab0948ee358f2d6f9fbc99878b4",
+  "apk_bytes": 390605,
+  "signer_sha256": "a2aa0c1b6fdaf1baa37aa20817387524a1318b5dab82bf7c185663141daba60f",
+  "min_sdk": 34,
+  "target_sdk": 36,
+  "debuggable": false,
+  "channel": "beta",
+  "published_at": "2026-10-26",
+  "download_path": "/download/android",
+  "notes": [
+    "已授权任务可按需亮屏，并退出系统允许退出的锁屏；需要系统身份验证时说明原因，保持配对。",
+    "新增远程使用准备和后台设置指引，帮助检查手机放在远处时能否持续收到任务。",
+    "确认连接后可离开 App，后台继续完成接入；停止、撤销或断线会取消尚未执行的恢复动作。",
+    "支持将机主提供并授权使用的内容输入应用密码框，读屏仍遮蔽密码。",
+    "网页导航支持合法 HTTP/HTTPS、局域网地址、IP、端口和片段；完善个人 AI 就绪状态与恢复提示。",
+    "使用原发布签名覆盖更新，保留配对；新增恢复能力已在 Android 模拟器验证，各真机后台表现需分别确认。"
+  ]
+}

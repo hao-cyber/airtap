@@ -1,0 +1,47 @@
+{
+  "checkedAt": "2026-10-25T15:32:30.928Z",
+  "scope": "Production relay modules in local workerd, real CLI subprocess, fault-injected loopback HTTP adapter; no phone, cloud deployment or personal AI.",
+  "baselineCliSha256": null,
+  "cliSha256": "c9a968076e83d90f10350b1ffc86fe5675facb11bf33939402c162bfa66cc53c",
+  "serviceSourceSha256": "11d6fb16e43210d40e700c14e892bc049f9bb355df1697a53300eae43a9e9d90",
+  "coreSourceSha256": "917b24df737ea04faab744a28b9c07bed191b35d012aa32c22773ff39935d03a",
+  "passed": 7,
+  "total": 7,
+  "checks": [
+    {
+      "name": "not-admitted transport failure resumes same private token and name after actual status401",
+      "ok": true,
+      "elapsedMs": 203
+    },
+    {
+      "name": "server-admitted response loss recovers original code with GET only",
+      "ok": true,
+      "elapsedMs": 155
+    },
+    {
+      "name": "production relay accepts same token/name idempotently and rejects either identity mismatch",
+      "ok": true,
+      "elapsedMs": 80
+    },
+    {
+      "name": "approval after lost response is recovered without a second pair POST or new identity",
+      "ok": true,
+      "elapsedMs": 176
+    },
+    {
+      "name": "uncertain status check never falls through to pairing POST or rewrites config",
+      "ok": true,
+      "elapsedMs": 245
+    },
+    {
+      "name": "remote revocation refuses retry and preserves original pending config",
+      "ok": true,
+      "elapsedMs": 148
+    },
+    {
+      "name": "legacy config without recorded name is left intact and can still use pair-status",
+      "ok": true,
+      "elapsedMs": 175
+    }
+  ]
+}

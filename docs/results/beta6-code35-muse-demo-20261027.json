@@ -1,0 +1,191 @@
+{
+  "schema": "airtap-development-acceptance-v1",
+  "date": "2026-10-27",
+  "scope": "Muse used the existing personal AI connection to search for West Lake in the phone browser, create and reopen one synthetic note, return Home, and then disable temporary wireless debugging and verify Airtap still worked. This is a bounded follow-up, not the whole atomic suite or independent first-time installation.",
+  "candidate": {
+    "version": "0.4.0-beta.6",
+    "version_code": 35,
+    "apk_sha256": "e445d08411c75b461dea49599e725f3f50718bca1278d9f5bdd1168805bcfff9",
+    "screen_lease_fix_commit": "7de6157",
+    "client_identity_observed": "code35 ping reports Android release / 0.4.0-beta.6 / version_code 35",
+    "cli_boundary": "The existing CLI.6 was retained; command logs use its prior local filename. This archive does not contain a fresh remote CLI executable checksum.",
+    "public_download_promoted": false
+  },
+  "environment": {
+    "agent": "Muse, actual cloud execution through Airtap",
+    "phone": "Meizu Note 16 / Android 15",
+    "task": "Browser search for 西湖; save a three-place weekend note and reopen it",
+    "pairing": "Command records refer to the original saved configuration. No new pairing/approval command appears in the supplied run; approved persistent control is confirmed before and after.",
+    "connection_boundary": "The socket connection identifier changed between the preparation check and demo. Demo and closing status agree internally. Do not equate a socket reconnect with a new device pairing."
+  },
+  "results": {
+    "post_upgrade_connection": {
+      "passed": true,
+      "client_version_code": 35,
+      "status": "approved",
+      "persistent": true,
+      "connected": true,
+      "pending_commands": 0,
+      "initial_screen_state": "screen_off",
+      "subsequent_observe_succeeded": true,
+      "home_and_launcher_observed": true
+    },
+    "browser_search": {
+      "passed": true,
+      "app": "com.android.browser",
+      "query": "西湖",
+      "destination": "Baidu search",
+      "evidence": "Actual open-url commands, successful responses and result screenshots; reviewer visually checked the West Lake search page. Browser WebView tree alone did not expose the full result text.",
+      "location_permission": "Requested by the browser page and denied; no new location permission was granted.",
+      "scope": "Search/navigation task evidence, not independent verification of every travel statement or all search websites."
+    },
+    "note_creation": {
+      "passed": true,
+      "app": "com.meizu.notepaper",
+      "title": "Airtap 演示｜周末去杭州",
+      "new_title_not_in_initial_list": true,
+      "title_set_and_body_set": "One successful set_text response for each in the supplied run",
+      "body_codepoints": 83,
+      "body_utf16_units": 83,
+      "body_utf8_sha256": "5be16423eacec9d8e1869ce522c89b2e67ed4fc6c21fb10f2d73d9c152e393fa",
+      "body_places": [
+        "苏堤",
+        "白堤",
+        "三潭印月"
+      ],
+      "after_input_tree_complete": true,
+      "saved_note_visible_in_list": true,
+      "initial_list_truncated": false,
+      "initial_list_boundary": "Absence is only within the observed current list, not a scan of every stored note."
+    },
+    "note_reopen": {
+      "passed": true,
+      "same_title_observed_in_reopened_tree": true,
+      "counter": "83 字",
+      "full_body_verified": "Reviewer compared the complete reopened screenshot with the 83-character body from the post-input tree; text matches including the three entries.",
+      "tree_limitation": "The reopened tree exposes the title and 83-character counter, but its body EditText is only a newline while the WebView renders the real body. Do not call this full-body structured readback.",
+      "returned_home": true,
+      "launcher_observed": true
+    },
+    "wireless_debugging_closure": {
+      "passed": true,
+      "method": "Muse used the normal Settings UI over Airtap",
+      "before_switch": {
+        "text": "开启",
+        "checked": true
+      },
+      "after_switch": {
+        "text": "关闭",
+        "checked": false
+      },
+      "subsequent_command_order": [
+        "status",
+        "observe",
+        "home",
+        "foreground"
+      ],
+      "after_status": {
+        "state": "approved",
+        "persistent": true,
+        "allow_control": true,
+        "device_connected": true,
+        "pending_commands": 0
+      },
+      "after_observe_package": "com.android.settings",
+      "final_foreground": "launcher",
+      "same_demo_and_closing_connection": true,
+      "pairing_delete_or_forget_performed": false,
+      "scope": "Short actual observation and navigation after disabling wireless debugging. Maintainer ADB did not substitute for those commands; this is not a long offline/network-recovery test."
+    }
+  },
+  "retained_obstacles_and_recovery": [
+    {
+      "kind": "normal UI interruption",
+      "event": "Browser location request",
+      "recovery": "Observed dialog, denied the request, then observed the search results; no location grant."
+    },
+    {
+      "kind": "normal UI obstruction",
+      "event": "Browser download panel covered the lower results",
+      "recovery": "Fresh observations and upward swipes exposed the result page. No download/install action was selected in the supplied task."
+    },
+    {
+      "kind": "Muse script issue",
+      "event": "New-note node lookup compared integer and string identifiers and stopped before the intended phone action",
+      "recovery": "A fresh observed button position was used for the successful new-note tap.",
+      "evidence_boundary": "Described in Muse receipts and consistent with supplied command records; the original parser traceback is not in this archive. It is not a failed Airtap phone command."
+    }
+  ],
+  "evidence": {
+    "original_archive_sha256": "1fab59fc62b5b3091d4dfbabbbbfec959ffd0ea0cc766fd3ed44b952c96e3feb",
+    "archive_bytes": 2309983,
+    "archive_files": 124,
+    "duplicate_or_traversing_names": false,
+    "extracted_bytes_match_archive": true,
+    "groups": {
+      "demo_files": 77,
+      "preparation_files": 8,
+      "closing_files": 38,
+      "receipts_files": 1
+    },
+    "json_responses": {
+      "total": 79,
+      "preparation": 5,
+      "demo": 50,
+      "closing": 24,
+      "all_supplied_ok": true
+    },
+    "command_records_boundary": "Cloud-side logs and response files were supplied by Muse, not independent server execution telemetry. File counts include screenshots and logs; 77 demo files does not mean 77 commands.",
+    "image_integrity": {
+      "jpeg_files": 41,
+      "image_bearing_responses_with_matching_bundled_jpeg": 42,
+      "image_bearing_responses_without_bundled_jpeg": 4,
+      "missing_intermediate_images": [
+        "title focus auto-observation",
+        "body focus auto-observation",
+        "title set_text auto-observation",
+        "body set_text auto-observation"
+      ],
+      "effect": "Intermediate image attachments are incomplete; the subsequent post-input tree, saved list and reopened full-body screenshot are present. No missing screenshot is claimed as viewed."
+    },
+    "selected_artifact_sha256": {
+      "demo/demo-notes-after-settext-tree.json": "a2a23ffbb645b7efa7ad87cc4d32ee7d7586406b0066aaefe9c93f38fb42c39d",
+      "demo/demo-notes-list-after-save-tree.json": "010371be07c741aaa7ad10b82dfcd0a323ab7d8f0c343ecc2a7dd53c164dc7f7",
+      "demo/demo-notes-reopen-editor-tree.json": "7afe26cfcfd8f49eb699428856010d7d1f753445b1f8f4eb069c369874c921e7",
+      "demo/demo-notes-reopen-editor-observe.jpg": "09b07790af2ffc675d9ffad0711e12545fe5bbb93486abcd995da81ac3bc4694",
+      "closing/close-switchoff-after-tree.json": "cc3df55e81b94ed5a247612b96363ace7c9be7cce871ec724342d20acf502ae9",
+      "closing/close-status.json": "41a2c66b017b422f07b2ea994bc247cd74237d8fec422587e17726ed6637bc0a",
+      "closing/close-home.json": "1719b2c5949b6f41bd98fd2a4b79090a27f5f91c74f2a7a56aa0b30c5a339b85",
+      "closing/close-foreground.json": "a6141b3d804b6f4c16ccb4c601fd6e87ef58bacdae321ccc56a80f4b23314358"
+    },
+    "privacy": "Only synthetic task details, result summaries and integrity digests are included. Raw notes lists, screenshots, scripts, local endpoints, request/connection/device identities and private paths remain outside the repository."
+  },
+  "video": {
+    "rendered_locally": true,
+    "duration_seconds": 80,
+    "width": 1080,
+    "height": 1920,
+    "fps": 30,
+    "audio": false,
+    "sha256": "f09d984abd471ea1b25c46cc75c630f18ccc0e1229778c6f8f57edf7e22df63e",
+    "identity_source": "Maintainer final-render digest; edit manifest and successful final check/review metadata were separately inspected for this report.",
+    "source": "Actual phone recording collected by the maintainer; Muse conversation portions are original still screenshots, not conversation video.",
+    "editing": "Hard cuts, explicitly marked 2x action excerpts, idle waits omitted. Final Home shot is held as an end card. Not a continuous 80-second real-time task or a first-install tutorial.",
+    "maintainer_role": "Upgrade, recording and passive diagnostics only; no substitution for Muse phone task actions. Delegated ordinary task confirmation was already authorized and was not presented as owner identity verification.",
+    "publicly_published": false,
+    "boundary": "This rendered edit is demonstration material, not evidence of a new Airtap continuous recording/file-transfer product API."
+  },
+  "related_reports": {
+    "code34_atomic_subset": "beta6-code34-muse-20261027.json",
+    "lease_host_and_emulator": "screen-lease-renewal-20261027.json",
+    "code35_passive_screen_check": "beta6-code35-physical-screen-20261027.json"
+  },
+  "not_verified": [
+    "Complete atomic suite repeated on code35, including composing-delete refusal and SAF/file lifecycle boundaries",
+    "Independent beginner installation or Muse-only APK upgrade",
+    "Other agents on this candidate, additional OEMs, iOS or other device categories",
+    "Multi-day unattended operation, restart recovery or broad network-condition coverage",
+    "All phone actions, arbitrary applications, continuous capture or large-file product transport"
+  ],
+  "publication": "Bounded development acceptance and local demo only; recommended public installation remains beta.4/code28."
+}

@@ -1,0 +1,103 @@
+{
+  "schema": "airtap-development-acceptance-v1",
+  "date": "2026-10-26",
+  "candidate": {
+    "version": "0.4.0-beta.5",
+    "version_code": 31,
+    "source_commit": "3efe9fa",
+    "apk_sha256": "8bc77f9119aa648a422966233328faa1a933da8b6f4ebe6ff0e88a80637ffa25",
+    "release_build_and_lint": "passed",
+    "debuggable": false,
+    "release_certificate_matches_prior": true,
+    "download_promoted": false
+  },
+  "host_tests": {
+    "touch": 41,
+    "input_and_final_dispatch_fence": 23,
+    "semantic_nodes": 13,
+    "window_inventory": 18,
+    "audio_volume": 10,
+    "total": 105,
+    "scope": "Production Java helpers against explicit platform fakes; not phone execution"
+  },
+  "protocol": {
+    "passed": 27,
+    "scope": "Actual workerd, Python CLI and MCP; synthetic phone"
+  },
+  "android_emulator": {
+    "platform": "API36.1",
+    "scope": "Maintainer CLI through local workerd to actual Android AccessibilityService and synthetic fixture; debug test TLS excluded from production commits",
+    "passed": [
+      "continuous hold-drag: one DOWN, 24 MOVE, one UP, drop success",
+      "edge dwell page change and drop: one DOWN, 60 MOVE, one UP",
+      "simultaneous two pointers and staggered three pointers with early exits",
+      "double-tap and legacy long press",
+      "disconnect during hold releases in place without movement or replay; original local pairing resumes",
+      "primary selection and insertion, SEARCH; secondary insertion and deletion, DONE; other field unchanged",
+      "unbound field rejects IME while native set_text fallback works",
+      "select and clear_selection; notification shade and window inventory",
+      "word/character movement and extended selection",
+      "advertised custom Share opens chooser for synthetic text; no recipient chosen or transmission",
+      "music volume set/raise/mute/unmute, native readback verified; all streams restored"
+    ],
+    "not_passed": [
+      "accessibility_focus returned action_rejected; clear_accessibility_focus not tested",
+      "show_on_screen for already-visible TextView returned action_rejected"
+    ],
+    "not_verified": [
+      "physical-user touch takeover; ADB pointer probe is not that evidence",
+      "all OEM timing/cancellation behavior",
+      "every semantic/system operation"
+    ],
+    "preserved_failures": [
+      "pre-fix stationary continuation cancelled",
+      "pre-fix secondary editor identity unavailable",
+      "initial disconnect trigger happened after action completed",
+      "immediate post-edit observations sometimes stale; re-observed, did not repeat uncertain writes",
+      "local nonpersistent test relay initially required new synthetic pairing; not production recovery evidence"
+    ]
+  },
+  "physical_phone": {
+    "device": "Xiaohong / Meizu Note16 / Android15",
+    "last_installed_version_code": 31,
+    "code30_upgrade_preserved_data": true,
+    "code31_install": "passed; same signature, application data retained; USB reconnection was required",
+    "new_actions_muse": "code30 continuous held drag and primary input-selection-insert-SEARCH passed; code31 extended regression declined under Muse conversation delegation rule",
+    "pairing_remote_regression": "code30 original pairing retained and connected; code31 remote regression pending",
+    "usb_not_used_to_substitute_muse_tasks": true,
+    "muse_code30": {
+      "operation_window": "2026-10-26 21:43–21:47 Asia/Shanghai",
+      "evidence_zip_sha256": "fb6cf49c0387fd136a2bcaeedc0126ef1ac44fb1fa900e50b58af559cd6e33cd",
+      "archive_hash_and_screenshots_verified": true,
+      "independent_fixture_events": {
+        "drag_down": 1,
+        "drag_move": 48,
+        "drag_up": 1,
+        "cancel": 0,
+        "drop_success": true,
+        "primary_editor_action": "SEARCH",
+        "primary_submitted_text": "Airtap gamma beta"
+      },
+      "not_tested": [
+        "gesture command",
+        "secondary editor switch",
+        "volume",
+        "new semantic operations"
+      ],
+      "failures_retained": [
+        "initially offline; resumed after reconnect",
+        "another_phone_operation_in_progress; later single retry",
+        "file_already_exists for screenshot; used fresh path"
+      ],
+      "owner_confirmation": "present in Muse conversation; delegated coordination separately recorded"
+    }
+  },
+  "remaining": [
+    "physical Flyme launcher held-drag/folder/rename",
+    "code31 original Muse pairing and cross-App task",
+    "structured file transfer and scoped storage",
+    "audio/video capture and transport",
+    "secondary-display operation and hardware-specific interfaces"
+  ],
+  "publication": "Development evidence only; existing beta4 acceptance remains separate."
+}

@@ -1,0 +1,272 @@
+{
+  "schema": "airtap-personal-ai-evidence-review-v1",
+  "recorded_at": "2026-10-27T04:29:24.785083+00:00",
+  "status": "partial_pass_with_first_use_agreements_pending",
+  "summary": "Muse used its existing approved pair on release code37. Automatic wake, 812 UTF-16-unit text write and four-part exact readback, and a separate 122-character failure-note save/reopen passed. File upload/stat passed; WPS and Notes share dispatch was accepted but receiving-app content delivery was not verified. XHS and Douyin public searches were not executed because their first-use agreements remained unaccepted. This is not a complete cross-app search or file-import acceptance.",
+  "scope": {
+    "actor": "Muse actual cloud-side Airtap CLI execution; supplied cloud receipts independently checked offline by maintainer",
+    "device": "Existing Meizu Note 16 / Android 15 test phone",
+    "connection": "Existing persistent approved public-relay pair, not new-user onboarding",
+    "execution_window_utc": [
+      "2026-10-27T04:00:39Z",
+      "2026-10-27T04:11:20Z"
+    ],
+    "installation_intervention": "Maintainer performed same-signature USB overwrite to code37 before this task, without clearing data or pairing again. Installation is not attributed to Muse.",
+    "review_intervention": "Read-only archive transfer, offline JSON/hash/image review and separate maintainer package-version query. No reviewer task execution or agreement acceptance."
+  },
+  "release": {
+    "observed_version_name": "0.4.0-beta.7",
+    "observed_version_code": 37,
+    "observed_build_type": "release",
+    "version_basis": "Initial and final Muse ping responses",
+    "maintainer_final_apk_sha256": "e42214a04d1609c012baedda027c36e394c04ac85ecfc4cd393b4e164f7d1071",
+    "maintainer_final_apk_bytes": 517581,
+    "maintainer_production_source": "8e2d302",
+    "apk_hash_boundary": "Build/installation metadata from the release maintainer; the evidence archive does not contain an independently downloaded installed APK."
+  },
+  "client_materials": {
+    "reported_cli_version": "0.4.0-cli.7",
+    "reported_cli_bytes": 73579,
+    "reported_cli_sha256": "58f210a791b9360ba23463b30254cadea3a819e1cf708fa261ce4ac922270d96",
+    "reported_guide_bytes": 65075,
+    "reported_guide_sha256": "60b8740cf4b00326f1984395eab61860b507f046fe5016500041282b3bd48c17",
+    "verification_boundary": "Muse RUNLOG reports downloads and matching digest headers. Downloaded CLI, guide and headers are outside this archive; these reported hashes were not independently established from bundled source files."
+  },
+  "evidence_integrity": {
+    "archive_bytes": 2393726,
+    "archive_sha256": "21b3cca8b74274eda5020a4d7a2d66ad652548f59e305576a2ca2aee0bd68980",
+    "files": 152,
+    "uncompressed_bytes": 3156385,
+    "file_manifest_rows_checked": 151,
+    "file_manifest_matches": 151,
+    "manifest_exclusion": "RECEIPTS.md is the remaining file and does not list its own hash.",
+    "transfer_chain": "Exact maintainer-provided remote archive path was read over the already configured SSH connection. Partial uploads were observed and rejected until the ZIP directory was complete. Completed remote size/SHA were compared with the copied local archive and matched. No Muse message announcing this archive SHA was seen.",
+    "retained_transfer_failure": "One post-copy SSH metadata check returned exit255. A subsequent read succeeded and matched the full local archive.",
+    "extraction": "Offline bounded ZIP validation and CRC/hash extraction; rejected paths, symlinks and special entries; no contained script executed.",
+    "source_redaction": "Muse supplied a sanitized archive, not the byte-identical original execution directory. RECEIPTS reports 194 substitutions for observation/snapshot/request/transfer/share identifiers and matching command flags. Common [REDACTED] placeholders prevent exact original snapshot-ID equality verification.",
+    "jpeg_files": 31,
+    "image_bearing_receipts": 39,
+    "image_receipts_matching_bundled_jpeg": 33,
+    "missing_intermediate_image_attachments": [
+      "01-text-tab-tap2.json automatic observation",
+      "02-back-after-window-unavailable.json automatic observation",
+      "02-back-from-editor.json automatic observation",
+      "02-share-notepaper-tap.json automatic observation",
+      "02-share-open-tap.json automatic observation",
+      "03-notes-new-tap.json automatic observation"
+    ],
+    "image_boundary": "Multiple receipts can refer to the same JPEG. Key direct agreement screenshots, post-Back empty Notes editor, reopened final note and final HOME image are bundled and hash-matched. Missing intermediate images are not counted as visually verified.",
+    "raw_artifacts_committed": false,
+    "independence_boundary": "Hash checks establish transfer and internal evidence consistency. Supplied cloud-side receipts are not independent relay telemetry or cryptographic proof of actor identity."
+  },
+  "response_inventory": {
+    "code37": {
+      "files": 137,
+      "json_responses_with_ok": 98,
+      "ok_true": 89,
+      "ok_false": 9
+    },
+    "older_status_0942": {
+      "files": 8,
+      "json_responses_with_ok": 5,
+      "ok_true": 5,
+      "observed_version_code": 35,
+      "observed_version_name": "0.4.0-beta.6"
+    },
+    "older_apps_audio_1105": {
+      "files": 6,
+      "json_responses_with_ok": 4,
+      "ok_true": 4,
+      "version": "No version ping in this group; not attributed to code37"
+    },
+    "archive_total": {
+      "json_responses_with_ok": 107,
+      "ok_true": 98,
+      "ok_false": 9
+    },
+    "local_cli_failure": "One additional zero-byte JSON file followed a tap invocation missing the required package argument. RUNLOG records argparse exit2, then fresh observation and corrected invocation. It is not a relay response or executed phone action; original stderr is not bundled.",
+    "boundary": "Response success counts are not task success counts. Older groups remain separate from code37 results."
+  },
+  "connection_wake_and_silence": {
+    "result": "passed_for_this_existing_pair_run",
+    "initial_and_final_status": "Approved, persistent, all-app control allowed, device connected, no pending request; same connection identifier compared privately. Values omitted.",
+    "credential_boundary": "RUNLOG reports use of the original config, with no new pairing. Same connection identifier and successful status are consistent with reuse; the sanitized archive does not expose original credentials for an independent comparison.",
+    "wake": "Initial ping reported screen_off and device_unlocked=false with auto_wake=true. Initial observe succeeded on launcher and subsequent foreground reported device_unlocked=true.",
+    "final_state": "HOME accepted; final ping ready/unlocked; final foreground is Flyme launcher.",
+    "final_home_jpeg_sha256": "76bf5dd610ba2fdb3114c7f179de6115102a35f74014701b141dfc6c7c020aa1",
+    "audio": "Initial/final full audio-state results match exactly. Music volume is0 with muted=false; ring/notification/system are0 and muted=true. Alarm12 and voice-call5 remain unchanged. No audio/volume-changing command appears in the supplied task logs.",
+    "boundary": "This verifies one observed wake and unchanged audio settings, not a fresh long-idle interval, force-stop/reboot recovery or an acoustic recording."
+  },
+  "long_text": {
+    "result": "passed_exact_chunk_reassembly",
+    "app": "Atomic Test",
+    "target": "Secondary text field; Primary and Unbound fields remained unchanged in inspected trees",
+    "source_bytes": 2176,
+    "unicode_codepoints": 806,
+    "utf16_units": 812,
+    "source_and_reassembled_sha256": "23c822fad3bbf25b88c2230970331f068abf4b4dd77d7dfc0a75ff878f265f5c",
+    "independent_verification": "Concatenated actual result.text from all four read_node_text responses and compared UTF-8 bytes against both bundled original and Muse-spliced files: exact match.",
+    "tree_preview": {
+      "text_length_utf16": 812,
+      "preview_utf16_units": 200,
+      "text_truncated": true
+    },
+    "segments": [
+      {
+        "offset_utf16": 0,
+        "length_utf16": 256,
+        "next_offset_utf16": 256,
+        "eof": false,
+        "expires_in_ms": 28354
+      },
+      {
+        "offset_utf16": 256,
+        "length_utf16": 256,
+        "next_offset_utf16": 512,
+        "eof": false,
+        "expires_in_ms": 27026
+      },
+      {
+        "offset_utf16": 512,
+        "length_utf16": 256,
+        "next_offset_utf16": 768,
+        "eof": false,
+        "expires_in_ms": 25591
+      },
+      {
+        "offset_utf16": 768,
+        "length_utf16": 44,
+        "next_offset_utf16": null,
+        "eof": true,
+        "expires_in_ms": 24157
+      }
+    ],
+    "snapshot_metadata": "Package, field, node/window metadata, total length and offsets agree; remaining lifetime decreases. Original snapshot identifiers are redacted to a common placeholder, so exact ID binding is not independently auditable from this copy.",
+    "reported_tree_plus_readback_seconds": 7.6,
+    "timing_boundary": "Muse measurement reported in verification text; command timestamps are consistent, but no independent monotonic trace is bundled.",
+    "not_exercised": [
+      "read_tree_page beyond128 nodes",
+      "stale or mutated snapshot rejection",
+      "password nodes",
+      "capture-budget exhaustion"
+    ]
+  },
+  "file_share": {
+    "result": "upload_and_stat_passed_receiving_content_not_verified",
+    "source_bytes": 52,
+    "source_sha256": "088382372b1825fcca6847517556e2586e521cc7d421085b8e25f9c0a5eb4634",
+    "upload": "Finish offset/size52, publication_atomic=true, current_stat_sha256 verification; two stat results agree with independently hashed source and each other.",
+    "share_dispatch": "WPS and Notes share_file returned accepted=true, read_only=true, text/plain, chooser_requested=true, lifetime300000ms, delivery_verified=false.",
+    "wps": "Normal Android open-app confirmation was accepted, followed by WPS showing the synthetic filename and first-use EULA/privacy screen. Neither agreement button was clicked. This proves handoff and filename visibility, not file-content reading.",
+    "notes": "Chooser and normal open-app confirmation were followed by an active focused window with root_available=false and secure_capture_state=not_determined. Read-only observations were retried, then Back restored a Notes editor with empty title and0-character body. The imported content was not verified; this attempt does not pass Notes text import.",
+    "notes_blank_editor_jpeg_sha256": "7f66786be1ea90acd19c94ea2535f837176929729f7128faeb64581a494ec105",
+    "recovery": "No blind click into the unavailable root. After Back, screenshot/tree were readable; another Back returned to the visible note list. Cause of the inaccessible window and empty import remains undetermined.",
+    "failure_receipts": {
+      "not_foreground": 4,
+      "window_root_unavailable": 5,
+      "all_retry_action_false": true
+    },
+    "boundary": "An accepted share is not proof of receiver consumption. This run neither proves end-to-end file import nor isolates all causes to the receiving App. No external recipient was selected in the supplied logs. Synthetic workspace file was retained."
+  },
+  "first_use_agreements": {
+    "result": "not_accepted_pending_owner_decision",
+    "screens_reviewed": [
+      {
+        "app": "WPS Office",
+        "title": "服务条款提示",
+        "visible_links": [
+          "最终用户许可协议",
+          "隐私政策"
+        ],
+        "visible_buttons": [
+          "同意",
+          "不同意"
+        ],
+        "meaning": "Requests reading/accepting the agreement and privacy policy before use; distinct from the earlier Android Open app confirmation.",
+        "jpeg_sha256": "5dc4dcb882c103f1a9ac7ceeefa9c26f0ac39b7e698fc2807c78e37191c71140"
+      },
+      {
+        "app": "小红书",
+        "title": "个人信息保护提示",
+        "visible_links": [
+          "用户协议",
+          "隐私政策",
+          "未成年人个人信息保护规则"
+        ],
+        "visible_buttons": [
+          "同意",
+          "不同意"
+        ],
+        "acceptance_text": "点击“同意”按钮，表示您已知情并同意以上协议和以下约定。",
+        "jpeg_sha256": "e39c80d320a880f37a49d7c07a270453221355e9cfb8977654570b7326d4395b"
+      },
+      {
+        "app": "抖音",
+        "title": "个人信息保护指引",
+        "visible_links": [
+          "用户服务协议",
+          "隐私政策"
+        ],
+        "visible_buttons": [
+          "同意",
+          "不同意"
+        ],
+        "acceptance_text": "点击“同意”按钮代表你已同意前述协议。",
+        "jpeg_sha256": "aa56a6125c90fc932a6627207715824640ff40cf96dc6957bb656053563c8d1f"
+      }
+    ],
+    "review_boundary": "Screenshots and native trees show explicit first-use agreement acceptance, not a plain informational dismissal. No later/skip control or checkbox was visible in these captured screens. Full linked terms pages were not retrieved; tree bodies were truncated. Permission disclosures do not prove permissions were granted.",
+    "actions": "Muse returned HOME without accepting/rejecting these agreements. A subsequent owner decision and follow-up run, if any, require a separate record."
+  },
+  "public_search_and_note": {
+    "public_search_result": "not_executed",
+    "reason": "XHS and Douyin stopped at first-use agreement screens; no search page or public result reached.",
+    "note_result": "passed_separate_failure_note_save_and_reopen",
+    "note_body_codepoints": 122,
+    "note_body_utf16_units": 122,
+    "note_body_sha256": "ec46a8667fce7f2ce27b1a72e0b53c15f275f4447a82284f78b7a315e9e6768a",
+    "verification": "New synthetic note states both searches were not performed. Exact full title and122-character body matched the requested text in a settled tree and in the reopened tree, with text_truncated=false. Reopened screenshot independently inspected; native counter also shows122字.",
+    "retained_transient": "The immediate tree after set-body still showed0字/blank body; later settled and reopened trees showed the exact text. Immediate action acceptance alone was not used as completion proof.",
+    "reopened_jpeg_sha256": "9ffa4ef0822173990378d106647897735561ef9ebbe56a71000c2e6fe9238b43",
+    "boundary": "Saving an accurate failure note does not count as completing public search/research. Synthetic note was retained. No post, private message, follow, login or account-creation action appears in the supplied logs."
+  },
+  "maintainer_package_metadata": {
+    "observed_at_utc": "2026-10-27T04:19:50.199335+00:00",
+    "method": "Separate maintainer read-only ADB package query after the run; not a Muse command receipt",
+    "packages": [
+      {
+        "app": "Atomic Test",
+        "version_name": "1.1-test-only",
+        "version_code": 2
+      },
+      {
+        "app": "WPS Office",
+        "version_name": "26.10.1",
+        "version_code": 2001
+      },
+      {
+        "app": "Flyme Notes",
+        "version_name": "12.0.50",
+        "version_code": 1200000050
+      },
+      {
+        "app": "小红书",
+        "version_name": "9.51.0",
+        "version_code": 9510803
+      },
+      {
+        "app": "抖音",
+        "version_name": "31.7.1",
+        "version_code": 310702
+      }
+    ]
+  },
+  "remaining_acceptance": [
+    "After an explicit owner decision, retry WPS text-content reading and XHS/Douyin public search; preserve any login, permission or compatibility blocker.",
+    "Investigate Notes share import separately; direct set-text success does not repair or validate ACTION_SEND text-file import.",
+    "Muse traversal of a real interface with more than128 indexed nodes is not covered here; native/host pagination tests remain separate evidence.",
+    "This existing-pair maintainer-supported run does not replace independent novice onboarding, other agent/platform compatibility or new long-idle/reconnect acceptance.",
+    "Six intermediate screenshots and unredacted snapshot identity are absent; no claim depends on independently viewing those missing artifacts."
+  ],
+  "privacy": "Only synthetic content sizes/hashes, outcome metadata and agreement-screen labels are published. No raw archive, screenshots, credentials, device identifiers, connection IDs, hostnames or private evidence paths are committed."
+}

@@ -1,0 +1,64 @@
+{
+  "schema": "airtap-component-acceptance-v1",
+  "date": "2026-10-27",
+  "scope": "Maintainer passive power observation on the physical phone after code35 installation; not a Muse task regression or completed demo recording.",
+  "candidate": {
+    "version": "0.4.0-beta.6",
+    "version_code": 35,
+    "apk_sha256": "e445d08411c75b461dea49599e725f3f50718bca1278d9f5bdd1168805bcfff9",
+    "screen_lease_fix_commit": "7de6157",
+    "public_download_promoted": false
+  },
+  "environment": {
+    "phone": "Meizu Note 16 / Android 15",
+    "actor": "Maintainer using original trusted wireless ADB for passive diagnostics",
+    "recording_during_monitor": false,
+    "recording_timing_basis": "Maintainer sequence: the new Muse demo recording began only after this monitor completed. Its outcome remains pending in this report."
+  },
+  "upgrade": {
+    "from_code": 34,
+    "to_code": 35,
+    "result": "Success",
+    "application_data_cleared": false,
+    "pairing_revoked": false,
+    "actor": "Maintainer same-signature in-place installation, not Muse autonomous upgrade",
+    "original_pairing_boundary": "No clear/revoke during installation. Muse use of the original pairing requires its own command evidence, not the power samples."
+  },
+  "monitor": {
+    "duration_seconds": 80.168,
+    "sample_count": 67,
+    "first_sample_seconds": 0.167,
+    "last_sample_seconds": 80.168,
+    "sample_span_seconds": 80.001,
+    "maximum_observed_sampling_interval_seconds": 1.284,
+    "all_samples_awake": true,
+    "all_samples_held_authorized_screen_lock": true,
+    "lock_match": "Monitor matched the SCREEN_DIM_WAKE_LOCK line for Airtap:TrustedPhone, not an arbitrary application wake lock.",
+    "first_and_last_power_settings": {
+      "stay_on": false,
+      "stay_on_while_plugged_in_setting": 0,
+      "screen_off_timeout_ms": 60000
+    },
+    "method": "Version and hardware identity checked read-only before sampling; the interval repeatedly read dumpsys power and slept one second between reads. No injected UI input, wake command or setting change.",
+    "result": "All 67 sampled states were Awake with the Airtap authorized-screen lock held over a window longer than the original 60-second lease.",
+    "limits": "Discrete samples do not prove every instant between samples. This short interval is not multi-day stability, a disconnect recovery, a physical stop/revoke check, or proof that the code34 CANCEL was caused by the prior lease gap."
+  },
+  "related_evidence": {
+    "host_and_emulator_report": "screen-lease-renewal-20261027.json",
+    "code34_muse_report": "beta6-code34-muse-20261027.json",
+    "boundary": "Code34 functional outcomes remain tied to code34; the code35 power check does not repeat the input, gesture, volume, file or system chooser suite."
+  },
+  "pending": [
+    "Muse code35 new search-to-note task, original-pair command evidence and final result verification",
+    "Actual demo recording, transfer, playback and privacy review",
+    "Longer physical background intervals, network recovery and additional devices"
+  ],
+  "evidence_hashes": {
+    "physical-power-monitor.json": "0c88fee41ea2c6e4477a051bf015f5040cb70395105a038ae99ff54805cd8e74",
+    "monitor_power.py": "c62e7df2fa08286856adb503f19e942b7e72afafe84ef5b2903a9f88a48e2ab3",
+    "physical-power-first.private.txt": "f9a900131d85e1e6e160f70846030c4f05c3fa1bdff1575d2f774ff888be3771",
+    "physical-power-last.private.txt": "d078e22307733eafcfe9c96a64a0dca7ab8130787913aeadd86bbd8950aef4c8"
+  },
+  "privacy": "Only result summaries and digests are included. Raw dumps, scripts, paths, service addresses, hardware identity, process and connection identifiers remain private.",
+  "publication": "Development candidate evidence only. Public recommended installation remains beta.4/code28."
+}

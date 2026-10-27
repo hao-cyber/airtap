@@ -1,0 +1,73 @@
+{
+  "schema": "airtap-signed-upgrade-acceptance-v1",
+  "recorded_at": "2026-10-27T03:47:07.496388+00:00",
+  "status": "passed_with_recorded_maintainer_setup",
+  "apk": {
+    "version_name": "0.4.0-beta.7",
+    "version_code": 37,
+    "sha256": "e42214a04d1609c012baedda027c36e394c04ac85ecfc4cd393b4e164f7d1071",
+    "bytes": 517581,
+    "production_source": "8e2d302",
+    "signer_continuity": "Normal Android installer accepted update over release-signed code36; no uninstall or data clear",
+    "installer_package": "com.google.android.packageinstaller"
+  },
+  "baseline": {
+    "report": "beta7-code36-clean-install-20261027.json",
+    "same_device": true,
+    "first_install_version": 36,
+    "first_install_method": "Normal Android PackageInstaller with Play Protect, normal restricted-settings/accessibility/notification UI, original public invitation and phone six-digit approval",
+    "test_kind": "Maintainer clean-emulator CLI acceptance. Not Muse, Instinct or independent novice acceptance.",
+    "network_assistance": "Same isolated Android 16 AVD and host/proxy route as initial report; initial DNS intervention remains a limitation."
+  },
+  "upgrade": {
+    "method": "Final code37 APK SHA checked, copied to Download using adb push, Files -> Android PackageInstaller Update this app? -> Update -> Play Protect Scan app -> This app looks safe -> Install -> App updated -> Open",
+    "adb_install_used_for_airtap": false,
+    "observed_version_code": 37,
+    "new_invitation_or_pairing": false,
+    "direct_private_authorization_writes_or_injection": false,
+    "on_open": "Your AI is connected, without new permission prompts or reapproval",
+    "controller_identity": "Exact private comparison of original controller token and device-base URL before/after upgrade passed; values omitted"
+  },
+  "cli": {
+    "version": "0.4.0-cli.7",
+    "version_verification": "Actual downloaded airtap.py --version",
+    "sha256": "58f210a791b9360ba23463b30254cadea3a819e1cf708fa261ce4ac922270d96",
+    "transport": "Real public HTTPS relay, same approved pair"
+  },
+  "actual_checks": [
+    "Original CLI config wait-ready succeeded after normal signed code36 -> code37 overwrite.",
+    "Original paired CLI launched Clock and read Tokyo world clock retained from the earlier code36 task.",
+    "Paired CLI used fresh native snapshots, Add city click, set-text stdin London, and observed London UK row selection. New tree confirmed both Tokyo and London.",
+    "Paired CLI observe delivered actual screenshot; visual inspection confirmed Tokyo +1h and London -8h. SHA256 5a794714be49927b22159a05be08f6fb7821e9a8152d75d90af9b1151faf3223.",
+    "Paired CLI returned to home. All Clock actions and result verification used public Airtap CLI; no USB task substitution.",
+    "Maintainer opened Airtap and clicked normal owner Stop and disconnect AI UI. App reported connection removed and returned to Invite my AI.",
+    "Old unchanged CLI controller config ping returned HTTP410; old launch Clock also returned HTTP410. CLI conservatively labelled outcome unknown/retry_action false; phone stayed on disconnected Airtap UI, with no Clock relaunch.",
+    "Only this test pair was revoked. Only owned emulator-5592 was stopped. No physical phone or emulator-5582 operation performed by this subtask."
+  ],
+  "revocation": {
+    "normal_phone_ui": true,
+    "server_disconnect_confirmed_in_phone_ui": true,
+    "old_ping_status": 410,
+    "old_launch_status": 410,
+    "post_denial_ui": "Airtap disconnected invitation screen",
+    "pair_recreated": false
+  },
+  "cleanup": {
+    "pair": "revoked via phone UI",
+    "emulator": "owned 5592 stopped using adb emu kill after final UI inspection",
+    "test_data": "Tokyo/London synthetic Clock data and installed APKs retained in private stopped AVD; no personal account used",
+    "credentials": "Only private maintainer evidence directory, old pair revoked; not packaged or published"
+  },
+  "limits": [
+    "This record is an upgrade of the normally onboarded code36 clean device, not a separate code37 fresh-install sample.",
+    "Maintainer emulator CLI task, not independent user or personal-AI acceptance.",
+    "No new direct-mainland, mobile-network, physical-device, long-background or reboot recovery claim.",
+    "Native range-only semantic-change refusal was validated separately by the file agent; not duplicated or attributed to this onboarding test.",
+    "Local UI reader only inspected normal setup screens; no Airtap authorization supplier, private DB modifications or debug APK replacement.",
+    "Emulator remained -no-audio. No audio/volume, alarm/timer start or media playback test."
+  ],
+  "evidence": {
+    "private_directory": "clean-onboarding-code36 (includes code37 follow-up; excluded from repository)",
+    "public_record_contains": "Only synthetic task descriptions, artifact hashes, observed statuses and limitations; no invitation, pairing digits, device/grant IDs or credentials"
+  }
+}

@@ -1,0 +1,74 @@
+plugins { id 'com.android.application' }
+
+def publicRelayOrigin = providers.gradleProperty('publicRelayOrigin').getOrElse('')
+if (publicRelayOrigin && !(publicRelayOrigin ==~ /https:\/\/[A-Za-z0-9.-]+(?::443)?/)) {
+    throw new GradleException('publicRelayOrigin must be an HTTPS root origin without path, credentials or query')
+}
+// Release credentials are external environment inputs, never repository properties.
+def releaseStore = providers.environmentVariable('AIRTAP_RELEASE_KEYSTORE').getOrElse('')
+def releaseAlias = providers.environmentVariable('AIRTAP_RELEASE_KEY_ALIAS').getOrElse('')
+def releaseStorePassword = providers.environmentVariable('AIRTAP_RELEASE_STORE_PASSWORD').getOrElse('')
+def releaseKeyPassword = providers.environmentVariable('AIRTAP_RELEASE_KEY_PASSWORD').getOrElse('')
+def releaseReady = [releaseStore, releaseAlias, releaseStorePassword, releaseKeyPassword].every { !it.isEmpty() }
+if (releaseReady) {
+    def configuredStore = new File(releaseStore)
+    def checkoutRoot = rootProject.rootDir
+    if (checkoutRoot.name == 'android' && checkoutRoot.parentFile.name == 'apps') {
+        checkoutRoot = checkoutRoot.parentFile.parentFile
+    }
+    if (!configuredStore.isAbsolute() ||
+            configuredStore.canonicalFile.toPath().startsWith(checkoutRoot.canonicalFile.toPath())) {
+        throw new GradleException('Release keystore must be an absolute path outside the checkout; credentials were not printed.')
+    }
+}
+
+android {
+    namespace 'io.airtap.preview'
+    compileSdk 36
+    defaultConfig {
+        applicationId 'io.airtap.preview'
+        minSdk 34
+        targetSdk 36
+        versionCode 38
+        versionName '0.4.0-beta.8'
+        buildConfigField 'String', 'PUBLIC_RELAY_ORIGIN', '"' + publicRelayOrigin + '"'
+    }
+    buildFeatures { buildConfig true }
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+    signingConfigs {
+        if (releaseReady) {
+            externalRelease {
+                storeFile file(releaseStore)
+                keyAlias releaseAlias
+                storePassword releaseStorePassword
+                keyPassword releaseKeyPassword
+            }
+        }
+    }
+    buildTypes {
+        debug {
+            debuggable true
+            minifyEnabled true
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'tls-proguard-rules.pro'
+        }
+        release {
+            debuggable false
+            minifyEnabled true
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'tls-proguard-rules.pro'
+            if (releaseReady) signingConfig signingConfigs.externalRelease
+        }
+    }
+}
+
+// Do not silently produce a distributable-looking unsigned APK or bundle.
+gradle.taskGraph.whenReady { graph ->
+    if (!releaseReady && graph.allTasks.any { it.project == project &&
+            it.name in ['packageRelease', 'packageReleaseBundle', 'signReleaseBundle'] }) {
+        throw new GradleException('Release packaging requires all four external AIRTAP_RELEASE_* signing environment variables; no release artifact was authorized.')
+    }
+}
+
+dependencies { implementation 'com.squareup.okhttp3:okhttp:4.12.0' }

@@ -1,0 +1,88 @@
+{
+  "schema": "airtap-component-acceptance-v1",
+  "date": "2026-10-27",
+  "component": "Authorized ready-screen wake-lock lease renewal",
+  "integration_commit": "7de6157",
+  "original_fix_commit": "257f564",
+  "first_release_candidate_code": 35,
+  "defect": "SessionService checked every two seconds but reacquired its 60-second non-reference-counted wake lock only after isHeld became false. Expiry could therefore release it before the next check; the device could sleep and cease to be READY.",
+  "platform_basis": {
+    "references": [
+      "https://developer.android.com/reference/android/os/PowerManager.WakeLock",
+      "https://android.googlesource.com/platform/frameworks/base/+/61f01fe56bd8464acf3141212371a9176f3d6c9b/core/java/android/os/PowerManager.java"
+    ],
+    "sdk_source_sha256": "66e05426e8995bf0d94fd7527831029d0b6ddae1118fbe0cecb5ad449996ea0e",
+    "conclusion": "For a non-reference-counted WakeLock, acquire(timeout) removes the previous timeout callback and schedules a new one without first releasing the lock."
+  },
+  "change": "Renew the existing 60-second lease on each check only while the same authorization generation is valid, notifications are allowed, and ScreenPreparation reports READY. No new wakeup flag, no proactive waking of a sleeping or locked device, and no obsolete fifteen-minute session limit.",
+  "stop_and_timeout_boundary": "Non-READY, stop, revoke and destruction keep their existing release paths. The last lease expires when Android runs its timeout callback; process death releases the Binder-owned lock. This is not an absolute wall-clock ANR or system-service guarantee.",
+  "host": {
+    "passed": 10,
+    "production_class": "SessionService",
+    "method": "Full production service with deterministic clock, non-reference-counted wake-lock timeout and Android lifecycle fakes",
+    "cases": [
+      "PASS ready authorized session crosses original 60-second deadlines without release gaps",
+      "PASS lease renewal does not impose obsolete fifteen-minute session cap",
+      "PASS no more renewals means the last bounded lease expires",
+      "PASS screen-off and locked states release without waking or reacquiring",
+      "PASS authorization revoked before next tick releases and never renews",
+      "PASS stale generation cannot renew the new approval",
+      "PASS current notification stop releases immediately and cancels renewal",
+      "PASS disabled notifications stop control rather than silently retaining screen lock",
+      "PASS service destruction releases and removes pending renewal",
+      "PASS unsupported screen-lock level remains safe and does not create another lock"
+    ],
+    "pre_fix_counterexample": "The same suite with pre-fix production source fails the continuous 60-second-boundary assertion."
+  },
+  "android_compile": "passed for isolated debug test build; release build/signing is separate",
+  "emulator": {
+    "platform": "Isolated Android 16 / API 36.1 emulator, maintainer verification; not Muse or physical phone",
+    "conditions": "Charging keep-awake disabled and screen timeout set to 15 seconds for both sides. Original settings saved and restored. No UI input or remote command during the measured intervals; passive power/activity sampling only.",
+    "before": {
+      "samples": 126,
+      "sample_duration_seconds": 70.319,
+      "lock_initially_held": true,
+      "remaining_lease_expired_after_seconds": 4.242,
+      "asleep_observed_after_seconds": 4.841,
+      "result": "Expired before renewal; entered Dozing/Asleep and did not reacquire automatically. This interval began near the end of an already-running lease, not at first acquisition."
+    },
+    "after": {
+      "samples": 225,
+      "sample_duration_seconds": 125.532,
+      "first_acquire_delay_seconds": 0.842,
+      "continuous_held_period_seconds": 124.69,
+      "all_samples_awake": true,
+      "same_top_activity": true,
+      "native_power_history_intervening_release": false,
+      "scope": "Crossed two original 60-second boundaries. Approximately 0.5-second sampling is supported by native power history, not a claim of universal timing."
+    },
+    "explicit_sleep": {
+      "maintenance_action": "KEYCODE_SLEEP",
+      "release_observed_after_seconds": 1.835,
+      "observation_seconds": 8,
+      "no_reacquire": true,
+      "remained_nonawake": true
+    },
+    "owner_stop": {
+      "maintenance_action": "Normal Airtap notification Stop button, identified from screenshot and tapped locally",
+      "first_sample_seconds": 0.12,
+      "observed_seconds": 10.192,
+      "all_samples_unheld": true,
+      "service_absent": true,
+      "auto_resume": false
+    },
+    "cleanup": "Original power settings restored. Emulator left at Home, locally stopped, without silently restoring its synthetic grant. Server enrollment retained. No physical phone or production relay modified.",
+    "intervention": "Notification discovery briefly used UIAutomator outside the quiet measurement interval and interrupted the service notification; the subsequent actual Stop check used a screenshot and normal tap. This is not counted as quiet-run stability."
+  },
+  "physical_phone_causation": "Not established. Code34 fixture CANCEL at 1532 ms and subsequent activity pause do not identify a wake-lock or power cause. Retain that failure and the successful later gesture independently.",
+  "code35_status_at_report": "Fix included in separately signed code35, release build/lint passed and maintainer installation recorded. Muse code35 stability and original-pair results are not part of this emulator report.",
+  "evidence_hashes": {
+    "host-tests.json": "032d4fa907478a8570e97a66c10101ea14324519c14a357aadae7d12a8ab8c5b",
+    "baseline-counterexample.log": "c2b7421550f3e976e993a2d733ef0a1722bcb3fc9bbc5b6331dba7a33f43d3f7",
+    "old-monitor.private.json": "a28f8d6b67544c1f46e7e3b36e11bc08e5a085caa7809e4ad0f2a032269b12e6",
+    "new-monitor.private.json": "72a7c08931f892f689757572ee118d9aedb0771c4f6d10d36ce6b524fb240c64",
+    "explicit-sleep-monitor.private.json": "23ae6ce0b99999cb3ebd4b5196329904cd7087843f7b0935befee1acf1656d0e",
+    "stopped-monitor.private.json": "d6a4e5f81483191c588a2781aada58fefa289096a3b9327d3a4fb3f2166708b1"
+  },
+  "privacy": "Only result summaries and digests are published; raw power/activity dumps, local environment paths and session identifiers remain private."
+}

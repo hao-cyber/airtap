@@ -1,0 +1,146 @@
+{
+  "schema": "airtap-clean-install-acceptance-v1",
+  "recorded_at": "2026-10-26T07:33:14Z",
+  "status": "passed_with_recorded_maintainer_assistance",
+  "apk": {
+    "schema": "airtap-android-update-v1",
+    "application_id": "io.airtap.preview",
+    "version_name": "0.4.0-beta.4",
+    "version_code": 28,
+    "apk_sha256": "fc3d3b9f969c5c335d793357469a3187a8bec232bfbcf2081da94854d9cc2f0a",
+    "apk_bytes": 402893,
+    "signer_sha256": "a2aa0c1b6fdaf1baa37aa20817387524a1318b5dab82bf7c185663141daba60f",
+    "min_sdk": 34,
+    "target_sdk": 36,
+    "debuggable": false,
+    "channel": "beta",
+    "published_at": "2026-10-26",
+    "download_path": "/download/android",
+    "notes": [
+      "个人 AI 可直接通过 HTTPS 私有提交故障反馈，无需 GitHub 账号或额外插件；由 AI 整理并去除私人信息。",
+      "新增“设置 → 问题反馈”，可查看报告、处理状态与回复，并删除单份报告；解除 AI 连接后仍可管理。",
+      "报告保留 30 天，支持查询、补充、删除和安全重试，不自动公开到 GitHub；反馈失败不影响手机操作。",
+      "沿用原签名覆盖更新，保留已有配对、屏幕恢复与后台准备能力。",
+      "当前是 Android 公开测试版，各机型与个人 AI 的实际兼容和无人值守表现按验收记录分别说明。"
+    ]
+  },
+  "environment": {
+    "device": "isolated fresh emulator-5594",
+    "avd": "Airtap_Beta4_Fresh",
+    "os": "Android 16 / API 36.1",
+    "state": "new AVD directory, no preexisting Airtap or grant",
+    "operator": "maintainer using system UI plus real public HTTPS/CLI; not independent human or Muse",
+    "network": "Host DNS resolved service to a local 198.18.x.x interception address; this is not a direct or mobile-only network proof."
+  },
+  "install": {
+    "source": "https://airtap.memtrix.dev/",
+    "download": "Chrome UI download button; downloaded /sdcard/Download/Airtap.apk SHA matched final release",
+    "installer": "com.google.android.packageinstaller",
+    "install_method": "normal system installer; no adb install for Airtap",
+    "play_protect": "App scan recommended → Scan app → This app looks safe → Install",
+    "permissions": "Chrome install-source permission, Airtap restricted-settings help to app-info menu, accessibility service and notification permission through normal system UI; no direct settings/grants/db writes",
+    "pairing": "original invite text from viewer, real CLI pair-start, compared six digits and owner UI approval; wait-ready approved/persistent/all_apps"
+  },
+  "actual_checks": [
+    "Public official download SHA matches signed final APK; code28 installed by PackageInstaller.",
+    "App guide recovers a real Controlled by Restricted Setting state via normal system settings, then automatically progresses to notifications/invitation.",
+    "Native Apps directory, Contacts creation of synthetic Airtap beta4 703, Save, navigate back to list, reopen and verify same name.",
+    "Chrome open_url release-notes route accepted and observed correct URL; returned to Contacts and verified saved contact. Page body was still loading at immediate observation, so no claim of complete webpage content read.",
+    "Screen sent to sleep for test; real ping returned screen_off with auto_wake; real read_tree recovered the screen and read Contacts without manual wake.",
+    "Paired HTTP reports create, two pages, no device sequence consumption; invalid report rejected while ping still succeeds.",
+    "Phone report list/detail, status and actual maintenance_reply shown; owner single-click deletion followed by AI GET410.",
+    "Update check says already current recommended version.",
+    "Report-management UI rejects remote read_tree as protected_or_unavailable_window.",
+    "Owner stopped connection; old AI report GET/POST denied and phone ping HTTP410. Owner still opened remaining report and deleted it; admin GET410 confirmed. Phone list empty.",
+    "Actual FeedbackActivity screenshot captured by maintenance screencap was black except system chrome; report page FLAG_SECURE protection verified."
+  ],
+  "assistance": [
+    {
+      "stage": "Airtap install/enrollment/permissions/pairing",
+      "who": "maintainer",
+      "detail": "Normal owner setup steps through UI; exact six-digit confirmation. No independent novice participant."
+    },
+    {
+      "stage": "first Contacts launch",
+      "who": "maintainer",
+      "detail": "Contacts requested notification permission; remote tree returned protected_or_unavailable_window. Maintainer chose Don’t allow in system UI, then all contact task actions used Airtap HTTP/CLI."
+    }
+  ],
+  "failures_and_recovery": [
+    {
+      "failure": "Contacts first-run system permission overlay",
+      "recovery": "One recorded owner UI denial, then task continued; not claimed as AI-independent first-run permission handling."
+    },
+    {
+      "failure": "Several host urllib TCP connection timeouts during report creation/query/reply checks",
+      "recovery": "Queries retried; creation reused identical saved report ID/body, maintenance state queried before retry; no duplicate report or phone command replay."
+    }
+  ],
+  "limits": [
+    "Maintainer-controlled clean emulator, not independent ordinary-user usability proof.",
+    "No physical-device or mobile-only claim from emulator.",
+    "Actual 75-minute USB-powered Muse sample recorded separately in beta4-muse-idle-20261026.json."
+  ],
+  "paired_http_checks": [
+    {
+      "name": "first private creation",
+      "ok": true,
+      "time": 1792999105.406742
+    },
+    {
+      "name": "first private creation",
+      "ok": true,
+      "time": 1792999205.66885
+    },
+    {
+      "name": "owner private creation",
+      "ok": true,
+      "time": 1792999207.896978
+    },
+    {
+      "name": "live paired pagination has cursor",
+      "ok": true,
+      "time": 1792999208.972954
+    },
+    {
+      "name": "live second page isolated and complete",
+      "ok": true,
+      "time": 1792999210.0360599
+    },
+    {
+      "name": "reports do not consume device sequence",
+      "ok": true,
+      "time": 1792999211.235709
+    },
+    {
+      "name": "bad report rejected without phone failure",
+      "ok": true,
+      "time": 1792999214.038229
+    },
+    {
+      "name": "first deleted through phone UI",
+      "ok": true,
+      "time": 1792999712.6811361
+    },
+    {
+      "name": "revoked AI report read denied",
+      "ok": true,
+      "time": 1792999790.412051
+    },
+    {
+      "name": "revoked AI report write denied",
+      "ok": true,
+      "time": 1792999791.9445398
+    }
+  ],
+  "owner_after_revoke": {
+    "ok": true,
+    "admin_get_status": 410,
+    "owner_ui_deleted_after_AI_revoked": true
+  },
+  "cleanup": {
+    "reports": "all three synthetic public reports deleted (anonymous, paired, owner-after-revoke)",
+    "AI": "isolated emulator grant revoked; old device command denied",
+    "emulator": "owned emulator-5594 stopped; fixture state retained for future same-device tests"
+  }
+}

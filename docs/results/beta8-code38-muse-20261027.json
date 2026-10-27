@@ -1,0 +1,214 @@
+{
+  "schema": "airtap-personal-ai-evidence-review-v1",
+  "status": "passed_for_bounded_short_regression_with_evidence_limits",
+  "recorded_at_utc": "2026-10-27T07:40:55.227680+00:00",
+  "scope": "Independent read-only semantic review of the Muse code38 regression archive. No phone, Muse, network, account, canonical source or deployment operations by this reviewer. No archive scripts executed.",
+  "release_assessment": {
+    "blocking_findings_in_this_short_regression": [],
+    "conclusion": "The observed WPS display, note save/reopen and original-connection completion support this limited regression passing. They do not establish every code38 change, all capabilities or a new-user release gate.",
+    "evidence_limits_are_retained": true,
+    "outside_this_review": "Final signed artifact mapping, public deployment and separately required first-install/notification/bootstrap cases remain the release owner responsibility."
+  },
+  "artifact": {
+    "zip_bytes": 812477,
+    "zip_sha256": "e1a6adf403d7f45bdc4462fd33c72492d9f77f84a0eea584dd67a2bdb5a13476",
+    "package_files": 72,
+    "uncompressed_bytes": 1122538,
+    "safe_extraction": "Parent verified bounded safe extraction; reviewer independently rechecked ZIP size/hash and all 71 files named by RECEIPTS against their sanitized per-file size/hash. RECEIPTS is excluded from its own self-table.",
+    "listed_file_hash_mismatches": [],
+    "raw_response_count": 48,
+    "top_level_success_responses": 45,
+    "top_level_failed_responses": 3,
+    "actual_jpeg_files": 14,
+    "unique_jpeg_hashes": 13,
+    "image_receipts": 21,
+    "image_receipts_with_matching_attachment": 17,
+    "missing_receipt_image_count": 4,
+    "missing_receipt_images": [
+      "02-notes-new-tap.json",
+      "02-notes-launch.json",
+      "02-notes-set-title.json",
+      "02-notes-set-body.json"
+    ],
+    "missing_image_limit": "Four automatic post-action images are absent. Separate attached WPS observations and note write/reopen trees plus the final reopened-note image support the end results; do not say every image receipt has an attachment."
+  },
+  "authorization_and_intervention": {
+    "identity": "Muse execution of an owner-authorized delegated regression; not claimed as owner-hand execution.",
+    "maintainer_before_run": "Parent reports a USB in-place upgrade preserving data/pairing and an attempt to leave the Airtap screen. This maintenance is not counted as Muse task work.",
+    "phone_task_actor": "The supplied command logs name the verified CLI.8 and original configuration for all 48 recorded commands; task receipts and screenshots are from the Muse run. No USB task substitution is present in these records.",
+    "during_run": "No maintenance intervention is reported in RUNLOG. HOME and Back recovery are recorded Muse CLI commands, not maintainer manual operations.",
+    "limits": "Archive review cannot independently observe unrecorded outside activity; identities/credentials intentionally remain absent."
+  },
+  "bootstrap_tool_verification": {
+    "expected_digest_source": "Pre-supplied frozen maintainer hashes, according to download-verification.json; not response-header digests. This was an existing-pair upgrade, not a fresh phone invitation.",
+    "cli_version": "0.4.0-cli.8",
+    "artifacts": [
+      {
+        "kind": "cli",
+        "bytes": 78954,
+        "expected_sha256": "4f9af83799764b6573ae03f22b7921a141fa1de0b6c1121977cc1492ad95b508",
+        "download_sha256": "4f9af83799764b6573ae03f22b7921a141fa1de0b6c1121977cc1492ad95b508",
+        "http_status": 200,
+        "matches_expected": true
+      },
+      {
+        "kind": "guide",
+        "bytes": 71040,
+        "expected_sha256": "b65e7764f6ca4c5faad23c767cd7a83ad5a676dbcb76862e239ff83bbbdd79ce",
+        "download_sha256": "b65e7764f6ca4c5faad23c767cd7a83ad5a676dbcb76862e239ff83bbbdd79ce",
+        "http_status": 200,
+        "matches_expected": true
+      }
+    ],
+    "checks_before_first_recorded_cli8_use": true,
+    "timing": "Both download checks finished at 07:19:38 UTC; first recorded CLI.8 pair-status began at 07:20:16 UTC, before the later phone task.",
+    "download_method_reported": "Existing verified CLI.7 proxy connection, system TLS verification retained, non-200 rejected and 512 KiB bound; external digest comparison gates use of new files.",
+    "verification_limits": [
+      "Raw CLI/guide downloads and downloader code are not included, so this reviewer checks the receipt and timing rather than independently rehashing downloaded artifacts. Match the expected hashes against the maintainer release freeze separately.",
+      "Guide first-read time is not separately recorded; the receipt records hash verification before the first logged CLI.8 use.",
+      "Does not prove a newly generated code38 invitation was copied, consumed or verified by a first-time AI.",
+      "This normal task run is not an affected-certificate or proxy-security probe."
+    ]
+  },
+  "verified": {
+    "client_and_connection": {
+      "client_before": {
+        "platform": "android",
+        "version_name": "0.4.0-beta.8",
+        "version_code": 38,
+        "build_type": "release"
+      },
+      "client_after": {
+        "platform": "android",
+        "version_name": "0.4.0-beta.8",
+        "version_code": 38,
+        "build_type": "release"
+      },
+      "approved_persistent_all_apps_control_before_after": true,
+      "same_connection_identifier_before_after": true,
+      "sequence_increases_without_observed_reset": true,
+      "original_pair_scope": "Original configuration is named in command logs, with approved/persistent state and the same transient connection identifier before and after. This is continuity evidence, not a cryptographic comparison of redacted credentials.",
+      "initial_screen_state": "screen_off",
+      "final_screen_state": "ready"
+    },
+    "wps": {
+      "result": "passed_for_rendered_plain_text_open",
+      "input_bytes": 52,
+      "fresh_stat_hash_matches_reconstructed_two_line_fixture": true,
+      "share_ack_alone_not_used_as_delivery_proof": true,
+      "displayed_lines_match_expected": true,
+      "two_attached_content_images_identical": true,
+      "evidence": [
+        "01-file-stat.json",
+        "01-file-share-wps.json",
+        "01-wps-observe2.json",
+        "01-wps-observe2.jpg",
+        "01-wps-observe3.jpg",
+        "01-wps-verification.json"
+      ],
+      "limits": [
+        "WPS accessibility tree does not expose document body; the actual screenshot is decisive.",
+        "Rendered text verification is not an exported WPS byte-for-byte round trip.",
+        "No new first-use agreement or login is observed in this run."
+      ]
+    },
+    "notes": {
+      "result": "passed_save_and_reopen",
+      "title_characters": 13,
+      "body_characters": 51,
+      "title_and_body_equal_to_draft_after_write": true,
+      "title_and_body_equal_to_draft_after_reopen": true,
+      "reopened_image_visually_reviewed": true,
+      "evidence": [
+        "02-note-draft.txt",
+        "02-notes-tree-after-write.json",
+        "02-notes-back-save.json",
+        "02-notes-list-tree-after-save.json",
+        "02-notes-reopen-tree.json",
+        "02-notes-reopen-observe.jpg"
+      ],
+      "recovery": "Launch resumed a prior editor; Muse issued Back, inspected the list and created a new note before either set-text. No edit of the old note is logged. A list view is not proof of every older note full contents."
+    },
+    "finish": {
+      "launcher_confirmed_by_foreground_and_attached_image": true,
+      "audio_state_equal_before_after": true,
+      "music_volume_zero_before_after": true,
+      "music_muted_flag": false,
+      "volume_mutation_commands_recorded": 0,
+      "audio_limit": "Endpoint readings and absence of volume changes do not prove continuous acoustic silence; alarm/voice-call streams were not zeroed.",
+      "evidence": [
+        "03-final-home.json",
+        "03-final-home.jpg",
+        "03-final-foreground.json",
+        "03-final-status.json",
+        "03-final-ping.json",
+        "03-final-audio-state.json"
+      ]
+    }
+  },
+  "failures_and_recovery": {
+    "failed_events_including_post_action_observation": 4,
+    "error_counts": {
+      "protected_airtap_window": 2,
+      "window_changed": 2
+    },
+    "events": [
+      {
+        "file": "00-foreground.json",
+        "location": "response",
+        "error": "protected_airtap_window"
+      },
+      {
+        "file": "01-share-open-tap.json",
+        "location": "observation_error",
+        "error": "window_changed"
+      },
+      {
+        "file": "00-observe.json",
+        "location": "response",
+        "error": "protected_airtap_window"
+      },
+      {
+        "file": "01-wps-observe.json",
+        "location": "response",
+        "error": "window_changed"
+      }
+    ],
+    "protected_surface": "Initial observe and foreground were rejected for protected_airtap_window. A single normal HOME followed by fresh observation reached the launcher. The archive does not establish why Airtap was foreground after the earlier maintenance HOME; do not invent a restart cause.",
+    "window_transition": "The system Open tap was accepted, but its automatic observation returned window_changed; the next standalone observe also returned window_changed. Later fresh observations displayed WPS. One file-share and one Open tap were logged, without replaying the share.",
+    "narrative_correction": "Count both window_changed receipts, including the post-action observation_error; the accepted tap itself is not recategorized as failed or as confirmed delivery.",
+    "no_other_returned_error_codes_observed": true
+  },
+  "visual_review": {
+    "reviewed_images": [
+      "01-wps-observe2.jpg",
+      "02-notes-reopen-observe.jpg",
+      "03-final-home.jpg"
+    ],
+    "all_package_images_reviewed": false
+  },
+  "not_verified_by_this_run": [
+    "Independent new-user installation and first pairing",
+    "Fresh code38 invitation bootstrap end-to-end",
+    "Notification revocation/recovery and first-setup interruption cases",
+    "Long-idle/background endurance or disconnection recovery",
+    "Long-text/paged-tree regression in code38",
+    "Douyin/Xiaohongshu task replay, other apps, accounts or file types",
+    "Instinct or other personal-AI code38 verification",
+    "Other phone models, iOS or other device platforms",
+    "Video acceptance",
+    "All Android atomic capabilities"
+  ],
+  "publication_boundary": [
+    "Publish only this separately reviewed minimal summary after release-owner review. Raw archives, screenshots, logs and screen text remain private.",
+    "The summary omits private paths, domains, credentials, device/connection/window identifiers and screenshot text.",
+    "Historical code37 evidence retains its original version; this shorter code38 run does not replace or broaden it."
+  ],
+  "release_owner_binding": {
+    "apk_sha256": "6978cadee77ef78b350dfe91e29b76ab74273c6ee946050b5cd2a76dee02d09c",
+    "apk_bytes": 538061,
+    "build_source_commit": "dec86af62446789cd04f80b398b4e8b61a2bbf43",
+    "normal_maintenance_upgrade": "USB adb install -r from37 to38, same release signer, no uninstall/data clear/pair reset/network change",
+    "frozen_cli_guide_hashes_independently_matched": true
+  }
+}

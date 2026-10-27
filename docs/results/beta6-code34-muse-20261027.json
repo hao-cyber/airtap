@@ -1,0 +1,180 @@
+{
+  "schema": "airtap-development-acceptance-v1",
+  "date": "2026-10-27",
+  "scope": "Limited Muse cloud-to-physical-phone regression, correlated with original command responses, subsequent UI trees and synthetic fixture InputConnection/touch events. Not full product acceptance or an independent beginner installation.",
+  "candidate": {
+    "version": "0.4.0-beta.6",
+    "version_code": 34,
+    "source_commit": "049c987",
+    "apk_sha256": "4a9e1073966f69cb0cfc4ab708be55998f72cdb78f16426c9087cbccc5bdb65c",
+    "cli_version": "0.4.0-cli.6",
+    "cli_sha256": "a98a083f369b3390ad3f40337f06a9f34bf4d35962933c8dc2ae7871ef1e82ff",
+    "agent_guide_sha256": "d8d30f4b62f78f18c0d9052866eb4f986c5ea6160dbbf676779b4f46aacb32ec",
+    "public_download_promoted": false
+  },
+  "environment": {
+    "agent": "Muse, existing cloud execution environment and original persistent pairing",
+    "phone": "Meizu Note 16 / Android 15",
+    "fixture": "Account-free synthetic touch and text fixture; test outcomes do not prove all applications behave identically"
+  },
+  "upgrade": {
+    "from_code": 31,
+    "to_code": 34,
+    "actor": "Maintainer, original trusted wireless ADB, same-signature in-place install",
+    "application_data_cleared": false,
+    "pairing_revoked": false,
+    "original_muse_pairing_reused": true,
+    "muse_autonomous_upgrade_passed": false,
+    "boundary": "The code31 UI upgrade path was blocked. Maintainer installation is recorded separately and does not count as Muse completing an installation task."
+  },
+  "results": {
+    "system_resolver": {
+      "result": "passed within scope",
+      "fix_commit": "0420aeb",
+      "active_package": "android",
+      "active_focused_root_available": true,
+      "windows_and_tree_readable": true,
+      "back_returned_to_file_manager": true,
+      "installer_choice_or_confirmation_submitted": false,
+      "boundary": "Observed the normal system open-with chooser. This is not full installer/upgrade UI acceptance, nor arbitrary rootless-window control."
+    },
+    "secondary_editor": {
+      "result": "passed normal native delete branch",
+      "baseline": "Airtap secondary check",
+      "after_insert": "Airtap secondary checkXYZ",
+      "selection_after_insert": [
+        25,
+        25
+      ],
+      "delete_before": 3,
+      "delete_after": 0,
+      "actual_removed_range_utf16": [
+        22,
+        25
+      ],
+      "after_delete": "Airtap secondary check",
+      "selection_after_delete": [
+        22,
+        22
+      ],
+      "editor_action": "DONE",
+      "fixture_submission_matches": true,
+      "primary_unchanged_after_initialization": true,
+      "native_events_correlated_with_command_and_tree": true,
+      "active_composition_refusal_and_selection_recovery_on_physical_phone": "not exercised; separately proven on isolated emulator, not inferred from this normal delete"
+    },
+    "continuous_edge_drag": {
+      "result": "passed via gesture after an earlier drag command was cancelled",
+      "successful_command": "gesture",
+      "duration_ms": 3123,
+      "down": 1,
+      "move": 89,
+      "up": 1,
+      "cancel": 0,
+      "maximum_pointers": 1,
+      "page_changes": 1,
+      "drop_success": true,
+      "boundary": "One uninterrupted touch chain on the fixture. The earlier drag command remains a failure; this does not establish every launcher or target geometry."
+    },
+    "two_finger_gesture": {
+      "result": "passed touch chain",
+      "duration_ms": 709,
+      "down": 1,
+      "move": 59,
+      "pointer_down": 1,
+      "pointer_up": 1,
+      "up": 1,
+      "cancel": 0,
+      "maximum_pointers": 2,
+      "boundary": "Fixture drop_success=false here refers to the separate single-pointer drop target, not a failure of the two-pointer chain. No claim of map/gallery pinch or rotation acceptance."
+    },
+    "music_volume": {
+      "result": "passed and restored",
+      "stream": "music",
+      "observed_current_sequence": [
+        0,
+        1,
+        0
+      ],
+      "native_readback_verified": true,
+      "muted_state_unchanged": true,
+      "other_reported_streams_unchanged": true,
+      "media_playback_or_session_control_tested": false,
+      "boundary": "Initial no-op record retained; the separate supplement performed the actual change and restoration. Other streams were read, not modified."
+    },
+    "workspace_round_trip": {
+      "result": "passed",
+      "root": "workspace",
+      "size_bytes": 36,
+      "sha256": "17e423115cca75ffea756e4217d854ca8a18931eb9c050b9f51ad81117f43e8d",
+      "source_download_and_stat_match": true,
+      "publication_atomic": true,
+      "boundary": "One small synthetic file through the existing file protocol; no physical SAF grant/provider, large or multiblock transfer, interrupted transfer, storage-budget or cleanup test in this run."
+    },
+    "final_state": {
+      "home_accepted": true,
+      "foreground": "launcher",
+      "screen_state": "ready",
+      "pair_state": "approved",
+      "persistent": true,
+      "device_connected": true,
+      "pending_commands": 0,
+      "original_pairing_retained": true
+    }
+  },
+  "retained_failures_and_recovery": [
+    {
+      "kind": "device failure",
+      "step": "first actual drag request",
+      "error": "gesture_interrupted_outcome_unknown",
+      "outcome": "unknown",
+      "retry_action": false,
+      "fixture": {
+        "duration_ms": 1532,
+        "down": 1,
+        "move": 48,
+        "up": 0,
+        "cancel": 1,
+        "page_changes": 0,
+        "drop_success": false
+      },
+      "recovery": "New observations established current fixture state before a subsequent gesture request. No blind replay was counted as success.",
+      "causation": "Activity pause followed the CANCEL, but physical wake-lock/power-reason evidence is absent. The later screen lease fix does not by itself prove the cause of this cancellation."
+    },
+    {
+      "kind": "device failure",
+      "error": "device_wake_failed",
+      "followup_rejection": "fresh_observation_required",
+      "recovery": "A later fresh observation succeeded; unchanged test fields were checked. Failed capture did not authorize a tap."
+    },
+    {
+      "kind": "test harness failure",
+      "error": "bash parse error caused by a missing closing parenthesis",
+      "effect": "Aborted before the planned observe/gesture requests; these missing command files are not phone failures or a missing CLI flag.",
+      "separate_parser_error": "status=None came from comparing integer node IDs with strings, not an actual phone state."
+    }
+  ],
+  "evidence": {
+    "original_archive_sha256": "c3b0396ed26775bdd492713929f14952fda578a7f8f90bd3fdcc2603d81e1b78",
+    "archive_hash_checked": true,
+    "fixture_delta_sha256": "e2368173a908bd8d27d0936eedff0974ed25cb8dc6c9f4eda3c57bc44316b6db",
+    "source_and_download_bytes_independently_hashed": true,
+    "review": "Raw Muse replies were compared with post-action trees and local fixture-event analysis. Accepted responses alone were not treated as completion.",
+    "privacy": "Original screenshots, scripts, configurations, service addresses, hardware/connection/request identifiers and raw logs remain private; this report contains synthetic test content and result summaries only."
+  },
+  "not_verified": [
+    "Muse code35 regression, physical wake-lock continuity and recording; reported separately when completed",
+    "Instinct, dots, Claude or Doubao on this candidate; prior-agent acceptance does not transfer",
+    "Independent beginner installation or a complete Muse-only APK upgrade",
+    "Physical active-composition rejection and explicit-selection recovery branch",
+    "Every semantic action, media session, clipboard content API, secondary display, sensor or peripheral",
+    "Physical SAF provider lifecycle, multiblock/resume/cleanup/quota boundaries and power-loss persistence",
+    "Multi-day background stability, additional OEMs, iOS or other device categories"
+  ],
+  "later_candidate": {
+    "version_code": 35,
+    "screen_lease_fix_commit": "7de6157",
+    "status_at_this_report": "Release signed/build/lint passed; maintainer in-place installation recorded. Muse original-pair and stability acceptance remains separate and pending here.",
+    "boundary": "Code34 results describe code34; no full code35 repeat is implied. Public recommendation remains beta.4/code28."
+  }
+}
