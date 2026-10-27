@@ -997,6 +997,24 @@
     },
     {
       "kind": "source",
+      "path": "release/site/robots.txt"
+    },
+    {
+      "kind": "binary",
+      "path": "release/site/share.png",
+      "review": "Rendered from the adjacent public brand SVG at 1200x630 and visually reviewed. Contains only Airtap brand, public product wording and public install hostname; no screenshots, user data, credentials or embedded metadata.",
+      "sha256": "4e7e3715692cda466b0501e5e5bc539a5f6f2606fc5a9fe2f9c684cb06d5594c"
+    },
+    {
+      "kind": "source",
+      "path": "release/site/share.svg"
+    },
+    {
+      "kind": "source",
+      "path": "release/site/sitemap.xml"
+    },
+    {
+      "kind": "source",
       "path": "release/site/style.css"
     },
     {

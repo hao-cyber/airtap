@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
+  <rect width="1200" height="630" fill="#f6f5ef"/>
+  <g transform="translate(76 62)">
+    <rect width="52" height="52" rx="14" fill="#164b3b"/>
+    <g transform="scale(.8125)">
+      <rect x="20" y="10" width="26" height="44" rx="6" fill="#f6f5ef"/>
+      <path fill="#164b3b" d="M24 16h18v29H24z"/>
+      <path fill="#d7f384" d="m33 21 4 8 8 4-8 4-4 8-4-8-8-4 8-4z"/>
+      <path stroke="#164b3b" stroke-width="2" stroke-linecap="round" d="M30 49h6"/>
+    </g>
+  </g>
+  <g fill="#19382f" font-family="PingFang SC, Noto Sans CJK SC, sans-serif">
+    <text x="146" y="101" font-size="38" font-weight="650" letter-spacing="-1">Airtap</text>
+    <text x="1124" y="96" text-anchor="end" font-size="21" fill="#526459">Android 14+ · 开源 · 公开测试</text>
+    <text x="76" y="253" font-size="66" font-weight="600">把闲置安卓手机，</text>
+    <text x="76" y="343" font-size="66" font-weight="600">交给你正在用的 AI。</text>
+    <text x="79" y="409" font-size="27" fill="#526459">安装、授权、发出邀请。在熟悉的 AI 对话里安排任务。</text>
+    <path d="M76 483H1124" stroke="#cdd5c8"/>
+    <text x="79" y="547" font-size="24">你的 AI  →  Airtap  →  手机上的 App</text>
+    <text x="1124" y="547" text-anchor="end" font-size="22" fill="#526459">airtap.memtrix.dev</text>
+  </g>
+</svg>

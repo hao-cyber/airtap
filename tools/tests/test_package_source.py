@@ -17,7 +17,8 @@ class PublicSitePolicy(unittest.TestCase):
     def test_exact_public_site_survives_source_document_and_json_scans(self):
         host = package.PUBLIC_INSTALL_HOST
         for value in [host, 'https://' + host, 'https://' + host + '/install',
-                      'https://' + host + '/help#offline-help']:
+                      'https://' + host + '/help#offline-help', 'https://' + host + '/share.png',
+                      'https://' + host + '/sitemap.xml']:
             for kind, text in [('source', repr(value)), ('document', '[' + value + '](' + value + ')'),
                                ('result', json.dumps({'website': value}))]:
                 with self.subTest(value=value, kind=kind):
@@ -32,6 +33,8 @@ class PublicSitePolicy(unittest.TestCase):
                 'http://' + host, 'https://' + host + ':443/',
                 'https://user@' + host, 'https://' + host + '@evil.test',
                 'https://' + host + '/install?token=synthetic',
+                'https://' + host + '/share.png?token=synthetic',
+                'https://' + host + '/share.png/private',
                 'https://' + host + '/private-export',
                 'https://' + host + '/help#secret-fragment', host + '/private']
         for value in urls:

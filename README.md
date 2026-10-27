@@ -2,11 +2,19 @@
 
 把闲置安卓手机，交给你正在用的个人 AI。
 
-Airtap 让 Muse、Instinct 这类能调用工具的 AI 查看手机屏幕、点击、输入和切换 App。你在原来的 AI 对话里说要做什么，AI 在手机上执行，再检查结果。
+Airtap 让你的个人 AI 查看手机屏幕、点击、输入和切换 App。你在熟悉的 AI 对话里交代任务，AI 在手机上执行，再检查结果。Muse、Instinct 已有不同版本的实际任务测试，具体范围见下文。
 
 手机可以留在家中，保持供电和联网。日常使用不需要插 USB、常开电脑或自建服务器，也不用另外购买模型 API；操作仍会消耗你原有 AI 的套餐额度。
 
-**[下载 Android App](https://airtap.memtrix.dev/install)** · [使用指南](docs/user-guide-v040.md)
+**[下载 Android App](https://airtap.memtrix.dev/install)** · [使用指南](docs/user-guide-v040.md) · [自行部署](docs/reproduce-v040.md) · [反馈问题](https://github.com/hao-cyber/airtap/issues)
+
+Android 14+ · 公开测试版 · 需要能调用工具的个人 AI
+
+## 已经做过的任务
+
+Muse 曾打开手机上的 WPS，读取文档中的两行文字，写入一条新便签，再保存、重新打开核对。这轮使用魅族 Note 16 / Android 15 和当前 beta.8 版本，由 Muse 通过自己的云端工具实际操作。[查看这轮结果](docs/results/beta8-code38-muse-20261027.json)
+
+查资料、编辑文字、跨 App 整理内容，都由你原有的 AI 规划；Airtap 提供操作手机的能力。它不要求每个 App 单独提供 API，也不需要你先搭好固定工作流。具体任务仍取决于 AI、App 和手机系统。
 
 ## 开始使用
 
@@ -30,7 +38,7 @@ AI 可以组合这些动作完成跨 App 任务，不限于计算器等演示应
 
 ## 当前支持情况
 
-当前 Android 版本为 **0.4.0-beta.8（code38）**，需要 Android 14+。真机测试主要使用魅族 Note 16、Android 15；更多机型、长期后台运行和独立新用户完整安装仍待验证。目前没有 iOS 客户端。
+当前 Android 版本为 **0.4.0-beta.8（code38）**。真机测试主要使用魅族 Note 16、Android 15；更多机型、纯移动网络完整任务、长期后台运行和独立新用户完整安装仍待验证。目前没有 iOS 客户端。
 
 | 个人 AI | 已有测试 |
 | --- | --- |
@@ -55,5 +63,11 @@ AI 可以组合这些动作完成跨 App 任务，不限于计算器等演示应
 - [运行检查与每夜构建](docs/checks.md)
 - [AI 接入与命令说明](docs/agent.md)
 - [发布与更新](release/README.md)
+
+## 参与与反馈
+
+想关注后续进展，可以 Star 本仓库；使用反馈、机型实测和代码改进都欢迎。报告问题时，请写清手机型号、Android 和 Airtap 版本、使用的 AI、想完成的任务，以及实际卡在哪一步。改代码前请阅读 [产品与体验约定](docs/project-conventions.md)，并运行与改动相应的检查。
+
+[GitHub Issues](https://github.com/hao-cyber/airtap/issues) 是公开的，请勿上传邀请、连接配置、账号信息或私人截图。需要私下排查时，可以让已连接的 AI 提交脱敏故障报告，在手机「设置 → 问题反馈」查看处理状态；不需要注册 GitHub。
 
 采用 [Apache-2.0](LICENSE) 许可证，依赖见[第三方声明](apps/android/app/src/main/assets/THIRD_PARTY_NOTICES.txt)。

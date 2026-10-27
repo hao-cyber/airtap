@@ -53,7 +53,7 @@ REPLACEMENTS = {
 # userinfo, port, subdomain or hostname suffix is allowed by this exception.
 PUBLIC_INSTALL_HOST = "airtap.memtrix.dev"
 PUBLIC_INSTALL_PATHS = {"", "/", "/install", "/help", "/privacy", "/release-notes",
-                        "/download/android", "/updates/android.json"}
+                        "/download/android", "/updates/android.json", "/share.png", "/sitemap.xml"}
 PUBLIC_HELP_FRAGMENTS = {"", "start", "download", "ai-help", "connection-help",
                          "install-help", "operation-help", "restricted-settings-help",
                          "pair-help", "offline-help", "remote-help", "release-details"}
