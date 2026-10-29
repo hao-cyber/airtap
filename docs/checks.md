@@ -51,6 +51,8 @@ python3 tools/check.py --suite android
 
 视频暂缓交付，测试结果以源码和上述独立记录为准，不以旧演示剪辑证明新版已验收。
 
+[10 月 29 日 Muse 小红书 → 便签记录](results/beta8-code38-muse-20261029.json)补充当前版本的跨 App 结果、短时自主重连和维护者续接提示，也保留稍后等候 60 秒仍离线的结果。CLI 的有界状态探测已有实现；接入指南补齐等待、重新观察与未知动作不重放的流程，Python service 检查覆盖相应故障。实现与测试不等于个人 AI 已独立完成恢复。
+
 [本轮维护与旧包下架记录](results/maintenance-cleanup-20261027.json)记录实际 CI 停用范围、6 个旧公开 APK 退役及线上检查；历史副本和兼容服务保留。
 
 ## Android 每夜构建

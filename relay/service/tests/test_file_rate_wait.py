@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Only known pre-dispatch admission failures may resume transfer loops."""
+"""Bounded connection probes and safe resumption of known transfer failures."""
 import base64
 import importlib.util
 import json
@@ -116,6 +116,134 @@ class RateWaitTest(unittest.TestCase):
             with self.assertRaises(cli.Failure) as failure: cli.wait_ready(args, {})
             self.assertEqual(failure.exception.result['error'], 'ready_wait_expired')
             sleep.assert_not_called()
+
+
+class ConnectionRecoveryTest(unittest.TestCase):
+    """Transient recovery must not turn into business-action replay."""
+
+    def setUp(self):
+        self.args = SimpleNamespace(config=Path('/unused'), timeout=25,
+                                    wait_seconds=60, allow_local_http=False)
+        self.config = {'url': 'https://relay.example', 'controller_token': 'a' * 64,
+                       'state': 'approved', 'command_sequence': 41}
+        self.now = 0
+        self.sleeps = []
+
+    def sleep(self, seconds):
+        self.sleeps.append(seconds)
+        self.now += seconds
+
+    def clock(self):
+        return self.now
+
+    def status(self, connected=True, pending=0):
+        return {'deviceConnected': connected, 'pending': pending}
+
+    def ping(self, state='ready'):
+        return {'result': {'authorized': True, 'screen_state': state, 'auto_wake': True}}
+
+    def test_offline_and_pending_are_probed_before_one_ping(self):
+        statuses = [self.status(False), self.status(True, 1), self.status()]
+        with patch.object(cli.time, 'monotonic', self.clock), patch.object(cli.time, 'sleep', self.sleep), \
+             patch.object(cli, 'status_request', side_effect=statuses), \
+             patch.object(cli, 'command_request', return_value=self.ping()) as command:
+            result = cli.wait_ready(self.args, self.config)
+        self.assertTrue(result['ready'])
+        self.assertEqual(result['attempts'], 3)
+        self.assertEqual(self.sleeps, [2, 2])
+        self.assertEqual(command.call_count, 1)
+        self.assertEqual(command.call_args.args[2]['action'], 'ping')
+
+    def test_wait_expires_without_dispatching_to_offline_phone(self):
+        with patch.object(cli.time, 'monotonic', self.clock), patch.object(cli.time, 'sleep', self.sleep), \
+             patch.object(cli, 'status_request', return_value=self.status(False)) as status, \
+             patch.object(cli, 'command_request') as command:
+            with self.assertRaises(cli.Failure) as failure:
+                cli.wait_ready(self.args, self.config)
+        self.assertEqual(failure.exception.result['error'], 'ready_wait_expired')
+        self.assertEqual(self.now, 60)
+        self.assertEqual(status.call_count, 30)
+        command.assert_not_called()
+        self.assertEqual(self.config['state'], 'approved')
+
+    def test_lost_ping_response_uses_new_probe_identity_and_sequence(self):
+        sent = []
+        def request(*unused, body, **kwargs):
+            sent.append(body)
+            if len(sent) == 1:
+                raise cli.Failure('http_error', status=503, outcome='unknown', retry_action=False)
+            return {'data': {'id': body['id'], 'ok': True, **self.ping()}, 'elapsed_ms': 1}
+        with patch.object(cli.time, 'monotonic', self.clock), patch.object(cli.time, 'sleep', self.sleep), \
+             patch.object(cli, 'status_request', return_value=self.status()), \
+             patch.object(cli, 'save_config'), patch.object(cli, 'request', side_effect=request):
+            result = cli.wait_ready(self.args, self.config)
+        self.assertTrue(result['ready'])
+        self.assertEqual([body['action'] for body in sent], ['ping', 'ping'])
+        self.assertEqual([body['sequence'] for body in sent], [42, 43])
+        self.assertNotEqual(sent[0]['id'], sent[1]['id'])
+
+    def test_unknown_business_action_is_not_replayed_during_recovery(self):
+        sent = []
+        def request(*unused, body, **kwargs):
+            sent.append(body)
+            if body['action'] == 'tap':
+                raise cli.Failure('network_failure', outcome='unknown', retry_action=False)
+            return {'data': {'id': body['id'], 'ok': True, **self.ping()}, 'elapsed_ms': 1}
+        with patch.object(cli.time, 'monotonic', self.clock), patch.object(cli.time, 'sleep', self.sleep), \
+             patch.object(cli, 'status_request', side_effect=[self.status(False), self.status()]), \
+             patch.object(cli, 'save_config'), patch.object(cli, 'request', side_effect=request):
+            with self.assertRaises(cli.Failure) as failure:
+                cli.command_request(self.args, self.config, {
+                    'id': '41ab7782-0c9a-4e51-8d6c-185fa05013fe', 'action': 'tap',
+                    'package': 'com.example.fixture', 'observation_id': 'b' * 32, 'x': 0.5, 'y': 0.5})
+            result = cli.wait_ready(self.args, self.config)
+        self.assertEqual(failure.exception.result['outcome'], 'unknown')
+        self.assertFalse(failure.exception.result['retry_action'])
+        self.assertTrue(result['ready'])
+        self.assertEqual([body['action'] for body in sent], ['tap', 'ping'])
+        self.assertEqual([body['sequence'] for body in sent], [42, 43])
+        self.assertEqual(self.config['state'], 'approved')
+
+    def test_authorization_and_tls_failures_stop_at_status_or_ping(self):
+        failures = [cli.Failure('http_error', status=status, outcome='not_available')
+                    for status in (401, 403, 410)]
+        failures += [cli.Failure(code, outcome='not_dispatched') for code in (
+            'pairing_revoked', 'approval_required', 'phone_authorization_not_confirmed',
+            'device_authentication_required', 'tls_compromised_certificate_key',
+            'tls_verified_chain_unavailable', 'tls_verification_required',
+            'tls_certificate_verification_failed')]
+        for failure in failures:
+            for phase in ('status', 'ping'):
+                with self.subTest(error=failure.result, phase=phase), \
+                     patch.object(cli.time, 'monotonic', self.clock), patch.object(cli.time, 'sleep') as sleep, \
+                     patch.object(cli, 'status_request', side_effect=failure if phase == 'status' else None,
+                                  return_value=self.status()) as status, \
+                     patch.object(cli, 'command_request', side_effect=failure) as command:
+                    with self.assertRaises(cli.Failure) as caught:
+                        cli.wait_ready(self.args, self.config)
+                    self.assertIs(caught.exception, failure)
+                    self.assertEqual(status.call_count, 1)
+                    self.assertEqual(command.call_count, 0 if phase == 'status' else 1)
+                    sleep.assert_not_called()
+
+    def test_readiness_never_authenticates_or_wakes_the_phone(self):
+        for state, ready, prepare, auth in (
+            ('authentication_required', False, False, True),
+            ('screen_off', True, True, False),
+            ('dismissible_keyguard', True, True, False),
+            ('unavailable', False, False, None),
+        ):
+            with self.subTest(state=state), patch.object(cli.time, 'monotonic', self.clock), \
+                 patch.object(cli.time, 'sleep') as sleep, \
+                 patch.object(cli, 'status_request', return_value=self.status()), \
+                 patch.object(cli, 'command_request', return_value=self.ping(state)) as command:
+                result = cli.wait_ready(self.args, self.config)
+                self.assertEqual(result['ready'], ready)
+                self.assertEqual(result['will_prepare_screen'], prepare)
+                self.assertEqual(result['needs_system_authentication'], auth)
+                self.assertEqual(command.call_count, 1)
+                self.assertEqual(command.call_args.args[2]['action'], 'ping')
+                sleep.assert_not_called()
 
 
 if __name__ == '__main__': unittest.main()

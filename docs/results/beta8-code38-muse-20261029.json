@@ -1,0 +1,68 @@
+{
+  "schema": "airtap-personal-ai-evidence-review-v1",
+  "recorded_date": "2026-10-29",
+  "status": "passed_for_bounded_cross_app_task_with_recovery_intervention",
+  "client": {"version_name": "0.4.0-beta.8", "version_code": 38},
+  "device_scope": "Meizu Note 16 / Android 15; one previously paired test phone",
+  "actor": "Muse's actual cloud environment, verified CLI.8 and original private connection",
+  "task": {
+    "steps": [
+      "Search Xiaohongshu for a public hiking article without logging in",
+      "Read two routes and their visible source",
+      "Create a new note with the routes and source",
+      "Save, leave the note, reopen and verify the title and body",
+      "Return HOME and confirm media volume zero"
+    ],
+    "result": "passed",
+    "saved_body_lines": 3,
+    "saved_body_characters": 101,
+    "saved_and_reopened_text_equal": true,
+    "maintainer_phone_input_during_task": false
+  },
+  "failure_and_recovery": {
+    "initial_status": "approved and persistent, deviceConnected false",
+    "initial_failed_probes": {"count": 3, "http_status": 503, "outcome": "unknown"},
+    "business_task_started_before_disconnect": false,
+    "phone_socket_reconnect_seconds": 10.159,
+    "phone_process_and_foreground_service_remained_alive": true,
+    "manual_app_reopen_unlock_or_restart": false,
+    "network_root_cause": "unknown",
+    "agent_intervention": "Muse initially stopped and requested human recovery. A maintainer supplied read-only reconnection evidence and instructed bounded status checks followed by fresh observation; Muse then completed the task.",
+    "claim_limit": "Phone reconnection was autonomous. Agent task continuation required a maintainer follow-up; this is not an unattended end-to-end recovery pass.",
+    "other_events": "A coordinate tap did not dismiss a login prompt; a fresh semantic node action recovered. A note-app network notice was dismissed without changing network settings."
+  },
+  "later_readiness_check": {
+    "local_time": "2026-10-29 15:09-15:10 Asia/Shanghai",
+    "result": "ready_wait_expired",
+    "wait_seconds": 60,
+    "attempts": 22,
+    "pairing": "approved and persistent",
+    "deviceConnected": false,
+    "business_actions_sent": false,
+    "screen_wake_or_app_launch": false,
+    "claim_limit": "A later bounded check did not restore connectivity. The phone was also absent from the maintainer's USB and mDNS lists; the cause is undiagnosed. The earlier successful task is not proof of sustained background availability."
+  },
+  "evidence": {
+    "private_archive_bytes": 1922043,
+    "private_archive_sha256": "f362eee93ac2d03d41e1aeacc3fec8d8f4addfa93d075242031a47b4fc0fa2d6",
+    "archive_entries": 128,
+    "json_receipts": 52,
+    "receipt_metadata_files": 52,
+    "screenshots": 23,
+    "archive_integrity_and_transfer_hash": "passed",
+    "result_review": "Actual write/reopen trees have equal nonempty title and body; phone footage independently shows the note, list, same reopened note and HOME.",
+    "phone_recording": "Four silent original segments, fully decoded and hash-verified; segmented capture is not a seamless real-time recording.",
+    "muse_continuous_recording": "not captured; only phone footage was retained",
+    "raw_materials": "private; not distributed with source"
+  },
+  "not_verified": [
+    "Muse successfully recovering an interrupted task using the revised recovery guide without maintainer assistance",
+    "Current-version Instinct task",
+    "Controlled long-idle or multi-day background endurance",
+    "Complete cellular-data-only task",
+    "Independent first-time user installation and pairing",
+    "Other phone models or device platforms",
+    "Completed phone-and-Muse demonstration video"
+  ],
+  "publication_boundary": "This reviewed summary excludes credentials, device and connection identifiers, private paths, screen text and raw screenshots. It does not replace earlier evidence or broaden its scope."
+}
