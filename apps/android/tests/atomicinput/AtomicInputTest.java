@@ -10,7 +10,24 @@ final class AtomicInputTest {
     static void test(String name, Operation operation) throws Exception { operation.run(); count++; System.out.println("PASS " + name); }
     static void refuses(String code, Operation operation) throws Exception {
         try { operation.run(); throw new AssertionError("expected " + code); }
-        catch (ScopedUi.Refused error) { require(code.equals(error.getMessage())); }
+        catch (ScopedUi.Refused error) {
+            require(code.equals(error.getMessage()));
+            if (java.util.Set.of("focused_editor_required", "editor_identity_unavailable", "editor_target_changed",
+                    "editor_session_changed", "fresh_editor_snapshot_required").contains(code)) {
+                String next = AtomicInput.nextStep(code);
+                require(next != null && next.length() <= 500 && next.contains("not dispatched") && next.contains("fresh tree"));
+                if (code.equals("editor_identity_unavailable")) {
+                    require(next.contains("only advertised node actions") && next.contains("editor_action default")
+                            && next.contains("when advertised") && next.contains("Do not bypass identity checks"));
+                } else if (code.equals("editor_target_changed")) {
+                    require(next.contains("Do not reuse the old node") && next.contains("bypass the target check"));
+                } else if (code.equals("focused_editor_required")) {
+                    require(next.contains("focus or tap") && next.contains("do not blindly retry"));
+                } else {
+                    require(next.contains("Do not reuse the old snapshot") && next.contains("unknown outcome"));
+                }
+            }
+        }
     }
     static JSONObject q(String action) { return new JSONObject().put("action", action); }
     static GuardedInputMethod bind(AccessibilityService service, AccessibilityNodeInfo root) {
@@ -112,6 +129,23 @@ final class AtomicInputTest {
             require(AtomicInput.editorActionHint(service,node,node,ticket)==null);
             node.viewId=null;require(AtomicInput.editorActionHint(service,node,node,AtomicInput.capture(service,node,node))==null);
             require(method.connection.calls==0);
+        });
+        test("advertised native enter stays discoverable without borrowing unverified IME metadata", () -> {
+            for (boolean missingIdentity : new boolean[]{true,false}) {
+                var service=new AccessibilityService();var node=new AccessibilityNodeInfo();var method=bind(service,node);
+                node.actions.add(AccessibilityAction.ACTION_IME_ENTER);
+                var ticket=AtomicInput.capture(service,node,node);
+                if(missingIdentity) { node.viewId=null;ticket=AtomicInput.capture(service,node,node); }
+                else method.onStartInput(method.info,true);
+                var hint=AtomicInput.editorActionHint(service,node,node,ticket);
+                require(hint.getString("default_route").equals("accessibility_node")&&hint.getString("default_action").equals("native_enter"));
+                require(Boolean.TRUE.equals(hint.get("requires_result_observation"))&&hint.fields.size()==3);
+                require(method.connection.calls==0&&node.calls==0);
+                var original=ticket;
+                refuses(missingIdentity?"editor_identity_unavailable":"editor_session_changed",
+                        ()->AtomicInput.perform(service,node,node,q("editor_action").put("editor_action","search"),original,()->true));
+                require(method.connection.calls==0&&node.calls==0);
+            }
         });
         test("Unicode commit preserves Chinese emoji RTL and newline without a clipboard read", () -> {
             var service=new AccessibilityService(); var node=new AccessibilityNodeInfo();
@@ -238,6 +272,9 @@ final class AtomicInputTest {
         test("default IME action supports an advertised node without an input connection", () -> {
             var service=new AccessibilityService();service.input=null;var node=new AccessibilityNodeInfo();
             node.actions.add(AccessibilityAction.ACTION_IME_ENTER);
+            var hint=AtomicInput.editorActionHint(service,node,node,null);
+            require(hint.getString("default_route").equals("accessibility_node")&&hint.getString("default_action").equals("native_enter"));
+            require(Boolean.TRUE.equals(hint.get("requires_result_observation"))&&hint.fields.size()==3&&node.calls==0);
             perform(service,node,node,q("editor_action").put("editor_action","default"));
             require(node.calls==1&&node.operation==AccessibilityAction.ACTION_IME_ENTER.getId());
         });
@@ -264,6 +301,7 @@ final class AtomicInputTest {
         test("input restart and cursor update invalidate a previously captured editor ticket", () -> {
             var service=new AccessibilityService();var node=new AccessibilityNodeInfo();var method=bind(service,node);
             var old=AtomicInput.capture(service,node,node);method.onStartInput(method.info,true);
+            refuses("fresh_editor_snapshot_required",()->AtomicInput.perform(service,node,node,q("insert_text").put("text","x"),null,()->true));require(method.connection.calls==0);
             refuses("editor_session_changed",()->AtomicInput.perform(service,node,node,q("insert_text").put("text","x"),old,()->true));
             var refreshed=AtomicInput.capture(service,node,node);method.onUpdateSelection(0,0,1,1,-1,-1);node.selectionStart=node.selectionEnd=1;
             refuses("editor_session_changed",()->AtomicInput.perform(service,node,node,q("delete_text").put("before",1).put("after",0),refreshed,()->true));require(method.connection.calls==0);

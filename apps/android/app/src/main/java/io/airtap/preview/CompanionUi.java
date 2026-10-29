@@ -180,7 +180,7 @@ final class CompanionUi {
                         ObservedText.put(item, "description", masked ? "" : n.getContentDescription(), masked);
                         ObservedText.put(item, "hint_text", masked ? "" : n.getHintText(), masked);
                         if (n.isEditable() && n.isFocused()) item.put("editor_status", AtomicInput.editorStatus(service, r, n));
-                        if (!masked && editor != null) {
+                        if (!masked) {
                             JSONObject hint = AtomicInput.editorActionHint(service, r, n, editor);
                             if (hint != null) item.put("editor_action_hint", hint);
                         }

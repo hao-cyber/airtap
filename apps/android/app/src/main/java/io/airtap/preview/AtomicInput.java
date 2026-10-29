@@ -101,12 +101,15 @@ final class AtomicInput {
     }
     static JSONObject editorActionHint(AccessibilityService service, AccessibilityNodeInfo root,
                                        AccessibilityNodeInfo node, EditorTicket ticket) throws Exception {
-        if (ticket == null) return null;
+        boolean nativeEnter = advertised(node, AccessibilityNodeInfo.AccessibilityAction.ACTION_IME_ENTER.getId());
+        // The node declares this route independently of any InputConnection identity.
+        JSONObject nativeHint = nativeEnter ? new JSONObject().put("default_route", "accessibility_node")
+                .put("default_action", "native_enter").put("requires_result_observation", true) : null;
+        if (ticket == null) return nativeHint;
         Editor target;
         try { target = editor(service, root, node, ticket); }
-        catch (ScopedUi.Refused unavailable) { return null; }
-        if (target.info() == null) return null;
-        boolean nativeEnter = advertised(node, AccessibilityNodeInfo.AccessibilityAction.ACTION_IME_ENTER.getId());
+        catch (ScopedUi.Refused unavailable) { return nativeHint; }
+        if (target.info() == null) return nativeHint;
         String option = standardEditorAction(target.info().imeOptions & EditorInfo.IME_MASK_ACTION);
         boolean custom = target.info().actionId != 0;
         // Native ACTION_IME_ENTER can deliver IME_NULL even when EditorInfo advertises DONE.
@@ -117,6 +120,10 @@ final class AtomicInput {
     }
     static String nextStep(String code) {
         return switch (code) {
+            case "focused_editor_required" -> "This input action was not dispatched. Observe the intended editable field, focus or tap it if needed, then read a fresh tree and inspect editor_status and input_actions. Decide a new action from that state; do not blindly retry.";
+            case "editor_identity_unavailable" -> "This input action was not dispatched: the IME target could not be proven. Re-focus the intended field and read a fresh tree. If identity remains unavailable, use only advertised node actions; editor_action default can use native IME_ENTER when advertised. Confirm the authorized effect and observe its result. Do not bypass identity checks or blindly retry.";
+            case "editor_target_changed" -> "This input action was not dispatched: the input session targets a different field or window. Observe the intended field, allow its input session to settle, then read a fresh tree and recheck editor_status. Do not reuse the old node or bypass the target check.";
+            case "editor_session_changed", "fresh_editor_snapshot_required" -> "This input action was not dispatched. The editor snapshot is missing or its input session changed. Read a fresh tree after focus or selection settles, inspect editor_status and input_actions, and decide from the new state. Do not reuse the old snapshot or replay an operation with an unknown outcome.";
             case "editor_selection_pending", "editor_selection_unavailable" -> "Read a fresh tree after the intended field and input method agree on its selection. Do not replay an edit whose outcome is unknown. An advertised native selection action can set an explicit range, followed by another fresh tree.";
             case "editor_composition_active", "editor_composition_unknown" -> "This delete was not dispatched. Read a fresh tree, select only the actual UTF-16 range to delete with set_selection, read a new tree and replace that selection using insert_text with empty text. Keep any originally selected content: before/after exclude it, so deleting both sides may need separate edits and fresh observations. Do not commit an empty string at an unverified selection or submit DONE just to clear composition.";
             default -> null;
