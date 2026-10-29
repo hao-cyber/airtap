@@ -35,7 +35,7 @@ final class PreviewService extends android.content.Context {
  static PreviewService instance;final android.os.Handler main=new android.os.Handler();
  boolean authorized,restoring,connected,notificationBlocked;long activeCommand;int generation,retry,connects,networkStarts,notificationFailures;String state,url,token;
  RecoveryStatus recoveryStatus=RecoveryStatus.WAITING_FOR_AI;java.util.concurrent.atomic.AtomicBoolean transportOpen=new java.util.concurrent.atomic.AtomicBoolean(true);
- Object networkCallback,currentNetwork;Runnable reconnectTask;WebSocket socket;EnrollmentStore.Config config;
+ Object networkCallback,currentNetwork;Runnable reconnectTask,handshakeTask;WebSocket socket;EnrollmentStore.Config config;
  static final class Ui {int clears,cancellations;ScreenPreparation.State screen=ScreenPreparation.State.READY;ScreenPreparation.State screenState(){return screen;}void clear(){clears++;}void cancelGestures(){cancellations++;}}final Ui ui=new Ui();
  static final class Recovery {int cancellations;void cancel(){cancellations++;}}final Recovery recovery=new Recovery();
  PreviewService(){instance=this;}

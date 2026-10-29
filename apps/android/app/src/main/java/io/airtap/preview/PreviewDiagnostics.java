@@ -14,7 +14,7 @@ import android.util.Log;
 final class PreviewDiagnostics {
     enum Event {
         accessibility_connected, accessibility_interrupt, accessibility_destroy,
-        authorize, stop, connect_wait_network, connect_attempt, socket_open,
+        authorize, stop, connect_wait_network, connect_attempt, socket_open, handshake_timeout,
         socket_closing, socket_closed, socket_failure, socket_cancel, socket_close_requested,
         disconnected, reconnect_scheduled, network_observe, network_available,
         network_lost, network_capabilities, network_reset,

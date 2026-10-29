@@ -24,6 +24,7 @@ import okio.ByteString;
 public final class PreviewService extends AccessibilityService {
     static PreviewService instance;
     private static final Pattern ID = Pattern.compile("[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}");
+    private static final long HANDSHAKE_TIMEOUT_MS = 30000;
     private final Handler main = new Handler(Looper.getMainLooper());
     private final Random jitter = new Random();
     private final OkHttpClient client = TlsPolicy.newClientBuilder()
@@ -39,7 +40,7 @@ public final class PreviewService extends AccessibilityService {
     private long commandSerial, activeCommand;
     private ConnectivityManager.NetworkCallback networkCallback;
     private Network currentNetwork;
-    private Runnable reconnectTask;
+    private Runnable reconnectTask, handshakeTask;
     private int generation, retry, connections, attempts;
     private String url, token;
     private String state = "等待连接自己的 AI";
@@ -207,7 +208,7 @@ public final class PreviewService extends AccessibilityService {
         WorkspaceShares.revokeAll(this);
         recovery.cancel();
         ui.cancelGestures();
-        ui.clear(); main.removeCallbacksAndMessages(null); reconnectTask = null;
+        ui.clear(); main.removeCallbacksAndMessages(null); reconnectTask = null; handshakeTask = null;
         if (networkCallback != null) {
             try { getSystemService(ConnectivityManager.class).unregisterNetworkCallback(networkCallback); } catch (Exception ignored) { }
             networkCallback = null;
@@ -243,6 +244,7 @@ public final class PreviewService extends AccessibilityService {
                                 PreviewDiagnostics.Reason.stale_callback, 0, run, socket == ws ? 1 : 0);
                         ws.cancel(); return;
                     }
+                    cancelHandshake();
                     connected = true;
                     connections++;
                     retry = 0;
@@ -305,6 +307,31 @@ public final class PreviewService extends AccessibilityService {
                 });
             }
         });
+        awaitHandshake(socket, run, connectionOpen);
+    }
+
+    private void awaitHandshake(WebSocket expected, int run,
+                                java.util.concurrent.atomic.AtomicBoolean connectionOpen) {
+        cancelHandshake();
+        // TCP's connect timeout and WebSocket pings do not bound DNS/TLS/HTTP upgrade
+        // as a whole. Keep an independent deadline until onOpen reaches the main thread.
+        handshakeTask = () -> {
+            if (socket != expected || generation != run || connected) return;
+            connectionOpen.set(false);
+            PreviewDiagnostics.event(this, PreviewDiagnostics.Event.handshake_timeout,
+                    PreviewDiagnostics.Reason.timeout, 0, run, 1);
+            lastDiagnostic = "HTTP=0 exception=handshake_timeout cause=none";
+            // Detach first: cancel() may deliver a late onFailure/onOpen. Neither may
+            // affect the next attempt or resume work on the expired transport.
+            disconnected(expected, run, 0);
+            expected.cancel();
+        };
+        main.postDelayed(handshakeTask, HANDSHAKE_TIMEOUT_MS);
+    }
+
+    private void cancelHandshake() {
+        if (handshakeTask != null) main.removeCallbacks(handshakeTask);
+        handshakeTask = null;
     }
 
     private boolean current(WebSocket ws, int run) {
@@ -315,6 +342,7 @@ public final class PreviewService extends AccessibilityService {
         PreviewDiagnostics.event(this, PreviewDiagnostics.Event.disconnected,
                 PreviewDiagnostics.Reason.none, status, run, socket == ws ? 1 : 0);
         if (socket != ws || generation != run) return;
+        cancelHandshake();
         socket = null;
         connected = false;
         activeCommand = 0;
@@ -377,6 +405,7 @@ public final class PreviewService extends AccessibilityService {
         PreviewDiagnostics.event(this, PreviewDiagnostics.Event.network_reset,
                 PreviewDiagnostics.Reason.network_change, 0, run, -1);
         WebSocket previous = socket;
+        cancelHandshake();
         socket = null;
         connected = false;
         activeCommand = 0;
