@@ -1,7 +1,7 @@
 {
   "allowlist_path": "tools/source-package-files.json",
-  "android_version": "0.4.0-beta.9",
-  "archive_root": "airtap-source-0.4.0-beta.9-code39",
+  "android_version": "0.4.0-beta.10",
+  "archive_root": "airtap-source-0.4.0-beta.10-code40",
   "cli_version": "0.4.0-cli.8",
   "closure_policy": "airtap-source-closure-v1",
   "files": [
@@ -997,6 +997,10 @@
     },
     {
       "kind": "source",
+      "path": "release/install-video.json"
+    },
+    {
+      "kind": "source",
       "path": "release/retired-apks.json"
     },
     {
@@ -1010,6 +1014,12 @@
     {
       "kind": "source",
       "path": "release/site/index.html"
+    },
+    {
+      "kind": "binary",
+      "path": "release/site/install-code39-poster.jpg",
+      "review": "Public installation guide title-card poster from reviewed code39 guide frame60 at2seconds. Original1080x1920 JPEG visually reviewed: only product/date, installation guide title and already-connected-phone/real-pages/website-screenshots explanation; no account, private phone content, invitation, pairing digits or private paths. Exact JPEG bytes pinned; no MP4 or raw recording is in source.",
+      "sha256": "17f0f7456bd4094e5700c11d7033f7f9a14531f302574a5c4572edffd70a200d"
     },
     {
       "kind": "source",
@@ -1103,6 +1113,6 @@
   "protocol_version": 4,
   "schema": "airtap-source-allowlist-v1",
   "scope": "Reviewed current Android, CLI, relay, site, build, CI and test source closure. No Git history, credentials, private deployment state, APK, or raw phone evidence. Historical acceptance retains its original version and scope; a source ZIP is not public release approval.",
-  "version": "0.4.0-beta.9-code39",
-  "version_code": 39
+  "version": "0.4.0-beta.10-code40",
+  "version_code": 40
 }

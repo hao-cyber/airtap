@@ -1,0 +1,15 @@
+{
+  "schema": "airtap-reviewed-install-video-v1",
+  "filename": "airtap-install-guide-code39-20261030.mp4",
+  "sha256": "7524a46c218e46eba072c0c7e31f49ff9af4b8d58e9db9e04cf703d987d21639",
+  "bytes": 1451062,
+  "duration_seconds": 66,
+  "version_code": 39,
+  "title": "66 秒，看安装和接入步骤",
+  "description": "以一部已经接入的 Android 手机为例，展示安装入口、系统权限位置，以及把邀请交给 AI、核码连接的步骤。视频结合真实系统页面、官网截图和明确标注的步骤说明；首次安装、开启权限、发送邀请和核码动作未实录，不代表独立新用户首用验收。维护者通过 USB 只读导航录屏，没有改变权限或原连接。",
+  "poster": {
+    "filename": "install-code39-poster.jpg",
+    "sha256": "17f0f7456bd4094e5700c11d7033f7f9a14531f302574a5c4572edffd70a200d",
+    "bytes": 68996
+  }
+}

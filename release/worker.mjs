@@ -18,15 +18,20 @@ async function videoResponse(request, response, env, path) {
   const headers = new Headers(response.headers);
   let size = Number(headers.get('Content-Length'));
   if (!size) {
-    // The local ASSETS binding omits length even for GET. Its reviewed manifest
-    // is deployed atomically with the bytes and only describes one public film.
-    try {
-      const metadata = await env.ASSETS.fetch(new Request(new URL('/media/usage-video.json', request.url)));
-      const media = await metadata.json();
-      if (!metadata.ok || media.schema !== 'airtap-reviewed-usage-video-v1'
-          || '/media/' + media.filename !== path || !validVideoSize(media.bytes)) throw new Error();
-      size = media.bytes;
-    } catch {
+    // ASSETS may omit length even for GET. Only these two independently reviewed
+    // manifests, deployed atomically with their bytes, can provide it.
+    for (const kind of ['usage', 'install']) {
+      try {
+        const metadata = await env.ASSETS.fetch(new Request(new URL('/media/' + kind + '-video.json', request.url)));
+        const media = await metadata.json();
+        if (metadata.ok && media.schema === 'airtap-reviewed-' + kind + '-video-v1'
+            && '/media/' + media.filename === path && validVideoSize(media.bytes)) {
+          size = media.bytes;
+          break;
+        }
+      } catch { /* An omitted guide must not prevent the other film playing. */ }
+    }
+    if (!size) {
       await response.body?.cancel();
       return new Response('Video temporarily unavailable', {status:502});
     }

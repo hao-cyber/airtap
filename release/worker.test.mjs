@@ -86,3 +86,36 @@ test('missing ASSETS length uses only a bounded matching public media identity',
     if(expected===200){assert.equal(r.headers.get('Content-Length'),'10');assert.equal(await r.text(),'0123456789');}
   }
 });
+test('two films use their own bounded manifest for HEAD and streamed Range',async()=>{
+  const films={usage:'0123456789',install:'abcdefghijklmnop'};
+  for(const kind of ['usage','install']) for(const method of ['GET','HEAD']) {
+    const lookedUp=[];
+    const env={ASSETS:{fetch:async req=>{
+      const path=new URL(req.url).pathname;
+      for(const key of ['usage','install']) if(path===`/media/${key}-video.json`) {
+        lookedUp.push(key);
+        return new Response(JSON.stringify({schema:`airtap-reviewed-${key}-video-v1`,filename:`${key}-code39.mp4`,bytes:films[key].length}));
+      }
+      return new Response(films[kind],{headers:{'Content-Type':'video/mp4'}});
+    }}};
+    const r=await worker.fetch(new Request(`https://airtap.test/media/${kind}-code39.mp4`,{method,headers:{Range:'bytes=2-4'}}),env);
+    assert.equal(r.status,method==='HEAD'?200:206);
+    assert.equal(r.headers.get('Content-Length'),String(method==='HEAD'?films[kind].length:3));
+    assert.equal(r.headers.get('Content-Range'),method==='HEAD'?null:`bytes 2-4/${films[kind].length}`);
+    assert.equal(await r.text(),method==='HEAD'?films[kind]:films[kind].slice(2,5));
+    assert.deepEqual(lookedUp,kind==='usage'?['usage']:['usage','install']);
+  }
+});
+test('installation film survives omitted usage media but rejects wrong or unbounded guide identity',async()=>{
+  for(const [change,status] of [[{},206],[{schema:'airtap-reviewed-usage-video-v1'},502],[{filename:'usage-code39.mp4'},502],[{bytes:21*1024*1024},502]]) {
+    const env={ASSETS:{fetch:async req=>{
+      const path=new URL(req.url).pathname;
+      if(path==='/media/usage-video.json')return new Response('not included',{status:404});
+      if(path==='/media/install-video.json')return new Response(JSON.stringify({schema:'airtap-reviewed-install-video-v1',filename:'install-code39.mp4',bytes:10,...change}));
+      return new Response('0123456789',{headers:{'Content-Type':'video/mp4'}});
+    }}};
+    const r=await worker.fetch(new Request('https://airtap.test/media/install-code39.mp4',{headers:{Range:'bytes=2-4'}}),env);
+    assert.equal(r.status,status);
+    if(status===206)assert.equal(await r.text(),'234');
+  }
+});

@@ -246,6 +246,67 @@ class Releases(unittest.TestCase):
                             m.build(tmp/'app.apk', metadata, out, tmp, previous)
                         self.assertFalse(out.exists())
 
+    def install_fixture(self, source, tmp, usage):
+        poster = b'reviewed installation poster fixture'
+        (source/'site/install-poster.jpg').write_bytes(poster)
+        video = tmp/'private-reviewed-install.mp4'
+        video.write_bytes(b'reviewed installation video fixture')
+        manifest = {**usage, 'schema':'airtap-reviewed-install-video-v1',
+                    'filename':'install-code39.mp4', 'sha256':m.digest(video.read_bytes()),
+                    'bytes':video.stat().st_size, 'duration_seconds':66,
+                    'poster':{'filename':'install-poster.jpg', 'sha256':m.digest(poster), 'bytes':len(poster)}}
+        path = source/'install-video.json'
+        path.write_text(json.dumps(manifest))
+        (source/'site/index.html').write_text('<html>{{USAGE_DEMO}}<section id="start">{{INSTALL_DEMO}}</section></html>')
+        return video, path, manifest
+
+    def test_two_independent_players_only_include_explicit_hash_bound_media(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp = Path(tmp)
+            previous, release, apk = self.previous(tmp)
+            source, usage, usage_path, usage_manifest = self.media_fixture(tmp)
+            install, install_path, install_manifest = self.install_fixture(source, tmp, usage_manifest)
+            metadata = tmp/'release.json'; metadata.write_text(json.dumps(release))
+            with patch.object(m, 'ROOT', source), patch.object(m, 'MEDIA_MANIFEST', usage_path), \
+                    patch.object(m, 'INSTALL_MEDIA_MANIFEST', install_path), patch.object(m, 'verify_apk', return_value=apk):
+                for use_usage, use_install in [(True,True), (True,False), (False,True), (False,False)]:
+                    out = tmp/f'players-{use_usage}-{use_install}'
+                    m.build(tmp/'app.apk', metadata, out, tmp, previous,
+                            usage if use_usage else None, install if use_install else None)
+                    page = (out/'site/index.html').read_text()
+                    self.assertNotIn('{{', page)
+                    self.assertEqual(page.count('<video '), int(use_usage)+int(use_install))
+                    for kind, included, fixture in [('usage',use_usage,usage_manifest), ('install',use_install,install_manifest)]:
+                        identity = 'demo' if kind == 'usage' else 'install-demo'
+                        self.assertEqual(f'id="{identity}"' in page, included)
+                        self.assertEqual((out/f'site/media/{kind}-video.json').exists(), included)
+                        self.assertEqual((out/'site'/fixture['poster']['filename']).exists(), included)
+                        self.assertEqual((out/'site/media'/fixture['filename']).exists(), included)
+                        if included:
+                            inventory = json.loads((out/'build-manifest.json').read_text())['files']
+                            self.assertEqual(inventory['site/media/'+fixture['filename']], fixture['sha256'])
+                    self.assertEqual(json.loads((out/'site/updates/android.json').read_text()), release)
+
+    def test_install_media_hash_size_symlink_and_colliding_identity_fail_closed(self):
+        for fault in ['wrong-video', 'poster-symlink', 'oversize', 'duplicate-video']:
+            with self.subTest(fault=fault), tempfile.TemporaryDirectory() as tmp:
+                tmp = Path(tmp)
+                previous, release, apk = self.previous(tmp)
+                source, usage, usage_path, usage_manifest = self.media_fixture(tmp)
+                install, install_path, install_manifest = self.install_fixture(source, tmp, usage_manifest)
+                if fault == 'wrong-video': install.write_bytes(b'x'*install_manifest['bytes'])
+                elif fault == 'poster-symlink':
+                    poster = source/'site/install-poster.jpg'; poster.unlink(); poster.symlink_to(install)
+                elif fault == 'oversize': install_manifest['bytes'] = m.MAX_MEDIA_BYTES+1
+                else: install_manifest['filename'] = usage_manifest['filename']
+                install_path.write_text(json.dumps(install_manifest))
+                metadata = tmp/'release.json'; metadata.write_text(json.dumps(release))
+                with patch.object(m, 'ROOT', source), patch.object(m, 'MEDIA_MANIFEST', usage_path), \
+                        patch.object(m, 'INSTALL_MEDIA_MANIFEST', install_path), patch.object(m, 'verify_apk', return_value=apk), \
+                        self.assertRaises(ValueError):
+                    m.build(tmp/'app.apk', metadata, tmp/'refused', tmp, previous, usage, install)
+                self.assertFalse((tmp/'refused').exists())
+
 
 if __name__ == '__main__':
     unittest.main()
