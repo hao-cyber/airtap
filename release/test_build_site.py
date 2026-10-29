@@ -307,6 +307,49 @@ class Releases(unittest.TestCase):
                     m.build(tmp/'app.apk', metadata, tmp/'refused', tmp, previous, usage, install)
                 self.assertFalse((tmp/'refused').exists())
 
+    def test_recorded_versions_are_optional_and_do_not_change_recommended_apk(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp = Path(tmp)
+            self.r = json.loads((m.ROOT/'android/39.json').read_text())
+            previous, release, apk = self.previous(tmp)
+            source, usage, usage_path, usage_manifest = self.media_fixture(tmp)
+            install, install_path, install_manifest = self.install_fixture(source, tmp, usage_manifest)
+            metadata = tmp/'release.json'; metadata.write_text(json.dumps(release))
+            with patch.object(m, 'ROOT', source), patch.object(m, 'MEDIA_MANIFEST', usage_path), \
+                    patch.object(m, 'INSTALL_MEDIA_MANIFEST', install_path), patch.object(m, 'verify_apk', return_value=apk):
+                for name, recorded in [('legacy', None), ('mixed', [39, 40]), ('other-source', [40])]:
+                    with self.subTest(name=name):
+                        manifest = dict(install_manifest)
+                        if recorded is not None:
+                            manifest['recorded_version_codes'] = recorded
+                        install_path.write_text(json.dumps(manifest))
+                        out = tmp/name
+                        result = m.build(tmp/'app.apk', metadata, out, tmp, previous, usage, install)
+                        public = json.loads((out/'site/media/install-video.json').read_text())
+                        self.assertEqual(public, manifest)
+                        self.assertEqual(public['version_code'], 39)
+                        self.assertEqual(json.loads((out/'site/updates/android.json').read_text()), release)
+                        self.assertEqual((out/'site/downloads'/f"{release['apk_sha256']}.apk").read_bytes(), apk)
+                        self.assertEqual(result['deployment_kind'], 'site_refresh')
+
+    def test_invalid_recorded_versions_and_unknown_media_fields_are_refused(self):
+        invalid = [None, [], [40, 39], [39, 39], [True], [False], [0], [-1],
+                   [39.0], ['39'], 39, '39', {'code': 39}, [[39]]]
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp = Path(tmp)
+            source, _, usage_path, usage_manifest = self.media_fixture(tmp)
+            _, install_path, install_manifest = self.install_fixture(source, tmp, usage_manifest)
+            with patch.object(m, 'INSTALL_MEDIA_MANIFEST', install_path):
+                for recorded in invalid:
+                    with self.subTest(recorded=recorded):
+                        install_path.write_text(json.dumps({**install_manifest, 'recorded_version_codes': recorded}))
+                        with self.assertRaisesRegex(ValueError, 'recorded video versions'):
+                            m.reviewed_media(None, 'install')
+                install_path.write_text(json.dumps({**install_manifest, 'recorded_version_codes': [39, 40],
+                                                   'recorded_version_code': 40}))
+                with self.assertRaisesRegex(ValueError, 'Unexpected public media manifest'):
+                    m.reviewed_media(None, 'install')
+
 
 if __name__ == '__main__':
     unittest.main()

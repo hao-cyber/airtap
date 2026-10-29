@@ -89,7 +89,8 @@ def reviewed_media(media_file, kind='usage'):
     m = json.loads(manifest.read_text())
     fields = {'schema', 'filename', 'sha256', 'bytes', 'duration_seconds',
               'version_code', 'title', 'description', 'poster'}
-    if set(m) != fields or m['schema'] != 'airtap-reviewed-' + kind + '-video-v1':
+    if (set(m) not in (fields, fields | {'recorded_version_codes'})
+            or m['schema'] != 'airtap-reviewed-' + kind + '-video-v1'):
         raise ValueError('Unexpected public media manifest')
     if not re.fullmatch(r'[a-z0-9][a-z0-9-]{0,100}\.mp4', m['filename']):
         raise ValueError('Invalid public video filename')
@@ -98,6 +99,12 @@ def reviewed_media(media_file, kind='usage'):
             or not 1 <= m['duration_seconds'] <= 600 or type(m['version_code']) is not int
             or m['version_code'] < 1):
         raise ValueError('Invalid public video identity')
+    if 'recorded_version_codes' in m:
+        recorded = m['recorded_version_codes']
+        if (not isinstance(recorded, list) or not recorded
+                or any(type(code) is not int or code < 1 for code in recorded)
+                or recorded != sorted(set(recorded))):
+            raise ValueError('Invalid recorded video versions')
     if any(not isinstance(m[k], str) or not 1 <= len(m[k]) <= limit
            for k, limit in [('title', 120), ('description', 1000)]):
         raise ValueError('Invalid public video text')

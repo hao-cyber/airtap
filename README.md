@@ -14,13 +14,13 @@ Android 14+ · 公开测试版 · 需要能调用工具的个人 AI
 
 [观看 90 秒真机使用演示](https://airtap.memtrix.dev/#demo)：Muse 对话 → 手机执行 → 返回结果。
 
-Muse 曾打开手机上的 WPS，读取文档中的两行文字，写入一条新便签，再保存、重新打开核对。这轮使用魅族 Note 16 / Android 15 和 beta.8（code38）版本，由 Muse 通过自己的云端工具实际操作。[查看这轮结果](docs/results/beta8-code38-muse-20261027.json)
+这轮演示中，Muse 在小红书读取两条徒步路线，整理到新便签里，保存后重新打开核对，再回到对话汇报。设备是魅族 Note 16 / Android 15，Airtap 为 beta.9（code39），任务由 Muse 通过自己的云端工具执行。[查看这轮结果](docs/results/beta9-code39-muse-20261029.json)
 
 查资料、编辑文字、跨 App 整理内容，都由你原有的 AI 规划；Airtap 提供操作手机的能力。它不要求每个 App 单独提供 API，也不需要你先搭好固定工作流。具体任务仍取决于 AI、App 和手机系统。
 
 ## 开始使用
 
-[观看 66 秒安装与接入指南](https://airtap.memtrix.dev/install#start)。以已接入的手机展示权限设置；下载、邀请和核码配合步骤说明讲解。
+[观看 70 秒安装与接入指南](https://airtap.memtrix.dev/install#start)。真机演示官网下载和系统设置，邀请与核码配合步骤说明。示例手机已接入，并非首次安装全程实录。
 
 1. 在 Android 14 或更新的手机上安装 Airtap。
 2. 打开 App，按引导完成操作权限、通知和后台运行设置。

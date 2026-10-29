@@ -1008,18 +1008,18 @@
       "path": "release/site-acceptance.md"
     },
     {
+      "kind": "binary",
+      "path": "release/site/airtap-install-guide-20261030-r2-poster.jpg",
+      "review": "Reviewed public installation guide title card,1080x1920 JPEG: product/date, Android14+, existing-phone demonstration, actual download/settings navigation and separate connection instructions. Root visually inspected exact JPEG: no accounts, private phone content, invitations, pairing codes or private paths. Mixed code39/code40 sources belong to the video; this poster is a title card. Exact bytes pinned; no raw recording or MP4 in source.",
+      "sha256": "ba3fb2e6c3686fcfdc5c657dcd0563269b9619688c18c8e35656fbfe16ed85d4"
+    },
+    {
       "kind": "source",
       "path": "release/site/app.js"
     },
     {
       "kind": "source",
       "path": "release/site/index.html"
-    },
-    {
-      "kind": "binary",
-      "path": "release/site/install-code39-poster.jpg",
-      "review": "Public installation guide title-card poster from reviewed code39 guide frame60 at2seconds. Original1080x1920 JPEG visually reviewed: only product/date, installation guide title and already-connected-phone/real-pages/website-screenshots explanation; no account, private phone content, invitation, pairing digits or private paths. Exact JPEG bytes pinned; no MP4 or raw recording is in source.",
-      "sha256": "17f0f7456bd4094e5700c11d7033f7f9a14531f302574a5c4572edffd70a200d"
     },
     {
       "kind": "source",
