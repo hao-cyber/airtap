@@ -4,7 +4,7 @@
 
 推荐版本是发布团队的责任。推荐安装包升级时将官网、`/updates/android.json` 和安装包一次部署；仅更新网站也使用同一冻结构建流程，无需虚增 Android 版本；APK 存在 `/downloads/<sha256>.apk`，字节不可覆盖。网站和推荐信息不长期缓存，APK 可永久缓存。正常升级时保留未退役的旧 APK；经审核需停止公开分发的包写入 `retired-apks.json`，旧地址返回 410 与当前安装页链接，不把原地址替换成新 APK 字节。私有历史原件与冻结构建保留。App、CLI 与协议各自管理内部版本，不要求用户理解或配对其编号。
 
-公开静态页设置 `Cache-Control: public, no-cache, no-transform`，禁止 CDN 改写或自动注入访问统计脚本，并以实际 HTTP 内容核对；此设置仅影响下载站，不修改中继或整个域名区域的分析配置。更新 JSON 仍为 `no-store`。参见 [Cloudflare 自动注入说明](https://developers.cloudflare.com/web-analytics/get-started/)。
+公开静态页设置 `Cache-Control: public, no-cache, no-transform`，要求 CDN 保持原文并防止自动注入访问统计脚本，再以实际 HTTP 内容核对；此设置仅影响下载站，不修改中继或整个域名区域的分析配置。更新 JSON 仍为 `no-store`。参见 [Cloudflare 自动注入说明](https://developers.cloudflare.com/web-analytics/get-started/)。Cloudflare Managed robots 仍可能在 `/robots.txt` 前附加托管规则，这一项须按[网站验收清单](site-acceptance.md#部署后)单独审阅确切前缀，不以此放宽其他文件的校验。
 
 ## 每夜开发包与推荐安装包
 
@@ -49,7 +49,7 @@ python3 release/verify_site.py --build /private/site-26 --base-url https://airta
 
 首次上线不传 `--previous`。示例中的编号由发布者管理，不能直接用示例值作为验收证据。部署前核对 `build-manifest.json` 并保留冻结目录，之后不修改其文件。Wrangler 会在配置旁写入运行状态，预览和部署均使用新建工作副本；校验始终以原冻结目录为准，不把副本内的 `.wrangler` 当作发布制品。
 
-6. 上述线上验收脚本以普通 Python HTTP 客户端读取固定下载入口、所有页面与静态资源、更新 JSON、推荐及保留的旧 APK，逐字比对冻结构建并检查缓存和下载响应头，防止 CDN 注入或推荐仍旧；对每个退役 APK 地址分别检查 GET 与 HEAD 返回 410、禁止缓存并引导安装当前版本。它不会部署或访问私人接口；输出只证明网站 HTTP 内容，不代替手机安装、覆盖升级或个人 AI 验收。另在浏览器检查手机和桌面宽度、帮助直达与下载，再完成对应手机覆盖升级。App 检查更新只访问固定域名，不发送身份或凭据，且不会自动安装。安装仍由 Android 系统确认。
+6. 上述线上验收脚本以普通 Python HTTP 客户端读取固定下载入口、所有页面与静态资源、更新 JSON、推荐及保留的旧 APK，逐字比对冻结构建并检查缓存和下载响应头，防止 CDN 注入或推荐仍旧；对每个退役 APK 地址分别检查 GET 与 HEAD 返回 410、禁止缓存并引导安装当前版本。若 `/robots.txt` 包含已单独审阅的托管前缀，增加 `--managed-robots-prefix /private/reviewed-robots-prefix.txt`，只允许该前缀与冻结原文的精确拼接，并在报告中记录转换摘要；前缀或其他内容变化仍拒绝。它不会部署或访问私人接口；输出只证明网站 HTTP 内容，不代替手机安装、覆盖升级或个人 AI 验收。另在浏览器检查手机和桌面宽度、帮助直达与下载，再完成对应手机覆盖升级。App 检查更新只访问固定域名，不发送身份或凭据，且不会自动安装。安装仍由 Android 系统确认。
 7. 保存提交、部署 ID、证书、APK 摘要和测试结果，发布带这些证据的 release。旧验收仅覆盖其原制品，新制品需要对应变更回归。
 
 ## 仅更新官网与帮助

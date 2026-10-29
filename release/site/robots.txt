@@ -1,3 +1,10 @@
 User-agent: *
 Allow: /
 Sitemap: https://airtap.memtrix.dev/sitemap.xml
+
+# Search indexing exceptions for this site; training permission stays withheld.
+# Matching groups merge under RFC 9309; Allow wins an equal-path conflict.
+User-agent: Baiduspider
+User-agent: PetalBot
+Content-Signal: search=yes,ai-train=no,use=reference
+Allow: /

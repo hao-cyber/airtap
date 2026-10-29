@@ -56,4 +56,6 @@ python3 release/verify_site.py --build /private/frozen-site --base-url https://a
 
 Cloudflare 开启 [Managed robots.txt](https://developers.cloudflare.com/bots/additional-configurations/managed-robots-txt/) 时，会在已有抓取规则前附加托管规则。遇到这个差异时，先单独保存并阅读公网全文，核对所有新增规则，再将确切前缀保存为本地文件，使用 `--managed-robots-prefix /private/reviewed-robots-prefix.txt` 重新验证。该参数只接受此前缀与冻结 `robots.txt` 原文的逐字拼接；前缀变化、原文变化或其他资源变化仍报错。报告单独列出转换及摘要，不将其描述为线上文件与源码完全一致，不自动抓取并信任新前缀。也不要为了通过网站检查改变共享域名的安全或爬虫策略。Cloudflare 托管规则可能单独拒绝部分搜索或 AI 爬虫，须按实际规则记录可发现性限制；通用 `Allow: /` 不会覆盖更具体的拒绝规则。
 
+本站自有规则仅为 `Baiduspider` 和 `PetalBot` 增加搜索抓取例外，继续声明 `search=yes,ai-train=no,use=reference`，不修改共享 Cloudflare 配置。[RFC 9309](https://www.rfc-editor.org/rfc/rfc9309.html#section-2.2.1) 要求合并匹配的同名组，并建议相同路径的冲突优先 `Allow`。发布时将已审托管前缀与本站原文合并检查：这两个搜索 UA 应允许抓取，`GPTBot`、`ClaudeBot`、`Bytespider` 等其他托管拒绝项仍应拒绝；前缀更新后重新审阅。使用符合此行为的解析器，或明确只覆盖当前简单规则的有限验证，不能将解析器通过写成真实爬虫验收。合成 UA 返回 200 也不代表搜索引擎实际抓取、收录或排名；这些结果须另有证据。混合用途爬虫的搜索与训练不能仅靠 UA 技术隔离，内容信号是用途声明，不承诺能阻止所有训练使用。
+
 另用实际浏览器打开 `/install` 和帮助直达链接。新 APK 还需要正常覆盖升级与对应变更回归；沿用同 APK 的网站修正不要求重复安装。记录 Git 提交、冻结构建摘要、Cloudflare 部署 ID、公网检查以及手机/AI 验收的明确边界。无法招募独立用户时保留“独立普通用户全程试用未验证”，不虚构替代记录。
