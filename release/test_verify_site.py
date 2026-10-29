@@ -180,6 +180,40 @@ class FrozenSiteVerification(unittest.TestCase):
                     verify_site.verify(self.build, origin, fetch)
                 fetch.assert_not_called()
 
+    def test_media_full_bytes_head_and_range_are_required(self):
+        video = bytes(range(256)) * 8
+        target = self.build/'site/media/usage-code39.mp4'
+        target.parent.mkdir(); target.write_bytes(video)
+        manifest_path = self.build/'build-manifest.json'
+        manifest = json.loads(manifest_path.read_text())
+        manifest['files']['site/media/usage-code39.mp4'] = verify_site.sha(video)
+        manifest_path.write_text(json.dumps(manifest))
+        def media_response(url, method, limit, request_headers=None):
+            if urlsplit(url).path != '/media/usage-code39.mp4':
+                return self.response(url, method, limit)
+            headers = {'Content-Type':'video/mp4','Content-Length':str(len(video)),
+                       'Cache-Control':'public, no-cache, no-transform',
+                       'X-Content-Type-Options':'nosniff','Referrer-Policy':'no-referrer'}
+            if method == 'HEAD': return 200, headers, b''
+            if request_headers:
+                self.assertEqual(request_headers, {'Range':'bytes=0-1023'})
+                headers.update({'Content-Length':'1024','Content-Range':'bytes 0-1023/2048'})
+                return 206, headers, video[:1024]
+            return 200, headers, video
+        passed = verify_site.verify(self.build, 'https://example.test', media_response)
+        self.assertIn('RANGE /media/usage-code39.mp4', passed['public_checks'])
+        for fault in ['ignored-range', 'wrong-range', 'wrong-head', 'wrong-mime']:
+            def faulty(url, method, limit, request_headers=None):
+                status, headers, data = media_response(url, method, limit, request_headers)
+                if urlsplit(url).path == '/media/usage-code39.mp4':
+                    if request_headers and fault == 'ignored-range': status = 200
+                    if request_headers and fault == 'wrong-range': headers['Content-Range'] = 'bytes 0-1023/9999'
+                    if method == 'HEAD' and fault == 'wrong-head': headers['Content-Length'] = '1'
+                    if fault == 'wrong-mime': headers['Content-Type'] = 'text/plain'
+                return status, headers, data
+            with self.subTest(fault=fault), self.assertRaisesRegex(ValueError, 'video|Video'):
+                verify_site.verify(self.build, 'https://example.test', faulty)
+
 
 if __name__ == '__main__':
     unittest.main()

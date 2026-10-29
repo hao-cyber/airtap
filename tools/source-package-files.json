@@ -753,6 +753,10 @@
     },
     {
       "kind": "result",
+      "path": "docs/results/beta9-code39-network-route-20261029.json"
+    },
+    {
+      "kind": "result",
       "path": "docs/results/beta9-code39-recovery-20261029.json"
     },
     {
@@ -1038,12 +1042,22 @@
       "path": "release/site/style.css"
     },
     {
+      "kind": "binary",
+      "path": "release/site/usage-code39-poster.jpg",
+      "review": "Public title-card poster from the reviewed Android code39 usage film at 2 seconds. Visually checked at original resolution: only product/task introduction and test date, no phone screen, user dialogue, accounts, connection data or private paths. Exact JPEG bytes pinned; raw video is not included in source.",
+      "sha256": "d048bff7ae5bf63301ac53fed809c98d2ed3cba0ae6008fff540b5d1a8e486e9"
+    },
+    {
       "kind": "source",
       "path": "release/test_build_site.py"
     },
     {
       "kind": "source",
       "path": "release/test_verify_site.py"
+    },
+    {
+      "kind": "source",
+      "path": "release/usage-video.json"
     },
     {
       "kind": "source",

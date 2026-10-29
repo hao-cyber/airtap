@@ -63,10 +63,10 @@ def read_build(build):
     return release, contents
 
 
-def request(url, method, max_bytes):
+def request(url, method, max_bytes, headers=None):
     opener = build_opener(NoRedirect())
     try:
-        response = opener.open(Request(url, method=method), timeout=30)
+        response = opener.open(Request(url, method=method, headers=headers or {}), timeout=30)
     except HTTPError as error:
         response = error
     with response:
@@ -92,9 +92,10 @@ def verify(build, base_url=None, fetch=request, managed_robots_prefix=None):
         if parsed.scheme != 'https' or not parsed.hostname or parsed.username or parsed.password or parsed.path not in ('', '/') or parsed.query or parsed.fragment:
             raise ValueError('Use a public HTTPS origin without credentials or a path')
         base_url = base_url.rstrip('/')
-        def public_request(path, method, limit):
+        def public_request(path, method, limit, headers=None):
             try:
-                return fetch(base_url + path, method, limit)
+                return (fetch(base_url + path, method, limit, headers) if headers
+                        else fetch(base_url + path, method, limit))
             except (OSError, ValueError) as failure:
                 # Only the public relative route and failure type enter diagnostics.
                 raise ValueError('Public request failed: ' + method + ' ' + path + ' (' + type(failure).__name__ + ')') from None
@@ -128,6 +129,25 @@ def verify(build, base_url=None, fetch=request, managed_robots_prefix=None):
             if apk and (headers.get('content-type') != 'application/vnd.android.package-archive' or headers.get('content-disposition') != 'attachment; filename="Airtap.apk"'):
                 raise ValueError('Unexpected APK download headers')
             checked.append(path)
+            if path.startswith('/media/') and path.endswith('.mp4'):
+                if headers.get('content-type') != 'video/mp4':
+                    raise ValueError('Unexpected video content type')
+                head_status, head_headers, head_body = public_request(path, 'HEAD', 0)
+                head_headers = {key.lower(): value for key, value in head_headers.items()}
+                if (head_status != 200 or head_body or head_headers.get('content-type') != 'video/mp4'
+                        or head_headers.get('content-length') != str(len(expected))):
+                    raise ValueError('Video HEAD identity is invalid')
+                checked.append('HEAD ' + path)
+                end = min(1023, len(expected) - 1)
+                range_status, range_headers, range_body = public_request(
+                    path, 'GET', end + 1, {'Range': f'bytes=0-{end}'})
+                range_headers = {key.lower(): value for key, value in range_headers.items()}
+                if (range_status != 206 or range_body != expected[:end + 1]
+                        or range_headers.get('content-type') != 'video/mp4'
+                        or range_headers.get('content-range') != f'bytes 0-{end}/{len(expected)}'
+                        or range_headers.get('content-length') != str(end + 1)):
+                    raise ValueError('Video byte range is invalid')
+                checked.append('RANGE ' + path)
         status, headers, data = public_request('/download/android', 'GET', 0)
         headers = {key.lower(): value for key, value in headers.items()}
         if status != 302 or headers.get('location') != '/downloads/' + release['apk_sha256'] + '.apk' or headers.get('cache-control') != 'no-store' or data:

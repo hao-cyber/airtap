@@ -1,0 +1,63 @@
+{
+  "schema": "airtap-bounded-network-route-review-v1",
+  "recorded_date": "2026-10-29",
+  "status": "passed_short_muse_regression_after_maintainer_route_intervention",
+  "client": {
+    "version_name": "0.4.0-beta.9",
+    "version_code": 39,
+    "build_type": "release",
+    "apk_sha256": "3f280b39b134934246ebe2fd89abd1a9bd4fd615431b359c70258686d8b1fbe7"
+  },
+  "device_scope": "One previously paired Meizu Note 16 / Android 15",
+  "actor": "Muse actual cloud environment using CLI.8 and the original approved persistent pairing",
+  "prior_failure": {
+    "observed": "Retained phone diagnostics show repeated connection timeouts and 30-second handshake deadlines while the service remained alive, the screen interactive and Doze false. The beginning of the original outage is not in the retained window.",
+    "network_path": "Airtap was excluded from the existing VPN and used the underlying Wi-Fi network.",
+    "diagnosis_limit": "The failing DNS/TCP/TLS/WebSocket phase and original outage trigger were not identified."
+  },
+  "maintainer_intervention": {
+    "action": "Used the existing VPN app UI to remove Airtap from excluded applications and restart that VPN.",
+    "unchanged": "Airtap version, original pairing and other saved VPN rules were retained; the Airtap process was not replaced.",
+    "network_reset_local": "2026-10-29 20:47:52.886 Asia/Shanghai",
+    "new_socket_open_local": "2026-10-29 20:47:54.883 Asia/Shanghai",
+    "websocket_status": 101,
+    "claim_limit": "A successful new connection followed a maintainer route change; this is not autonomous repair of the original direct path. VPN participation alone does not establish the final upstream exit selected by its rules."
+  },
+  "short_regression": {
+    "window_local": "2026-10-29 20:49:25–20:50:21 Asia/Shanghai",
+    "operations": [
+      "status",
+      "ping",
+      "audio-state",
+      "observe",
+      "home",
+      "observe",
+      "status"
+    ],
+    "commands": 7,
+    "first_attempt_exit_zero": 7,
+    "failures_in_this_short_round": 0,
+    "pairing_recreated": false,
+    "wait_ready": "Not invoked: the first status was already connected.",
+    "result": "Muse observed the foreground, returned to the launcher and verified it; first and final status were approved, persistent, connected and pending 0.",
+    "volume_changed": false,
+    "wake_exercised": false
+  },
+  "evidence": {
+    "phone_diagnostic_events_reviewed": true,
+    "maintainer_intervention_record_reviewed": true,
+    "muse_summary_receipt_bytes": 3763,
+    "muse_summary_receipt_sha256": "f6193ebcb3e5b0363bbc178d403236380cccc0d9ef7dc323c2056f868da0f8a5",
+    "independent_review_limit": "This review checked the returned Muse summary and local phone diagnostic records. Underlying cloud command receipts and screenshots were retained privately and were not independently fetched in this review.",
+    "raw_materials": "private; not distributed with source"
+  },
+  "not_verified": [
+    "Repair or stable reachability of the original direct Wi-Fi path",
+    "A specific DNS/TCP/TLS cause or final proxy exit",
+    "Autonomous wake or unattended long-idle recovery",
+    "Long-term stability after the intervention",
+    "Mobile-data-only completion",
+    "Current-version Instinct, other devices or independent first use"
+  ],
+  "publication_boundary": "No accounts, network addresses, VPN subscription or selected node, connection IDs, exact device UID/PID, screenshots or private paths included."
+}

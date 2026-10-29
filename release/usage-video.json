@@ -1,0 +1,15 @@
+{
+  "schema": "airtap-reviewed-usage-video-v1",
+  "filename": "airtap-usage-code39-20261029.mp4",
+  "sha256": "ffa11c4e893f22c7ba96ebb12bf72a390574134bb57e02cf5a434d7ea80c3fd0",
+  "bytes": 7568335,
+  "duration_seconds": 90,
+  "version_code": 39,
+  "title": "90 秒，看 Muse 操作手机",
+  "description": "同一部安卓手机的真实录屏：Muse 接到任务，在小红书读路线，写入便签并重新打开核对，再回到对话汇报。Airtap beta.9（code39）；静音剪辑，部分等待为 5 倍速或省略。维护者通过 USB 发送任务并录屏，临时开启充电常亮，结束后恢复；片中保留错误与恢复说明。这段视频展示接入后的使用，不是首次安装教程，也不证明自主唤醒或长期后台稳定。",
+  "poster": {
+    "filename": "usage-code39-poster.jpg",
+    "sha256": "d048bff7ae5bf63301ac53fed809c98d2ed3cba0ae6008fff540b5d1a8e486e9",
+    "bytes": 59218
+  }
+}

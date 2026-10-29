@@ -43,3 +43,46 @@ test('missing or malformed retirement policy fails closed before reading any APK
     assert.equal(r.status,503);assert.equal(apkRead,false);assert.equal(r.headers.get('Cache-Control'),'no-store');
   }
 });
+test('native video ranges preserve headers without forwarding credentials',async()=>{
+  const r=await worker.fetch(new Request('https://airtap.test/media/usage-code39.mp4',{
+    headers:{Range:'bytes=2-4','If-Range':'"video-hash"',Authorization:'private',Cookie:'private'}
+  }),{ASSETS:{fetch:async req=>{
+    assert.equal(req.headers.get('Range'),'bytes=2-4');
+    assert.equal(req.headers.get('If-Range'),'"video-hash"');
+    assert.equal(req.headers.get('Authorization'),null);assert.equal(req.headers.get('Cookie'),null);
+    return new Response('234',{status:206,headers:{'Content-Type':'video/mp4','Content-Length':'3','Content-Range':'bytes 2-4/10'}});
+  }}});
+  assert.equal(r.status,206);assert.equal(r.headers.get('Content-Range'),'bytes 2-4/10');
+  assert.equal(await r.text(),'234');
+});
+test('video fallback serves streamed ranges and HEAD when ASSETS ignores Range',async()=>{
+  const videoEnv={ASSETS:{fetch:async req=>{
+    assert.equal(req.method,'GET');
+    return new Response('0123456789',{headers:{'Content-Type':'video/mp4','Content-Length':'10','ETag':'"video-hash"'}});
+  }}};
+  for(const [method,range,ifRange,status,body,contentRange] of [
+    ['HEAD',null,null,200,'',null],['GET','bytes=2-4',null,206,'234','bytes 2-4/10'],
+    ['GET','bytes=7-',null,206,'789','bytes 7-9/10'],['GET','bytes=-3',null,206,'789','bytes 7-9/10'],
+    ['GET','bytes=10-',null,416,'','bytes */10'],['GET','bytes=-0',null,416,'','bytes */10'],
+    ['GET','bytes=2-4','"old-hash"',200,'0123456789',null],
+    ['GET','bytes=2-4','"video-hash"',206,'234','bytes 2-4/10'],
+  ]) {
+    const headers={};if(range)headers.Range=range;if(ifRange)headers['If-Range']=ifRange;
+    const r=await worker.fetch(new Request('https://airtap.test/media/usage-code39.mp4',{method,headers}),videoEnv);
+    assert.equal(r.status,status);assert.equal(r.headers.get('Content-Range'),contentRange);
+    assert.equal(r.headers.get('Content-Length'),String(method==='HEAD'?10:body.length));
+    // The actual HTTP server strips the known-length response body for HEAD.
+    assert.equal(await r.text(),method==='HEAD'?'0123456789':body);
+  }
+});
+test('missing ASSETS length uses only a bounded matching public media identity',async()=>{
+  const media={schema:'airtap-reviewed-usage-video-v1',filename:'usage-code39.mp4',bytes:10};
+  for(const [change,expected] of [[{},200],[{filename:'other.mp4'},502],[{schema:'wrong'},502],[{bytes:21*1024*1024},502]]) {
+    const env={ASSETS:{fetch:async req=>new URL(req.url).pathname==='/media/usage-video.json'
+      ? new Response(JSON.stringify({...media,...change}))
+      : new Response('0123456789',{headers:{'Content-Type':'video/mp4'}})}};
+    const r=await worker.fetch(new Request('https://airtap.test/media/usage-code39.mp4'),env);
+    assert.equal(r.status,expected);
+    if(expected===200){assert.equal(r.headers.get('Content-Length'),'10');assert.equal(await r.text(),'0123456789');}
+  }
+});

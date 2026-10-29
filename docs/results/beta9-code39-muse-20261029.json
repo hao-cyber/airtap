@@ -121,5 +121,9 @@
     "Airtap SMS reading, calling or live call audio",
     "All App workflows or every network-failure cause"
   ],
-  "publication_boundary": "This record contains no screen text, note title/body, user or connection identifiers, private paths or raw screenshots. Earlier version evidence and failures retain their original scope."
+  "publication_boundary": "This record contains no screen text, note title/body, user or connection identifiers, private paths or raw screenshots. Earlier version evidence and failures retain their original scope.",
+  "related_follow_up": {
+    "record": "beta9-code39-network-route-20261029.json",
+    "scope": "Later on the same day, a separate short Muse status/observation/home regression passed after a maintainer changed the phone VPN exclusion and restarted that VPN. This does not establish the cause of the earlier cross-App recovery or repair of direct-network reachability."
+  }
 }

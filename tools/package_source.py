@@ -54,7 +54,7 @@ REPLACEMENTS = {
 PUBLIC_INSTALL_HOST = "airtap.memtrix.dev"
 PUBLIC_INSTALL_PATHS = {"", "/", "/install", "/help", "/privacy", "/release-notes",
                         "/download/android", "/updates/android.json", "/share.png", "/sitemap.xml"}
-PUBLIC_HELP_FRAGMENTS = {"", "start", "download", "ai-help", "connection-help",
+PUBLIC_HELP_FRAGMENTS = {"", "start", "download", "demo", "ai-help", "connection-help",
                          "install-help", "operation-help", "restricted-settings-help",
                          "pair-help", "offline-help", "remote-help", "release-details"}
 GENERATED_PAYLOAD = {"SOURCE-MANIFEST.json", "SHA256SUMS", "SOURCE-PACKAGE.md", "SOURCE-OMISSIONS.md"}

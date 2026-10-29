@@ -14,6 +14,10 @@ import subprocess
 
 ROOT = Path(__file__).resolve().parent
 RETIRED_APKS = ROOT / 'retired-apks.json'
+MEDIA_MANIFEST = ROOT / 'usage-video.json'
+MAX_MEDIA_BYTES = 20 * 1024 * 1024
+SITE_FILES = {'index.html', 'app.js', 'style.css', 'mark.svg', 'install-qr.svg',
+              'robots.txt', 'sitemap.xml', 'share.png', 'share.svg'}
 HOST = 'airtap.memtrix.dev'
 FIELDS = {'schema','application_id','version_name','version_code','apk_sha256','apk_bytes',
           'signer_sha256','min_sdk','target_sdk','debuggable','channel','published_at','download_path','notes'}
@@ -76,7 +80,55 @@ def verify_apk(path, release, tools):
 def document(title, body):
     return ('<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>'+title+' · Airtap</title><link rel="stylesheet" href="/style.css"><main class="document"><a href="/">← Airtap</a><h1>'+title+'</h1>'+body+'</main></html>').encode()
 
-def build(apk, metadata, output, tools, previous=None):
+def reviewed_media(media_file):
+    """Only explicit, hash-pinned public footage enters a frozen website."""
+    m = json.loads(MEDIA_MANIFEST.read_text())
+    fields = {'schema', 'filename', 'sha256', 'bytes', 'duration_seconds',
+              'version_code', 'title', 'description', 'poster'}
+    if set(m) != fields or m['schema'] != 'airtap-reviewed-usage-video-v1':
+        raise ValueError('Unexpected public media manifest')
+    if not re.fullmatch(r'[a-z0-9][a-z0-9-]{0,100}\.mp4', m['filename']):
+        raise ValueError('Invalid public video filename')
+    if (not re.fullmatch('[a-f0-9]{64}', m['sha256']) or type(m['bytes']) is not int
+            or not 1 <= m['bytes'] <= MAX_MEDIA_BYTES or type(m['duration_seconds']) is not int
+            or not 1 <= m['duration_seconds'] <= 600 or type(m['version_code']) is not int
+            or m['version_code'] < 1):
+        raise ValueError('Invalid public video identity')
+    if any(not isinstance(m[k], str) or not 1 <= len(m[k]) <= limit
+           for k, limit in [('title', 120), ('description', 1000)]):
+        raise ValueError('Invalid public video text')
+    p = m['poster']
+    if (not isinstance(p, dict) or set(p) != {'filename', 'sha256', 'bytes'}
+            or not re.fullmatch(r'[a-z0-9][a-z0-9-]{0,100}\.jpg', p['filename'])
+            or not re.fullmatch('[a-f0-9]{64}', p['sha256'])
+            or type(p['bytes']) is not int or not 1 <= p['bytes'] <= 4 * 1024 * 1024):
+        raise ValueError('Invalid public poster identity')
+    if media_file is None:
+        return {}, '', p['filename']
+    def read_exact(path, identity):
+        if path.is_symlink() or not path.is_file() or path.stat().st_size != identity['bytes']:
+            raise ValueError('Reviewed media file missing, symlinked or wrong size')
+        with path.open('rb') as stream:
+            data = stream.read(identity['bytes'] + 1)
+        if len(data) != identity['bytes'] or digest(data) != identity['sha256']:
+            raise ValueError('Reviewed media bytes differ')
+        return data
+    video = read_exact(media_file, m)
+    poster = read_exact(ROOT / 'site' / p['filename'], p)
+    src = '/media/' + m['filename']
+    block = ('<figure class="usage-demo" id="demo"><div class="demo-player">'
+             '<video controls playsinline preload="none" width="1080" height="1920" '
+             'poster="/' + p['filename'] + '" aria-labelledby="demo-title" aria-describedby="demo-description">'
+             '<source src="' + src + '" type="video/mp4">'
+             '<p>浏览器无法播放此视频，可<a href="' + src + '">打开视频文件</a>。</p></video></div>'
+             '<figcaption><h3 id="demo-title">' + html.escape(m['title']) + '</h3>'
+             '<p id="demo-description">' + html.escape(m['description']) + '</p>'
+             '<a class="text-link" href="' + src + '">单独打开视频 <span aria-hidden="true">↗</span></a>'
+             '</figcaption></figure>')
+    return {'media/' + m['filename']: video, p['filename']: poster,
+            'media/usage-video.json': (json.dumps(m, ensure_ascii=False, indent=2) + '\n').encode()}, block, p['filename']
+
+def build(apk, metadata, output, tools, previous=None, media_file=None):
     r=release_metadata(json.loads(metadata.read_text()))
     data=verify_apk(apk,r,tools)
     if output.exists():raise ValueError('Use a new output directory; never overwrite a frozen build')
@@ -99,9 +151,16 @@ def build(apk, metadata, output, tools, previous=None):
         prior_apk=previous/'site/downloads'/(old['apk_sha256']+'.apk')
         if not prior_apk.is_file() or prior_apk.stat().st_size!=old['apk_bytes'] or digest(prior_apk.read_bytes())!=old['apk_sha256']:
             raise ValueError('Previous recommended APK is missing or changed')
-    files={p.name:p.read_bytes() for p in (ROOT/'site').iterdir() if p.is_file()}
+    media_files, demo, poster_name = reviewed_media(media_file)
+    # A stray recording or symlink in the source directory is never a public asset.
+    entries = list((ROOT / 'site').iterdir())
+    if (any(p.is_symlink() or not p.is_file() or p.name not in SITE_FILES | {poster_name} for p in entries)
+            or not SITE_FILES <= {p.name for p in entries}):
+        raise ValueError('Unexpected, missing or symlinked site asset')
+    files={p.name:p.read_bytes() for p in entries if p.name in SITE_FILES}
+    files.update(media_files)
     substitutions={'APK_SIZE':f"{r['apk_bytes']/1048576:.1f}",'VERSION':r['version_name'],'DATE':r['published_at'],'SHA256':r['apk_sha256'],'SIGNER':r['signer_sha256']}
-    page=files['index.html'].decode()
+    page=files['index.html'].decode().replace('{{USAGE_DEMO}}', demo)
     for key,value in substitutions.items():page=page.replace('{{'+key+'}}',html.escape(value))
     if '{{' in page:raise ValueError('Unfilled page variable')
     files['index.html']=page.encode()
@@ -130,4 +189,5 @@ if __name__=='__main__':
     p=argparse.ArgumentParser(description=__doc__)
     for name in ('apk','metadata','output','tools'):p.add_argument('--'+name,type=Path,required=True)
     p.add_argument('--previous',type=Path)
+    p.add_argument('--media-file', type=Path, help='Explicit reviewed MP4 matching usage-video.json; omit to build without the player')
     print(json.dumps(build(**vars(p.parse_args())),ensure_ascii=False))

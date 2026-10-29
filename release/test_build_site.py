@@ -161,6 +161,91 @@ class Releases(unittest.TestCase):
                 self.build(tmp, release, data, previous)
             self.assertEqual(marker.read_text(), 'keep')
 
+    def media_fixture(self, tmp):
+        source = tmp / 'source'
+        (source / 'site').mkdir(parents=True)
+        for name in m.SITE_FILES:
+            (source / 'site' / name).write_text('public fixture')
+        (source / 'site/index.html').write_text('<html>{{USAGE_DEMO}}</html>')
+        (source / 'worker.mjs').write_text('// fixture')
+        poster = b'reviewed poster fixture'
+        (source / 'site/usage-poster.jpg').write_bytes(poster)
+        video = tmp / 'private-reviewed.mp4'
+        video.write_bytes(b'reviewed public video fixture')
+        manifest = {'schema':'airtap-reviewed-usage-video-v1', 'filename':'usage-code39.mp4',
+                    'sha256':m.digest(video.read_bytes()), 'bytes':video.stat().st_size,
+                    'duration_seconds':90, 'version_code':39, 'title':'Actual task',
+                    'description':'Edited footage; wait accelerated; maintainer preparation retained.',
+                    'poster':{'filename':'usage-poster.jpg','sha256':m.digest(poster),'bytes':len(poster)}}
+        manifest_path = source / 'usage-video.json'
+        manifest_path.write_text(json.dumps(manifest))
+        return source, video, manifest_path, manifest
+
+    def test_explicit_reviewed_media_is_bound_and_no_media_build_has_no_broken_player(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp = Path(tmp)
+            previous, release, apk = self.previous(tmp)
+            source, video, manifest_path, manifest = self.media_fixture(tmp)
+            metadata = tmp / 'release.json'
+            metadata.write_text(json.dumps(release))
+            with patch.object(m, 'ROOT', source), patch.object(m, 'MEDIA_MANIFEST', manifest_path), patch.object(m, 'verify_apk', return_value=apk):
+                for name, media in [('with-video', video), ('without-video', None)]:
+                    out = tmp / name
+                    m.build(tmp/'app.apk', metadata, out, tmp, previous, media)
+                    page = (out/'site/index.html').read_text()
+                    self.assertNotIn('{{USAGE_DEMO}}', page)
+                    self.assertEqual('<video ' in page, media is not None)
+                    self.assertEqual((out/'site/media/usage-code39.mp4').exists(), media is not None)
+                    self.assertEqual((out/'site/usage-poster.jpg').exists(), media is not None)
+                    if media:
+                        self.assertEqual((out/'site/media/usage-code39.mp4').read_bytes(), video.read_bytes())
+                        inventory = json.loads((out/'build-manifest.json').read_text())['files']
+                        self.assertEqual(inventory['site/media/usage-code39.mp4'], manifest['sha256'])
+
+    def test_media_wrong_bytes_or_symlink_are_refused_before_frozen_output(self):
+        for change in ['video', 'poster', 'symlink', 'manifest-path']:
+            with self.subTest(change=change), tempfile.TemporaryDirectory() as tmp:
+                tmp = Path(tmp)
+                previous, release, apk = self.previous(tmp)
+                source, video, manifest_path, manifest = self.media_fixture(tmp)
+                if change == 'video':
+                    video.write_bytes(b'x' * manifest['bytes'])
+                elif change == 'poster':
+                    (source/'site/usage-poster.jpg').write_bytes(b'x' * manifest['poster']['bytes'])
+                elif change == 'symlink':
+                    link = tmp/'linked.mp4'; link.symlink_to(video); video = link
+                else:
+                    manifest['filename'] = '../private.mp4'
+                    manifest_path.write_text(json.dumps(manifest))
+                metadata = tmp/'release.json'; metadata.write_text(json.dumps(release))
+                with patch.object(m, 'ROOT', source), patch.object(m, 'MEDIA_MANIFEST', manifest_path), patch.object(m, 'verify_apk', return_value=apk), self.assertRaises(ValueError):
+                    m.build(tmp/'app.apk', metadata, tmp/'refused', tmp, previous, video)
+                self.assertFalse((tmp/'refused').exists())
+
+    def test_no_media_build_cannot_copy_stray_recordings_or_symlinked_assets(self):
+        for change in ['unused-poster', 'poster-symlink', 'stray-video']:
+            with self.subTest(change=change), tempfile.TemporaryDirectory() as tmp:
+                tmp = Path(tmp)
+                previous, release, apk = self.previous(tmp)
+                source, video, manifest_path, manifest = self.media_fixture(tmp)
+                poster = source/'site/usage-poster.jpg'
+                if change == 'unused-poster':
+                    poster.write_bytes(b'unreviewed poster must not be copied')
+                elif change == 'poster-symlink':
+                    poster.unlink(); poster.symlink_to(video)
+                else:
+                    (source/'site/raw-recording.mp4').write_bytes(b'private recording fixture')
+                metadata = tmp/'release.json'; metadata.write_text(json.dumps(release))
+                out = tmp/'out'
+                with patch.object(m, 'ROOT', source), patch.object(m, 'MEDIA_MANIFEST', manifest_path), patch.object(m, 'verify_apk', return_value=apk):
+                    if change == 'unused-poster':
+                        m.build(tmp/'app.apk', metadata, out, tmp, previous)
+                        self.assertFalse((out/'site/usage-poster.jpg').exists())
+                    else:
+                        with self.assertRaisesRegex(ValueError, 'site asset'):
+                            m.build(tmp/'app.apk', metadata, out, tmp, previous)
+                        self.assertFalse(out.exists())
+
 
 if __name__ == '__main__':
     unittest.main()
