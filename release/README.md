@@ -18,6 +18,8 @@
 
 当前为公开测试渠道，使用长期 RSA 3072 发布密钥，Android `debuggable=false`，最低 Android 14。包名继续使用 `io.airtap.preview`，以保留已安装用户的数据；包名不作为用户界面名称。正式发布签名不代表产品已通过全部机型或普通用户验证。
 
+本版 Android 为 `0.4.0-beta.9`（code39），[版本元数据](android/39.json)、[精确源码与 APK 校验](../docs/results/beta9-code39-build-20261029.json)、[合成恢复验收](../docs/results/beta9-code39-recovery-20261029.json)及 [Muse 真机任务](../docs/results/beta9-code39-muse-20261029.json)分别记录身份与范围。官网推荐切换和公网验证须按下列流程完成，不能以这些本地记录替代。
+
 发布证书 SHA256：`a2aa0c1b6fdaf1baa37aa20817387524a1318b5dab82bf7c185663141daba60f`。
 
 本次使用 Android v3 签名轮换，从原项目开发证书继承已安装数据权限；未开启旧证书回滚权限。兼容路径只适用于原项目证书安装的预览包，不包括他人自行构建的包。私钥、密码、升级签名链的维护副本及手机备份均存于源码外的私有目录，不随源码发布。签名链本身也包含在已签名 APK 的证明中。

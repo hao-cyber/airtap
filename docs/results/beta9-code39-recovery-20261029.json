@@ -1,0 +1,128 @@
+{
+  "schema": "airtap-beta9-code39-native-recovery-v1",
+  "recorded_at_utc": "2026-10-29T10:57:55.826958+00:00",
+  "status": "technical_subset_passed_with_retained_failures",
+  "build": {
+    "version_name": "0.4.0-beta.9",
+    "version_code": 39,
+    "build_type": "release",
+    "apk_sha256": "3f280b39b134934246ebe2fd89abd1a9bd4fd615431b359c70258686d8b1fbe7",
+    "installed_bytes_match_candidate": true,
+    "cli_sha256": "4f9af83799764b6573ae03f22b7921a141fa1de0b6c1121977cc1492ad95b508",
+    "signer_sha256": "a2aa0c1b6fdaf1baa37aa20817387524a1318b5dab82bf7c185663141daba60f"
+  },
+  "scope": {
+    "platform": "Android16/API36 Google APIs ARM64 userdebug isolated emulator",
+    "test_actor": "Maintainer with real Python CLI, actual candidate APK, Android system notification and Airtap UI",
+    "public_relay_used": false,
+    "physical_phone": false,
+    "personal_ai": false,
+    "independent_user": false,
+    "normal_first_use": false,
+    "upgrade_existing_pair": false,
+    "setup": "ADB installation and accessibility/notification grants; self-hosted service address and six-digit approval through App UI. Synthetic local credentials only.",
+    "tls": "Regular production TLS/hostname verification; a fresh synthetic CA was added only to disposable AVD system trust. Candidate APK was not changed.",
+    "network": "Candidate app UID restricted to loopback; local production workerd/Miniflare relay with HTTPS edge fault fixture.",
+    "cleanup": "Own emulator, AVD and relay stopped/removed. Existing devices untouched."
+  },
+  "handshake_recovery": {
+    "passed": true,
+    "fault": "TLS completes and HTTP Upgrade is deliberately held without any response on one real OkHttp websocket",
+    "app_deadline_ms": 30004,
+    "edge_held_socket_ms": 29953.074,
+    "edge_next_success_after_close_ms": 2443.085,
+    "bounded_wait_ready_total_phase_seconds": 34.2418532371521,
+    "offline_observed": true,
+    "same_pair_ready_without_new_approval": true,
+    "background_at_timeout": true,
+    "post_recovery_home": true,
+    "post_recovery_foreground": "com.google.android.apps.nexuslauncher",
+    "operation_replay": "Only deliberate later HOME was issued; no timed-out action was replayed."
+  },
+  "notification_owner_stop": {
+    "passed": true,
+    "trigger": "Normal Android notification Stop control while a later websocket HTTP upgrade was pending",
+    "stalled_socket_closed": true,
+    "relay_state_after": "approved",
+    "device_connected_after_restoration": false,
+    "old_home_receipt": {
+      "ok": false,
+      "status": 503,
+      "outcome": "unknown",
+      "retry_action": false
+    },
+    "restoration_actions": [
+      "notification permission revoke/grant",
+      "Wi-Fi disable/enable",
+      "app force-stop and relaunch",
+      "accessibility service disable/enable"
+    ],
+    "observation_seconds_since_stop_status": 76.97542905807495,
+    "no_additional_handshake_timeout": true,
+    "final_active_or_stalled_sockets": 0,
+    "ui_requires_new_invitation": true,
+    "interpretation": "Local trust removed. Approved relay metadata alone is not server revocation; 503 outcome unknown is preserved as such."
+  },
+  "full_owner_revoke": {
+    "passed": true,
+    "new_pair_authorization": "After successful local-stop test, explicitly chose Invite my AI, paired a fresh synthetic controller, compared six-digit code, and approved in App UI. This was not automatic recovery of stopped trust.",
+    "trigger": "App Stop and disconnect AI while websocket HTTP upgrade was pending",
+    "device_pairing_state_after": "revoked",
+    "device_pairing_state_after_restoration": "revoked",
+    "old_controller_http_after": 410,
+    "old_controller_http_after_restoration": 410,
+    "restoration_actions": [
+      "notification permission revoke/grant",
+      "Wi-Fi disable/enable",
+      "app force-stop and relaunch",
+      "accessibility service disable/enable"
+    ],
+    "observation_seconds": 38.316097021102905,
+    "no_additional_handshake_timeout": true,
+    "final_active_or_stalled_sockets": 0,
+    "ui_requires_new_invitation": true
+  },
+  "retained_failures": [
+    {
+      "kind": "runtime_observation",
+      "detail": "Immediately after baseline HOME, foreground returned window_metadata_unavailable during transition; not hidden or repeated as an action. Post-recovery foreground succeeded and identified launcher."
+    },
+    {
+      "kind": "test_environment",
+      "detail": "Initial SDK image download/unzip failed SeekableByteChannel Zip content; one retry succeeded."
+    },
+    {
+      "kind": "test_driver",
+      "detail": "UI set-text succeeded but parser failed on additional instrumentation result line. Parser changed to select exact nodes line."
+    },
+    {
+      "kind": "test_timing",
+      "detail": "First stop-test prerequisite ran between stalled timeout and next attempt, so it failed before stop. Waited explicitly for pending upgrade; another expected 30s timeout during setup was retained."
+    },
+    {
+      "kind": "test_driver",
+      "detail": "After successful notification stop, ADB stripped empty settings parameter and interrupted restoration script. Resumed only verification with settings delete; no stop or unknown HOME action replayed."
+    }
+  ],
+  "not_claimed": [
+    "Physical Android/OEM behavior",
+    "Muse or Instinct execution",
+    "Normal new-user first use",
+    "Existing production pair upgrade",
+    "Unattended long-duration recovery",
+    "All possible late callback races or DNS/TLS stalls tested natively",
+    "Server-only remote revocation without simultaneous local stop",
+    "Other platforms or devices"
+  ],
+  "evidence_boundary": "Reviewed summary of private synthetic receipts and metadata. Screenshots, invitation/claim/controller/device tokens, namespaces, connection IDs, private host paths, real phone contents and production credentials are excluded. Original private evidence is retained separately.",
+  "source_binding": {
+    "commit": "292ad51636787f667be9d26c792ca23676a0ee7d",
+    "git_tree": "9edbb17efe632d0409f003ee354c2de5f1cc79f4",
+    "build_from_clean_export": true,
+    "tracked_source_files_verified_before_and_after_build": 266,
+    "candidate_reproduced_byte_identically": true,
+    "rebuild_apk_sha256": "3f280b39b134934246ebe2fd89abd1a9bd4fd615431b359c70258686d8b1fbe7",
+    "test_artifact_binding": "Native tests ran on the candidate before this commit was created. A subsequent clean export of this exact commit rebuilt an APK identical byte-for-byte to that candidate; test results therefore refer to those same APK bytes.",
+    "not_claimed": "This is one verified local rebuild, not a claim that every future environment produces identical APK bytes."
+  }
+}

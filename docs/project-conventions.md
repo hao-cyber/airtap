@@ -44,7 +44,7 @@
 - 品牌、产品定位与核心接入体验保持统一；中继、邀请及个人 AI 接入协议尽量共用，手机执行能力和系统授权按平台实际能力实现。
 - 已有 Android 手机验收不能用作 iOS、平板、电视或其他设备支持的证据；方案评估不代表已经支持。
 - 独立的 `0.4.1-device-preview` 曾记录 Android 平板和 TV 模拟器适配、方向键和维护者 CLI 验收；该历史实验及其发行制品不随本次 Android 手机源码公开。没有实体平板／电视或个人 AI 的新平台验收，不能由此宣称全设备支持。它不属于本手机发布目录的同一 APK。
-- 手机当前推荐版本为 `0.4.0-beta.8`（code 38），发布身份见[版本记录](../release/android/38.json)。本版已有 [Muse WPS → 便签短回归](results/beta8-code38-muse-20261027.json)和[维护者模拟器升级与恢复检查](results/beta8-code38-recovery-20261027.json)，各自保留失败、恢复和验证范围；不能据此宣称 Instinct 当前版本回归、独立新用户首用或长期后台验收全部通过。beta.4 的私有反馈、手机报告管理与静置后 Muse 任务保留在[历史验收](acceptance-beta4-plan.md)，不作为当前版本全面复验的证据；设备预览 APK 和记录也保持其原有范围。
+- 手机本版为 `0.4.0-beta.9`（code 39），发布身份见[版本记录](../release/android/39.json)。本版增加30秒连接握手期限，已有[精确源码与 APK 校验](results/beta9-code39-build-20261029.json)及[维护者模拟器恢复、停止和撤销检查](results/beta9-code39-recovery-20261029.json)。[Muse 本版真机任务](results/beta9-code39-muse-20261029.json)已限定通过小红书读取、便签保存重开和返回 Muse；第二轮短暂错误后自行恢复，首轮失败与临时充电常亮保留。未验证自主唤醒，也不能把实际网络恢复归因于握手修复；模拟器合成检查不替代实体手机、个人 AI、独立新用户首用或长期后台验收。code38 的 [Muse WPS → 便签](results/beta8-code38-muse-20261027.json)、[小红书查路线 → 便签](results/beta8-code38-muse-20261029.json)和[模拟器升级与恢复](results/beta8-code38-recovery-20261027.json)保持其原版本与失败范围；Instinct 本版仍待回归。beta.4 私有反馈、手机报告管理与静置后 Muse 任务保留在[历史验收](acceptance-beta4-plan.md)；设备预览 APK 和记录也保持其原有范围。官网推荐切换须与最终发布制品和公网核验对应。
 
 ## 设备扩展原则
 

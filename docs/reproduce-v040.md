@@ -29,7 +29,7 @@ python3 relay/service/deploy.py --wrangler "$(pwd)/relay/worker/node_modules/.bi
 
 普通用户路径见 `docs/user-guide-v040.md`；AI 获取服务提供的 `agent.md` 和 CLI。接入者校验下载内容摘要，完成邀请／核码后保存私有配置。任务结束不自动撤销连接。
 
-接入说明、手机能力与公开下载必须对应同一发布状态。当前手机公开推荐 APK 为 `0.4.0-beta.8`（code38），配套 CLI.8；包含证书验证、邀请文件校验与连接恢复改进，继续保留私有反馈和手机报告管理。发布制品与有限验收见[本轮交付记录](results/beta8-delivery-20261027.json)，beta.4 证据保留为历史范围。仍须按具体设备完整验证远程任务，不把目标描述当成所有设备都已支持。个人 AI 应按设备实际返回的能力选择恢复方式，自行选择 CLI、HTTPS 或 MCP 路线，不让普通用户决定技术实现。
+接入说明、手机能力与公开下载必须对应同一发布状态。本版 Android APK 为 `0.4.0-beta.9`（code39），配套 CLI.8；增加30秒连接握手期限，超时后保留有效配对并按原退避策略重试，不自动重放操作。实际制品与来源见[构建校验](results/beta9-code39-build-20261029.json)，恢复、停止与撤销范围见[模拟器检查](results/beta9-code39-recovery-20261029.json)。[Muse 本版任务](results/beta9-code39-muse-20261029.json)已在魅族 Note 16 完成小红书读取、便签保存重开和返回 Muse，记录第二轮自行恢复、首轮失败及临时充电常亮条件；不据此宣称自主唤醒或所有网络故障已解决。[code38 交付记录](results/beta8-delivery-20261027.json)和更早记录保留原版本范围。个人 AI 按设备实际返回的能力选择恢复方式，自行使用 CLI、HTTPS 或 MCP，不让普通用户决定技术实现。
 
 使用自定义域名时，还要从实际 AI 的网络检查 `/v1/service`、`/agent.md`、`/cli/airtap.py` 和安装页的下载资源。Cloudflare 的浏览器检查可能拦截普通 HTTP 工具；HTTP 403 且正文为 `error code: 1010` 时，先按[官方排查说明](https://developers.cloudflare.com/support/troubleshooting/http-status-codes/cloudflare-1xxx-errors/error-1010/)核对 Browser Integrity Check。当前公共服务通过一条 Configuration Rule，仅对中继、原预览下载站和固定官网 `airtap.memtrix.dev` 三个完整主机名设置 `bic: false`；配对、服务端鉴权和 HTTPS 继续保留。自托管提供者需要在自己的域名配置中完成对应检查，不能以关闭整个域名区域的安全保护代替精确配置。Wrangler 的 Workers 部署权限不等于 Configuration Rules 编辑权限。
 

@@ -1,0 +1,125 @@
+{
+  "schema": "airtap-personal-ai-evidence-review-v1",
+  "recorded_date": "2026-10-29",
+  "status": "passed_for_bounded_second_cross_app_task_with_first_round_failure_retained",
+  "client": {
+    "version_name": "0.4.0-beta.9",
+    "version_code": 39,
+    "build_type": "release",
+    "apk_sha256": "3f280b39b134934246ebe2fd89abd1a9bd4fd615431b359c70258686d8b1fbe7"
+  },
+  "device_scope": "Meizu Note 16 / Android 15; one previously paired test phone after data-preserving upgrade",
+  "actor": "Muse actual cloud environment using CLI.8 and the existing approved persistent connection",
+  "task": {
+    "steps": [
+      "Read two public hiking routes in Xiaohongshu without login",
+      "Create a new note containing route, time, precautions and source",
+      "Save, leave and reopen the note; verify its title and full body",
+      "Return to the Muse App and report the result"
+    ],
+    "result": "passed in the second separately started round",
+    "saved_body_characters": 218,
+    "pre_save_full_text_read_equal": true,
+    "reopened_full_text_visual_check": true,
+    "reopened_full_text_tree_check": false,
+    "maintainer_business_actions_during_second_round": false,
+    "final_media_volume": 0,
+    "final_pending_commands": 0
+  },
+  "first_round": {
+    "result": "failed before creating the new note",
+    "failures": [
+      "Post-launch observation: window_root_unavailable",
+      "Tree inspection: inspection_incomplete",
+      "Post-search-tap observation: window_changed",
+      "Text input: fresh_snapshot_required, followed by fresh tree and successful input",
+      "Image-opening tap accepted; its observation returned HTTP 503 with outcome unknown",
+      "Two later observations returned HTTP 503 with outcome unknown",
+      "One 60-second wait-ready expired after 20 attempts; final status offline with pairing approved/persistent and pending 0"
+    ],
+    "unknown_action_replay": "None appears in the retained action receipt chain; a fresh observation confirmed the accepted image-opening tap had already taken effect.",
+    "maintainer_intervention": "Plain uiautomator observation was found to suppress accessibility services and stopped around 19:10. The maintainer opened Muse around 19:16 to inspect the failed result. This round is not an undisturbed acceptance pass; the cause of every disconnect is not established."
+  },
+  "recovery_between_rounds": {
+    "local_time": "2026-10-29 19:17 Asia/Shanghai",
+    "status_already_connected": true,
+    "wait_ready_attempts": 1,
+    "connection_ready": true,
+    "screen_ready": true,
+    "needs_system_authentication": false,
+    "pairing_recreated": false,
+    "claim_limit": "A maintainer requested this separate readiness check and the second task; the first round did not resume autonomously."
+  },
+  "second_round_recovery": {
+    "trigger": "Reopen tap accepted, followed by observation HTTP 504 with outcome unknown",
+    "subsequent_failures": [
+      {
+        "operation": "read_tree",
+        "http_status": 503,
+        "outcome": "unknown"
+      },
+      {
+        "operation": "observe",
+        "http_status": 503,
+        "outcome": "unknown"
+      }
+    ],
+    "wait_ready": {
+      "attempts": 1,
+      "ready": true,
+      "connection_ready": true,
+      "screen_ready": true,
+      "needs_system_authentication": false
+    },
+    "continuation": "A new screenshot showed the already reopened note with all 218 characters. The reopening tap was not repeated in the retained action receipts; work continued to return to Muse.",
+    "maintainer_mid_task_recovery_prompt": false,
+    "network_root_cause": "not diagnosed; this task does not prove the 30-second handshake deadline caused recovery"
+  },
+  "time": {
+    "zone": "Asia/Shanghai",
+    "second_round_first_retained_command": "2026-10-29 19:20:58",
+    "second_round_final_tool_receipt": "2026-10-29 19:26:27",
+    "final_response_video_time": "approximately 2026-10-29 19:26:46; conservative stable full reply with idle UI",
+    "later_read_only_status": "2026-10-29 19:37:07",
+    "later_status_connected": true,
+    "later_status_pending": 0,
+    "maintainer_confirmation_is_not_completion_time": true,
+    "video_wall_clock_limit": "Approximate recording-start-plus-PTS mapping; 19:26:41 showed reply streaming, not completion."
+  },
+  "conditions": {
+    "screen": "Maintainer temporarily enabled screen-on while charging for both recordings; this is not autonomous wake evidence. Original setting restored after capture.",
+    "observation": "For the second task, the maintainer reports screen recording and low-frequency screencap/dumpsys only after sending the task, with no substituted business actions.",
+    "audio": "All queried stream states matched preflight; media volume remained 0.",
+    "pairing": "Approved/persistent state and command-sequence continuity are retained; no re-pairing was reported."
+  },
+  "evidence": {
+    "private_archive_bytes": 5566481,
+    "private_archive_sha256": "d244568d2747a7c14b434c48e133b572789fc0ba63ebae7a757ae4393939bc8c",
+    "archive_entries": 195,
+    "archive_files": 190,
+    "screenshots": 40,
+    "receipt_image_hash_bindings": 34,
+    "archive_and_extracted_byte_integrity": "passed",
+    "result_review": "Full pre-save node text equals the 218-character input. Decisive reopened screenshot was manually compared with that input. Original screenshots contain private task dialogue and existing notes and remain private.",
+    "raw_materials": "private; not distributed with source",
+    "unique_screenshot_bytes": 35,
+    "json_receipts": 73,
+    "receipt_metadata_files": 73,
+    "final_reply_video": {
+      "source_sha256": "442fd9e733d4b3ed613759d812e50d184dec5e95da9ade9b51ec1c64ed79765d",
+      "stable_frame_zero_based": 1497,
+      "stable_pts_seconds": 52.9554,
+      "review": "Video hash and frame PTS checked; final response and idle UI visually confirmed."
+    }
+  },
+  "not_verified": [
+    "Uninterrupted success of the first round",
+    "Autonomous wake or unattended recovery after long idle",
+    "Complete mobile-data-only task",
+    "Independent first-time installation and pairing",
+    "Current-version Instinct or other phone models/platforms",
+    "Airtap SMS reading, calling or live call audio",
+    "All App workflows or every network-failure cause"
+  ],
+  "publication_boundary": "This record contains no screen text, note title/body, user or connection identifiers, private paths or raw screenshots. Earlier version evidence and failures retain their original scope."
+}

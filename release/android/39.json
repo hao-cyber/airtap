@@ -1,0 +1,21 @@
+{
+  "schema": "airtap-android-update-v1",
+  "application_id": "io.airtap.preview",
+  "version_name": "0.4.0-beta.9",
+  "version_code": 39,
+  "apk_sha256": "3f280b39b134934246ebe2fd89abd1a9bd4fd615431b359c70258686d8b1fbe7",
+  "apk_bytes": 538061,
+  "signer_sha256": "a2aa0c1b6fdaf1baa37aa20817387524a1318b5dab82bf7c185663141daba60f",
+  "min_sdk": 34,
+  "target_sdk": 36,
+  "debuggable": false,
+  "channel": "beta",
+  "published_at": "2026-10-29",
+  "download_path": "/download/android",
+  "notes": [
+    "修复建立连接时长时间卡住的问题；等待30秒仍未连上时会自动重试，并保留有效配对。",
+    "恢复连接后，由 AI 先检查手机状态再继续任务，不自动重放之前未完成或结果未知的操作。",
+    "已安装用户直接覆盖更新，保留原 AI 配对，无需先卸载或清除数据。主动停止或解除连接后，不会自动恢复控制。",
+    "当前仍是 Android 公开测试版。设备、网络、个人 AI 和跨 App 任务的验证范围分别记录，不代表所有机型或所有 App 均已验证。"
+  ]
+}
