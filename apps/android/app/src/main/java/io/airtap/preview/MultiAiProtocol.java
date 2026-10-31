@@ -19,6 +19,17 @@ final class MultiAiProtocol {
         long n = ServiceProtocol.integer(value,key); if (n < (zero ? 0 : 1) || n > TaskLease.MAX_INTEGER) throw new IllegalArgumentException("invalid_multi_integer"); return n;
     }
     static JSONObject hello() { return RelayApi.json("type","hello","protocol_version",4,"capabilities",new JSONArray().put("multi_ai_v1").put("task_lease_v1")); }
+    static void migrationDiscovery(JSONObject value) throws Exception {
+        ServiceProtocol.discovery(value);
+        JSONArray capabilities=value.getJSONArray("capabilities");
+        if(capabilities.length()>64)throw new IllegalArgumentException();
+        Set<String> names=new HashSet<>();
+        for(int i=0;i<capabilities.length();i++){
+            Object capability=capabilities.get(i);
+            if(!(capability instanceof String)||!names.add((String)capability))throw new IllegalArgumentException();
+        }
+        if(!names.containsAll(Set.of("multi_ai_v1","task_lease_v1")))throw new IllegalArgumentException();
+    }
     static void helloAck(JSONObject value) throws Exception {
         exact(value,"type","protocol_version","mode","connection_id"); ServiceProtocol.version(value);
         if (!"hello_ack".equals(value.getString("type")) || !"multi".equals(value.getString("mode"))) throw new IllegalArgumentException(); hex(value,"connection_id");

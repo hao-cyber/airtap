@@ -10,6 +10,9 @@ public final class MultiAiControlTest{
  static JSONObject fence(long epoch,String claim){return RelayApi.json("type","task_fence","operation_id",String.format("%032x",++serial),"lease_epoch",epoch,"holder",claim==null?JSONObject.NULL:RelayApi.json("claim_id",claim,"task_id",T,"lease_id",L),"ttl_ms",claim==null?0:120000,"renewal_sequence",0);}
  static JSONObject command(String claim,Long epoch,long sequence){return RelayApi.json("type","command","claim_id",claim,"lease_id",epoch==null?JSONObject.NULL:L,"lease_epoch",epoch==null?JSONObject.NULL:epoch,"command",RelayApi.json("id",ID,"action","file_roots","sequence",sequence));}
  static void addB()throws Exception{trust.requireLease(config,A);JSONObject invite=trust.beginInvitation(config,0);trust.completeInvitation(config,invite.getString("invitation_id"),invite.getLong("invitation_sequence"),System.currentTimeMillis()/1000+300,"1".repeat(64),"2".repeat(64));String approval=trust.beginApproval(config,B,"synthetic B");trust.completeApproval(config,approval);service.remoteGrants=Set.of(A,B);}
+ static OwnerIdentityHarness singleOwner()throws Exception{FakeDisk.reset();FakeDisk.config=config;RelayApi.requests.clear();RelayApi.throwNext=false;trust=new TrustedGrant(new android.content.Context());String consent=trust.beginApproval(config,A,"original AI");trust.completeApproval(config,consent);trust.consume(config,7);service.ownerModeChanges=0;OwnerIdentityHarness owner=new OwnerIdentityHarness();owner.bindIdentity(config);return owner;}
+ static JSONObject discovery(){return RelayApi.json("protocol_version",4,"enrollment_mode","public","enrollment_expires_at",JSONObject.NULL,"pairing_ttl_seconds",300,"session_ttl_seconds",JSONObject.NULL,"command_budget",JSONObject.NULL,"service_id",T,"label","Synthetic relay","registration_open",true,"control_open",true,"capabilities",new JSONArray().put("companion_v1").put("multi_ai_v1").put("task_lease_v1"));}
+ static void unchanged(OwnerIdentityHarness owner)throws Exception{check(!trust.multi(config)&&trust.grant(config,A).getLong("sequence")==7&&service.ownerModeChanges==0&&owner.polls==0);}
  public static void main(String[]args)throws Exception{
   test("structured hello and permanent first fence disable the legacy envelope",()->{service.receive(command(A,null,1));check(service.ui.executions==1&&A.equals(service.ui.owner));service.ui.reply.success(new JSONObject());service.receive(fence(1,A));check(ws.last().getBoolean("ok")&&trust.grant(config,A).getBoolean("lease_required"));service.receive(command(A,null,2));check(!ws.last().getBoolean("ok")&&service.ui.executions==1);});
   test("multi refuses raw single commands while unchanged single dispatch remains usable",()->{service.receive(RelayApi.json("id",ID,"action","file_roots","sequence",1));check(ws.close==1008&&service.ui.executions==0);FakeDisk.reset();FakeDisk.config=config;trust=new TrustedGrant(new android.content.Context());String consent=trust.beginApproval(config,A,"single AI");trust.completeApproval(config,consent);service.multiMode=false;service.raw(RelayApi.json("id",ID,"action","file_roots","sequence",1));check(service.ui.executions==1);});
@@ -55,6 +58,58 @@ public final class MultiAiControlTest{
   test("remote-stop metadata write failure still attempts the independent durable local stop",()->{
     PreviewService.instance=null;OwnerIdentityHarness owner=new OwnerIdentityHarness();owner.bindIdentity(config);OwnerRevocations.failQueue=true;owner.stopAll();android.app.AlertDialog.positive.click(null,0);
     check(trust.grants(config).isEmpty()&&!OwnerRevocations.all&&owner.flushes==0&&owner.message.contains("未能保存服务端解除请求"));
+  });
+  test("migration preflight is read-only and confirmation preserves commands admitted while checking",()->{
+    OwnerIdentityHarness owner=singleOwner();int saves=FakeDisk.saves;owner.enable(config);check(owner.busy&&RelayApi.requests.size()==1);var request=RelayApi.requests.get(0);
+    check(request.url.equals(config.origin())&&request.path.equals("/v1/service")&&request.method.equals("GET")&&request.token==null&&request.body==null);unchanged(owner);check(FakeDisk.saves==saves);
+    owner.enable(config);check(RelayApi.requests.size()==1);request.respond(discovery(),200,null);unchanged(owner);check(!owner.busy&&FakeDisk.saves==saves);
+    trust.consume(config,8);var confirm=android.app.AlertDialog.positive;check(confirm!=null);confirm.click(null,0);
+    check(trust.multi(config)&&trust.grant(config,A).getLong("sequence")==8&&owner.polls==1&&service.ownerModeChanges==1&&FakeDisk.config.token.equals(config.token));confirm.click(null,0);check(owner.polls==1&&service.ownerModeChanges==1);
+  });
+  test("old service network failure and malformed capabilities preserve original single state",()->{
+    List<JSONObject> invalid=new ArrayList<>();invalid.add(null);invalid.add(discovery().put("capabilities",new JSONArray().put("companion_v1")));invalid.add(discovery().put("capabilities",new JSONArray().put("multi_ai_v1")));invalid.add(discovery().put("capabilities",new JSONArray().put("task_lease_v1")));invalid.add(discovery().put("capabilities",new JSONArray().put("multi_ai_v1").put(1).put("task_lease_v1")));invalid.add(discovery().put("capabilities","multi_ai_v1 task_lease_v1"));invalid.add(discovery().put("protocol_version",3));invalid.add(discovery().put("capabilities",null));invalid.add(discovery().put("enrollment_expires_at",null));invalid.add(discovery().put("capabilities",new JSONArray().put("multi_ai_v1").put("task_lease_v1").put("multi_ai_v1")));
+    for(JSONObject response:invalid){OwnerIdentityHarness owner=singleOwner();int saves=FakeDisk.saves;owner.enable(config);RelayApi.requests.get(0).respond(response,response==null?404:200,response==null?"not_found":null);unchanged(owner);check(!owner.busy&&FakeDisk.saves==saves&&android.app.AlertDialog.positive==null);}
+    for(int status:new int[]{0,503}){OwnerIdentityHarness owner=singleOwner();int saves=FakeDisk.saves;owner.enable(config);RelayApi.requests.get(0).respond(null,status,"network");unchanged(owner);check(FakeDisk.saves==saves&&!owner.busy);}
+  });
+  test("canceling migration preflight invalidates a late supported-service reply",()->{
+    OwnerIdentityHarness owner=singleOwner();owner.enable(config);var request=RelayApi.requests.get(0);android.app.AlertDialog.negative.click(null,0);request.respond(discovery(),200,null);unchanged(owner);check(request.cancelled&&!owner.busy);
+  });
+  test("Back cancellation also invalidates migration preflight",()->{
+    OwnerIdentityHarness owner=singleOwner();owner.enable(config);var request=RelayApi.requests.get(0);android.app.AlertDialog.cancelled.cancel(null);request.respond(discovery(),200,null);unchanged(owner);check(request.cancelled&&!owner.busy);
+  });
+  test("paused owner cannot migrate from a late discovery reply",()->{
+    OwnerIdentityHarness owner=singleOwner();owner.enable(config);var request=RelayApi.requests.get(0);owner.pause();request.respond(discovery(),200,null);unchanged(owner);check(request.cancelled&&!owner.busy);
+  });
+  test("identity replacement rejects old migration discovery",()->{
+    OwnerIdentityHarness owner=singleOwner();owner.enable(config);var request=RelayApi.requests.get(0);EnrollmentStore.Config next=new EnrollmentStore.Config("https://other.invalid/d/"+B,"f".repeat(64));owner.bindIdentity(next);request.respond(discovery(),200,null);unchanged(owner);check(request.cancelled&&owner.identity==next);
+  });
+  test("persisted identity change is checked even before owner binding catches up",()->{
+    OwnerIdentityHarness owner=singleOwner();owner.enable(config);FakeDisk.config=new EnrollmentStore.Config(config.url,"f".repeat(64));RelayApi.requests.get(0).respond(discovery(),200,null);unchanged(owner);check(!owner.busy);
+  });
+  test("canceling or pausing the final confirmation prevents its old positive callback",()->{
+    for(boolean pause:new boolean[]{false,true}){OwnerIdentityHarness owner=singleOwner();owner.enable(config);RelayApi.requests.get(0).respond(discovery(),200,null);var confirm=android.app.AlertDialog.positive;if(pause)owner.pause();else android.app.AlertDialog.negative.click(null,0);confirm.click(null,0);unchanged(owner);}
+  });
+  test("changed grant or saved identity prevents an earlier migration confirmation",()->{
+    OwnerIdentityHarness owner=singleOwner();owner.enable(config);RelayApi.requests.get(0).respond(discovery(),200,null);var confirm=android.app.AlertDialog.positive;trust.stop();String consent=trust.beginApproval(config,B,"replacement");trust.completeApproval(config,consent);confirm.click(null,0);check(!trust.multi(config)&&trust.grant(config,B)!=null&&service.ownerModeChanges==0&&owner.polls==0);
+    owner=singleOwner();owner.enable(config);RelayApi.requests.get(0).respond(discovery(),200,null);confirm=android.app.AlertDialog.positive;FakeDisk.config=new EnrollmentStore.Config(config.url,"f".repeat(64));confirm.click(null,0);unchanged(owner);
+  });
+  test("synchronous discovery request failure preserves the single connection",()->{
+    OwnerIdentityHarness owner=singleOwner();int saves=FakeDisk.saves;RelayApi.throwNext=true;owner.enable(config);unchanged(owner);check(!owner.busy&&RelayApi.requests.isEmpty()&&FakeDisk.saves==saves);
+  });
+  test("old preflight cannot clear a newer request or migrate after cancellation",()->{
+    OwnerIdentityHarness owner=singleOwner();owner.enable(config);var old=RelayApi.requests.get(0);android.app.AlertDialog.negative.click(null,0);owner.enable(config);var next=RelayApi.requests.get(1);int run=owner.generation;
+    old.respond(discovery(),200,null);unchanged(owner);check(owner.busy&&owner.generation==run&&owner.call==next);next.respond(discovery(),200,null);android.app.AlertDialog.positive.click(null,0);check(trust.multi(config)&&owner.polls==1);
+  });
+  test("same claim reapproval stop or unreadable trust invalidates old confirmation",()->{
+    for(int action=0;action<3;action++){OwnerIdentityHarness owner=singleOwner();owner.enable(config);RelayApi.requests.get(0).respond(discovery(),200,null);var confirm=android.app.AlertDialog.positive;
+      if(action==2)FakeDisk.failReadRecord=true;else{trust.stop();if(action==0){String consent=trust.beginApproval(config,A,"new consent same claim");trust.completeApproval(config,consent);}}
+      int saves=FakeDisk.saves;confirm.click(null,0);FakeDisk.failReadRecord=false;check(!trust.multi(config)&&service.ownerModeChanges==0&&owner.polls==0&&FakeDisk.saves==saves);
+    }
+  });
+  test("saved enrollment removal or deregistration blocks late preflight and confirmation",()->{
+    for(boolean confirmPhase:new boolean[]{false,true})for(boolean removed:new boolean[]{false,true}){OwnerIdentityHarness owner=singleOwner();owner.enable(config);var request=RelayApi.requests.get(0);android.app.AlertDialog.Click confirm=null;if(confirmPhase){request.respond(discovery(),200,null);confirm=android.app.AlertDialog.positive;}
+      FakeDisk.config=removed?null:new EnrollmentStore.Config(config.url,config.token,false);int saves=FakeDisk.saves;if(confirmPhase)confirm.click(null,0);else request.respond(discovery(),200,null);unchanged(owner);check(FakeDisk.saves==saves);
+    }
   });
   System.out.println("TOTAL "+passed);
  }

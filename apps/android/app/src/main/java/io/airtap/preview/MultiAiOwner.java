@@ -21,23 +21,52 @@ final class MultiAiOwner {
     private int generation;
     private long nextPoll;
     private okhttp3.Call call;
+    private AlertDialog enableCheck;
     MultiAiOwner(Activity owner,Runnable changed,Consumer<String> folder){this.owner=owner;this.changed=changed;this.folder=folder;}
     boolean enabled(EnrollmentStore.Config config){try{return new TrustedGrant(owner).multi(config);}catch(Exception e){return false;}}
     void bindIdentity(EnrollmentStore.Config config){
         if(identity==null||config==null||!identity.url.equals(config.url)||!identity.token.equals(config.token)){
-            generation++;if(call!=null)call.cancel();call=null;busy=false;remote=null;nextPoll=0;
+            generation++;if(call!=null)call.cancel();call=null;busy=false;remote=null;nextPoll=0;dismissEnableCheck();
         }
         identity=config;
     }
     void resume(EnrollmentStore.Config config){bindIdentity(config);visible=true;nextPoll=0;}
-    void pause(){visible=false;generation++;busy=false;if(call!=null)call.cancel();call=null;}
+    void pause(){visible=false;generation++;busy=false;if(call!=null)call.cancel();call=null;dismissEnableCheck();}
     private void change(String text){message=text;changed.run();}
     private boolean current(int run,EnrollmentStore.Config config){return visible&&!owner.isDestroyed()&&run==generation&&identity!=null&&config.url.equals(identity.url)&&config.token.equals(identity.token);}
+    private void dismissEnableCheck(){if(enableCheck!=null){enableCheck.dismiss();enableCheck=null;}}
+    private void cancelEnable(int run){if(run!=generation)return;generation++;if(call!=null)call.cancel();call=null;busy=false;dismissEnableCheck();}
+    private boolean enableCurrent(int run,EnrollmentStore.Config config,String fence){
+        if(!current(run,config))return false;
+        try{EnrollmentStore.Config saved=new EnrollmentStore(owner).read();TrustedGrant trust=new TrustedGrant(owner);
+            return saved!=null&&saved.enrolled()&&saved.publicService()&&saved.url.equals(config.url)&&saved.token.equals(config.token)
+                    &&!trust.multi(saved)&&fence!=null&&trust.isCurrent(saved,fence);
+        }catch(Exception unreadable){return false;}
+    }
+    private void enableUnavailable(){new AlertDialog.Builder(owner).setTitle("暂未开启多 AI").setMessage("当前服务尚未确认支持多 AI，原 AI 连接保持不变。请联网后重试，或等待服务更新。").setPositiveButton("知道了",null).show();}
     void enable(EnrollmentStore.Config config){
-        bindIdentity(config);
+        bindIdentity(config);if(busy||!visible)return;
+        final String fence;
+        try{fence=new TrustedGrant(owner).sessionFence(config);}catch(Exception unavailable){enableUnavailable();return;}
+        final int run=++generation;if(!enableCurrent(run,config,fence))return;
+        // Discovery is read-only: the current single grant and socket survive every failed check.
+        busy=true;
+        enableCheck=new AlertDialog.Builder(owner).setTitle("正在核实服务支持")
+          .setMessage("正在只读检查当前服务，原 AI 连接继续可用。")
+          .setNegativeButton("取消",(d,w)->cancelEnable(run)).setOnCancelListener(d->cancelEnable(run)).show();
+        try{call=RelayApi.requestStatus(config.origin(),"/v1/service","GET",null,null,(body,status,error)->{
+            if(!current(run,config))return;busy=false;call=null;dismissEnableCheck();
+            if(!enableCurrent(run,config,fence))return;
+            try{if(error!=null||status!=200)throw new IllegalArgumentException();MultiAiProtocol.migrationDiscovery(body);}
+            catch(Exception unsupported){cancelEnable(run);enableUnavailable();return;}
+            confirmEnable(run,config,fence);
+        });}catch(Exception unavailable){cancelEnable(run);enableUnavailable();}
+    }
+    private void confirmEnable(int run,EnrollmentStore.Config config,String fence){
         new AlertDialog.Builder(owner).setTitle("连接多个自己的 AI")
           .setMessage("会保留现有 AI 的连接。每位 AI 分别核码授权，按完整任务轮流使用同一部手机。它们使用同一套手机账号和画面，没有账号隔离。支持任务接管的新版接入工具完成准备后，才能添加下一位 AI。")
-          .setNegativeButton("返回",null).setPositiveButton("开启并保留原连接",(d,w)->{
+          .setNegativeButton("返回",(d,w)->cancelEnable(run)).setOnCancelListener(d->cancelEnable(run)).setPositiveButton("开启并保留原连接",(d,w)->{
+            if(!enableCurrent(run,config,fence))return;generation++;
             try{new TrustedGrant(owner).enableMulti(config);remote=null;nextPoll=0;if(PreviewService.instance!=null)PreviewService.instance.ownerModeChanged();change("正在保留原连接并准备多 AI 管理…");poll(true);}
             catch(Exception failure){change("未能保存设置，原连接记录已保留，请检查手机存储。");}
           }).show();
