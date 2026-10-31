@@ -1,0 +1,55 @@
+{
+  "schema": "airtap-physical-idle-observation-v1",
+  "recorded_at": "2026-11-01T01:57:53.951473+08:00",
+  "status": "completed_60_minute_read_only_idle_observation",
+  "public_release": false,
+  "scope": "A separate follow-up to the code44 upgrade record on one already prepared physical phone. This observation belongs only to code44.",
+  "artifact": {
+    "build_source_commit": "1797e1c67662066089475d95db5ea5b007cef6dd",
+    "apk_sha256": "10f7634b4318170e9ca8d50840f9c6ecff3d92420ace44f0f9c3e443fbaebce5",
+    "version_code": 44,
+    "version_name": "0.4.0-beta.14"
+  },
+  "device": {
+    "model": "Meizu Note 16",
+    "android_version": 15,
+    "physical_usb_power": true
+  },
+  "preconditions": [
+    "Original phone accounts and saved AI authorization were retained.",
+    "Flyme background and associated startup settings were already enabled, and code42 had needed a manual accessibility-service rebind. These earlier interventions remain part of the device setup.",
+    "The phone was already Dozing following code44 automatic upgrade recovery; no manual sleep, wake, permission or UI action was issued to start this window."
+  ],
+  "observation": {
+    "start_at": "2026-11-01T00:51:37.591015+08:00",
+    "end_at": "2026-11-01T01:51:37.765689+08:00",
+    "duration_seconds": 3600.175,
+    "samples": 120,
+    "method": "Read-only adb power, accessibility binding, process and device-idle metadata, approximately every 30 seconds, with a final sample.",
+    "maximum_sample_gap_seconds": 30.539,
+    "all_sample_commands_succeeded": true,
+    "same_process_in_all_samples": true,
+    "operation_service_bound_in_all_samples": true,
+    "power_wakefulness_counts": {
+      "Dozing": 120
+    },
+    "last_wake_clock_unchanged": true,
+    "last_sleep_clock_unchanged": true,
+    "deep_device_idle_in_any_sample": false,
+    "phone_ui_upgrade_network_or_relay_changes_by_test_during_window": false
+  },
+  "conclusions": [
+    "The full 3600-second window completed with the same process and bound operation service at every sample. Wakefulness stayed Dozing in the samples, and last-wake and last-sleep clocks did not change.",
+    "Sampling is not continuous service or task execution monitoring. Dozing here is a screen wakefulness state, not Android deep Doze.",
+    "USB supplied power throughout, and read-only adb sampling adds overhead; this is not unplugged endurance."
+  ],
+  "not_established": [
+    "Any 60-minute idle result for code45 or a later APK.",
+    "A Muse or Instinct task, autonomous wake, SMS GUI read, cross-App result or subsequent-use verification after this window.",
+    "Deep Doze, reboot, network-loss recovery, all OEMs or independent new-user installation.",
+    "Public APK release or replacement of another phone's primary control path."
+  ],
+  "related_result": "docs/results/beta14-code44-upgrade-20261101.json",
+  "recommended_public_apk_code_unchanged": 39,
+  "privacy": "Manually summarized from private metadata. No serial, PID value, account, phone number, message, raw screen, authorization credential or private deployment path is included."
+}

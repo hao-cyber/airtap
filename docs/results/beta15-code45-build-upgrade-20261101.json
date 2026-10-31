@@ -1,0 +1,153 @@
+{
+  "schema": "airtap-candidate-build-and-upgrade-v1",
+  "recorded_at": "2026-11-01T01:57:53.951473+08:00",
+  "status": "candidate_build_native_invitation_and_limited_physical_upgrade_pass",
+  "public_release": false,
+  "artifact": {
+    "build_source_commit": "4f29d27cffaead5b55d8514983827b3331c6544a",
+    "apk_sha256": "e4612a3dade207529f2f8532358fee92084f138af2a1b102c0a8b44e835f8889",
+    "bytes": 595405,
+    "signer_sha256": "a2aa0c1b6fdaf1baa37aa20817387524a1318b5dab82bf7c185663141daba60f",
+    "version_code": 45,
+    "version_name": "0.4.0-beta.15",
+    "debuggable": false,
+    "signature_verified": true
+  },
+  "source_scope": {
+    "production_changes_from_code44": [
+      "apps/android/app/src/main/java/io/airtap/preview/MultiAiOwner.java"
+    ],
+    "version_metadata_updated": true,
+    "description": "An explicit Add AI action continues after state discovery, with cancellation and stale-read fencing. Other Android src/main production inputs match code44; this does not transfer code44 device observations to code45."
+  },
+  "build_and_checks": {
+    "release_build_and_lint_passed": true,
+    "build_completed_at": "2026-11-01T01:43:33.979439+08:00",
+    "core_completed": true,
+    "core_passed": true,
+    "core_steps": 34,
+    "core_recorded_at": "2026-10-31T17:44:45.727792+00:00",
+    "core_scope": "Local host fixtures and workerd checks. They are separate from device and personal-AI acceptance."
+  },
+  "native_invitation_suite": {
+    "production_source_commit": "4f29d27cffaead5b55d8514983827b3331c6544a",
+    "passed": 5,
+    "total": 5,
+    "production_java_files_verified_unchanged": 74,
+    "method": "Disposable emulator, synthetic identities and test CA; actual production Activity/dialog Button.performClick callbacks and HTTP/service/storage effects. Read-only test reflection checks Owner state. This is not physical touch or first-user setup.",
+    "checks": [
+      {
+        "name": "One Add callback from unknown state creates exactly one invitation after a real grants read",
+        "passed": true,
+        "explicit_add_callbacks": 1,
+        "invitation_posts": 1
+      },
+      {
+        "name": "STOP while the Add read is held does not create a late invitation",
+        "passed": true,
+        "later_invitation_posts": 0
+      },
+      {
+        "name": "Canceling the original unknown invitation while its read is held does not recreate it",
+        "passed": true,
+        "additional_invitation_posts": 0
+      },
+      {
+        "name": "HOME pause abandons the pending Add read; resume does not create an invitation",
+        "passed": true,
+        "later_invitation_posts": 0
+      },
+      {
+        "name": "Retry after an invitation POST commits but loses its reply retains the original identity, sequence and ticket",
+        "passed": true,
+        "invitation_posts_including_retry": 2,
+        "original_request_identity_retained": true
+      }
+    ],
+    "fault_evidence": {
+      "held_grants_responses": 4,
+      "each_hold_hit_forwarded_completed_and_released_once": true,
+      "releases_after_client_closed": 3,
+      "invitation_lost_response_commits_confirmed": 2,
+      "fault_failures": 0
+    },
+    "limits": [
+      "The three canceled connections were already closed at release; this proves real cancellation and no late creation, not that a stale success callback arrived. Focused host tests separately inject stale and duplicate callbacks.",
+      "The earlier gesture/file-IO suite and code44 migration suite were not rerun for this candidate.",
+      "No public service, physical phone, Muse or Instinct participated in this native suite."
+    ]
+  },
+  "device": {
+    "model": "Meizu Note 16",
+    "android_version": 15,
+    "physical_usb_power": true,
+    "prior_version_code": 44,
+    "new_version_code": 45
+  },
+  "preconditions_and_interventions": [
+    "This is the already prepared device with retained accounts and authorization, existing Flyme background/startup settings and the earlier code42 manual accessibility rebind.",
+    "A maintainer issued adb install -r. No uninstall, clear-data, re-pairing, postinstall foreground launch, phone UI action or permission toggle was used for this upgrade.",
+    "The initial binding sampler was wrong and was corrected in the observation tool; this was a measurement correction, not a phone setting change."
+  ],
+  "upgrade": {
+    "install_started_at": "2026-11-01T01:53:04.772805+08:00",
+    "install_completed_at": "2026-11-01T01:53:06.061550+08:00",
+    "installed_apk_matches_signed_artifact": true,
+    "app_data_directory_inodes_unchanged": true,
+    "first_saved_authorization_socket_open_seconds_after_install": 4.584,
+    "saved_authorization_connected_in_local_diagnostics": true,
+    "postinstall_ui_or_permission_actions": false,
+    "initial_observation": {
+      "samples": 7,
+      "start_at": "2026-11-01T01:53:06.857375+08:00",
+      "end_at": "2026-11-01T01:54:09.151307+08:00",
+      "wakefulness": "Dozing in all seven samples",
+      "same_process_in_all_samples": true,
+      "foreground_service_samples_false_then_true": {
+        "initial_false": 1,
+        "subsequent_true": 6
+      },
+      "binding_values_usable": false
+    },
+    "binding_measurement_error": {
+      "affected_samples": 7,
+      "observed_value_in_invalid_parser": false,
+      "cause": "The sampler searched for the package name in Bound services, where this Android build prints the service label.",
+      "original_raw_binding_lines_preserved": false,
+      "past_values_reconstructed": false,
+      "interpretation": "The seven false binding values are retained as invalid measurements, not binding failures and not retroactively changed to true. The first foreground-service=false sample is an actual startup observation and is retained."
+    },
+    "corrected_followup": {
+      "method": "Read-only accessibility metadata matched the Airtap service label, with separate enabled-service and foreground-service checks.",
+      "samples": [
+        {
+          "at": "2026-11-01T01:54:28.791092+08:00",
+          "service_enabled": true,
+          "operation_service_bound": true,
+          "foreground_service": true
+        },
+        {
+          "at": "2026-11-01T01:54:38.928508+08:00",
+          "service_enabled": true,
+          "operation_service_bound": true,
+          "foreground_service": true
+        },
+        {
+          "at": "2026-11-01T01:54:49.063203+08:00",
+          "service_enabled": true,
+          "operation_service_bound": true,
+          "foreground_service": true
+        }
+      ]
+    },
+    "scope": "Local diagnostics and three later valid binding checks establish this limited automatic reconnect on one prepared phone, not a completed personal-AI task."
+  },
+  "not_established": [
+    "A full 60-minute code45 idle test. The separate completed hour belongs only to code44.",
+    "Muse or Instinct actual tasks, autonomous wake, SMS GUI reading, physical multi-AI handoff or subsequent-use verification on code45.",
+    "First installation, all OEMs, reboot/deep-Doze recovery or unplugged endurance.",
+    "Public APK39 replacement, independent new-user acceptance or production relay deployment. The relay deployment is outside this record."
+  ],
+  "recommended_public_apk_code_unchanged": 39,
+  "privacy": "Manually reduced to build identity, model, timings and diagnostic classifications. No serial, PID value, account, phone number, raw chat/screen, credential or private deployment path is included."
+}
