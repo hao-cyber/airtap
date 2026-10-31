@@ -42,7 +42,7 @@ closedTasks: 最近最多 32 个 {claimId,taskId,leaseId,epoch}    # 幂等释�
 2. 新手机启用后，把旧批准记录迁为唯一 grant，`lease_required=false`、`lease_ready=false`；旧 token、claim、scope、sequence、seen 原样保留。
 3. 这个唯一 grant 在没有有效任务租约时可以继续原命令格式；一旦它成功完成首次租约握手，就原子地设置 `lease_required=true, lease_ready=true`，以后所有手机命令都必须带该任务租约。status、反馈和撤销不要求租约。
 4. **创建第二份邀请要求每个已有 grant 的 `lease_ready=true`**，且当前手机已经完成本协议 WebSocket hello。单纯上报客户端版本/能力不满足要求。否则返回 `409 client_upgrade_required` 或 `409 device_upgrade_required`，不改现有授权。
-5. 新邀请仅接受声明 `task_lease_v1` 的申请者。新批准 grant 的 `lease_required=true`，首次任务握手前 `lease_ready=false`。仅迁移前已经存在的 legacy 邀请可以继续接受原三字段申请，并在没有其他 grant 时产生兼容的唯一 grant（required/ready 都为 false）。因此不支持租约的 CLI 不能成为第二个可操作控制器，也不能走旧请求绕过任务锁。
+5. 新邀请仅接受声明 `task_lease_v1` 的申请者。新批准 grant 的 `lease_required=true`，首次任务握手前 `lease_ready=false`。历史 multi 状态中已经存在的 legacy 邀请可以继续接受原三字段申请，并在没有其他 grant 时产生兼容的唯一 grant（required/ready 都为 false）；当前首次迁移入口不再转换未批准的 single 邀请。因此不支持租约的 CLI 不能成为第二个可操作控制器，也不能走旧请求绕过任务锁。
 6. 新模式下旧 `POST /v1/device/pairing` 和旧 `POST /v1/device/approve` 返回 `409 multi_api_required`，不得换代、清旧 grant 或断连接；旧控制端 `/v1/pair/status`、`/v1/status`、`/v1/revoke` 保持可解析响应，作用于该控制端自己的 grant。全停仍用设备接口。
 7. 已启用多授权的状态不能自动降回旧 schema 或复原旧备份。旧服务或旧 APK 不理解新状态时明确拒绝；不能为了回退恢复已撤销授权或旧 sequence。
 
@@ -52,12 +52,12 @@ closedTasks: 最近最多 32 个 {claimId,taskId,leaseId,epoch}    # 幂等释�
 
 | 方法与路径 | 请求 JSON | 行为 |
 | --- | --- | --- |
-| `POST /v1/device/multi/enable` | `{"capabilities":["multi_ai_v1","task_lease_v1"]}` | 幂等迁移为新模式；不授予任何新控制权限。返回下述设备状态。 |
+| `POST /v1/device/multi/enable` | `{"capabilities":["multi_ai_v1","task_lease_v1"],"expected_claim_id":"<H32>"}` | 首次迁移只接受当前已批准、与预期 claim 匹配的 single；旧 claim 的迟到请求不能改变后来新配对的模式。multi 中该 claim 仍存在时幂等返回状态，已撤销时拒绝；不授予任何新权限。 |
 | `GET /v1/device/grants` | 无正文 | 读取新模式状态，包含全部已批准 grant 和唯一邀请；不会从远端状态自动生成本机同意。 |
 | `POST /v1/device/invitations` | `{"invitation_id":"<H32>","invitation_sequence":1,"ticket":"<H32>"}` | 手机先持久化两个新随机值及大于服务端水位的 invitation_sequence，再请求创建；服务仅保存 ticketHash，期限为首次接受时刻起 300 秒。同 id/hash 的重试返回原期限，不延长；不同内容不覆盖待处理邀请。 |
 | `POST /v1/device/invitations/cancel` | `{"invitation_id":"<H32>","invitation_sequence":1}` | 仅取消相同 id/sequence 邀请。无邀请且 sequence 不高于水位时幂等成功；存在不同邀请时 `409 stale_invitation`。不影响已批准 grant 或活动任务。 |
 | `POST /v1/device/grants/approve` | `{"claim_id":"<H32>","allow_tap":false,"allow_control":true,"allowed_packages":[],"persistent":true,"all_apps":true}` | 仅批准当前、未过期 candidate；已有同 claim、同 scope 幂等成功，保留 sequence。必须配合手机本地真实核码批准及 approval fence。 |
-| `POST /v1/device/grants/revoke` | `{"claim_id":"<H32>"}` | 单独撤销该 grant；不存在时幂等成功。立即拒绝其新命令，执行中的任务进入停止/交接 fence。保留其他 grant。 |
+| `POST /v1/device/grants/revoke` | `{"claim_id":"<H32>"}` | 单独撤销该 grant；不存在时幂等成功。立即拒绝其新命令，执行中的任务进入停止/交接 fence。迁移期间远端仍为 single 时也只撤销匹配的 claim，迟到重试不影响后来的不同 claim。 |
 | `POST /v1/device/revoke` | `{"expected_generation":I0}` | multi 全停：仅匹配当前 generation 时原子撤销全部 grant、邀请、租约并提升 generation、关闭旧 WS；较低世代幂等返回当前水位且不碰后来授权，较高世代 `409 generation_mismatch`。返回 `{"ok":true,"generation":I}`。原设备 enrollment 保留，不自动恢复。旧 single 无正文行为保持，multi 无正文不能绕过门禁。 |
 | `POST /v1/device/unenroll` | 无正文 | 终止当前 enrollment，撤销所有 grant/邀请/租约并释放登记；registry 持久保留 retired/closing 身份，原 device_id/token 不能重新登记。重试只清理同一终止身份，不能作用于其他新 enrollment；不使用可重复的新 generation 代替此永久退役 fence。 |
 
@@ -210,17 +210,30 @@ MCP 新增 `phone_task_acquire`、`phone_task_renew`、`phone_task_release`，�
 
 ## 9. 迁移、文件和恢复不变量
 
-- 服务端迁移一次原子保存：只有 approved 旧 candidate 变有效 grant；pending/waiting 变邀请；revoked/expired 保持不可控；sequence/seen/原 token hash 不变。迁移失败保留旧状态且报错，不写半个 schema。
+- 服务端迁移一次原子保存，且绑定机主确认时的已批准 claim。`expected_claim_id` 与当前 claim 不符时拒绝，不改变后来连接的模式；sequence/seen/原 token hash 不变。迁移失败保留旧状态且报错，不写半个 schema。
 
 | 旧服务状态 | 迁移结果 |
 | --- | --- |
-| `approved`、persistent、未退役 | 一条兼容 grant，claim/hash/name/scope/sequence/seen 原样；无邀请，无任务。 |
-| 未过期 `waiting` | 一个 `origin:legacy_v4` 邀请，首次迁移生成并保存 invitation_id；原 ticketHash/期限不变，不生成 grant。 |
-| 未过期 `pending` | 同上，原 candidate 的 hash/id/name/code 原样；capabilities 为空，不视为已经支持 lease。 |
-| `idle`、`revoked` 或已过期邀请 | 空 grant/邀请/任务；不因旧 candidate 仍留在状态中而复活。 |
+| `approved`、persistent、未退役且 claim 匹配 | 一条兼容 grant，claim/hash/name/scope/sequence/seen 原样；无邀请，无任务。 |
+| `waiting` 或 `pending` | 拒绝首次迁移并保留原邀请及候选。先完成当前 single 核码，再显式开启多 AI。 |
+| `idle`、`revoked`、已过期或 claim 不匹配 | 拒绝首次迁移并保留状态；不因旧 candidate 残留而复活，也不迁移后来创建的连接。 |
 | serviceRetired 或结构不完整/未知 schema | 拒绝启用，不创建可控身份；返回明确错误。 |
 
-迁移 legacy 邀请时，手机从 GET 状态获取新 invitation_id；本地既有 ticket 不改变、不记录到日志。该例外只服务于迁移前已存在的邀请，所有新建邀请必须是 `multi_ai_v1`。
+已经处于 multi 的服务可兼容旧候选不带 `expected_claim_id` 的只读幂等重试；它不能触发首次迁移、增加授权或复原旧 claim。协议仍能读取已有 `legacy_v4` 邀请，但当前入口不将未批准的 single 邀请迁移为 multi；所有新建多 AI 邀请使用 `multi_ai_v1`。
+
+手机从已批准的 single 连接启用多 AI 时，服务发现与实际迁移可能有不同结果，不能在发现接口成功后直接改写本地模式。候选实现按下列步骤处理：
+
+1. 只读检查同一服务的 `protocol_version:4`、`multi_ai_v1` 与 `task_lease_v1`。检查失败、取消、身份变化或旧回调迟到均不改变原授权。
+2. 机主确认后，在原加密 single 记录中保存迁移 intent，绑定随机 id、原授权 fence 和 `prepared` 阶段。原 claim、凭据和最新命令序列保留；准备迁移不等于已进入 multi。
+3. 发出迁移 POST 前先持久保存 `unknown` 阶段。不能收到超时后才记未知结果，否则进程中断会丢失已经发出的请求。原连接可以在远端确认前继续使用；连接关闭后先对账，不以旧 hello 猜测远端模式。
+4. 通过有效迁移响应或 `GET /v1/device/pairing` 核实远端已经是 multi，并复核当前设备身份及原授权 fence/intent。提交本地 schema2 时只保留仍有效的本地批准与远端 grant 的交集；原 claim 已撤销则提交空集合并停止执行，不复制远端其他 grant。服务端列表不能替代本地同意，也不能复活已撤销的原 claim。
+5. 仅首次、此前没有未知请求的迁移得到明确 404/409，且随后读到同一已批准 single 状态时，才能取消 intent 并保留原 single。请求超时、断流或发出后进程中断都保留未知状态；后来的 single/404 不能证明之前的请求从未生效。继续只读对账或重试同一幂等迁移，不重配、不重放手机动作。
+6. 加密 schema2 已写入但辅助模式标记未写入时，仍按已提交处理；执行连接和通知必须随已持久化的模式一起切换，后续读取补齐标记。不能只显示“保存失败”，却让旧通知的停止按钮失去作用。
+7. 迁移期间在机主界面选择“停止并解除”时，保存原 claim 的定向撤销 intent 并停止本机执行；两项操作分别记录结果。远端模式尚未确认时不发送可能作用于后来新配对的全停请求；重试始终携带原 claim，不将本地已停止冒充服务端已确认解除。通知栏“停止控制”仍只承诺本机停止，并使旧迁移回调失效。
+8. “重试解除”续办已保存的撤销 intent，不把后来新批准的 AI 当成旧请求的目标；主动“停止并解除当前连接”则停止当前授权。两个入口不能因共用处理函数而混淆作用对象。
+
+这些步骤是候选迁移约束；对应异常与持久化切面仍须分别验证，不能沿用早期正常迁移通过的记录。
+
 - 手机加密授权采用可辨识 schema；可信记录大小读写均限制为 16 KiB（enrollment 仍用原限制）。最多四份 grant 和单 pending，每个 approval fence 独立；全局 stopped 标记优先于任何残余密文。同意 B 的写入失败不得删除 A。停止与晚到审批回调的竞争保持 fail closed。
 - 手机本地批准只由正常 UI 核码建立；relay grant 列表不能替代该同意。不同设备 identity 的旧记录不能迁入当前 enrollment。
 - workspace、SAF 授权、分享票据、故障报告按 claim 绑定；设备 owner 能管理所有，控制器仅能访问自己的。文件清理使用有效 grant 集合，不把另一个已批准 AI 当旧连接。已有复制给外部 App 的字节无法追回，保持原披露。
@@ -230,5 +243,7 @@ MCP 新增 `phone_task_acquire`、`phone_task_renew`、`phone_task_release`，�
 ## 10. 本候选必须验证
 
 合成双控制器验证：原 single 迁移、原凭据/序列不变、第二邀请能力门禁、4 份上限、邀请重试/丢响应/取消/过期、A 授权不被 B 审批故障影响、单撤销与全停、独立 sequence/反馈/文件、任务竞争/续租/幂等释放、手机 ACK 缺失/错误/迟到、旧 epoch/WS 响应、到期时未结束动作、设备/DO 重启、未知命令结果、暂停/额度下仍可撤销。
+
+迁移异常另验：发现成功但提交失败、POST 回执丢失、发送前后进程中断、加密 schema 写成但辅助标记失败、迁移途中停止、撤销记录保存失败、重建后的定向重试，以及新 claim 获准后旧迁移/停止请求迟到。当前连接的主动停止和旧请求的重试分别核验，不能仅验证请求被接受。
 
 旧 v2 preview 和 v4 single 测试保留。新手机/中继/CLI 编译与合成检查通过后，才进行保留原配对的候选升级及 Muse、Instinct 分别从真实环境执行与交接；不得用 USB 代做成两个 AI 成功，也不得为了验收撤销正在使用的旧配对。公开状态与发布制品需另行核验。
