@@ -383,8 +383,282 @@ public final class ApprovalRecoveryTest {
         });
         test("multi enable marker failure leaves encrypted schema readable and cannot invent grants",()->{
             String id=begin();trust().completeApproval(config,id);FakeDisk.preferences.failAt=FakeDisk.preferences.calls+1;
-            expectFailure(()->trust().enableMulti(config));reboot();check(trust().multi(config));check(trust().validClaims(config).equals(java.util.Set.of(CLAIM_A)));
+            trust().enableMulti(config);reboot();check(trust().multi(config));check(trust().validClaims(config).equals(java.util.Set.of(CLAIM_A)));
             trust().enableMulti(config);check(trust().grant(config,CLAIM_A)!=null);
+        });
+        test("migration intent preserves single consent and survives sequence updates and restart",()->{
+            String approval=begin();trust().completeApproval(config,approval);trust().consume(config,19);
+            JSONObject original=FakeDisk.record.copy();String fence=trust().sessionFence(config);int commits=FakeDisk.preferences.calls;
+            String id=trust().beginMigration(config,fence);check(id!=null&&"prepared".equals(trust().migration(config).getString("phase")));
+            JSONObject unchanged=FakeDisk.record.copy();unchanged.remove("migration");check(original.fields.equals(unchanged.fields));
+            check(FakeDisk.preferences.calls==commits&&RelayApi.requests.isEmpty()&&!trust().multi(config));
+            trust().consume(config,23);reboot();check(id.equals(trust().beginMigration(config,fence)));
+            check(trust().read(config).getLong("sequence")==23&&approval.equals(trust().read(config).getString("approval_id")));
+            check(fence.equals(trust().sessionFence(config))&&fence.equals(trust().migration(config).getString("fence")));
+        });
+        test("migration requires the current approved single fence and never creates authority",()->{
+            check(trust().beginMigration(config,"a".repeat(64))==null&&trust().migration(config)==null);
+            String approval=begin();check(trust().beginMigration(config,"a".repeat(64))==null);
+            trust().completeApproval(config,approval);String fence=trust().sessionFence(config);int saves=FakeDisk.saves;
+            check(trust().beginMigration(config,null)==null&&trust().beginMigration(config,"b".repeat(64))==null&&FakeDisk.saves==saves);
+            trust().stop();check(trust().beginMigration(config,fence)==null&&trust().migration(config)==null);
+            approval=begin();trust().completeApproval(config,approval);trust().enableMulti(config);saves=FakeDisk.saves;
+            check(trust().beginMigration(config,trust().sessionFence(config))==null&&trust().migration(config)==null&&FakeDisk.saves==saves);
+        });
+        test("migration dispatch persists unknown once and never rewinds after retry or reboot",()->{
+            String approval=begin();trust().completeApproval(config,approval);String fence=trust().sessionFence(config),id=trust().beginMigration(config,fence);
+            check(!trust().dispatchMigration(config,"f".repeat(32))&&trust().dispatchMigration(config,id));int saves=FakeDisk.saves;
+            check(!trust().dispatchMigration(config,id)&&FakeDisk.saves==saves);trust().consume(config,41);reboot();
+            check(id.equals(trust().beginMigration(config,fence))&&"unknown".equals(trust().migration(config).getString("phase")));
+            check(!trust().dispatchMigration(config,id)&&trust().read(config).getLong("sequence")==41);
+        });
+        test("migration save failures preserve the previous phase and the original grant",()->{
+            String approval=begin();trust().completeApproval(config,approval);String fence=trust().sessionFence(config);
+            FakeDisk.failSaveAt=FakeDisk.saves+1;expectFailure(()->trust().beginMigration(config,fence));check(trust().migration(config)==null&&trust().isCurrent(config,fence));
+            String id=trust().beginMigration(config,fence);FakeDisk.failSaveAt=FakeDisk.saves+1;
+            expectFailure(()->trust().dispatchMigration(config,id));reboot();check("prepared".equals(trust().migration(config).getString("phase")));
+            check(trust().dispatchMigration(config,id));FakeDisk.failSaveAt=FakeDisk.saves+1;expectFailure(()->trust().cancelMigration(config,id));
+            reboot();check("unknown".equals(trust().migration(config).getString("phase"))&&trust().isCurrent(config,fence));
+        });
+        for(boolean after:java.util.List.of(false,true)){
+            test("migration preparation crash "+(after?"after":"before")+" encrypted write preserves original consent",()->{
+                String approval=begin();trust().completeApproval(config,approval);String fence=trust().sessionFence(config);
+                if(after)FakeDisk.crashAfterSaveAt=FakeDisk.saves+1;else FakeDisk.crashBeforeSaveAt=FakeDisk.saves+1;
+                expectCrash(()->trust().beginMigration(config,fence));reboot();check(trust().isCurrent(config,fence));
+                check((trust().migration(config)!=null)==after);if(after)check("prepared".equals(trust().migration(config).getString("phase")));
+            });
+            test("migration dispatch crash "+(after?"after":"before")+" durable unknown is distinguishable after restart",()->{
+                String approval=begin();trust().completeApproval(config,approval);String id=trust().beginMigration(config,trust().sessionFence(config));
+                if(after)FakeDisk.crashAfterSaveAt=FakeDisk.saves+1;else FakeDisk.crashBeforeSaveAt=FakeDisk.saves+1;
+                expectCrash(()->trust().dispatchMigration(config,id));reboot();check(id.equals(trust().migration(config).getString("id")));
+                check((after?"unknown":"prepared").equals(trust().migration(config).getString("phase")));
+                check(trust().dispatchMigration(config,id)==!after);
+            });
+        }
+        test("matching explicit cancellation removes only migration and old cancellation cannot touch a newer intent",()->{
+            String approval=begin();trust().completeApproval(config,approval);String fence=trust().sessionFence(config),id=trust().beginMigration(config,fence);
+            trust().consume(config,29);trust().cancelMigration(config,"f".repeat(32));check(id.equals(trust().migration(config).getString("id")));
+            trust().cancelMigration(config,id);check(!FakeDisk.record.has("migration")&&trust().read(config).getLong("sequence")==29&&trust().isCurrent(config,fence));
+            String next=trust().beginMigration(config,fence);check(!id.equals(next));trust().cancelMigration(config,id);
+            check(next.equals(trust().migration(config).getString("id")));check(trust().dispatchMigration(config,next));
+            trust().cancelMigration(config,next);reboot();check(trust().migration(config)==null&&trust().isCurrent(config,fence));
+        });
+        test("remote claims cannot create grants or complete a mismatched migration intent",()->{
+            String approval=begin();trust().completeApproval(config,approval);String fence=trust().sessionFence(config),id=trust().beginMigration(config,fence);
+            trust().dispatchMigration(config,id);int saves=FakeDisk.saves;
+            check(!trust().completeMigration(config,"f".repeat(32),java.util.Set.of(CLAIM_B))&&!trust().multi(config)&&FakeDisk.saves==saves);
+            check(id.equals(trust().migration(config).getString("id"))&&trust().isCurrent(config,fence));
+            check(!trust().completeMigration(config,"f".repeat(32),java.util.Set.of(CLAIM_A)));
+            trust().consume(config,73);check(trust().completeMigration(config,id,java.util.Set.of(CLAIM_A,CLAIM_B)));
+            check(trust().validClaims(config).equals(java.util.Set.of(CLAIM_A))&&trust().grant(config,CLAIM_A).getLong("sequence")==73);
+            check(fence.equals(trust().grantFence(config,CLAIM_A))&&!fence.equals(trust().sessionFence(config)));
+            check(!FakeDisk.record.has("migration")&&!trust().grant(config,CLAIM_A).has("migration")&&trust().migration(config)==null);
+            check(!trust().completeMigration(config,id,java.util.Set.of(CLAIM_A))&&!trust().stopIfCurrent(config,fence));
+        });
+        test("verified multi missing the original claim atomically stores empty multi without remote-only consent",()->{
+            String approval=begin();trust().completeApproval(config,approval);trust().consume(config,73);
+            String fence=trust().sessionFence(config),id=trust().beginMigration(config,fence);trust().dispatchMigration(config,id);int saves=FakeDisk.saves;
+            check(trust().completeMigration(config,id,java.util.Set.of(CLAIM_B))&&FakeDisk.saves==saves+1);
+            check(trust().multi(config)&&FakeDisk.record.getJSONArray("grants").length()==0&&trust().grants(config).isEmpty());
+            check(trust().read(config)==null&&trust().grant(config,CLAIM_B)==null&&trust().migration(config)==null&&trust().sessionFence(config)==null);
+            explicitNull(FakeDisk.record,"pending");explicitNull(FakeDisk.record,"invitation");check(!FakeDisk.record.has("migration"));
+            check(!trust().stopIfCurrent(config,fence)&&!trust().completeMigration(config,id,java.util.Set.of(CLAIM_A)));
+            reboot();check(trust().multi(config)&&trust().validClaims(config).isEmpty()&&trust().pending(config)==null&&trust().read(config)==null);
+            check(trust().beginInvitation(config,0)!=null&&trust().grants(config).isEmpty());
+        });
+        test("empty remote multi migration survives schema-write crash without an intermediate original grant",()->{
+            String approval=begin();trust().completeApproval(config,approval);String id=trust().beginMigration(config,trust().sessionFence(config));trust().dispatchMigration(config,id);
+            int saves=FakeDisk.saves;FakeDisk.crashAfterSaveAt=saves+1;
+            expectCrash(()->trust().completeMigration(config,id,java.util.Set.of()));check(FakeDisk.saves==saves+1&&FakeDisk.record.getJSONArray("grants").length()==0);
+            reboot();check(trust().multi(config)&&trust().read(config)==null&&trust().migration(config)==null&&trust().grants(config).isEmpty());
+        });
+        test("failed empty multi replacement retains the same recoverable single intent until a successful retry",()->{
+            String approval=begin();trust().completeApproval(config,approval);String fence=trust().sessionFence(config),id=trust().beginMigration(config,fence);trust().dispatchMigration(config,id);
+            FakeDisk.failSaveAt=FakeDisk.saves+1;expectFailure(()->trust().completeMigration(config,id,java.util.Set.of(CLAIM_B)));reboot();
+            check(!trust().multi(config)&&trust().isCurrent(config,fence)&&id.equals(trust().migration(config).getString("id")));
+            check(trust().completeMigration(config,id,java.util.Set.of(CLAIM_B))&&trust().multi(config)&&trust().grants(config).isEmpty());
+        });
+        test("empty multi commit remains successful through marker failure and STOP cannot revive removed consent",()->{
+            String approval=begin();trust().completeApproval(config,approval);String fence=trust().sessionFence(config),id=trust().beginMigration(config,fence);trust().dispatchMigration(config,id);
+            FakeDisk.preferences.failAt=FakeDisk.preferences.calls+1;check(trust().completeMigration(config,id,java.util.Set.of()));
+            check(!FakeDisk.preferences.disk.containsKey("multi_identity")&&trust().multi(config)&&trust().read(config)==null);
+            reboot();FakeDisk.preferences.failAt=FakeDisk.preferences.calls+1;trust().stop();reboot();
+            check(trust().multi(config)&&trust().grants(config).isEmpty()&&trust().migration(config)==null);
+            check(!trust().completeMigration(config,id,java.util.Set.of(CLAIM_A))&&!trust().stopIfCurrent(config,fence));
+            String next=begin();trust().completeApproval(config,next);String fresh=trust().sessionFence(config);
+            check(!fence.equals(fresh)&&!trust().stopIfCurrent(config,fence)&&trust().isCurrent(config,fresh));
+        });
+        test("empty mode fence is read-only and stable across restart without creating control authority",()->{
+            int saves=FakeDisk.saves,commits=FakeDisk.preferences.calls;String fence=trust().emptyModeFence(config);
+            check(fence!=null&&fence.matches("[a-f0-9]{64}")&&fence.equals(trust().emptyModeFence(config)));
+            check(FakeDisk.saves==saves&&FakeDisk.preferences.calls==commits&&trust().read(config)==null&&trust().sessionFence(config)==null);
+            check(!trust().completeEmptyMulti(config,null)&&!trust().completeEmptyMulti(config,"f".repeat(64))&&FakeDisk.saves==saves);
+            reboot();check(fence.equals(trust().emptyModeFence(config)));check(trust().completeEmptyMulti(config,fence));
+            check(trust().multi(config)&&trust().grants(config).isEmpty()&&trust().pending(config)==null&&trust().invitation(config)==null);
+            explicitNull(FakeDisk.record,"pending");explicitNull(FakeDisk.record,"invitation");
+            check(trust().emptyModeFence(config)==null&&!trust().completeEmptyMulti(config,fence)&&trust().read(config)==null);
+        });
+        test("stopped migration can reconcile empty multi without reviving its deleted intent or original grant",()->{
+            String approval=begin();trust().completeApproval(config,approval);String old=trust().sessionFence(config);
+            String id=trust().beginMigration(config,old);trust().dispatchMigration(config,id);trust().stop();reboot();
+            String empty=trust().emptyModeFence(config);check(empty!=null&&!empty.equals(old)&&trust().completeEmptyMulti(config,empty));
+            check(trust().multi(config)&&trust().read(config)==null&&trust().validClaims(config).isEmpty()&&trust().migration(config)==null);
+            check(!trust().completeMigration(config,id,java.util.Set.of(CLAIM_A))&&!trust().stopIfCurrent(config,old));
+        });
+        test("late empty-mode response cannot overwrite a later pending or approved B",()->{
+            String empty=trust().emptyModeFence(config),approval=trust().beginApproval(config,CLAIM_B,"Synthetic B");int saves=FakeDisk.saves;
+            check(trust().emptyModeFence(config)==null&&!trust().completeEmptyMulti(config,empty)&&FakeDisk.saves==saves);
+            check(approval.equals(trust().pending(config).getString("approval_id")));
+            trust().completeApproval(config,approval);trust().consume(config,103);saves=FakeDisk.saves;
+            check(trust().emptyModeFence(config)==null&&!trust().completeEmptyMulti(config,empty)&&FakeDisk.saves==saves);
+            check(CLAIM_B.equals(trust().read(config).getString("claim"))&&trust().read(config).getLong("sequence")==103);
+        });
+        test("a later STOP changes the empty fence even when both snapshots have no local grant",()->{
+            String old=trust().emptyModeFence(config);trust().stop();String next=trust().emptyModeFence(config);
+            check(next!=null&&!old.equals(next)&&!trust().completeEmptyMulti(config,old)&&!trust().multi(config));
+            reboot();check(next.equals(trust().emptyModeFence(config))&&trust().completeEmptyMulti(config,next)&&trust().read(config)==null);
+        });
+        test("old enrollment config cannot commit an empty mode after the persisted device identity changes",()->{
+            String old=trust().emptyModeFence(config);EnrollmentStore.Config other=new EnrollmentStore.Config(config.url,"changed synthetic device token");FakeDisk.config=other;
+            int saves=FakeDisk.saves;check(trust().emptyModeFence(config)==null&&!trust().completeEmptyMulti(config,old)&&FakeDisk.saves==saves);
+            String fresh=trust().emptyModeFence(other);check(fresh!=null&&!old.equals(fresh)&&!trust().completeEmptyMulti(other,old));
+            check(trust().completeEmptyMulti(other,fresh)&&trust().multi(other)&&trust().read(other)==null);
+        });
+        test("an empty-mode response never overwrites a trust record owned by another enrollment",()->{
+            String empty=trust().emptyModeFence(config);EnrollmentStore.Config other=new EnrollmentStore.Config(config.url,"another stored grant identity");
+            String approval=trust().beginApproval(other,CLAIM_B,"Synthetic B");trust().completeApproval(other,approval);trust().consume(other,113);int saves=FakeDisk.saves;
+            check(trust().emptyModeFence(config)==null&&!trust().completeEmptyMulti(config,empty)&&FakeDisk.saves==saves);
+            FakeDisk.config=other;check(trust().read(other).getLong("sequence")==113&&CLAIM_B.equals(trust().read(other).getString("claim")));
+        });
+        test("missing current enrollment cannot supply or complete an empty-mode fence",()->{
+            String empty=trust().emptyModeFence(config);FakeDisk.config=null;int saves=FakeDisk.saves;
+            check(trust().emptyModeFence(config)==null&&trust().emptyModeFence(null)==null&&!trust().completeEmptyMulti(config,empty));
+            check(FakeDisk.saves==saves&&FakeDisk.record==null);
+        });
+        test("a later established multi mode refuses an older empty-mode response",()->{
+            String empty=trust().emptyModeFence(config);trust().enableMulti(config);String approval=begin();trust().completeApproval(config,approval);
+            String carrier=trust().sessionFence(config);int saves=FakeDisk.saves;
+            check(trust().emptyModeFence(config)==null&&!trust().completeEmptyMulti(config,empty)&&FakeDisk.saves==saves&&trust().isCurrent(config,carrier));
+        });
+        test("stopped encrypted leftovers can become empty multi without importing their old consent",()->{
+            String approval=begin();trust().completeApproval(config,approval);String id=trust().beginMigration(config,trust().sessionFence(config));trust().dispatchMigration(config,id);
+            FakeDisk.failForget=true;trust().stop();check(FakeDisk.record!=null);reboot();
+            String empty=trust().emptyModeFence(config);check(empty!=null&&trust().completeEmptyMulti(config,empty));
+            check(trust().multi(config)&&trust().grants(config).isEmpty()&&trust().pending(config)==null&&trust().migration(config)==null);
+            check(FakeDisk.record.getJSONArray("grants").length()==0&&!trust().completeMigration(config,id,java.util.Set.of(CLAIM_A)));
+        });
+        test("empty-mode read and save failures leave the current empty state recoverable",()->{
+            String empty=trust().emptyModeFence(config);int saves=FakeDisk.saves;FakeDisk.failReadRecord=true;
+            expectFailure(()->trust().emptyModeFence(config));expectFailure(()->trust().completeEmptyMulti(config,empty));check(FakeDisk.saves==saves);
+            FakeDisk.failReadRecord=false;FakeDisk.failSaveAt=FakeDisk.saves+1;expectFailure(()->trust().completeEmptyMulti(config,empty));
+            reboot();check(empty.equals(trust().emptyModeFence(config))&&!trust().multi(config)&&trust().completeEmptyMulti(config,empty));
+        });
+        test("empty-mode schema commit succeeds despite marker failure and remains closed through STOP",()->{
+            String empty=trust().emptyModeFence(config);FakeDisk.preferences.failAt=FakeDisk.preferences.calls+1;
+            check(trust().completeEmptyMulti(config,empty)&&trust().multi(config)&&trust().read(config)==null);
+            check(!FakeDisk.preferences.disk.containsKey("multi_identity"));reboot();check(trust().multi(config)&&trust().grants(config).isEmpty());
+            check(FakeDisk.record.getString("identity").equals(FakeDisk.preferences.disk.get("multi_identity")));
+            trust().stop();reboot();check(trust().multi(config)&&trust().read(config)==null&&!trust().completeEmptyMulti(config,empty));
+        });
+        for(boolean after:java.util.List.of(false,true)){
+            test("empty-mode crash "+(after?"after":"before")+" encrypted replacement never creates a grant",()->{
+                String empty=trust().emptyModeFence(config);if(after)FakeDisk.crashAfterSaveAt=FakeDisk.saves+1;else FakeDisk.crashBeforeSaveAt=FakeDisk.saves+1;
+                expectCrash(()->trust().completeEmptyMulti(config,empty));reboot();
+                check(trust().multi(config)==after&&trust().read(config)==null&&trust().pending(config)==null&&trust().grants(config).isEmpty());
+                check((trust().emptyModeFence(config)==null)==after);
+            });
+        }
+        test("missing encrypted schema of a known multi identity cannot be replaced through empty-mode recovery",()->{
+            trust().enableMulti(config);FakeDisk.record=null;int saves=FakeDisk.saves;
+            expectFailure(()->trust().emptyModeFence(config));expectFailure(()->trust().completeEmptyMulti(config,"e".repeat(64)));
+            check(FakeDisk.record==null&&FakeDisk.saves==saves);
+        });
+        test("legacy single durable migration preserves its stable grant fence and sequence",()->{
+            String approval=begin();trust().completeApproval(config,approval);FakeDisk.record.remove("phase");FakeDisk.record.remove("approval_id");
+            FakeDisk.preferences.edit().remove("approval_id").commit();String fence=trust().sessionFence(config);
+            String id=trust().beginMigration(config,fence);trust().dispatchMigration(config,id);trust().consume(config,55);
+            check(trust().completeMigration(config,id,java.util.Set.of(CLAIM_A)));reboot();
+            check(fence.equals(trust().grantFence(config,CLAIM_A))&&trust().grant(config,CLAIM_A).getLong("sequence")==55);
+        });
+        test("late migration completion cannot affect another identity or a same-claim new approval",()->{
+            String approval=begin();trust().completeApproval(config,approval);String id=trust().beginMigration(config,trust().sessionFence(config));trust().dispatchMigration(config,id);
+            EnrollmentStore.Config other=new EnrollmentStore.Config(config.url,"synthetic-other-device");
+            check(trust().migration(other)==null&&!trust().dispatchMigration(other,id)&&!trust().completeMigration(other,id,java.util.Set.of(CLAIM_A)));
+            trust().cancelMigration(other,id);check(id.equals(trust().migration(config).getString("id")));
+            trust().stop();String next=begin();trust().completeApproval(config,next);trust().consume(config,84);
+            String fresh=trust().beginMigration(config,trust().sessionFence(config));trust().cancelMigration(config,id);
+            check(!trust().completeMigration(config,id,java.util.Set.of(CLAIM_A))&&!trust().dispatchMigration(config,id));
+            check(fresh.equals(trust().migration(config).getString("id"))&&trust().read(config).getLong("sequence")==84);
+        });
+        test("a retained migration with a changed approval fence is never current",()->{
+            String approval=begin();trust().completeApproval(config,approval);String id=trust().beginMigration(config,trust().sessionFence(config));
+            FakeDisk.record.put("approval_id","f".repeat(32));FakeDisk.preferences.edit().putString("approval_id","f".repeat(32)).commit();
+            int saves=FakeDisk.saves;check(trust().read(config)!=null&&trust().migration(config)==null);
+            check(!trust().dispatchMigration(config,id)&&!trust().completeMigration(config,id,java.util.Set.of(CLAIM_A)));
+            trust().cancelMigration(config,id);check(FakeDisk.saves==saves);
+        });
+        test("migration read failure preserves encrypted consent and refuses every transition",()->{
+            String approval=begin();trust().completeApproval(config,approval);String fence=trust().sessionFence(config),id=trust().beginMigration(config,fence);
+            int saves=FakeDisk.saves;FakeDisk.failReadRecord=true;
+            expectFailure(()->trust().migration(config));expectFailure(()->trust().beginMigration(config,fence));expectFailure(()->trust().dispatchMigration(config,id));
+            expectFailure(()->trust().cancelMigration(config,id));expectFailure(()->trust().completeMigration(config,id,java.util.Set.of(CLAIM_A)));
+            check(FakeDisk.saves==saves);reboot();check(id.equals(trust().migration(config).getString("id"))&&trust().isCurrent(config,fence));
+        });
+        test("failed schema2 replacement remains recoverable unknown single with its latest sequence",()->{
+            String approval=begin();trust().completeApproval(config,approval);String fence=trust().sessionFence(config),id=trust().beginMigration(config,fence);
+            trust().dispatchMigration(config,id);trust().consume(config,89);FakeDisk.failSaveAt=FakeDisk.saves+1;
+            expectFailure(()->trust().completeMigration(config,id,java.util.Set.of(CLAIM_A)));reboot();
+            check(!trust().multi(config)&&trust().isCurrent(config,fence)&&trust().read(config).getLong("sequence")==89);
+            check("unknown".equals(trust().migration(config).getString("phase"))&&trust().completeMigration(config,id,java.util.Set.of(CLAIM_A)));
+        });
+        for(boolean after:java.util.List.of(false,true)){
+            test("migration completion crash "+(after?"after":"before")+" encrypted schema commit respects the committed schema",()->{
+                String approval=begin();trust().completeApproval(config,approval);String id=trust().beginMigration(config,trust().sessionFence(config));
+                trust().dispatchMigration(config,id);trust().consume(config,97);
+                if(after)FakeDisk.crashAfterSaveAt=FakeDisk.saves+1;else FakeDisk.crashBeforeSaveAt=FakeDisk.saves+1;
+                expectCrash(()->trust().completeMigration(config,id,java.util.Set.of(CLAIM_A)));reboot();
+                check(trust().multi(config)==after&&trust().grant(config,CLAIM_A).getLong("sequence")==97);
+                check((trust().migration(config)==null)==after);
+            });
+            test("migration crash "+(after?"after":"before")+" secondary marker commit never rolls back schema2",()->{
+                String approval=begin();trust().completeApproval(config,approval);String id=trust().beginMigration(config,trust().sessionFence(config));trust().dispatchMigration(config,id);
+                if(after)FakeDisk.preferences.crashAfterAt=FakeDisk.preferences.calls+1;else FakeDisk.preferences.crashBeforeAt=FakeDisk.preferences.calls+1;
+                expectCrash(()->trust().completeMigration(config,id,java.util.Set.of(CLAIM_A)));reboot();
+                check(trust().multi(config)&&trust().migration(config)==null&&trust().validClaims(config).equals(java.util.Set.of(CLAIM_A)));
+                check(FakeDisk.record.getString("identity").equals(FakeDisk.preferences.disk.get("multi_identity")));
+            });
+        }
+        test("schema2 success is reported despite failed marker and reading after reboot repairs downgrade protection",()->{
+            String approval=begin();trust().completeApproval(config,approval);String id=trust().beginMigration(config,trust().sessionFence(config));
+            trust().dispatchMigration(config,id);JSONObject old=FakeDisk.record.copy();FakeDisk.preferences.failAt=FakeDisk.preferences.calls+1;
+            check(trust().completeMigration(config,id,java.util.Set.of(CLAIM_A))&&trust().multi(config));
+            check(!FakeDisk.preferences.disk.containsKey("multi_identity"));reboot();check(trust().multi(config));
+            check(FakeDisk.record.getString("identity").equals(FakeDisk.preferences.disk.get("multi_identity")));
+            FakeDisk.record=old;expectFailure(()->trust().read(config));expectFailure(()->trust().migration(config));
+        });
+        for(boolean markerFails:java.util.List.of(false,true)){
+            test("STOP during unknown migration stays closed when "+(markerFails?"stop marker":"encrypted deletion")+" fails",()->{
+                String approval=begin();trust().completeApproval(config,approval);String fence=trust().sessionFence(config),id=trust().beginMigration(config,fence);trust().dispatchMigration(config,id);
+                if(markerFails)FakeDisk.preferences.failAt=FakeDisk.preferences.calls+1;else FakeDisk.failForget=true;
+                check(trust().stopIfCurrent(config,fence));reboot();closed();check(trust().migration(config)==null);
+                check(!trust().completeMigration(config,id,java.util.Set.of(CLAIM_A))&&!trust().dispatchMigration(config,id));
+            });
+            test("STOP after committed schema2 with missing mode marker stays fenced when "+(markerFails?"stop marker":"schema clearing")+" fails",()->{
+                String approval=begin();trust().completeApproval(config,approval);String id=trust().beginMigration(config,trust().sessionFence(config));trust().dispatchMigration(config,id);
+                FakeDisk.preferences.failAt=FakeDisk.preferences.calls+1;check(trust().completeMigration(config,id,java.util.Set.of(CLAIM_A)));
+                String carrier=trust().sessionFence(config);reboot(); // Missing mode marker is not repaired before this direct STOP.
+                if(markerFails)FakeDisk.preferences.failAt=FakeDisk.preferences.calls+1;else FakeDisk.failSaveAt=FakeDisk.saves+1;
+                trust().stop();reboot();check(trust().multi(config));closed();check(trust().migration(config)==null&&!trust().isCurrent(config,carrier));
+                String next=begin();trust().completeApproval(config,next);String fresh=trust().sessionFence(config);
+                check(!carrier.equals(fresh)&&!trust().stopIfCurrent(config,carrier)&&trust().isCurrent(config,fresh));
+                check(!trust().completeMigration(config,id,java.util.Set.of(CLAIM_A)));
+            });
+        }
+        test("STOP reports both durable writes failed after migration without claiming success",()->{
+            String approval=begin();trust().completeApproval(config,approval);String id=trust().beginMigration(config,trust().sessionFence(config));
+            trust().dispatchMigration(config,id);check(trust().completeMigration(config,id,java.util.Set.of(CLAIM_A)));String carrier=trust().sessionFence(config);
+            FakeDisk.preferences.failAt=FakeDisk.preferences.calls+1;FakeDisk.failSaveAt=FakeDisk.saves+1;expectFailure(()->trust().stopIfCurrent(config,carrier));
+            closed();reboot();check(trust().isCurrent(config,carrier));check(trust().stopIfCurrent(config,carrier));reboot();closed();
         });
         test("enabled multi refuses legacy backup and unknown schema instead of downgrading",()->{
             String id=begin();trust().completeApproval(config,id);JSONObject old=FakeDisk.record.copy();trust().enableMulti(config);JSONObject modern=FakeDisk.record.copy();

@@ -15,7 +15,7 @@ def method(signature):
     assert source.count(signature)==1,signature
     start=source.index(signature);end=source.index('\n    }',start)+len('\n    }')
     text=source[start:end];extracted[signature.strip()]=text;return text
-signatures=['private JSONObject trust()', 'private JSONObject pendingApproval()', 'private boolean currentSetup(', 'private void fenceSetup()', 'private boolean invitationOutstanding()', 'private void continueSetup()', 'private void retrySetup(', 'private void enroll()', 'private void discoverEnrollment(', 'private void checkEnrollment(', 'private void postEnrollment(', 'private void finishEnrollment(', 'private void invite()', 'private void checkInvitation(', 'private void queryInvitation(', 'private void poll()', 'private void disconnect()', 'private void switchService(', '@Override public void onPause()']
+signatures=['private JSONObject trust()', 'private JSONObject pendingApproval()', 'private boolean currentSetup(', 'private void fenceSetup()', 'private boolean invitationOutstanding()', 'private void continueSetup()', 'private void retrySetup(', 'private void enroll()', 'private void discoverEnrollment(', 'private void checkEnrollment(', 'private void postEnrollment(', 'private void finishEnrollment(', 'private void invite()', 'private void checkInvitation(', 'private void queryInvitation(', 'private void poll()', 'private void retryDisconnect()', 'private void disconnect()', 'private void switchService(', '@Override public void onPause()']
 signatures += ['private String prompt()', '@Override protected void onSaveInstanceState(']
 # setupFailed is a one-line method; include the exact line separately.
 failed=next(line for line in source.splitlines() if 'private void setupFailed(' in line);extracted['setupFailed']=failed
@@ -25,12 +25,12 @@ extracted['onCreate saved invitation restore']=restore
 harness='''package io.airtap.preview;import org.json.JSONObject;import android.os.Bundle;
 final class MainActivityHarness extends android.app.Activity {
  final SingleOwner multiOwner=new SingleOwner();
- static final class SingleOwner {boolean multi,changeReady;int stops;boolean enabled(EnrollmentStore.Config config){return multi;}void pause(){}void bindIdentity(EnrollmentStore.Config c){}void stopAll(){stops++;}boolean serviceChangeReady(){return changeReady;}}
+ static final class SingleOwner {boolean multi,changeReady;int stops,retries,confirmed;String recordedClaim;boolean enabled(EnrollmentStore.Config config){return multi;}void pause(){}void bindIdentity(EnrollmentStore.Config c){}void stopAll(){stops++;}void retryRevocations(EnrollmentStore.Config config){retries++;}String rememberSingleStop(EnrollmentStore.Config config){return recordedClaim;}void confirmSingleStop(EnrollmentStore.Config config,String claim){confirmed++;}boolean stopPendingMigration(EnrollmentStore.Config config){return false;}String statusMessage(){return "";}boolean serviceChangeReady(){return changeReady;}}
  final android.os.Handler main=new android.os.Handler();final Prefs prefs=new Prefs();final ConnectionFeedback connectionFeedback=new ConnectionFeedback();
  final SetupRecovery.Backoff setupBackoff=new SetupRecovery.Backoff(),pollBackoff=new SetupRecovery.Backoff();
  EnrollmentStore.Config config;InvitationArtifacts invitationArtifacts;boolean visible=true,busy,polling,storageError,upgrade,setupPaused,setupExhausted,invitationUncertain;int epoch;long invitationExpiry,nextPoll;String ticket,claim,code,candidate,message="";okhttp3.Call setupCall,pollCall;Runnable setupRetry,refresh=()->{};
  Prefs getPreferences(int mode){return prefs;}void change(String text){if(isDestroyed())throw new AssertionError("late UI");message=text;}
- void enrollAction(){enroll();}void inviteAction(){invite();}void continueAction(){continueSetup();}void pollAction(){poll();}void disconnectAction(){disconnect();}void switchAction(String address){switchService(address);}
+ void enrollAction(){enroll();}void inviteAction(){invite();}void continueAction(){continueSetup();}void pollAction(){poll();}void disconnectAction(){disconnect();}void retryDisconnectAction(){retryDisconnect();}void switchAction(String address){switchService(address);}
  String promptAction(){return prompt();}Bundle saveAction(){Bundle b=new Bundle();onSaveInstanceState(b);return b;}
 '''+ 'void restoreAction(Bundle saved){'+restore+'}\n'+'void loadProtocol(int protocol){prefs.edit().putInt("protocol",protocol).commit();'+upgrade+'}\n'+failed+'\n'+'\n'.join(method('    '+signature) for signature in signatures)+'\n}\n'
 sources=[PRODUCTION/(name+'.java') for name in ['SetupRecovery','RemoteReadiness','ServiceProtocol','InvitationFeedback','InvitationArtifacts','RelayAddress']]

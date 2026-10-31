@@ -102,7 +102,7 @@ public final class MainActivity extends Activity {
         long now = System.currentTimeMillis() / 1000;
         if (ticket != null && invitationExpiry <= now) { ticket = null; invitationArtifacts = null; claim = null; code = null; message = "邀请已过期，点下面按钮重新生成即可。"; }
         RecoveryStatus recovery = service == null ? RecoveryStatus.WAITING_FOR_AI : service.recoveryStatus();
-        String key = recovery + ":" + invitationUncertain + ":" + setupExhausted + ":" + enrolled + ":" + accessibility + ":" + operationConfigured + ":" + notifications + ":" + (trusted != null) + ":" + (pending == null ? "" : pending.optString("approval_id")) + ":" + (ticket != null) + ":" + claim + ":" + busy + ":" + (service != null && service.isConnected());
+        String key = recovery + ":" + invitationUncertain + ":" + setupExhausted + ":" + enrolled + ":" + accessibility + ":" + operationConfigured + ":" + notifications + ":" + (trusted != null) + ":" + (pending == null ? "" : pending.optString("approval_id")) + ":" + (ticket != null) + ":" + claim + ":" + busy + ":" + (service != null && service.isConnected()) + ":" + multiOwner.enabled(config) + ":" + multiOwner.migrationPending(config);
         feedback.setText(message);
         if (key.equals(renderKey)) return; renderKey = key; content.removeAllViews();
         if (upgrade || !enrolled || (accessibility && notifications)) {
@@ -128,7 +128,8 @@ public final class MainActivity extends Activity {
             paragraph("回到自己的 AI 对话，直接告诉它你想做什么。已保留整台手机的授权，无需每次重新配对。你随时可以停止并解除连接。");
             content.addView(button("远程使用准备", v -> remotePreparation()));
             primary("回到手机桌面", v -> startActivity(new Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_HOME).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)));
-            content.addView(button("连接多个自己的 AI", v -> multiOwner.enable(config)));
+            if(multiOwner.migrationPending(config))paragraph("正在核实多 AI 连接。原授权已保留，服务端确认完成后才会切换；结果未知时不会自动重配。");
+            content.addView(button(multiOwner.migrationPending(config)?"继续核实多 AI 连接":"连接多个自己的 AI", v -> multiOwner.enable(config)));
             content.addView(button("停止并解除 AI 连接", v -> disconnect()));
         } else if (pending != null) {
             heading("正在完成 AI 连接");
@@ -467,15 +468,25 @@ public final class MainActivity extends Activity {
                     : "确认未能保存，请检查手机存储后重新连接。");
         }
     }
+    private void retryDisconnect() {
+        multiOwner.retryRevocations(config);change(multiOwner.statusMessage());
+    }
     private void disconnect() {
         if(multiOwner.enabled(config)){multiOwner.stopAll();return;}
+        if(multiOwner.stopPendingMigration(config)){change(multiOwner.statusMessage());return;}
+        final EnrollmentStore.Config stoppingConfig=config;
+        final String stoppingClaim=multiOwner.rememberSingleStop(stoppingConfig);
         fenceSetup(); int run = epoch; setupExhausted = true; invitationUncertain = false;
         getPreferences(0).edit().remove("setup_continue").remove("invitation_identity").apply();
         ticket = null; invitationArtifacts = null; claim = null; code = null; invitationExpiry = 0;
         connectionFeedback.clear();
         PreviewState.stop("已停止并解除本机连接"); new TrustedGrant(this).stop(); change("手机控制已停止。");
         if (config != null) RelayApi.request(config.url, "/v1/device/revoke", "POST", config.token, null, (body, error) -> {
-            if (run != epoch || isDestroyed()) return; change(error == null ? "已解除连接。需要时可重新邀请自己的 AI。" : "手机已停止，服务端解除尚未确认；联网后可在设置中重试解除。");
+            boolean confirmed=false;
+            try{if(error==null){ServiceProtocol.version(body);confirmed=ServiceProtocol.bool(body,"ok");}}catch(Exception invalid){ /* Unknown response retains the original retry target. */ }
+            if(confirmed)multiOwner.confirmSingleStop(stoppingConfig,stoppingClaim);
+            if (run != epoch || isDestroyed()) return;
+            change(confirmed?"已解除连接。需要时可重新邀请自己的 AI。":stoppingClaim!=null?"手机已停止，原连接的解除请求已保存；可在设置中重试。旧版服务不支持定向重试时，服务端解除仍待确认。":"手机已停止，服务端解除结果未知，且未保存可核实的原请求。请检查网络与原连接状态。");
         });
     }
     private void settings() {
@@ -492,7 +503,7 @@ public final class MainActivity extends Activity {
                 .setMessage("版本：" + BuildConfig.VERSION_NAME + "\n服务：" + (config == null ? "未连接" : config.origin()))
                 .setPositiveButton("知道了", null).show()));
         layout.addView(button("后台运行设置", v -> backgroundPreparation()));
-        layout.addView(button("重试解除 AI 连接", v -> disconnect()));
+        layout.addView(button("重试解除 AI 连接", v -> retryDisconnect()));
         {
             EditText address = new EditText(this); address.setHint("进阶：自托管服务 HTTPS 地址"); address.setSingleLine(true); layout.addView(address);
             layout.addView(button("保存自托管地址", v -> {

@@ -17,9 +17,11 @@ final class TrustedGrant {
     private static final long MAX_SEQUENCE = 9007199254740991L;
     private static final Object LOCK = new Object();
     private final EnrollmentStore store;
+    private final EnrollmentStore enrollment;
     private final SharedPreferences state;
     TrustedGrant(Context context) {
         store = new EnrollmentStore(context, "trusted-ai");
+        enrollment = new EnrollmentStore(context);
         state = context.getSharedPreferences("trust-state", 0);
     }
     private static String digest(String input) throws Exception {
@@ -83,7 +85,10 @@ final class TrustedGrant {
             if (key.equals(state.getString("multi_identity", ""))) throw new IllegalStateException("multi_record_unavailable");
             return null;
         }
-        if (schema2(value)) validateMulti(value);
+        if (schema2(value)) {
+            validateMulti(value);
+            if (!key.equals(state.getString("multi_identity", ""))) rememberMulti(key);
+        }
         else {
             if (key.equals(state.getString("multi_identity", ""))) throw new IllegalStateException("multi_downgrade_refused");
             // Pending single records are validated by their phase-specific callers.
@@ -103,25 +108,111 @@ final class TrustedGrant {
         for (int i = 0; i < grants.length(); i++) if (claim.equals(grants.getJSONObject(i).getString("claim"))) return grants.getJSONObject(i);
         return null;
     }
+    private void rememberMulti(String key) {
+        // The encrypted schema is authoritative. A failed secondary marker cannot undo it.
+        try { state.edit().putString("multi_identity", key).commit(); }
+        catch (RuntimeException unavailable) { /* A later schema-2 read retries after process restart. */ }
+    }
     boolean multi(EnrollmentStore.Config config) throws Exception { synchronized (LOCK) { return schema2(record(config)); } }
     void enableMulti(EnrollmentStore.Config config) throws Exception {
         synchronized (LOCK) {
             JSONObject old = record(config);
             if (schema2(old)) {
-                if (!state.edit().putString("multi_identity", identity(config)).commit()) throw new IllegalStateException("multi_marker_not_persisted");
+                rememberMulti(identity(config));
                 return;
             }
             JSONObject raw = store.readRecord();
             if (raw != null && !identity(config).equals(raw.optString("identity"))) throw new IllegalStateException("identity_mismatch");
-            JSONObject active = read(config), pending = pending(config);
-            JSONArray grants = new JSONArray();
-            if (active != null) grants.put(active.put("lease_required", false).put("lease_ready", false));
-            JSONObject root = RelayApi.json("schema_version", 2, "mode", "multi", "identity", identity(config),
-                    "carrier_id", randomId(), "stop_nonce", state.getString("stop_nonce", ""), "grants", grants,
-                    "pending", pending == null ? JSONObject.NULL : pending, "invitation", JSONObject.NULL, "invitation_sequence", 0);
-            if (pending != null) pending.put("lease_required", false).put("lease_ready", false).put("origin", "legacy_v4");
-            store.saveRecord(root); // Atomic encrypted replacement; no token or replay sequence is regenerated.
-            if (!state.edit().putString("multi_identity", identity(config)).commit()) throw new IllegalStateException("multi_marker_not_persisted");
+            saveMulti(config, read(config), pending(config));
+        }
+    }
+    /** Caller holds LOCK; publish only the final consent set in one encrypted replacement. */
+    private void saveMulti(EnrollmentStore.Config config, JSONObject active, JSONObject pending) throws Exception {
+        JSONArray grants = new JSONArray();
+        if (active != null) {
+            active.remove("migration");
+            grants.put(active.put("lease_required", false).put("lease_ready", false));
+        }
+        JSONObject root = RelayApi.json("schema_version", 2, "mode", "multi", "identity", identity(config),
+                "carrier_id", randomId(), "stop_nonce", state.getString("stop_nonce", ""), "grants", grants,
+                "pending", pending == null ? JSONObject.NULL : pending, "invitation", JSONObject.NULL, "invitation_sequence", 0);
+        if (pending != null) pending.put("lease_required", false).put("lease_ready", false).put("origin", "legacy_v4");
+        store.saveRecord(root); // No token or replay sequence is regenerated.
+        rememberMulti(identity(config));
+    }
+    private static JSONObject migrationOf(JSONObject single) throws Exception {
+        if (single == null || schema2(single) || !single.has("migration")) return null;
+        JSONObject intent = single.getJSONObject("migration");
+        h32(intent.getString("id"));
+        String phase = intent.getString("phase"), fence = intent.getString("fence");
+        if ((!"prepared".equals(phase) && !"unknown".equals(phase)) || !fence.matches("[a-f0-9]{64}")) throw new IllegalArgumentException("invalid_migration");
+        return fence.equals(individualFence(single)) ? intent : null;
+    }
+    String beginMigration(EnrollmentStore.Config config, String expectedFence) throws Exception {
+        synchronized (LOCK) {
+            JSONObject single = read(config);
+            if (single == null || schema2(single) || expectedFence == null || !expectedFence.equals(individualFence(single))) return null;
+            JSONObject intent = migrationOf(single);
+            if (intent != null) return intent.getString("id");
+            String id = randomId();
+            single.put("migration", RelayApi.json("id", id, "phase", "prepared", "fence", expectedFence));
+            store.saveRecord(single);
+            return id;
+        }
+    }
+    JSONObject migration(EnrollmentStore.Config config) throws Exception {
+        synchronized (LOCK) { return migrationOf(read(config)); }
+    }
+    boolean dispatchMigration(EnrollmentStore.Config config, String id) throws Exception {
+        synchronized (LOCK) {
+            JSONObject single = read(config), intent = migrationOf(single);
+            if (intent == null || id == null || !id.equals(intent.getString("id")) || !"prepared".equals(intent.getString("phase"))) return false;
+            intent.put("phase", "unknown");
+            store.saveRecord(single);
+            return true;
+        }
+    }
+    /** Caller may cancel only after an explicit rejection with no earlier unknown dispatch. */
+    void cancelMigration(EnrollmentStore.Config config, String id) throws Exception {
+        synchronized (LOCK) {
+            JSONObject single = read(config), intent = migrationOf(single);
+            if (intent == null || id == null || !id.equals(intent.getString("id"))) return;
+            single.remove("migration");
+            store.saveRecord(single);
+        }
+    }
+    boolean completeMigration(EnrollmentStore.Config config, String id, Set<String> remoteClaims) throws Exception {
+        synchronized (LOCK) {
+            if (remoteClaims == null) throw new IllegalArgumentException();
+            JSONObject single = read(config), intent = migrationOf(single);
+            if (intent == null || id == null || !id.equals(intent.getString("id"))) return false;
+            // Remote mode is established even if the original grant was removed during migration.
+            // A remote-only grant or pending approval can never create local owner consent.
+            saveMulti(config, remoteClaims.contains(single.getString("claim")) ? single : null, null);
+            return true;
+        }
+    }
+    /** Local empty-state identity only; the caller must independently verify remote multi mode. */
+    String emptyModeFence(EnrollmentStore.Config config) throws Exception {
+        synchronized (LOCK) {
+            if (config == null || !config.publicService() || !config.enrolled()) return null;
+            EnrollmentStore.Config current = enrollment.read();
+            if (current == null || !current.publicService() || !current.enrolled()
+                    || !config.url.equals(current.url) || !config.token.equals(current.token)) return null;
+            String key = identity(config);
+            JSONObject raw = store.readRecord();
+            if (raw != null && !key.equals(raw.optString("identity"))) return null;
+            if (schema2(raw) || read(config) != null || pending(config) != null) return null;
+            String nonce = state.getString("stop_nonce", "");
+            if (!nonce.isEmpty()) h32(nonce);
+            return digest("airtap-empty-mode-fence-v1\n" + key + "\n" + nonce);
+        }
+    }
+    boolean completeEmptyMulti(EnrollmentStore.Config config, String expectedFence) throws Exception {
+        synchronized (LOCK) {
+            if (expectedFence == null || !expectedFence.equals(emptyModeFence(config))) return false;
+            saveMulti(config, null, null);
+            return true;
         }
     }
     List<JSONObject> grants(EnrollmentStore.Config config) throws Exception {

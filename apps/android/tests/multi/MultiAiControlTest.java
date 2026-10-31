@@ -10,8 +10,9 @@ public final class MultiAiControlTest{
  static JSONObject fence(long epoch,String claim){return RelayApi.json("type","task_fence","operation_id",String.format("%032x",++serial),"lease_epoch",epoch,"holder",claim==null?JSONObject.NULL:RelayApi.json("claim_id",claim,"task_id",T,"lease_id",L),"ttl_ms",claim==null?0:120000,"renewal_sequence",0);}
  static JSONObject command(String claim,Long epoch,long sequence){return RelayApi.json("type","command","claim_id",claim,"lease_id",epoch==null?JSONObject.NULL:L,"lease_epoch",epoch==null?JSONObject.NULL:epoch,"command",RelayApi.json("id",ID,"action","file_roots","sequence",sequence));}
  static void addB()throws Exception{trust.requireLease(config,A);JSONObject invite=trust.beginInvitation(config,0);trust.completeInvitation(config,invite.getString("invitation_id"),invite.getLong("invitation_sequence"),System.currentTimeMillis()/1000+300,"1".repeat(64),"2".repeat(64));String approval=trust.beginApproval(config,B,"synthetic B");trust.completeApproval(config,approval);service.remoteGrants=Set.of(A,B);}
- static OwnerIdentityHarness singleOwner()throws Exception{FakeDisk.reset();FakeDisk.config=config;RelayApi.requests.clear();RelayApi.throwNext=false;trust=new TrustedGrant(new android.content.Context());String consent=trust.beginApproval(config,A,"original AI");trust.completeApproval(config,consent);trust.consume(config,7);service.ownerModeChanges=0;OwnerIdentityHarness owner=new OwnerIdentityHarness();owner.bindIdentity(config);return owner;}
+ static OwnerIdentityHarness singleOwner()throws Exception{FakeDisk.reset();FakeDisk.config=config;RelayApi.requests.clear();RelayApi.throwNext=false;trust=new TrustedGrant(new android.content.Context());String consent=trust.beginApproval(config,A,"original AI");trust.completeApproval(config,consent);trust.consume(config,7);service.ownerModeChanges=0;service.restores=0;OwnerIdentityHarness owner=new OwnerIdentityHarness();owner.bindIdentity(config);return owner;}
  static JSONObject discovery(){return RelayApi.json("protocol_version",4,"enrollment_mode","public","enrollment_expires_at",JSONObject.NULL,"pairing_ttl_seconds",300,"session_ttl_seconds",JSONObject.NULL,"command_budget",JSONObject.NULL,"service_id",T,"label","Synthetic relay","registration_open",true,"control_open",true,"capabilities",new JSONArray().put("companion_v1").put("multi_ai_v1").put("task_lease_v1"));}
+ static JSONObject multiState(String claim){JSONArray grants=new JSONArray();if(claim!=null)grants.put(RelayApi.json("claim_id",claim,"name","Synthetic old AI","state","approved","command_sequence",7,"lease_required",false,"lease_ready",false,"persistent",true,"all_apps",true,"allow_control",true,"allowed_packages",new JSONArray()));return RelayApi.json("protocol_version",4,"mode","multi","generation",5,"max_grants",4,"invitation_sequence",0,"grants",grants,"invitation",JSONObject.NULL);}
  static void unchanged(OwnerIdentityHarness owner)throws Exception{check(!trust.multi(config)&&trust.grant(config,A).getLong("sequence")==7&&service.ownerModeChanges==0&&owner.polls==0);}
  public static void main(String[]args)throws Exception{
   test("structured hello and permanent first fence disable the legacy envelope",()->{service.receive(command(A,null,1));check(service.ui.executions==1&&A.equals(service.ui.owner));service.ui.reply.success(new JSONObject());service.receive(fence(1,A));check(ws.last().getBoolean("ok")&&trust.grant(config,A).getBoolean("lease_required"));service.receive(command(A,null,2));check(!ws.last().getBoolean("ok")&&service.ui.executions==1);});
@@ -64,7 +65,7 @@ public final class MultiAiControlTest{
     check(request.url.equals(config.origin())&&request.path.equals("/v1/service")&&request.method.equals("GET")&&request.token==null&&request.body==null);unchanged(owner);check(FakeDisk.saves==saves);
     owner.enable(config);check(RelayApi.requests.size()==1);request.respond(discovery(),200,null);unchanged(owner);check(!owner.busy&&FakeDisk.saves==saves);
     trust.consume(config,8);var confirm=android.app.AlertDialog.positive;check(confirm!=null);confirm.click(null,0);
-    check(trust.multi(config)&&trust.grant(config,A).getLong("sequence")==8&&owner.polls==1&&service.ownerModeChanges==1&&FakeDisk.config.token.equals(config.token));confirm.click(null,0);check(owner.polls==1&&service.ownerModeChanges==1);
+    check(!trust.multi(config)&&trust.migration(config)!=null&&trust.grant(config,A).getLong("sequence")==8&&owner.polls==0&&service.ownerModeChanges==0&&service.restores==1&&FakeDisk.config.token.equals(config.token));confirm.click(null,0);check(owner.polls==0&&service.ownerModeChanges==0&&service.restores==1);
   });
   test("old service network failure and malformed capabilities preserve original single state",()->{
     List<JSONObject> invalid=new ArrayList<>();invalid.add(null);invalid.add(discovery().put("capabilities",new JSONArray().put("companion_v1")));invalid.add(discovery().put("capabilities",new JSONArray().put("multi_ai_v1")));invalid.add(discovery().put("capabilities",new JSONArray().put("task_lease_v1")));invalid.add(discovery().put("capabilities",new JSONArray().put("multi_ai_v1").put(1).put("task_lease_v1")));invalid.add(discovery().put("capabilities","multi_ai_v1 task_lease_v1"));invalid.add(discovery().put("protocol_version",3));invalid.add(discovery().put("capabilities",null));invalid.add(discovery().put("enrollment_expires_at",null));invalid.add(discovery().put("capabilities",new JSONArray().put("multi_ai_v1").put("task_lease_v1").put("multi_ai_v1")));
@@ -98,7 +99,7 @@ public final class MultiAiControlTest{
   });
   test("old preflight cannot clear a newer request or migrate after cancellation",()->{
     OwnerIdentityHarness owner=singleOwner();owner.enable(config);var old=RelayApi.requests.get(0);android.app.AlertDialog.negative.click(null,0);owner.enable(config);var next=RelayApi.requests.get(1);int run=owner.generation;
-    old.respond(discovery(),200,null);unchanged(owner);check(owner.busy&&owner.generation==run&&owner.call==next);next.respond(discovery(),200,null);android.app.AlertDialog.positive.click(null,0);check(trust.multi(config)&&owner.polls==1);
+    old.respond(discovery(),200,null);unchanged(owner);check(owner.busy&&owner.generation==run&&owner.call==next);next.respond(discovery(),200,null);android.app.AlertDialog.positive.click(null,0);check(!trust.multi(config)&&trust.migration(config)!=null&&owner.polls==0&&service.restores==1);
   });
   test("same claim reapproval stop or unreadable trust invalidates old confirmation",()->{
     for(int action=0;action<3;action++){OwnerIdentityHarness owner=singleOwner();owner.enable(config);RelayApi.requests.get(0).respond(discovery(),200,null);var confirm=android.app.AlertDialog.positive;
@@ -110,6 +111,48 @@ public final class MultiAiControlTest{
     for(boolean confirmPhase:new boolean[]{false,true})for(boolean removed:new boolean[]{false,true}){OwnerIdentityHarness owner=singleOwner();owner.enable(config);var request=RelayApi.requests.get(0);android.app.AlertDialog.Click confirm=null;if(confirmPhase){request.respond(discovery(),200,null);confirm=android.app.AlertDialog.positive;}
       FakeDisk.config=removed?null:new EnrollmentStore.Config(config.url,config.token,false);int saves=FakeDisk.saves;if(confirmPhase)confirm.click(null,0);else request.respond(discovery(),200,null);unchanged(owner);check(FakeDisk.saves==saves);
     }
+  });
+  test("stopping an unknown migration persists only the original claim revoke and stops locally",()->{
+    OwnerIdentityHarness owner=singleOwner();String id=trust.beginMigration(config,trust.sessionFence(config));trust.dispatchMigration(config,id);PreviewService.instance=null;
+    check(owner.stopPendingMigration(config)&&trust.read(config)==null&&trust.migration(config)==null&&OwnerRevocations.revoked.equals(Set.of(A))&&owner.flushes==1);
+  });
+  test("stopped migration retry after owner recreation retains the original claim target",()->{
+    OwnerIdentityHarness owner=singleOwner();trust.beginMigration(config,trust.sessionFence(config));PreviewService.instance=null;
+    check(owner.stopPendingMigration(config)&&trust.read(config)==null);OwnerIdentityHarness reopened=new OwnerIdentityHarness();
+    reopened.retryRevocations(config);check(OwnerRevocations.revoked.equals(Set.of(A))&&reopened.flushes==1&&trust.read(config)==null);
+  });
+  test("old migration revoke retry does not stop or target a later approved single grant",()->{
+    OwnerIdentityHarness owner=singleOwner();trust.beginMigration(config,trust.sessionFence(config));PreviewService.instance=null;check(owner.stopPendingMigration(config));
+    String consent=trust.beginApproval(config,B,"later AI");trust.completeApproval(config,consent);trust.consume(config,9);String fence=trust.sessionFence(config);
+    OwnerIdentityHarness reopened=new OwnerIdentityHarness();reopened.retryRevocations(config);check(reopened.flushes==1&&OwnerRevocations.revoked.equals(Set.of(A))&&trust.isCurrent(config,fence)&&trust.grant(config,B).getLong("sequence")==9);
+    check(reopened.stopPendingMigration(config)&&OwnerRevocations.revoked.equals(Set.of(A,B))&&trust.read(config)==null&&reopened.flushes==2);
+  });
+  test("new stop with an old revoke queue also cancels a later pending approval",()->{
+    OwnerIdentityHarness owner=singleOwner();trust.beginMigration(config,trust.sessionFence(config));PreviewService.instance=null;check(owner.stopPendingMigration(config));
+    trust.beginApproval(config,B,"later pending AI");check(owner.stopPendingMigration(config)&&trust.pending(config)==null&&trust.read(config)==null&&OwnerRevocations.revoked.equals(Set.of(A,B)));
+  });
+  test("migration revoke metadata failure still stops local authority",()->{
+    OwnerIdentityHarness owner=singleOwner();trust.beginMigration(config,trust.sessionFence(config));PreviewService.instance=null;OwnerRevocations.failQueue=true;
+    check(owner.stopPendingMigration(config)&&trust.read(config)==null&&owner.flushes==0&&owner.message.contains("未保存"));
+    OwnerRevocations.failQueue=false;String consent=trust.beginApproval(config,B,"later AI");trust.completeApproval(config,consent);String fence=trust.sessionFence(config);
+    OwnerIdentityHarness reopened=new OwnerIdentityHarness();reopened.retryRevocations(config);
+    check(reopened.flushes==0&&OwnerRevocations.revoked.isEmpty()&&trust.isCurrent(config,fence)&&reopened.message.contains("没有可核实"));
+  });
+  test("single first stop retains its original claim for safe targeted retry only",()->{
+    OwnerIdentityHarness owner=singleOwner();check(A.equals(owner.rememberSingleStop(config)));trust.stop();String consent=trust.beginApproval(config,B,"later AI");trust.completeApproval(config,consent);
+    String fence=trust.sessionFence(config);owner.retryRevocations(config);check(OwnerRevocations.revoked.equals(Set.of(A))&&trust.isCurrent(config,fence));owner.confirmSingleStop(config,A);check(OwnerRevocations.revoked.isEmpty()&&trust.isCurrent(config,fence));
+  });
+  test("unknown migration STOP discovers empty mode and requires clearing remote old grants before new invitation",()->{
+    OwnerIdentityHarness owner=singleOwner();String id=trust.beginMigration(config,trust.sessionFence(config));trust.dispatchMigration(config,id);trust.stop();PreviewService.instance=null;owner.emptyCheck();
+    check(RelayApi.requests.size()==1&&RelayApi.requests.get(0).method.equals("GET"));RelayApi.requests.get(0).respond(multiState(A),200,null);
+    check(trust.multi(config)&&trust.grants(config).isEmpty()&&owner.cleanup());owner.stopAll();android.app.AlertDialog.positive.click(null,0);check(OwnerRevocations.queuedGeneration==5&&trust.grants(config).isEmpty());
+    owner.remote=multiState(null);check(!owner.cleanup());
+  });
+  test("late empty-mode read cannot replace a later consent or change after UI pause",()->{
+    for(boolean pause:new boolean[]{true,false}){OwnerIdentityHarness owner=singleOwner();trust.stop();owner.emptyCheck();var req=RelayApi.requests.get(0);if(pause)owner.pause();else{String c=trust.beginApproval(config,B,"later AI");trust.completeApproval(config,c);}req.respond(multiState(A),200,null);check(!trust.multi(config));if(!pause)check(trust.grant(config,B)!=null);}
+  });
+  test("invalid or unavailable remote mode read leaves stopped single state intact",()->{
+    for(int response=0;response<3;response++){OwnerIdentityHarness owner=singleOwner();trust.stop();owner.emptyCheck();var req=RelayApi.requests.get(0);if(response==0)req.respond(null,0,"offline");else if(response==1)req.respond(multiState(A).put("invitation",null),200,null);else req.respond(RelayApi.json("protocol_version",4,"state","revoked"),200,null);check(!trust.multi(config)&&trust.read(config)==null);}
   });
   System.out.println("TOTAL "+passed);
  }

@@ -155,6 +155,10 @@
     },
     {
       "kind": "source",
+      "path": "apps/android/app/src/main/java/io/airtap/preview/MigrationRecovery.java"
+    },
+    {
+      "kind": "source",
       "path": "apps/android/app/src/main/java/io/airtap/preview/MultiAiOwner.java"
     },
     {
@@ -425,6 +429,10 @@
     },
     {
       "kind": "source",
+      "path": "apps/android/scripts/test_multi_ai_migration.py"
+    },
+    {
+      "kind": "source",
       "path": "apps/android/scripts/test_multi_file_scopes.py"
     },
     {
@@ -554,6 +562,10 @@
     {
       "kind": "source",
       "path": "apps/android/tests/invitation/InvitationFeedbackTest.java"
+    },
+    {
+      "kind": "source",
+      "path": "apps/android/tests/multi/MigrationRecoveryTest.java"
     },
     {
       "kind": "source",

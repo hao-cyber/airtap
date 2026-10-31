@@ -16,7 +16,7 @@ ROOT = Path(__file__).resolve().parents[1]
 HOST_SCRIPTS = (
     'test_observation_pages', 'test_atomic_input', 'test_drag', 'test_semantic_nodes', 'test_windows', 'test_session_screen', 'test_session_recovery_gate',
     'test_audio_volume', 'test_file_transfer', 'test_approval_recovery',
-    'test_approval_scheduling', 'test_task_lease', 'test_multi_ai_control', 'test_multi_file_scopes',
+    'test_approval_scheduling', 'test_task_lease', 'test_multi_ai_control', 'test_multi_ai_migration', 'test_multi_file_scopes',
     'test_enrollment_record_limits', 'test_owner_revocations', 'test_setup_recovery', 'test_tls_policy', 'test_feedback', 'test_invitation_feedback',
 )
 PROTOCOL_SCRIPTS = (

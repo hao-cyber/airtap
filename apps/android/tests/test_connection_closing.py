@@ -55,9 +55,11 @@ final class PreviewService {
   private final Ui ui = new Ui();
   private final Host host = new Host();
   private final ScreenPreparation recovery = new ScreenPreparation(host);
-  int stopped, reconnects, executed;
+  Object config;boolean pendingMigration,multiRecord;int stopped, reconnects, executed,migrationRestores;
   ''' + marker + '\n' + deadline + '\n' + methods + '''
   <T>T getSystemService(Class<T> type){return type.cast(network);}
+  private void restore(){if(!pendingMigration&&!multiRecord)throw new AssertionError("unexpected migration restore in single fixture");migrationRestores++;}
+  private void storageUnavailable(){throw new AssertionError("unexpected storage failure in single fixture");}
   // Single-mode fixture: multi dispatch must never silently become a no-op.
   private void multiMessage(WebSocket ws,int run,String text){throw new AssertionError("unexpected multi dispatch in single fixture");}
   private void scheduleRestore(int run,long delay){throw new AssertionError("unexpected multi restore in single fixture");}
@@ -98,6 +100,18 @@ final class PreviewService {
     closeA.onClosed(a, 1008, "revoked"); revoked.main.drain();
     check(revoked.stopped == 1 && revoked.executed == 0, "late onClosed may not execute or stop twice");
     System.out.println("PASS revoke_close_fences_delayed_activity_and_completion");
+
+    for(boolean committed:new boolean[]{false,true}) {
+      PreviewService migration=new PreviewService();WebSocket migratingSocket=new WebSocket();
+      WebSocketListener listener=migration.connect(migratingSocket,1);
+      migration.pendingMigration=!committed;migration.multiRecord=committed;
+      listener.onClosed(migratingSocket,1008,"synthetic mode change");migration.main.drain();
+      check(migration.stopped==0&&!migration.authorized&&migration.migrationRestores==1&&migration.reconnects==0,
+          "migration close must reconcile persisted state, never stop original consent or reconnect with old hello");
+      listener.onFailure(migratingSocket,new java.io.IOException("late"),new Response(401));migration.main.drain();
+      check(migration.stopped==0&&migration.migrationRestores==1,"late terminal callback cannot stop migration");
+    }
+    System.out.println("PASS pending_or_committed_migration_close_reconciles_without_old_hello_or_revoke");
 
     PreviewService normal = new PreviewService(); WebSocket b = new WebSocket();
     WebSocketListener closeB = normal.connect(b, 1); normal.prepare(b, 1);
@@ -270,7 +284,7 @@ final class MultiAiProtocol {static Object hello(){throw new AssertionError("une
 // This fixture exercises ordinary transport failures; TLS classification is covered by test_tls_policy.py.
 final class TlsPolicy {static final String USER_MESSAGE="synthetic security failure";static boolean isSecurityFailure(Throwable failure){return false;}}
 final class SessionService {static boolean ready=true,permitted=true;static boolean notificationsAllowed(PreviewService service){return permitted;}static boolean readyFor(PreviewService service,int generation){return ready;}static void end(PreviewService service){}static void paused(PreviewService service){}}
-final class TrustedGrant {final PreviewService owner;TrustedGrant(PreviewService service){owner=service;}void stop(){owner.stopped++;}}
+final class TrustedGrant {final PreviewService owner;TrustedGrant(PreviewService service){owner=service;}boolean multi(Object config){return owner.multiRecord;}Object migration(Object config){return owner.pendingMigration?new Object():null;}void stop(){owner.stopped++;}}
 final class PreviewState {static boolean grantAvailable;}
 final class WorkspaceShares {static void revokeAll(PreviewService service){}}
 final class PreviewDiagnostics {
@@ -298,7 +312,7 @@ with tempfile.TemporaryDirectory(prefix='airtap-connection-close-') as directory
                             capture_output=True, text=True, check=True)
 print(result.stdout, end='')
 checks = [line[5:] for line in result.stdout.splitlines() if line.startswith('PASS ')]
-assert len(checks) == 15
+assert len(checks) == 16
 if args.output:
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(json.dumps({'passed': len(checks), 'total': 15, 'checks': checks,

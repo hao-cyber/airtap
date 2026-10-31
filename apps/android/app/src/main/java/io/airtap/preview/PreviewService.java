@@ -63,8 +63,9 @@ public final class PreviewService extends AccessibilityService {
         try {
             TrustedGrant trust=new TrustedGrant(this);
             if(!authority.grantFence.equals(trust.grantFence(config,authority.claim)))return false;
+            if(OwnerRevocations.allPending(this,config)||OwnerRevocations.claimsPending(this,config).contains(authority.claim))return false;
             if(!multiMode)return true;
-            if(!multiHello||!remoteGrants.contains(authority.claim)||OwnerRevocations.allPending(this,config)||OwnerRevocations.claimsPending(this,config).contains(authority.claim))return false;
+            if(!multiHello||!remoteGrants.contains(authority.claim))return false;
             if(authority.leased)return tasks.current(authority.ticket);
             JSONObject grant=trust.grant(config,authority.claim);
             return tasks.idle()&&trust.grants(config).size()==1&&grant!=null&&!ServiceProtocol.bool(grant,"lease_required");
@@ -81,6 +82,30 @@ public final class PreviewService extends AccessibilityService {
             catch(Exception unreadable){storageUnavailable();return;}
             refreshMultiGrants();
         } else restore();
+    }
+    private boolean resumeMigration(EnrollmentStore.Config saved) throws Exception {
+        TrustedGrant trust=new TrustedGrant(this);JSONObject pending=trust.migration(saved);
+        if(pending==null)return false;config=saved;
+        final String expected=pending.getString("fence");
+        if(!authorized){
+            if(!SessionService.notificationsAllowed(this)){waitForNotifications();return true;}
+            restoringFence=expected;
+            if(!SessionService.ensureRestoring(this)){notificationUnavailable(generation,true);return true;}
+            state="正在核实多 AI 连接，原授权已保留";recoveryStatus=RecoveryStatus.VERIFYING_CONNECTION;
+        }
+        MigrationRecovery.resume(this,saved,outcome->{
+            if(instance!=this)return;
+            try {
+                EnrollmentStore.Config current=new EnrollmentStore(this).read();
+                if(current==null||!current.url.equals(saved.url)||!current.token.equals(saved.token))return;
+                TrustedGrant latest=new TrustedGrant(this);
+                if(outcome==MigrationRecovery.Outcome.COMMITTED&&latest.multi(current))ownerModeChanged();
+                else if(outcome==MigrationRecovery.Outcome.STOPPED){
+                    if(expected.equals(sessionFence)||expected.equals(restoringFence)){suspend("原 AI 授权已解除");SessionService.end(this);}
+                }else if(outcome==MigrationRecovery.Outcome.REJECTED&&!authorized)restore();
+            }catch(Exception unreadable){storageUnavailable();}
+        });
+        return true;
     }
     private void resumeMultiApproval() throws Exception {
         if(approvalInFlight||new TrustedGrant(this).pending(config)==null)return;
@@ -133,8 +158,8 @@ public final class PreviewService extends AccessibilityService {
         restoringFence=expected;if(!SessionService.ensureRestoring(this)){notificationUnavailable(generation,true);return;}
         final java.util.Map<String,String> snapshot=grantSnapshot();
         restoring=true;int run=generation;state="正在核实已保存的 AI 连接";recoveryStatus=RecoveryStatus.VERIFYING_CONNECTION;
-        // Local multi mode is the durable, explicitly requested migration intent. Repeating enable is idempotent.
-        RelayApi.requestStatus(config.url,"/v1/device/multi/enable","POST",config.token,RelayApi.json("capabilities",new org.json.JSONArray().put("multi_ai_v1").put("task_lease_v1")),(body,status,error)->{
+        // Committed mode is reconciled read-only; recovery never starts another migration.
+        RelayApi.requestStatus(config.url,"/v1/device/grants","GET",config.token,null,(body,status,error)->{
             if(instance!=this||generation!=run)return;restoring=false;
             try{
                 if(!trust.isCurrent(config,expected))return;
@@ -212,8 +237,20 @@ public final class PreviewService extends AccessibilityService {
 
     void restore() {
         if(instance!=this)return;
-        try { if(new TrustedGrant(this).multi(new EnrollmentStore(this).read())) { restoreMulti(); return; } }
-        catch(Exception unreadable){storageUnavailable();return;}
+        try {
+            EnrollmentStore.Config saved=new EnrollmentStore(this).read();
+            TrustedGrant local=new TrustedGrant(this);
+            if(local.multi(saved)) { restoreMulti(); return; }
+            JSONObject original=local.read(saved);
+            if(original!=null&&(OwnerRevocations.allPending(this,saved)||OwnerRevocations.claimsPending(this,saved).contains(original.getString("claim")))){
+                if(SystemClock.elapsedRealtime()>=nextOwnerRetry){nextOwnerRetry=SystemClock.elapsedRealtime()+5000;OwnerRevocations.flush(this,saved,null);}
+                if(authorized||restoring)suspend("本机已停止，正在确认原 AI 的解除");
+                SessionService.end(this);return;
+            }
+            // A pending migration never turns a failed enable into an irreversible local mode.
+            // An existing single socket remains live; a disconnected one waits for reconciliation.
+            if(resumeMigration(saved))return;
+        }catch(Exception unreadable){storageUnavailable();return;}
         multiMode=false;
         if (authorized || restoring) return;
         try {
@@ -247,7 +284,9 @@ public final class PreviewService extends AccessibilityService {
                 if (generation != run || instance != this) return;
                 restoring = false;
                 try {
-                    if (!new TrustedGrant(this).isCurrent(config, expectedFence)) return;
+                    TrustedGrant latest=new TrustedGrant(this);
+                    if(latest.multi(config)||latest.migration(config)!=null){restore();return;}
+                    if (!latest.isCurrent(config, expectedFence)) return;
                 } catch (Exception unreadable) { storageUnavailable(); return; }
                 if (error != null) {
                     if (status == 401 || status == 403 || status == 410) stopRestoring(expectedFence, "连接已解除，请重新邀请自己的 AI");
@@ -494,6 +533,12 @@ public final class PreviewService extends AccessibilityService {
         connected = false;
         activeCommand = 0;
         recovery.cancel();
+        try {
+            TrustedGrant trust=new TrustedGrant(this);
+            if(!multiMode&&(trust.multi(config)||trust.migration(config)!=null)){
+                suspend("正在核实多 AI 连接，原授权已保留");restore();return;
+            }
+        }catch(Exception unreadable){storageUnavailable();return;}
         if (!valid()) { stop("会话授权到期，请重新配对"); return; }
         if(multiMode&&status==1008){suspend("连接需要重新核实，原授权已保留");scheduleRestore(generation,2000);return;}
         if (status == 401 || status == 403 || status == 410 || status == 1008) { stop("中继拒绝授权，请重新配对"); return; }

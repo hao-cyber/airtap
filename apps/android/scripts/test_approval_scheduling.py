@@ -32,26 +32,31 @@ final class MainActivityHarness extends android.app.Activity {
  void pressApprove(){approve();}void closeInvitation(){}void change(String text){if(isDestroyed())throw new AssertionError("UI touched after destruction");message=text;changes++;}
 '''+method('MainActivity.java','    private void approve() {')+'\n'+method('MainActivity.java','    private JSONObject pendingApproval() {')+'\n'+method('MainActivity.java','    @Override public void onDestroy() {')+'\n}\n'
 service='''package io.airtap.preview;
-import org.json.JSONObject;import android.net.ConnectivityManager;import okhttp3.WebSocket;
+import org.json.JSONObject;import android.net.ConnectivityManager;import android.os.SystemClock;import okhttp3.WebSocket;
 final class PreviewService extends android.content.Context {
  static PreviewService instance;final android.os.Handler main=new android.os.Handler();
- boolean authorized,restoring,connected,notificationBlocked,multiMode,grantRefreshInFlight;long activeCommand;int generation,retry,connects,networkStarts,notificationFailures;String state,url,token,sessionFence,restoringFence;
+ boolean authorized,restoring,connected,notificationBlocked,multiMode,grantRefreshInFlight;long activeCommand,nextOwnerRetry;int generation,retry,connects,networkStarts,notificationFailures,multiRestores,taskDisconnects;String state,url,token,sessionFence,restoringFence;
  RecoveryStatus recoveryStatus=RecoveryStatus.WAITING_FOR_AI;java.util.concurrent.atomic.AtomicBoolean transportOpen=new java.util.concurrent.atomic.AtomicBoolean(true);
  Object networkCallback,currentNetwork;Runnable reconnectTask,handshakeTask;WebSocket socket;EnrollmentStore.Config config;
  static final class Ui {int clears,cancellations;ScreenPreparation.State screen=ScreenPreparation.State.READY;ScreenPreparation.State screenState(){return screen;}void clear(){clears++;}void cancelGestures(){cancellations++;}}final Ui ui=new Ui();
  static final class Recovery {int cancellations;void cancel(){cancellations++;}}final Recovery recovery=new Recovery();
  PreviewService(){instance=this;}
- // New multi branches are covered separately, not stubbed into successful approval here.
- void restoreMulti(){throw new AssertionError("unexpected multi restore in single fixture");}
- void disconnectTask(){if(multiMode)throw new AssertionError("unexpected multi task in single fixture");}
+ // The real ownerModeChanged/restore transition dispatches here. Multi HTTP/socket work is outside this fixture.
+ void restoreMulti()throws Exception{config=new EnrollmentStore(this).read();if(!new TrustedGrant(this).multi(config))throw new AssertionError("multi restore before durable commit");multiMode=true;multiRestores++;}
+ // An explicit test effect for the later verified multi restore, then real notification gating runs.
+ void finishMultiRestore()throws Exception{TrustedGrant trust=new TrustedGrant(this);if(!multiMode||!trust.multi(config)||trust.read(config)==null)throw new AssertionError();restoring=false;notificationBlocked=false;sessionFence=trust.sessionFence(config);restoringFence=null;authorized=true;url=RelayAddress.webSocket(config.url);token=config.token;SessionService.begin(this);}
+ void disconnectTask(){taskDisconnects++;}
  boolean executable(){return executionAllowed();}
  void observeNetwork(int run){if(run!=generation)throw new AssertionError();networkStarts++;}
  void connect(int run){if(run!=generation||!authorized)throw new AssertionError();connects++;}
-'''+ '\n'.join(method('PreviewService.java',s) for s in ['    void restore() {','    private void stopRestoring(String expectedFence, String message) {','    void stoppedLocally(String expectedFence) {','    void sessionCarrierUnavailable() {','    void storageUnavailable() {','    private void retryApproval(int run) {','    private void scheduleRestore(int run, long delay) {','    private void waitForNotifications() {','    void notificationUnavailable(int run, boolean startFailed) {','    void notificationReady(int run) {','    private boolean executionAllowed() {','    RecoveryStatus recoveryStatus() {','    void stop(String message) {','    private void suspend(String message) {'])+'\n}\n'
-sources=[PRODUCTION/(name+'.java') for name in ['TrustedGrant','ApprovalRecovery','ConnectionFeedback','ServiceProtocol','RecoveryStatus','ScreenPreparation']]
+'''+ '\n'.join(method('PreviewService.java',s) for s in ['    void ownerModeChanged() {','    private boolean resumeMigration(EnrollmentStore.Config saved) throws Exception {','    void restore() {','    private void stopRestoring(String expectedFence, String message) {','    void stoppedLocally(String expectedFence) {','    void sessionCarrierUnavailable() {','    void storageUnavailable() {','    private void retryApproval(int run) {','    private void scheduleRestore(int run, long delay) {','    private void waitForNotifications() {','    void notificationUnavailable(int run, boolean startFailed) {','    void notificationReady(int run) {','    private boolean executionAllowed() {','    RecoveryStatus recoveryStatus() {','    void stop(String message) {','    private void suspend(String message) {'])+'\n}\n'
+sources=[PRODUCTION/(name+'.java') for name in ['TrustedGrant','ApprovalRecovery','MigrationRecovery','OwnerRevocations','MultiAiProtocol','TaskLease','ConnectionFeedback','ServiceProtocol','RecoveryStatus','ScreenPreparation']]
 with tempfile.TemporaryDirectory(prefix='airtap-approval-scheduling-') as directory:
     temp=Path(directory);generated=[]
     fixtures=dict(fakes.SOURCES);fixtures.update(fakes.SCHEDULING_SOURCES)
+    fixtures['org/json/JSONArray.java']=fixtures['org/json/JSONArray.java'].replace('public JSONObject getJSONObject(int i)','public Object get(int i){return v.get(i);}public JSONObject getJSONObject(int i)')
+    fixtures['org/json/JSONObject.java']=fixtures['org/json/JSONObject.java'].replace('public JSONObject put(', 'public int length(){return fields.size();}public JSONObject put(')
+    fixtures['io/airtap/preview/RelayApi.java']=fixtures['io/airtap/preview/RelayApi.java'].replace('"/v1/device/approve".equals(path)||','"/v1/device/multi/enable".equals(path)||"/v1/device/revoke".equals(path)||"/v1/device/grants/revoke".equals(path)||"/v1/device/approve".equals(path)||').replace('"/v1/device/pairing".equals(path)','("/v1/device/pairing".equals(path)||"/v1/device/grants".equals(path))')
     fixtures['io/airtap/preview/MainActivityHarness.java']=activity
     fixtures['io/airtap/preview/PreviewService.java']=service
     fixtures['io/airtap/preview/TlsPolicy.java']='package io.airtap.preview; final class TlsPolicy { static final String USER_MESSAGE="synthetic security error"; }'
@@ -67,7 +72,7 @@ inputs=[*sources,PRODUCTION/'MainActivity.java',PRODUCTION/'PreviewService.java'
 record={'status':'passed','recorded_at':datetime.datetime.now(datetime.timezone.utc).isoformat(),'passed':len(tests),'tests':tests,
         'extracted_method_sha256':{k:hashlib.sha256(v.encode()).hexdigest() for k,v in extracted.items()},
         'source_sha256':{str(path.relative_to(ROOT)):hashlib.sha256(path.read_bytes()).hexdigest() for path in inputs},
-        'scope':'Production approve/pendingApproval/onDestroy and restore, notification gating/recovery, typed status and stop/suspend methods are extracted verbatim and executed with complete production TrustedGrant, ApprovalRecovery, ConnectionFeedback and ServiceProtocol.',
+        'scope':'Production approve/pendingApproval/onDestroy and resumeMigration/ownerModeChanged/restore, notification gating/recovery, typed status and stop/suspend methods are extracted verbatim and executed with complete production TrustedGrant, ApprovalRecovery, MigrationRecovery, OwnerRevocations, MultiAiProtocol, TaskLease, ConnectionFeedback and ServiceProtocol.',
         'limits':['Deterministic synthetic Android Activity, per-owner Handler, persistence and HTTP. No Activity refresh is injected after destruction. The service connect() endpoint is a counter: these tests prove dispatch into connection startup, not actual Android binding, sockets, notifications or OEM background execution.',
-                  'These fixtures exercise the original single-owner flow; multi-only service entrypoints throw if reached. Real Android Back/process recreation, notifications, storage and network must still be exercised on device/emulator.']}
+                  'The multi restore endpoint is a checked dispatch counter. finishMultiRestore explicitly simulates its later verified completion so real notification callbacks can be tested; no multi handshake or task execution is claimed. Tracked sockets count cancellation only, and carrier ticks are explicit restore calls. Real Android Back/process recreation, notifications, storage and network must still be exercised on device/emulator.']}
 args.output.parent.mkdir(parents=True,exist_ok=True);args.output.write_text(json.dumps(record,ensure_ascii=False,indent=2)+'\n')
