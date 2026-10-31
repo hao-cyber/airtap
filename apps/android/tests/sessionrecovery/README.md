@@ -10,9 +10,9 @@ The separate native check is opt-in and requires an explicitly authorized dispos
 
 ```sh
 python3 apps/android/scripts/test_session_recovery_emulator.py \
-  --serial emulator-5582 --isolated-emulator --output-dir /tmp/airtap-recovery-native-new
+  --serial emulator-5582 --isolated-emulator --output-dir "$AIRTAP_NATIVE_OUTPUT"
 ```
 
-Set `JAVA_HOME` and `ANDROID_HOME`. The output directory must be new. The script refuses to overwrite an existing `io.airtap.fixture.recovery`. It builds unchanged production SessionService, TrustedGrant and EnrollmentStore with Android Keystore inside this fresh UID. Its prerequisite gate is synthetic and the control service is absent. The package has no INTERNET or WAKE_LOCK permission; it requests only its own notification runtime permission. It does not alter original Airtap, accessibility, global settings or any real phone.
+Set `JAVA_HOME` and `ANDROID_HOME`, and set `AIRTAP_NATIVE_OUTPUT` to a new private output directory. The script refuses to overwrite an existing `io.airtap.fixture.recovery`. It builds unchanged production SessionService, TrustedGrant and EnrollmentStore with Android Keystore inside this fresh UID. Its prerequisite gate is synthetic and the control service is absent. The package has no INTERNET or WAKE_LOCK permission; it requests only its own notification runtime permission. It does not alter original Airtap, accessibility, global settings or any real phone.
 
 Native evidence covers actual PendingIntent isolation, a real SIGKILL followed by a system sticky null-Intent reconstruction, the restoring notification, retained consent/replay sequence, absence of ready execution/screen lock, and durable STOP after a subsequent cold process. The fixture is uninstalled and returns HOME. The observed restart delay and five-second post-stop observation are measurements, not deadlines or proof of indefinite OEM behavior. This does not test Android accessibility rebinding, relay approval, a personal AI, phone overnight recovery or boot recovery; no boot receiver was added.
