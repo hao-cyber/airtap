@@ -1,0 +1,65 @@
+{
+  "schema": "airtap-candidate-build-and-upgrade-v1",
+  "recorded_at": "2026-11-01T00:55:14.027234+08:00",
+  "status": "limited_maintainer_upgrade_and_reconnect_pass",
+  "public_release": false,
+  "artifact": {
+    "build_source_commit": "1797e1c67662066089475d95db5ea5b007cef6dd",
+    "apk_sha256": "10f7634b4318170e9ca8d50840f9c6ecff3d92420ace44f0f9c3e443fbaebce5",
+    "bytes": 591309,
+    "signer_sha256": "a2aa0c1b6fdaf1baa37aa20817387524a1318b5dab82bf7c185663141daba60f",
+    "version_code": 44,
+    "version_name": "0.4.0-beta.14",
+    "debuggable": false,
+    "signature_verified": true
+  },
+  "checks": {
+    "core_completed": true,
+    "core_passed": true,
+    "core_steps": 35,
+    "core_source_commit": "7d534e9a83d9f277dec7398d31c18d2dd3cb008f",
+    "android_release_build_and_lint_passed": true,
+    "checks_are_not_personal_ai_acceptance": true,
+    "retained_failures": [
+      "The first core run rejected a background-observation JSON mistakenly classified as a Markdown document in the source distribution manifest. The classification was corrected; all 15 source-package tests and the full 35-step core rerun passed. Android production build inputs did not change."
+    ]
+  },
+  "device": {
+    "model": "Meizu Note 16",
+    "android_version": 15,
+    "physical_usb_power": true,
+    "prior_version_code": 42,
+    "new_version_code": 44
+  },
+  "preconditions": [
+    "Existing phone accounts and saved AI authorization were retained.",
+    "Flyme background and associated startup settings had already been enabled; the accessibility service was manually re-enabled in the earlier code42 recovery. This result does not erase that earlier manual intervention.",
+    "The phone was on HOME before a maintainer issued adb install -r. No clear data, new pairing, foreground app opening, or permission toggle was issued after this upgrade."
+  ],
+  "upgrade": {
+    "install_started_at": "2026-11-01T00:43:51.362367+08:00",
+    "install_completed_at": "2026-11-01T00:43:52.956605+08:00",
+    "installed_apk_matches_signed_artifact": true,
+    "app_data_directory_inodes_unchanged": true,
+    "first_saved_authorization_socket_open_at": "2026-11-01T00:43:57.407+08:00",
+    "seconds_after_install_completed": 4.45,
+    "accessibility_and_foreground_service_returned_without_postinstall_ui_help": true,
+    "scope": "One upgrade on an already prepared device. This does not prove first installation, every OEM, reboot recovery, or a personal AI task."
+  },
+  "natural_disconnect": {
+    "failure": "EOF",
+    "at": "2026-11-01T00:47:08.908+08:00",
+    "reconnected_at": "2026-11-01T00:47:12.019+08:00",
+    "seconds": 3.111,
+    "saved_authorization_retained_in_diagnostics": true,
+    "manual_network_or_relay_change": false,
+    "scope": "Observed local connection diagnostics only. The cause of the EOF is not established; no AI task result is inferred."
+  },
+  "not_established": [
+    "A complete uninterrupted 60-minute idle test for this artifact; a separate window began at 00:51:37 +08.",
+    "Muse or Instinct actual tasks, SMS GUI reading, or autonomous wake for this artifact.",
+    "Current multi-AI native UI regression, physical multi-AI handoff, or migration of another phone’s primary control path.",
+    "Public relay/APK deployment or independent new-user acceptance."
+  ],
+  "privacy": "Manually reduced to build identity, device model, timings and diagnostic classifications. No serial, account, messages, control credential, raw screenshot or private deployment path is included."
+}
