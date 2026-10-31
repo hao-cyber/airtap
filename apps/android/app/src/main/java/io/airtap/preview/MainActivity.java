@@ -95,12 +95,13 @@ public final class MainActivity extends Activity {
         if (content == null || isDestroyed()) return;
         PreviewService service = PreviewService.instance;
         boolean enrolled = config != null && config.enrolled(), accessibility = service != null, notifications = SessionService.notificationsAllowed(this);
+        boolean operationConfigured = SessionRecoveryGate.operationConfigured(this);
         JSONObject trusted = trust(), pending = trusted == null ? pendingApproval() : null;
         message = connectionFeedback.reconcile(message, trusted == null ? null : trusted.optString("claim"), pending == null ? null : pending.optString("claim"));
         long now = System.currentTimeMillis() / 1000;
         if (ticket != null && invitationExpiry <= now) { ticket = null; invitationArtifacts = null; claim = null; code = null; message = "邀请已过期，点下面按钮重新生成即可。"; }
         RecoveryStatus recovery = service == null ? RecoveryStatus.WAITING_FOR_AI : service.recoveryStatus();
-        String key = recovery + ":" + invitationUncertain + ":" + setupExhausted + ":" + enrolled + ":" + accessibility + ":" + notifications + ":" + (trusted != null) + ":" + (pending == null ? "" : pending.optString("approval_id")) + ":" + (ticket != null) + ":" + claim + ":" + busy + ":" + (service != null && service.isConnected());
+        String key = recovery + ":" + invitationUncertain + ":" + setupExhausted + ":" + enrolled + ":" + accessibility + ":" + operationConfigured + ":" + notifications + ":" + (trusted != null) + ":" + (pending == null ? "" : pending.optString("approval_id")) + ":" + (ticket != null) + ":" + claim + ":" + busy + ":" + (service != null && service.isConnected());
         feedback.setText(message);
         if (key.equals(renderKey)) return; renderKey = key; content.removeAllViews();
         if (upgrade || !enrolled || (accessibility && notifications)) {
@@ -114,7 +115,7 @@ public final class MainActivity extends Activity {
             paragraph("按提示准备手机，再把邀请发给你已有的个人 AI。通常只需连接一次。"); primary(busy ? "正在连接…" : "开始使用", v -> enroll());
             content.addView(button("第一次使用？看接入步骤", v -> updates.open("/help#start")));
         } else if (!accessibility || !notifications) {
-            permissions(accessibility);
+            permissions(accessibility, operationConfigured);
             if (trusted != null || pending != null) paragraph("原 AI 连接已保留。恢复上面这一项后会继续连接，无需重新配对。");
         } else if (trusted != null) {
             heading(recoveryTitle(recovery));
@@ -157,8 +158,16 @@ public final class MainActivity extends Activity {
         LinearLayout row = AppUi.section(content, title, "");
         row.addView(AppUi.text(this, detail, 15));
     }
-    private void permissions(boolean accessibility) {
+    private void permissions(boolean accessibility, boolean configured) {
         if (!accessibility) {
+            if (configured) {
+                heading("等待系统恢复手机操作");
+                paragraph("手机操作权限已经开启，但系统服务还没有连接。Airtap 正在等待恢复。");
+                paragraph("如果一直停在这里，请打开系统设置，找到“Airtap 手机操作”，把原开关关闭后再开启，然后返回。已有 AI 连接会保留，无需重新配对。");
+                primary("查看手机操作设置", v -> openOperationSettings(false));
+                content.addView(button("找不到 Airtap？", v -> missingOperationHelp()));
+                return;
+            }
             paragraph("准备手机 · 第 1 步，共 2 步");
             heading("让 AI 能操作手机");
             paragraph("开启后，Airtap 才能让你的 AI 读取屏幕、点击和输入。系统把这个开关放在“无障碍”里。");
