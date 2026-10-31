@@ -616,30 +616,27 @@ export class MultiPairingRelay extends PairingRelay {
   }
   async enableMulti(body) {
     if (this.globalExpired()) return this.json(410, { error: 'device_unenrolled' });
-    if (!exact(body, ['capabilities']) || !sameCaps(body.capabilities, MULTI_CAPS)) return this.json(400, { error: 'invalid_request' });
-    if (this.multi()) return this.json(200, this.multiState());
+    const legacy = exact(body, ['capabilities']), fenced = exact(body, ['capabilities', 'expected_claim_id']) && h32(body.expected_claim_id);
+    if ((!legacy && !fenced) || !sameCaps(body.capabilities, MULTI_CAPS)) return this.json(400, { error: 'invalid_request' });
+    if (this.multi()) {
+      // Legacy retries may read the already-migrated state, never create it.
+      if (fenced && !this.state.grants[body.expected_claim_id]) return this.json(409, { error: 'stale_claim' });
+      return this.json(200, this.multiState());
+    }
+    if (!fenced) return this.json(400, { error: 'expected_claim_required' });
     const s = this.state;
     if (this.protocolVersion() !== 4 || s.version !== 1 || s.schema_version !== undefined || s.mode !== undefined ||
         !['idle', 'waiting', 'pending', 'approved', 'revoked'].includes(s.phase) || !Array.isArray(s.seen))
       return this.json(409, { error: 'unsupported_state_schema' });
-    const grants = {};
-    if (s.phase === 'approved') {
-      if (s.persistent !== true || !h32(s.candidate?.id) || !HEX64.test(s.candidate?.hash ?? '') ||
-          !sequenceInteger(s.sequence ?? 0)) return this.json(409, { error: 'unsupported_state_schema' });
-      const c = s.candidate;
-      grants[c.id] = { ...c, state: 'approved', pairingExpires: s.pairingExpires, sequence: s.sequence ?? 0, seen: [...s.seen],
-        scope: { persistent: true, allApps: s.allApps === true, allowControl: s.allowControl === true,
-          allowedPackages: [...(s.allowedPackages ?? [])], allowTap: s.allowTap === true }, lease_required: false, lease_ready: false };
-    }
-    let invitation = null;
-    if (['waiting', 'pending'].includes(s.phase) && s.pairingExpires > now()) {
-      if (!HEX64.test(s.ticketHash ?? '') || s.phase === 'waiting' && s.candidate !== null || s.phase === 'pending' &&
-          (!h32(s.candidate?.id) || !HEX64.test(s.candidate?.hash ?? '') || typeof s.candidate.name !== 'string' || !/^[0-9]{6}$/.test(s.candidate.code ?? '')))
-        return this.json(409, { error: 'unsupported_state_schema' });
-      invitation = { id: randomHex(16), sequence: 1, origin: 'legacy_v4', ticketHash: s.ticketHash, expiresAt: s.pairingExpires,
-        candidate: s.candidate ? { ...s.candidate, capabilities: [] } : null };
-    }
-    const next = { ...s, schema_version: 2, mode: 'multi', grants, invitation, invitationSequence: invitation ? 1 : 0,
+    // An old request must not migrate a later pairing on the same enrollment.
+    if (s.phase !== 'approved' || s.candidate?.id !== body.expected_claim_id) return this.json(409, { error: 'stale_claim' });
+    if (s.persistent !== true || !h32(s.candidate?.id) || !HEX64.test(s.candidate?.hash ?? '') ||
+        !sequenceInteger(s.sequence ?? 0)) return this.json(409, { error: 'unsupported_state_schema' });
+    const c = s.candidate;
+    const grants = { [c.id]: { ...c, state: 'approved', pairingExpires: s.pairingExpires, sequence: s.sequence ?? 0, seen: [...s.seen],
+      scope: { persistent: true, allApps: s.allApps === true, allowControl: s.allowControl === true,
+        allowedPackages: [...(s.allowedPackages ?? [])], allowTap: s.allowTap === true }, lease_required: false, lease_ready: false } };
+    const next = { ...s, schema_version: 2, mode: 'multi', grants, invitation: null, invitationSequence: 0,
       task: null, taskEpoch: 0, closedTasks: [], phase: 'multi', candidate: null, ticketHash: null, persistent: false, seen: [] };
     // Persist first; a failed migration cannot invalidate the old pairing.
     await this.persist(next); this.disconnect('multi_protocol_enabled', 503, 1012); await this.scheduleMulti();
@@ -710,6 +707,11 @@ export class MultiPairingRelay extends PairingRelay {
       if (!equal(tokenHash, this.state.deviceHash)) return this.json(401, { error: 'unauthorized' });
       return this.enableMulti(body);
     }
+    if (path === '/v1/device/grants/revoke') {
+      if (!equal(tokenHash, this.state.deviceHash)) return this.json(401, { error: 'unauthorized' });
+      if (!exact(body, ['claim_id']) || !h32(body.claim_id)) return this.json(400, { error: 'invalid_request' });
+      return this.multi() ? this.revokeGrant(body.claim_id) : this.revokeSingleGrant(body.claim_id);
+    }
     if (!this.multi()) return super.handle(path, request, body, token, tokenHash);
     if (path === '/v1/pair') return this.pairMulti(body);
     if (path.startsWith('/v1/device')) {
@@ -719,10 +721,6 @@ export class MultiPairingRelay extends PairingRelay {
       if (path === '/v1/device/invitations') return this.invitation(body);
       if (path === '/v1/device/invitations/cancel') return this.invitation(body, true);
       if (path === '/v1/device/grants/approve') return this.approveMulti(body);
-      if (path === '/v1/device/grants/revoke') {
-        if (!exact(body, ['claim_id']) || !h32(body.claim_id)) return this.json(400, { error: 'invalid_request' });
-        return this.revokeGrant(body.claim_id);
-      }
       if (path === '/v1/device/revoke') return this.revoke(body);
       if (path === '/v1/device') {
         if (!this.active()) return this.json(403, { error: 'phone_approval_required' });
@@ -766,6 +764,22 @@ export class MultiPairingRelay extends PairingRelay {
       }
     }
     if (!Object.keys(grants).length) this.disconnect('no_approved_grants', 410);
+    return this.json(200, { ok: true, device_stop_confirmed: false });
+  }
+  async revokeSingleGrant(claimId) {
+    const s = this.state;
+    if (s.version !== 1 || s.schema_version !== undefined || s.mode !== undefined ||
+        !['idle', 'waiting', 'pending', 'approved', 'revoked'].includes(s.phase)) return this.json(409, { error: 'unsupported_state_schema' });
+    // A delayed stop is scoped to its original claim, including during migration.
+    if (!['pending', 'approved'].includes(s.phase) || s.candidate?.id !== claimId)
+      return this.json(200, { ok: true, device_stop_confirmed: false });
+    if (!sequenceInteger(s.generation + 1)) return this.json(503, { error: 'storage_unavailable' });
+    const next = { ...s, phase: 'revoked', ticketHash: null, allowTap: false, allowControl: false,
+      allowedPackages: [], generation: s.generation + 1 };
+    this.disconnect('revoked', 410);
+    // Unlike a speculative in-memory revocation, only a committed state can
+    // make a later retry return an idempotent success.
+    await this.persist(next); await this.schedule();
     return this.json(200, { ok: true, device_stop_confirmed: false });
   }
   async accept(request) {

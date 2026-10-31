@@ -31,6 +31,11 @@ async function instance(s, ws, fail = () => false) {
   return { r, saved: () => saved, alarm: () => alarm };
 }
 const body = () => ({ task_id: taskId, lease_id: lease, lease_epoch: 4 });
+const migration = (expected = claim) => ({ capabilities: ['multi_ai_v1','task_lease_v1'], expected_claim_id: expected });
+const singleState = (phase = 'approved') => ({ version: 1, generation: 3, phase, deviceHash: '2'.repeat(64),
+  candidate: { id: claim, hash: '1'.repeat(64), name: 'Synthetic A', code: '123456' },
+  persistent: true, allApps: true, allowControl: true, allowTap: false, allowedPackages: [],
+  pairingExpires: Math.floor(clock()/1000)+300, ticketHash: '3'.repeat(64), sequence: 41, seen: ['saved-command'] });
 async function error(response, code) { assert.equal((await response.json()).error, code); }
 
 test('hibernation restores only exact ready lease/sequence on the same socket', async () => {
@@ -84,7 +89,7 @@ test('repeated fence dispatch preserves duration and renewal watermark', async (
 });
 test('unknown schema cannot become a controllable migration', async () => {
   const s={...state(),schema_version:3}, ws=socket(s); const {r}=await instance(s,ws);
-  await error(await r.enableMulti({capabilities:['multi_ai_v1','task_lease_v1']}),'unsupported_state_schema'); assert.equal(r.connected(),false);
+  await error(await r.enableMulti(migration()),'unsupported_state_schema'); assert.equal(r.connected(),false);
 });
 
 test('terminal retirement never exposes grants through re-enable', async () => {
@@ -152,4 +157,48 @@ test('all-stop failed write never advances durable receipt watermark', async () 
   assert.equal(r.connected(),false);assert.equal(r.state.generation,3);assert.equal(saved().generation,3);
   fail=false;assert.equal((await (await r.revoke({expected_generation:3})).json()).generation,4);
   assert.equal(saved().generation,4);assert.deepEqual(saved().grants,{});
+});
+
+test('migration requires the same approved claim and preserves rejected single states', async () => {
+  for (const phase of ['idle','waiting','pending','revoked','approved']) {
+    const s=singleState(phase),{r,saved}=await instance(s);
+    await error(await r.enableMulti({capabilities:migration().capabilities}),'expected_claim_required');
+    await error(await r.enableMulti(migration(h('0'))),'stale_claim');
+    if (phase!=='approved') await error(await r.enableMulti(migration()),'stale_claim');
+    assert.deepEqual(saved(),s);assert.deepEqual(r.state,s);
+  }
+});
+test('successful migration is durable before disconnect and exact retry is read-only', async () => {
+  const s=singleState(),{r,saved}=await instance(s);let disconnects=0;
+  r.disconnect=()=>{disconnects++;assert.equal(saved().mode,'multi');};
+  const first=await (await r.enableMulti(migration())).json();
+  assert.equal(first.mode,'multi');assert.equal(first.grants[0].claim_id,claim);assert.equal(first.grants[0].command_sequence,41);
+  assert.deepEqual(saved().grants[claim].seen,['saved-command']);const before=structuredClone(saved());
+  assert.deepEqual(await (await r.enableMulti(migration())).json(),first);
+  assert.deepEqual(await (await r.enableMulti({capabilities:migration().capabilities})).json(),first);
+  await error(await r.enableMulti(migration(h('0'))),'stale_claim');
+  assert.deepEqual(saved(),before);assert.equal(disconnects,1);
+});
+test('migration persistence failure preserves single and never disconnects its transport', async () => {
+  const s=singleState(),{r,saved}=await instance(s,null,()=>true);let disconnected=false;
+  r.disconnect=()=>{disconnected=true;};
+  await assert.rejects(r.enableMulti(migration()),/storage failure/);
+  assert.deepEqual(saved(),s);assert.deepEqual(r.state,s);assert.equal(disconnected,false);
+});
+test('claim-scoped stop no-ops on a replacement single and never revokes it on restart', async () => {
+  const s=singleState();s.candidate.id=h('0');const {r,saved}=await instance(s);
+  assert.equal((await (await r.revokeSingleGrant(claim)).json()).ok,true);assert.deepEqual(saved(),s);
+  const restarted=await instance(saved());
+  assert.equal((await (await restarted.r.revokeSingleGrant(claim)).json()).ok,true);assert.deepEqual(restarted.saved(),s);
+});
+test('claim-scoped single stop is durable and cannot report success after a failed write', async () => {
+  const s=singleState();let fail=true;const {r,saved}=await instance(s,null,()=>fail);let disconnected=0;
+  r.disconnect=()=>{disconnected++;};
+  await assert.rejects(r.revokeSingleGrant(claim),/storage failure/);
+  assert.equal(saved().phase,'approved');assert.equal(r.state.phase,'approved');assert.equal(disconnected,1);
+  fail=false;assert.equal((await (await r.revokeSingleGrant(claim)).json()).ok,true);
+  assert.equal(saved().phase,'revoked');assert.equal(saved().generation,s.generation+1);
+  const before=structuredClone(saved());assert.equal((await (await r.revokeSingleGrant(claim)).json()).ok,true);
+  assert.deepEqual(saved(),before);assert.equal(disconnected,2);
+  await error(await r.enableMulti(migration()),'stale_claim');assert.deepEqual(saved(),before);
 });

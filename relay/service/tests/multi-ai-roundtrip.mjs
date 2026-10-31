@@ -39,6 +39,7 @@ async function denied(path, token, body, status, error, method) { const r = awai
 async function check(name, fn) { const started = performance.now(); await fn(); const r = { name, ok: true, elapsed_ms: Math.round(performance.now() - started) }; checks.push(r); console.log(JSON.stringify(r)); }
 async function enroll() { const d = { id: hex(16), token: hex(32) }; d.base = '/d/' + d.id; await ok('/v1/enroll', null, { device_id: d.id, device_token: d.token }); return d; }
 const caps = ['multi_ai_v1', 'task_lease_v1'];
+const migration = claim => ({ capabilities: caps, expected_claim_id: claim });
 const approval = id => ({ claim_id: id, allow_tap: false, allow_control: true, allowed_packages: [], persistent: true, all_apps: true });
 async function stopAll(d) { const state=await ok(d.base+'/v1/device/grants',d.token);return ok(d.base+'/v1/device/revoke',d.token,{expected_generation:state.generation}); }
 async function single(d) {
@@ -84,10 +85,38 @@ try {
     assert.equal((await ok(legacy.base+'/v1/device/revoke',legacy.token,undefined,'POST')).ok,true);
     await denied(legacy.base+'/v1/status',controller.token,undefined,410,'expired_or_revoked');
   });
+  await check('delayed migration and claim-scoped stop cannot change a later single pairing', async () => {
+    const x=await enroll(), original=await single(x), delayed=migration(original.claim);
+    await ok(x.base+'/v1/device/revoke',x.token,undefined,'POST');
+    const later=await single(x), currentPhone=await phone(x,false);
+    await ok(x.base+'/v1/command',later.token,command(1));
+    const before=await ok(x.base+'/v1/device/pairing',x.token);
+    await denied(x.base+'/v1/device/multi/enable',x.token,{capabilities:caps},400,'expected_claim_required');
+    await denied(x.base+'/v1/device/multi/enable',x.token,delayed,409,'stale_claim');
+    const stopped=await ok(x.base+'/v1/device/grants/revoke',x.token,{claim_id:original.claim});
+    assert.equal(stopped.ok,true);assert.equal(stopped.device_stop_confirmed,false);
+    assert.deepEqual(await ok(x.base+'/v1/device/pairing',x.token),before);
+    const status=await ok(x.base+'/v1/status',later.token);assert.equal(status.mode,undefined);assert.equal(status.deviceConnected,true);assert.equal(status.command_sequence,1);
+    await ok(x.base+'/v1/command',later.token,command(2));
+    assert.equal(currentPhone.messages.at(-1).action,'ping');assert.equal(currentPhone.messages.at(-1).type,undefined);
+    assert.equal((await ok(x.base+'/v1/status',later.token)).command_sequence,2);
+  });
+  await check('claim-scoped owner stop revokes the matching single and exact retry is harmless', async () => {
+    const x=await enroll(), controller=await single(x);await phone(x,false);
+    await denied(x.base+'/v1/device/grants/revoke',controller.token,{claim_id:controller.claim},401,'unauthorized');
+    await denied(x.base+'/v1/device/grants/revoke',x.token,{},400,'invalid_request');
+    assert.equal((await ok(x.base+'/v1/device/grants/revoke',x.token,{claim_id:controller.claim})).ok,true);
+    const stopped=await ok(x.base+'/v1/device/pairing',x.token);
+    await denied(x.base+'/v1/status',controller.token,undefined,410,'expired_or_revoked');
+    await denied(x.base+'/v1/device/multi/enable',x.token,migration(controller.claim),409,'stale_claim');
+    await ok(x.base+'/v1/device/grants/revoke',x.token,{claim_id:controller.claim});
+    assert.deepEqual(await ok(x.base+'/v1/device/pairing',x.token),stopped);
+  });
   await check('explicit migration preserves token claim sequence and blocks second invitation before handshake', async () => {
-    const s = await ok(d.base + '/v1/device/multi/enable', d.token, { capabilities: caps });
+    const s = await ok(d.base + '/v1/device/multi/enable', d.token, migration(a.claim));
     assert.equal(s.grants.length, 1); assert.equal(s.grants[0].claim_id, a.claim); assert.equal(s.grants[0].command_sequence, 7); assert.equal(s.grants[0].lease_required, false);
     assert.equal((await ok(d.base + '/v1/pair/status', a.token)).state, 'approved');
+    assert.deepEqual(await ok(d.base + '/v1/device/multi/enable', d.token, migration(a.claim)), s);
     assert.deepEqual(await ok(d.base + '/v1/device/multi/enable', d.token, { capabilities: caps }), s);
     await denied(d.base + '/v1/device/invitations', d.token, { invitation_id: hex(16), invitation_sequence: 1, ticket: hex(16) }, 409, 'client_upgrade_required');
     await denied(d.base + '/v1/device/pairing', d.token, undefined, 409, 'multi_api_required', 'POST');
@@ -181,6 +210,9 @@ try {
     assert.equal((await ok(d.base + '/v1/status', a.token)).command_sequence, 9);
     await ok(d.base + '/v1/device/grants/revoke', d.token, { claim_id: a.claim });
     await denied(d.base + '/v1/status', a.token, undefined, 401, 'unauthorized');
+    const before=await ok(d.base+'/v1/device/grants',d.token);
+    await denied(d.base+'/v1/device/multi/enable',d.token,migration(a.claim),409,'stale_claim');
+    assert.deepEqual(await ok(d.base+'/v1/device/multi/enable',d.token,{capabilities:caps}),before);
     await ok(d.base + '/v1/command', b.token, command(2, tB));
     assert.equal((await ok(d.base + '/v1/status', b.token)).task.lease_id, tB.lease_id);
   });
@@ -247,18 +279,28 @@ try {
     await ok(d.base+'/v1/device/unenroll',d.token,undefined,'POST');
     await denied('/v1/enroll',null,{device_id:d.id,device_token:d.token},410,'device_unenrolled');
   });
-  await check('legacy pending invitation migrates once and still accepts exact original retry', async () => {
-    const x = await enroll(), i = await ok(x.base + '/v1/device/pairing', x.token, undefined, 'POST');
+  await check('idle waiting and pending single states reject migration without losing the original invitation', async () => {
+    const x = await enroll();
+    const idle=await ok(x.base+'/v1/device/pairing',x.token);
+    await denied(x.base+'/v1/device/multi/enable',x.token,migration(hex(16)),409,'stale_claim');
+    assert.deepEqual(await ok(x.base+'/v1/device/pairing',x.token),idle);
+    const i = await ok(x.base + '/v1/device/pairing', x.token, undefined, 'POST');
+    const waiting=await ok(x.base+'/v1/device/pairing',x.token);
+    await denied(x.base+'/v1/device/multi/enable',x.token,migration(hex(16)),409,'stale_claim');
+    assert.deepEqual(await ok(x.base+'/v1/device/pairing',x.token),waiting);
     const body = { ticket: i.ticket, controller_token: hex(32), name: 'Pending legacy' };
     const c = await ok(x.base + '/v1/pair', null, body);
-    const s = await ok(x.base + '/v1/device/multi/enable', x.token, { capabilities: caps }); assert.equal(s.invitation.pairing_expires_at, i.pairing_expires_at);
+    const pending=await ok(x.base+'/v1/device/pairing',x.token);
+    await denied(x.base+'/v1/device/multi/enable',x.token,migration(c.claim_id),409,'stale_claim');
+    assert.deepEqual(await ok(x.base+'/v1/device/pairing',x.token),pending);
     assert.equal((await ok(x.base + '/v1/pair', null, body)).claim_id, c.claim_id);
-    await ok(x.base + '/v1/device/grants/approve', x.token, approval(c.claim_id));
-    const status = await ok(x.base + '/v1/status', body.controller_token); assert.equal(status.lease_required, false); assert.equal(status.command_sequence, 0);
+    await ok(x.base + '/v1/device/approve', x.token, approval(c.claim_id));await phone(x,false);
+    await ok(x.base+'/v1/command',body.controller_token,command(1));
+    const status = await ok(x.base + '/v1/status', body.controller_token); assert.equal(status.mode, undefined); assert.equal(status.command_sequence, 1);
   });
   await check('four-grant limit and simultaneous task acquisition remain bounded', async () => {
     const x=await enroll(), first=await single(x), clients=[first];
-    await ok(x.base+'/v1/device/multi/enable',x.token,{capabilities:caps}); await phone(x);
+    await ok(x.base+'/v1/device/multi/enable',x.token,migration(first.claim)); await phone(x);
     const ready=async c=>{const t=await ok(x.base+'/v1/tasks/acquire',c.token,{task_id:hex(16)});await ok(x.base+'/v1/tasks/release',c.token,leaseBody(t));};
     await ready(first);
     for(let n=1;n<4;n++) {
@@ -274,7 +316,7 @@ try {
     await stopAll(x);
   });
   await check('real CLI processes recover lost acquire and renewal over production relay without re-pairing', async () => {
-    const x=await enroll(), c=await single(x);await ok(x.base+'/v1/device/multi/enable',x.token,{capabilities:caps});const phoneFixture=await phone(x);
+    const x=await enroll(), c=await single(x);await ok(x.base+'/v1/device/multi/enable',x.token,migration(c.claim));const phoneFixture=await phone(x);
     let drop='acquire', acquiredPosts=0;const renewalBodies=[];
     const edge=createServer(async(req,res)=>{try{
       const chunks=[];for await(const bytes of req) chunks.push(bytes);const raw=Buffer.concat(chunks);
@@ -298,7 +340,7 @@ try {
     }finally{await new Promise(resolve=>edge.close(resolve));}
   });
   await check('control pause cannot block cancellation release or independent/full revoke', async () => {
-    const x=await enroll(), c=await single(x);await ok(x.base+'/v1/device/multi/enable',x.token,{capabilities:caps});await phone(x);
+    const x=await enroll(), c=await single(x);await ok(x.base+'/v1/device/multi/enable',x.token,migration(c.claim));await phone(x);
     const t=await ok(x.base+'/v1/tasks/acquire',c.token,{task_id:hex(16)});
     const i={invitation_id:hex(16),invitation_sequence:1,ticket:hex(16)};await ok(x.base+'/v1/device/invitations',x.token,i);
     const stopGeneration=(await ok(x.base+'/v1/device/grants',x.token)).generation;
