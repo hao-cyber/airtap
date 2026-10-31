@@ -1,13 +1,12 @@
 package io.airtap.preview;
 
-import android.accessibilityservice.AccessibilityServiceInfo;
 import android.app.ActivityManager;
 import android.app.ApplicationExitInfo;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.os.UserManager;
-import android.view.accessibility.AccessibilityManager;
+import android.provider.Settings;
 
 /** Platform prerequisites only. This class never enables accessibility or grants control. */
 final class SessionRecoveryGate {
@@ -18,11 +17,15 @@ final class SessionRecoveryGate {
         try {
             UserManager user = context.getSystemService(UserManager.class);
             if (user == null || !user.isUserUnlocked()) return false;
-            AccessibilityManager manager = context.getSystemService(AccessibilityManager.class);
-            if (manager == null) return false;
+            // The manager's enabled-service list contains bound services only. During a
+            // cold restart that list can be empty while the owner's setting is still on.
+            // This permits the restoring carrier, not command execution or a new grant.
+            String configured = Settings.Secure.getString(context.getContentResolver(),
+                    Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES);
+            if (configured == null || configured.length() > 65536) return false;
             ComponentName wanted = new ComponentName(context, PreviewService.class);
-            for (AccessibilityServiceInfo info : manager.getEnabledAccessibilityServiceList(AccessibilityServiceInfo.FEEDBACK_ALL_MASK)) {
-                if (wanted.equals(ComponentName.unflattenFromString(info.getId()))) return true;
+            for (String component : configured.split(":")) {
+                if (wanted.equals(ComponentName.unflattenFromString(component))) return true;
             }
         } catch (RuntimeException unavailable) { /* Unknown is not permission to restart. */ }
         return false;
