@@ -67,15 +67,16 @@ async function main() {
   // never through this map. Nothing is injected into production worker modules.
   const faultFile = join(actualStateDir, 'faults.private.jsonl');
   await writeFile(faultFile, '', { flag: 'a', mode: 0o600 }); await chmod(faultFile, 0o600);
-  const faultModes = { service: ['missing_caps', 'disconnect'], enable: ['reject_404', 'drop_response'], pairing: ['disconnect'], revoke: ['disconnect'] };
-  const faults = new Map(), faultHistory = [];
+  const faultModes = { service: ['missing_caps', 'disconnect'], enable: ['reject_404', 'drop_response'], pairing: ['disconnect'], revoke: ['disconnect'], grants: ['disconnect', 'hold_response'], invitation: ['drop_response'] };
+  const faults = new Map(), faultHistory = [], heldResponses = new Map();
+  const requestCounts = { grants: 0, invitation: 0, cancel_invitation: 0 };
   let faultSequence = 0, faultLogErrors = 0, faultLog = Promise.resolve();
   const recordFault = event => {
     // Only synthetic fault metadata: no request paths, bodies, tokens or headers.
     const line = JSON.stringify({ at: new Date().toISOString(), ...event }) + '\n';
     faultLog = faultLog.then(() => appendFile(faultFile, line, { mode: 0o600 })).catch(() => { faultLogErrors++; });
   };
-  const faultSnapshot = () => ({ log_file: faultFile, log_errors: faultLogErrors,
+  const faultSnapshot = () => ({ log_file: faultFile, log_errors: faultLogErrors, request_counts: { ...requestCounts }, held: [...heldResponses.keys()],
     active: Object.fromEntries([...faults].map(([target, fault]) => [target, fault.fault_id])),
     faults: faultHistory.map(fault => ({ ...fault })) });
   const selectFault = request => {
@@ -83,14 +84,19 @@ async function main() {
     const target = request.method === 'GET' && path === '/v1/service' ? 'service'
       : request.method === 'POST' && /^\/d\/[a-f0-9]{32}\/v1\/device\/multi\/enable$/.test(path) ? 'enable'
       : request.method === 'GET' && /^\/d\/[a-f0-9]{32}\/v1\/device\/pairing$/.test(path) ? 'pairing'
+      : request.method === 'GET' && /^\/d\/[a-f0-9]{32}\/v1\/device\/grants$/.test(path) ? 'grants'
+      : request.method === 'POST' && /^\/d\/[a-f0-9]{32}\/v1\/device\/invitations$/.test(path) ? 'invitation'
       : request.method === 'POST' && /^\/d\/[a-f0-9]{32}\/v1\/device\/grants\/revoke$/.test(path) ? 'revoke' : null;
+    if (target === 'grants' || target === 'invitation') requestCounts[target]++;
+    if (request.method === 'POST' && /^\/d\/[a-f0-9]{32}\/v1\/device\/invitations\/cancel$/.test(path)) requestCounts.cancel_invitation++;
     const fault = faults.get(target);
     if (!fault) return null;
     fault.hits++;
     if (fault.remaining !== null && --fault.remaining === 0) { faults.delete(target); fault.active = false; }
     recordFault({ event: 'trigger', fault_id: fault.fault_id, target, mode: fault.mode, hit: fault.hits });
     // Capture this exact admission. clear/replacement cannot release its response
-    // or apply a newer fault to an already forwarded request. No response queue.
+    // or apply a newer fault to an already forwarded request. A held response
+    // belongs only to its request and requires an explicit release operation.
     return fault;
   };
   const port = Number(args.get('--port') ?? 8443);
@@ -151,8 +157,8 @@ async function main() {
       if (fault) fault.forwarded++;
       upstream = httpRequest(upstreamUrl(request.url), { method: request.method, headers: forwardHeaders(request) }, incoming => {
         if (fault) {
-          // Both remaining modes consume a small real response, but never retain
-          // it after completion. A dropped enable still reaches real persistence.
+          // A dropped mutation still reaches real persistence. A held GET keeps
+          // only its own bounded response for explicit release, never replay.
           const chunks = []; let size = 0, finished = false;
           if (incoming.headers['content-encoding']) fault.encoded_responses++;
           const fail = () => {
@@ -165,8 +171,25 @@ async function main() {
           incoming.on('end', () => {
             if (finished) return; finished = true; fault.upstream_completed++;
             let body; try { body = JSON.parse(decodedResponse(Buffer.concat(chunks), incoming.headers['content-encoding']).toString('utf8')); } catch {}
+            if (fault.mode === 'hold_response') {
+              if (incoming.statusCode !== 200 || body?.protocol_version !== 4 || body.mode !== 'multi' || !Array.isArray(body.grants) || heldResponses.has(fault.fault_id)) {
+                fault.failures++; response.destroy(); return;
+              }
+              fault.held++;
+              const timer = setTimeout(() => { heldResponses.delete(fault.fault_id); fault.hold_expired++; response.destroy(); }, 30000);
+              heldResponses.set(fault.fault_id, () => {
+                clearTimeout(timer); heldResponses.delete(fault.fault_id); fault.released++;
+                const closed = response.destroyed;
+                if (closed) fault.released_after_close++;
+                else { response.writeHead(incoming.statusCode, incoming.headers); response.end(Buffer.concat(chunks)); }
+                recordFault({ event: 'held_response_released', fault_id: fault.fault_id, client_closed: closed });
+              });
+              recordFault({ event: 'response_held', fault_id: fault.fault_id }); return;
+            }
             if (fault.mode === 'drop_response') {
-              const committed = incoming.statusCode === 200 && body?.protocol_version === 4 && body.mode === 'multi' && Array.isArray(body.grants);
+              const committed = incoming.statusCode === 200 && body?.protocol_version === 4 && (fault.target === 'enable'
+                ? body.mode === 'multi' && Array.isArray(body.grants)
+                : /^[a-f0-9]{32}$/.test(body.invitation_id) && Number.isSafeInteger(body.invitation_sequence));
               if (committed) fault.commit_acknowledged++;
               fault.dropped++;
               recordFault({ event: 'response_dropped', fault_id: fault.fault_id, status: incoming.statusCode, commit_acknowledged: committed });
@@ -268,7 +291,8 @@ async function main() {
         if (faultHistory.length >= 1000) throw new Error('fault_history_full');
         const previous = faults.get(value.target); if (previous) previous.active = false;
         const fault = { fault_id: ++faultSequence, target: value.target, mode: value.mode, remaining: value.times ?? null,
-          active: true, hits: 0, forwarded: 0, upstream_completed: 0, encoded_responses: 0, commit_acknowledged: 0, dropped: 0, modified: 0, failures: 0 };
+          active: true, hits: 0, forwarded: 0, upstream_completed: 0, encoded_responses: 0, commit_acknowledged: 0, dropped: 0, modified: 0, failures: 0,
+          held: 0, released: 0, released_after_close: 0, hold_expired: 0 };
         faults.set(value.target, fault); faultHistory.push(fault);
         recordFault({ event: 'set', id, ...fault }); await faultLog;
         emit({ id, ok: true, fault: { ...fault }, metrics: faultSnapshot() });
@@ -279,6 +303,10 @@ async function main() {
         for (const target of targets) { const fault = faults.get(target); if (fault) fault.active = false; faults.delete(target); }
         recordFault({ event: 'clear', id, target: value.target ?? 'all' }); await faultLog;
         emit({ id, ok: true, metrics: faultSnapshot() });
+      } else if (value.op === 'fault_release') {
+        if (Object.keys(value).some(key => !['id', 'op', 'fault_id'].includes(key)) || !Number.isSafeInteger(value.fault_id)) throw new Error('invalid_fault');
+        const release = heldResponses.get(value.fault_id); if (!release) throw new Error('held_response_not_found');
+        release(); await faultLog; emit({ id, ok: true, metrics: faultSnapshot() });
       } else if (value.op === 'fault_metrics') {
         if (Object.keys(value).some(key => !['id', 'op'].includes(key))) throw new Error('invalid_fault');
         await faultLog; emit({ id, ok: true, metrics: faultSnapshot() });

@@ -68,6 +68,7 @@ public final class NativeBridge extends BroadcastReceiver {
             if(config!=null)for(JSONObject grant:trust.grants(config))grants.put(grant);
             reply.put("grants",grants).put("multi",config!=null&&trust.multi(config));
             reply.put("migration",config==null||trust.migration(config)==null?JSONObject.NULL:trust.migration(config));
+            reply.put("invitation",config==null||trust.invitation(config)==null?JSONObject.NULL:trust.invitation(config));
             reply.put("grant_fence",config==null||trust.sessionFence(config)==null?JSONObject.NULL:trust.sessionFence(config));
             reply.put("pending_claim_revokes",new JSONArray(config==null?java.util.Set.of():OwnerRevocations.claimsPending(c,config)));
             PreviewService service=PreviewService.instance;
