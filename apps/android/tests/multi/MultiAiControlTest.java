@@ -1,0 +1,61 @@
+package io.airtap.preview;
+import org.json.*;import java.util.*;import android.os.SystemClock;
+public final class MultiAiControlTest{
+ static final String A="a".repeat(32),B="b".repeat(32),T="c".repeat(32),L="d".repeat(32),ID="00000000-0000-4000-8000-000000000001";static int passed,serial;static EnrollmentStore.Config config;static PreviewService service;static Socket ws;static TrustedGrant trust;
+ interface Test{void run()throws Exception;}static void check(boolean v){if(!v)throw new AssertionError();}
+ static final class Socket implements okhttp3.WebSocket{List<JSONObject> sent=new ArrayList<>();int close;public boolean send(String s){sent.add(new JSONObject(s));return true;}public boolean close(int c,String why){close=c;return true;}JSONObject last(){return sent.get(sent.size()-1);}}
+ static void reset()throws Exception{FakeDisk.reset();RelayApi.requests.clear();OwnerRevocations.all=false;OwnerRevocations.failQueue=false;OwnerRevocations.unknownQueued=0;OwnerRevocations.queuedGeneration=null;OwnerRevocations.revoked=Set.of();SystemClock.now=100000;FileScopes.quiet=true;WorkspaceShares.invalidations=0;config=new EnrollmentStore.Config("https://synthetic.invalid/d/"+A,"e".repeat(64));FakeDisk.config=config;trust=new TrustedGrant(new android.content.Context());String approve=trust.beginApproval(config,A,"synthetic A");trust.completeApproval(config,approve);trust.enableMulti(config);ws=new Socket();service=new PreviewService(config,ws);service.remoteGrants=Set.of(A);hello();}
+ static void test(String name,Test test)throws Exception{reset();test.run();passed++;System.out.println("PASS "+name);}
+ static void hello(){service.receive(RelayApi.json("type","hello_ack","protocol_version",4,"mode","multi","connection_id",T));}
+ static JSONObject fence(long epoch,String claim){return RelayApi.json("type","task_fence","operation_id",String.format("%032x",++serial),"lease_epoch",epoch,"holder",claim==null?JSONObject.NULL:RelayApi.json("claim_id",claim,"task_id",T,"lease_id",L),"ttl_ms",claim==null?0:120000,"renewal_sequence",0);}
+ static JSONObject command(String claim,Long epoch,long sequence){return RelayApi.json("type","command","claim_id",claim,"lease_id",epoch==null?JSONObject.NULL:L,"lease_epoch",epoch==null?JSONObject.NULL:epoch,"command",RelayApi.json("id",ID,"action","file_roots","sequence",sequence));}
+ static void addB()throws Exception{trust.requireLease(config,A);JSONObject invite=trust.beginInvitation(config,0);trust.completeInvitation(config,invite.getString("invitation_id"),invite.getLong("invitation_sequence"),System.currentTimeMillis()/1000+300,"1".repeat(64),"2".repeat(64));String approval=trust.beginApproval(config,B,"synthetic B");trust.completeApproval(config,approval);service.remoteGrants=Set.of(A,B);}
+ public static void main(String[]args)throws Exception{
+  test("structured hello and permanent first fence disable the legacy envelope",()->{service.receive(command(A,null,1));check(service.ui.executions==1&&A.equals(service.ui.owner));service.ui.reply.success(new JSONObject());service.receive(fence(1,A));check(ws.last().getBoolean("ok")&&trust.grant(config,A).getBoolean("lease_required"));service.receive(command(A,null,2));check(!ws.last().getBoolean("ok")&&service.ui.executions==1);});
+  test("multi refuses raw single commands while unchanged single dispatch remains usable",()->{service.receive(RelayApi.json("id",ID,"action","file_roots","sequence",1));check(ws.close==1008&&service.ui.executions==0);FakeDisk.reset();FakeDisk.config=config;trust=new TrustedGrant(new android.content.Context());String consent=trust.beginApproval(config,A,"single AI");trust.completeApproval(config,consent);service.multiMode=false;service.raw(RelayApi.json("id",ID,"action","file_roots","sequence",1));check(service.ui.executions==1);});
+  test("holder identity gates commands and each grant keeps independent replay sequence",()->{addB();service.receive(fence(1,A));service.receive(command(B,1L,1));check(!ws.last().getBoolean("ok")&&service.ui.executions==0);service.receive(command(A,1L,1));check(service.ui.executions==1);service.ui.reply.success(new JSONObject());service.receive(fence(2,B));service.receive(command(B,2L,1));check(service.ui.executions==2&&B.equals(service.ui.owner));check(trust.grant(config,A).getLong("sequence")==1&&trust.grant(config,B).getLong("sequence")==1);});
+  test("handoff invalidates old command and share gates before waiting for real gesture drain",()->{addB();service.receive(fence(1,A));service.receive(command(A,1L,1));var oldCommand=service.ui.commandGate;var oldShare=service.ui.shareGate;var oldReply=service.ui.reply;service.ui.quiet=false;JSONObject next=fence(2,B);service.receive(next);check(!oldCommand.getAsBoolean()&&!oldShare.getAsBoolean()&&!ws.last().getBoolean("ok")&&"command_in_progress".equals(ws.last().getString("error")));int sent=ws.sent.size();oldReply.success(new JSONObject());check(sent==ws.sent.size());service.ui.quiet=true;service.receive(next);check(ws.last().getBoolean("ok"));});
+  test("provider still running after response timeout blocks ACK until actual completion",()->{addB();service.receive(fence(1,A));FileScopes.quiet=false;JSONObject next=fence(2,B);service.receive(next);check("command_in_progress".equals(ws.last().getString("error")));service.receive(next);check(!ws.last().getBoolean("ok"));FileScopes.quiet=true;service.receive(next);check(ws.last().getBoolean("ok"));});
+  test("storage failure sends negative ACK then retires transport for fresh hello",()->{JSONObject next=fence(1,A);FakeDisk.failSaveAt=FakeDisk.saves+1;service.receive(next);check("storage_failure".equals(ws.last().getString("error"))&&ws.close==1011&&service.disconnects==1);FakeDisk.failSaveAt=0;service.reconnect(ws);hello();service.receive(next);check("stale_fence".equals(ws.last().getString("error")));service.receive(fence(2,A));check(ws.last().getBoolean("ok"));});
+  test("unavailable grant negative ACK also retires transport without deleting other consent",()->{service.receive(fence(1,B));check("grant_unavailable".equals(ws.last().getString("error"))&&ws.close==1011);check(trust.grant(config,A)!=null);});
+  test("disconnect and reconnect cannot revive old command snapshot or share authority",()->{service.receive(fence(1,A));service.receive(command(A,1L,1));var share=service.ui.shareGate;service.disconnect();check(!share.getAsBoolean());service.reconnect(ws);hello();service.receive(command(A,1L,2));check(service.ui.executions==1&&!ws.last().getBoolean("ok"));});
+  test("lease expiry denies command and share before any new fence",()->{service.receive(fence(1,A));service.receive(command(A,1L,1));var share=service.ui.shareGate;service.ui.reply.success(new JSONObject());SystemClock.now+=120000;check(!share.getAsBoolean());service.receive(command(A,1L,2));check(service.ui.executions==1&&!ws.last().getBoolean("ok"));});
+  test("grant removal immediately invalidates captured file identity without PreviewState claim switching",()->{service.receive(fence(1,A));service.receive(command(A,1L,1));var gate=service.ui.shareGate;PreviewState.claim=B;check(gate.getAsBoolean());trust.revoke(config,A);check(!gate.getAsBoolean());});
+  test("stale remote list cannot remove a newly approved grant absent from request snapshot",()->{var snapshot=service.snapshot();addB();service.reconcile(Set.of(A),snapshot);check(trust.grant(config,B)!=null&&FileScopes.retained.equals(Set.of(A,B)));service.reconcile(Set.of(A),service.snapshot());check(trust.grant(config,B)==null);});
+  test("remote listing cannot create owner consent",()->{service.reconcile(Set.of(A,B),service.snapshot());check(trust.grant(config,B)==null);});
+  test("unknown envelope fields and mixed null lease identities fail closed",()->{service.receive(command(A,null,1).put("extra",true));check(ws.close==1008||service.ui.executions==0);reset();JSONObject cmd=command(A,null,1).put("lease_epoch",1);service.receive(cmd);check(service.ui.executions==0);});
+  test("full local stop fences captured command even if old socket remains",()->{service.receive(fence(1,A));service.receive(command(A,1L,1));var gate=service.ui.commandGate;trust.stop();check(!gate.getAsBoolean());service.receive(command(A,1L,2));check(service.ui.executions==1);});
+  test("durable revoke intent fences current authority even if encrypted grant removal fails",()->{service.receive(fence(1,A));service.receive(command(A,1L,1));var gate=service.ui.commandGate;OwnerRevocations.revoked=Set.of(A);check(!gate.getAsBoolean()&&trust.grant(config,A)!=null);service.receive(fence(2,A));check("grant_unavailable".equals(ws.last().getString("error")));});
+  test("remote grant list validates invitation identity and candidate shape without creating consent",()->{
+    JSONObject list=RelayApi.json("protocol_version",4,"mode","multi","generation",0,"max_grants",4,"invitation_sequence",1,"grants",new JSONArray(),"invitation",JSONObject.NULL);
+    check(MultiAiProtocol.claims(list).isEmpty());
+    list.put("invitation",RelayApi.json("invitation_id",L,"invitation_sequence",1,"state","pending","pairing_expires_at",1000,"candidate",RelayApi.json("claim_id",B,"name","synthetic AI","verification_code","123456")));
+    check(MultiAiProtocol.claims(list).isEmpty());
+    list.getJSONObject("invitation").put("candidate",null);boolean refused=false;try{MultiAiProtocol.claims(list);}catch(IllegalArgumentException e){refused=true;}check(refused);
+  });
+  test("first multi approval retries after network failure without a visible owner Activity or other grant",()->{
+    trust.stop();JSONObject invite=trust.beginInvitation(config,0);trust.completeInvitation(config,invite.getString("invitation_id"),invite.getLong("invitation_sequence"),System.currentTimeMillis()/1000+300,"1".repeat(64),"2".repeat(64));trust.beginApproval(config,B,"synthetic B");service.authorized=false;
+    service.resumePending();check(RelayApi.requests.size()==1&&service.approvalInFlight);
+    RelayApi.requests.get(0).respond(null,0,"network");check(!service.approvalInFlight&&service.retries.size()==1);
+    service.retries.remove(0).run();check(RelayApi.requests.size()==2);
+    RelayApi.requests.get(1).respond(RelayApi.json("protocol_version",4,"ok",true,"claim_id",B,"session_expires_at",JSONObject.NULL,"allow_tap",false,"allow_control",true,"allowed_packages",new JSONArray(),"persistent",true,"all_apps",true),200,null);
+    check(trust.grant(config,B)!=null&&service.grantChanges==1);
+  });
+  test("owner identity rebinding cancels old poll and clears busy before a new device can enable multi",()->{
+    OwnerIdentityHarness owner=new OwnerIdentityHarness();owner.bindIdentity(config);int oldRun=owner.generation;boolean[] cancelled={false};owner.call=()->cancelled[0]=true;owner.busy=true;owner.remote=new JSONObject();owner.nextPoll=999999;
+    EnrollmentStore.Config next=new EnrollmentStore.Config("https://other.invalid/d/"+B,"f".repeat(64));owner.bindIdentity(next);
+    check(cancelled[0]&&!owner.busy&&owner.call==null&&owner.remote==null&&owner.nextPoll==0&&!owner.accepts(oldRun,config));
+    int newRun=owner.generation;owner.busy=true;owner.bindIdentity(next);check(owner.generation==newRun&&owner.busy&&owner.accepts(newRun,next)&&!owner.accepts(oldRun,config));
+  });
+  test("offline cold owner full-stop persists unknown-generation intent and stops local grants before any GET",()->{
+    PreviewService.instance=null;OwnerIdentityHarness owner=new OwnerIdentityHarness();owner.bindIdentity(config);owner.stopAll();check(trust.grant(config,A)!=null&&RelayApi.requests.isEmpty());
+    android.app.AlertDialog.positive.click(null,0);check(trust.grants(config).isEmpty()&&OwnerRevocations.all&&OwnerRevocations.unknownQueued==1&&owner.flushes==1&&RelayApi.requests.isEmpty());
+    owner.stopAll();check(OwnerRevocations.unknownQueued==1&&owner.flushes==2);
+  });
+  test("remote-stop metadata write failure still attempts the independent durable local stop",()->{
+    PreviewService.instance=null;OwnerIdentityHarness owner=new OwnerIdentityHarness();owner.bindIdentity(config);OwnerRevocations.failQueue=true;owner.stopAll();android.app.AlertDialog.positive.click(null,0);
+    check(trust.grants(config).isEmpty()&&!OwnerRevocations.all&&owner.flushes==0&&owner.message.contains("未能保存服务端解除请求"));
+  });
+  System.out.println("TOTAL "+passed);
+ }
+}

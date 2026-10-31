@@ -20,6 +20,7 @@ final class EnrollmentStore {
     private static final String ALIAS = "airtap-preview-enrollment-v1";
     private final AtomicFile file;
     private final String purpose;
+    private int recordLimit() { return purpose.equals("trusted-ai") ? 16384 : 4096; }
 
     static final class Config {
         final String url;
@@ -67,9 +68,9 @@ final class EnrollmentStore {
 
     JSONObject readRecord() throws Exception {
         if (!file.getBaseFile().exists()) return null;
-        if (file.getBaseFile().length() > 4096) throw new IllegalStateException();
+        if (file.getBaseFile().length() > recordLimit()) throw new IllegalStateException();
         byte[] data = file.readFully();
-        if (data.length < 29 || data.length > 4096 || data[0] != 1) throw new IllegalStateException();
+        if (data.length < 29 || data.length > recordLimit() || data[0] != 1) throw new IllegalStateException();
         Cipher cipher = Cipher.getInstance("AES/GCM/NoPadding");
         byte[] iv = java.util.Arrays.copyOfRange(data, 1, 13);
         cipher.init(Cipher.DECRYPT_MODE, key(false), new GCMParameterSpec(128, iv));
@@ -85,12 +86,16 @@ final class EnrollmentStore {
     }
 
     void saveRecord(JSONObject json) throws Exception {
-        Cipher cipher = Cipher.getInstance("AES/GCM/NoPadding");
-        cipher.init(Cipher.ENCRYPT_MODE, key(true));
-        cipher.updateAAD((purpose.equals("enrollment") ? "airtap-preview-enrollment-v1" : "airtap-trusted-ai-v1").getBytes(StandardCharsets.UTF_8));
         byte[] plain = json.toString().getBytes(StandardCharsets.UTF_8);
+        if (plain.length > recordLimit() - 29) { java.util.Arrays.fill(plain, (byte) 0); throw new IllegalStateException("record_too_large"); }
+        Cipher cipher;
         byte[] sealed;
-        try { sealed = cipher.doFinal(plain); }
+        try {
+            cipher = Cipher.getInstance("AES/GCM/NoPadding");
+            cipher.init(Cipher.ENCRYPT_MODE, key(true));
+            cipher.updateAAD((purpose.equals("enrollment") ? "airtap-preview-enrollment-v1" : "airtap-trusted-ai-v1").getBytes(StandardCharsets.UTF_8));
+            sealed = cipher.doFinal(plain);
+        }
         finally { java.util.Arrays.fill(plain, (byte) 0); }
         FileOutputStream stream = null;
         try {

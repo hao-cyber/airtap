@@ -26,47 +26,77 @@ final class FileScopes {
         Thread t = new Thread(r, "airtap-files"); t.setDaemon(true); return t;
     });
     private static final java.util.concurrent.locks.ReentrantLock WORKSPACE_IO = new java.util.concurrent.locks.ReentrantLock();
+    private static final java.util.concurrent.atomic.AtomicInteger IN_FLIGHT = new java.util.concurrent.atomic.AtomicInteger();
+    static boolean quiescent() { return IN_FLIGHT.get() == 0 && !WORKSPACE_IO.isLocked(); }
+    private static SharedPreferences prefs(Context c, String owner) {
+        FileTransferStore.id(owner);
+        SharedPreferences legacy = prefs(c);
+        if (owner.equals(legacy.getString("owner", ""))) return legacy;
+        return c.getSharedPreferences("file-scope-" + owner, 0);
+    }
+    private static Set<String> scopedOwners(Context c) {
+        Set<String> result = new HashSet<>(prefs(c).getStringSet("owners", Set.of()));
+        String legacy = prefs(c).getString("owner", ""); if (!legacy.isEmpty()) result.add(legacy);
+        return result;
+    }
     private static final String[] COLUMNS = {DocumentsContract.Document.COLUMN_DOCUMENT_ID, DocumentsContract.Document.COLUMN_DISPLAY_NAME,
             DocumentsContract.Document.COLUMN_MIME_TYPE, DocumentsContract.Document.COLUMN_SIZE, DocumentsContract.Document.COLUMN_LAST_MODIFIED, DocumentsContract.Document.COLUMN_FLAGS};
     private static SharedPreferences prefs(Context c) { return c.getSharedPreferences("file-scopes", 0); }
     static long epoch(Context c) { return prefs(c).getLong("epoch",0); }
+    static long scopeEpoch(Context c,String owner) { FileTransferStore.id(owner);return c.getSharedPreferences("file-scope-"+owner,0).getLong("scope_epoch",0); }
     static boolean pickerActive(Context c) { return prefs(c).getBoolean("picker", false); }
     static void picker(Context c, boolean active) {
         if (!prefs(c).edit().putBoolean("picker", active).commit()) throw new FileTransferStore.Failure("file_storage_failure");
     }
     static String owner(Context c) throws Exception {
         EnrollmentStore.Config config = new EnrollmentStore(c).read();
-        JSONObject grant = new TrustedGrant(c).read(config);
-        return grant == null ? null : grant.getString("claim");
+        java.util.List<JSONObject> grants = new TrustedGrant(c).grants(config);
+        return grants.size() == 1 ? grants.get(0).getString("claim") : null;
     }
     static String chosenName(Context c, String owner) {
-        SharedPreferences p = prefs(c); return owner != null && owner.equals(p.getString("owner", "")) ? p.getString("name", "已选文件夹") : null;
+        if (owner == null) return null; SharedPreferences p = prefs(c,owner); return owner.equals(p.getString("owner", "")) ? p.getString("name", "已选文件夹") : null;
     }
     static void revoke(Context c) {
         WorkspaceShares.revokeAll(c);
-        SharedPreferences p = prefs(c); String previous = p.getString("uri", ""); long epoch = p.getLong("epoch", 0) + 1;
-        if (!p.edit().clear().putLong("epoch", epoch).commit()) throw new FileTransferStore.Failure("file_storage_failure");
-        if (!previous.isEmpty()) try { c.getContentResolver().releasePersistableUriPermission(Uri.parse(previous), permissionFlags(c, Uri.parse(previous))); }
+        for (String owner : scopedOwners(c)) revoke(c, owner);
+    }
+    static void revoke(Context c, String owner) {
+        WorkspaceShares.revokeOwner(c, owner);
+        SharedPreferences global = prefs(c), p = prefs(c,owner); String previous = p.getString("uri", "");
+        if (!p.edit().remove("uri").remove("root").remove("owner").remove("name").commit()) throw new FileTransferStore.Failure("file_storage_failure");
+        SharedPreferences scoped=c.getSharedPreferences("file-scope-"+owner,0);
+        if(!scoped.edit().putLong("scope_epoch",scoped.getLong("scope_epoch",0)+1).commit())throw new FileTransferStore.Failure("file_storage_failure");
+        Set<String> owners = scopedOwners(c); owners.remove(owner);
+        if (!global.edit().putStringSet("owners", owners).commit()) throw new FileTransferStore.Failure("file_storage_failure");
+        if (!previous.isEmpty()) releaseUnused(c, Uri.parse(previous), permissionFlags(c, Uri.parse(previous)));
+    }
+    private static void releaseUnused(Context c, Uri uri, int flags) {
+        for (String other : scopedOwners(c)) if (uri.toString().equals(prefs(c,other).getString("uri", ""))) return;
+        try { c.getContentResolver().releasePersistableUriPermission(uri, flags); }
         catch (SecurityException ignored) { /* Already revoked by the system. */ }
+    }
+    static void retain(Context c, Set<String> valid) {
+        for (String owner : scopedOwners(c)) if (!valid.contains(owner)) revoke(c, owner);
     }
     static void grant(Context c, String owner, Uri uri, int flags) throws Exception {
         FileTransferStore.id(owner);
         if (uri == null || !DocumentsContract.isTreeUri(uri) || !"content".equals(uri.getScheme())
-                || (flags & Intent.FLAG_GRANT_READ_URI_PERMISSION) == 0 || !owner.equals(owner(c))) throw new FileTransferStore.Failure("file_scope_unavailable");
+                || (flags & Intent.FLAG_GRANT_READ_URI_PERMISSION) == 0 || !new TrustedGrant(c).validClaims(new EnrollmentStore(c).read()).contains(owner)) throw new FileTransferStore.Failure("file_scope_unavailable");
         // Never retain authority selected under an earlier pairing or a different folder.
-        revoke(c); int retainedFlags = flags & (Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
+        revoke(c, owner); int retainedFlags = flags & (Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
         c.getContentResolver().takePersistableUriPermission(uri, retainedFlags);
         try {
         // The owner callback must not block on a cloud DocumentsProvider. Query names only on the file IO executor.
         String name = "系统选定的文件夹";
-        SharedPreferences p = prefs(c);
+        SharedPreferences p = prefs(c,owner);
+        Set<String> owners = scopedOwners(c); owners.add(owner);
+        if (!prefs(c).edit().putStringSet("owners", owners).commit()) throw new FileTransferStore.Failure("file_storage_failure");
         if (!p.edit().putString("uri", uri.toString()).putString("root", "saf_" + UUID.randomUUID().toString().replace("-", ""))
                 .putString("owner", owner).putString("name", name).putLong("epoch", p.getLong("epoch", 0) + 1).commit()) {
-            c.getContentResolver().releasePersistableUriPermission(uri, retainedFlags);
             throw new FileTransferStore.Failure("file_storage_failure");
         }
         } catch (Exception failure) {
-            try { c.getContentResolver().releasePersistableUriPermission(uri, retainedFlags); } catch (SecurityException ignored) { }
+            releaseUnused(c, uri, retainedFlags);
             throw failure;
         }
     }
@@ -122,38 +152,42 @@ final class FileScopes {
         } catch (Exception failure) { task.cancel(false); FileTransferStore.fail("permission_denied"); }
     }
     static void execute(Context context, JSONObject q, Runnable checkOnMain, CompanionUi.Reply reply) throws Exception {
-        validate(q); checkOnMain.run(); String owner = owner(context);
-        if (owner == null) throw new ScopedUi.Refused("permission_denied");
-        Context c = context.getApplicationContext(); long epoch = prefs(c).getLong("epoch", 0);
+        execute(context, owner(context), q, () -> PreviewService.instance != null && PreviewService.instance.isAuthorized(), checkOnMain, reply);
+    }
+    static void execute(Context context, String owner, JSONObject q, java.util.function.BooleanSupplier shareAuthority, Runnable checkOnMain, CompanionUi.Reply reply) throws Exception {
+        validate(q); checkOnMain.run();
+        if (owner == null || new TrustedGrant(context).grant(new EnrollmentStore(context).read(),owner) == null) throw new ScopedUi.Refused("permission_denied");
+        Context c = context.getApplicationContext(); long epoch = prefs(c).getLong("epoch", 0), scopeEpoch = scopeEpoch(c,owner);
         AtomicBoolean done = new AtomicBoolean(); CancellationSignal signal = new CancellationSignal();
         Runnable fence = () -> onMain(() -> {
             if (done.get()) throw new ScopedUi.Refused("permission_denied");
             checkOnMain.run();
-            if (prefs(c).getLong("epoch", 0) != epoch) throw new ScopedUi.Refused("file_scope_changed");
+            if (prefs(c).getLong("epoch", 0) != epoch || scopeEpoch(c,owner) != scopeEpoch) throw new ScopedUi.Refused("file_scope_changed");
         });
         Runnable timeout = () -> { if (done.compareAndSet(false, true)) { signal.cancel(); reply.error("file_provider_timeout"); } };
         MAIN.postDelayed(timeout, 12000);
+        IN_FLIGHT.incrementAndGet();
         try {
             IO.execute(() -> {
                 JSONObject result = null; String error = null;
                 boolean locked = false;
                 try {
                     if (!(locked = WORKSPACE_IO.tryLock())) throw new FileTransferStore.Failure("file_busy");
-                    result = run(c, owner, q, fence, signal); fence.run();
+                    result = run(c, owner, q, fence, signal, shareAuthority); fence.run();
                 }
                 catch (FileTransferStore.Failure f) { error = f.code; }
                 catch (ScopedUi.Refused f) { error = f.code; }
                 catch (SecurityException f) { error = "file_scope_revoked"; }
                 catch (FileNotFoundException f) { error = "file_not_found"; }
                 catch (Exception f) { error = "file_storage_or_provider_failure"; }
-                finally { if (locked) WORKSPACE_IO.unlock(); }
+                finally { if (locked) WORKSPACE_IO.unlock(); IN_FLIGHT.decrementAndGet(); }
                 JSONObject finalResult = result; String finalError = error;
                 MAIN.post(() -> { MAIN.removeCallbacks(timeout); if (done.compareAndSet(false, true)) {
-                    if (prefs(c).getLong("epoch", 0) != epoch) reply.error("file_scope_changed");
+                    if (prefs(c).getLong("epoch", 0) != epoch || scopeEpoch(c,owner) != scopeEpoch) reply.error("file_scope_changed");
                     else if (finalError == null) reply.success(finalResult); else reply.error(finalError);
                 } });
             });
-        } catch (RejectedExecutionException busy) { MAIN.removeCallbacks(timeout); done.set(true); reply.error("file_busy"); }
+        } catch (RejectedExecutionException busy) { IN_FLIGHT.decrementAndGet(); MAIN.removeCallbacks(timeout); done.set(true); reply.error("file_busy"); }
     }
     static String recoveryHint(String code) {
         return switch(code) {
@@ -192,23 +226,19 @@ final class FileScopes {
             fence.run();store=new FileTransferStore(c.getFilesDir().toPath().resolve("scoped-files").resolve(ticket.owner),fence,System::currentTimeMillis,directorySync());
         }finally{WORKSPACE_IO.unlock();}
         return (offset,length)->{
-            SharedFileIo.acquire(WORKSPACE_IO,fence,Looper.myLooper()!=Looper.getMainLooper());
-            try{fence.run();return store.read(ticket.path,offset,length,ticket.version);}finally{WORKSPACE_IO.unlock();}
+            IN_FLIGHT.incrementAndGet(); boolean locked=false;
+            try{SharedFileIo.acquire(WORKSPACE_IO,fence,Looper.myLooper()!=Looper.getMainLooper());locked=true;fence.run();return store.read(ticket.path,offset,length,ticket.version);}
+            finally{if(locked)WORKSPACE_IO.unlock();IN_FLIGHT.decrementAndGet();}
         };
     }
     static void ownerReclaimStaging(Context context,OwnerStorageReply reply) {
-        Context c=context.getApplicationContext();final String owner;
-        try{owner=owner(c);}catch(Exception e){reply.complete(null,"file_storage_failure");return;}
-        FileMaintenanceFence maintenance=new FileMaintenanceFence(new FileMaintenanceFence.Identity(owner,epoch(c),PreviewState.epoch),()->{
-            try{return new FileMaintenanceFence.Identity(owner(c),epoch(c),PreviewState.epoch);}catch(Exception e){throw new FileTransferStore.Failure("file_scope_changed");}
-        });
-        Runnable fence=()->onMain(maintenance);
+        Context c=context.getApplicationContext();final Set<String> owners; final long expectedEpoch=epoch(c); final int session=PreviewState.epoch;
+        try{owners=Set.copyOf(new TrustedGrant(c).validClaims(new EnrollmentStore(c).read()));}catch(Exception e){reply.complete(null,"file_storage_failure");return;}
+        Runnable fence=()->onMain(()->{try{if(expectedEpoch!=epoch(c)||session!=PreviewState.epoch||!owners.equals(new TrustedGrant(c).validClaims(new EnrollmentStore(c).read())))throw new FileTransferStore.Failure("file_scope_changed");}catch(FileTransferStore.Failure e){throw e;}catch(Exception e){throw new FileTransferStore.Failure("file_scope_changed");}});
         try{IO.execute(()->{
             boolean locked=false;PrivateFileStorage.Usage result=null;String error=null;
-            try{
-                if(!(locked=WORKSPACE_IO.tryLock()))throw new FileTransferStore.Failure("file_busy");
-                fence.run();result=new PrivateFileStorage(c.getFilesDir().toPath().resolve("scoped-files"),fence,directorySync()).reclaimSaf(owner,System.currentTimeMillis(),true);
-            }catch(FileTransferStore.Failure e){error=e.code;}catch(Exception e){error="file_storage_failure";}finally{if(locked)WORKSPACE_IO.unlock();}
+            try{if(!(locked=WORKSPACE_IO.tryLock()))throw new FileTransferStore.Failure("file_busy");fence.run();result=new PrivateFileStorage(c.getFilesDir().toPath().resolve("scoped-files"),fence,directorySync()).reclaimSaf(owners,System.currentTimeMillis(),true);}
+            catch(FileTransferStore.Failure e){error=e.code;}catch(Exception e){error="file_storage_failure";}finally{if(locked)WORKSPACE_IO.unlock();}
             PrivateFileStorage.Usage value=result;String problem=error;MAIN.post(()->reply.complete(value,problem));
         });}catch(RejectedExecutionException e){reply.complete(null,"file_busy");}
     }
@@ -221,7 +251,7 @@ final class FileScopes {
                 "offset", t.offset(), "size", t.size(), "sha256", t.hash(), "expires_at", t.expires(), "publication_atomic", true);
         if (t.file() != null) result.put("file", entry("workspace", t.file())); return result;
     }
-    private static JSONObject run(Context c, String owner, JSONObject q, Runnable fence, CancellationSignal signal) throws Exception {
+    private static JSONObject run(Context c, String owner, JSONObject q, Runnable fence, CancellationSignal signal, java.util.function.BooleanSupplier shareAuthority) throws Exception {
         fence.run(); String a = q.getString("action"), root = q.optString("root", "workspace");
         java.nio.file.Path privateRoot = c.getFilesDir().toPath().resolve("scoped-files");
         java.nio.file.Path base = privateRoot.resolve(owner);
@@ -231,7 +261,7 @@ final class FileScopes {
         if (a.equals("file_roots")) {
             JSONArray roots = new JSONArray().put(RelayApi.json("root", "workspace", "name", "Airtap 工作目录", "kind", "workspace", "readable", true,
                     "writable", true, "publication_atomic", true, "operations", new JSONArray(List.of("list", "stat", "read", "upload", "share"))));
-            SharedPreferences p = prefs(c);
+            SharedPreferences p = prefs(c,owner);
             if (owner.equals(p.getString("owner", ""))) {
                 boolean allowed = hasPermission(c, Uri.parse(p.getString("uri", "")));
                 boolean writable = allowed && (permissionFlags(c, Uri.parse(p.getString("uri", ""))) & Intent.FLAG_GRANT_WRITE_URI_PERMISSION) != 0;
@@ -287,7 +317,7 @@ final class FileScopes {
             if(!file.kind().equals("file")||file.size()>FileTransferStore.MAX_FILE)throw new FileTransferStore.Failure("file_type_unsupported");
             if(!file.version().equals(q.getString("version")))throw new FileTransferStore.Failure("file_changed");
             JSONObject[] result=new JSONObject[1];
-            onMain(()->{try{result[0]=WorkspaceShares.open(c,owner,q.getString("path"),q.getString("mime_type"),q.getString("target_package"),file,fence);}catch(RuntimeException e){throw e;}catch(Exception e){throw new FileTransferStore.Failure("file_share_target_unavailable");}});
+            onMain(()->{try{result[0]=WorkspaceShares.open(c,owner,q.getString("path"),q.getString("mime_type"),q.getString("target_package"),file,fence,shareAuthority);}catch(RuntimeException e){throw e;}catch(Exception e){throw new FileTransferStore.Failure("file_share_target_unavailable");}});
             return result[0];
         }
         String path = q.getString("path"); Saf saf = root.equals("workspace") ? null : new Saf(c, owner, root, fence, signal);
@@ -388,7 +418,7 @@ final class FileScopes {
         final Context c; final Uri tree; final Runnable fence; final CancellationSignal signal;
         record Document(String id, String name, String mime, long size, long modified, long flags) {}
         Saf(Context c, String owner, String root, Runnable fence, CancellationSignal signal) {
-            this.c = c; this.fence = fence; this.signal = signal; SharedPreferences p = prefs(c);
+            this.c = c; this.fence = fence; this.signal = signal; SharedPreferences p = prefs(c,owner);
             if (!owner.equals(p.getString("owner", "")) || !root.equals(p.getString("root", ""))) throw new FileTransferStore.Failure("file_scope_unavailable");
             tree = Uri.parse(p.getString("uri", "")); if (!hasPermission(c, tree)) throw new FileTransferStore.Failure("file_scope_revoked");
         }

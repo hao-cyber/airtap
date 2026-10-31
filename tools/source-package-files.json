@@ -2,7 +2,7 @@
   "allowlist_path": "tools/source-package-files.json",
   "android_version": "0.4.0-beta.12",
   "archive_root": "airtap-source-0.4.0-beta.12-code42",
-  "cli_version": "0.4.0-cli.8",
+  "cli_version": "0.4.0-cli.9",
   "closure_policy": "airtap-source-closure-v1",
   "files": [
     {
@@ -155,6 +155,14 @@
     },
     {
       "kind": "source",
+      "path": "apps/android/app/src/main/java/io/airtap/preview/MultiAiOwner.java"
+    },
+    {
+      "kind": "source",
+      "path": "apps/android/app/src/main/java/io/airtap/preview/MultiAiProtocol.java"
+    },
+    {
+      "kind": "source",
       "path": "apps/android/app/src/main/java/io/airtap/preview/NativePairDiagnostics.java"
     },
     {
@@ -164,6 +172,10 @@
     {
       "kind": "source",
       "path": "apps/android/app/src/main/java/io/airtap/preview/ObservedText.java"
+    },
+    {
+      "kind": "source",
+      "path": "apps/android/app/src/main/java/io/airtap/preview/OwnerRevocations.java"
     },
     {
       "kind": "source",
@@ -268,6 +280,10 @@
     {
       "kind": "source",
       "path": "apps/android/app/src/main/java/io/airtap/preview/SystemActions.java"
+    },
+    {
+      "kind": "source",
+      "path": "apps/android/app/src/main/java/io/airtap/preview/TaskLease.java"
     },
     {
       "kind": "source",
@@ -389,6 +405,10 @@
     },
     {
       "kind": "source",
+      "path": "apps/android/scripts/test_enrollment_record_limits.py"
+    },
+    {
+      "kind": "source",
       "path": "apps/android/scripts/test_feedback.py"
     },
     {
@@ -401,11 +421,23 @@
     },
     {
       "kind": "source",
+      "path": "apps/android/scripts/test_multi_ai_control.py"
+    },
+    {
+      "kind": "source",
+      "path": "apps/android/scripts/test_multi_file_scopes.py"
+    },
+    {
+      "kind": "source",
       "path": "apps/android/scripts/test_observation_pages.py"
     },
     {
       "kind": "source",
       "path": "apps/android/scripts/test_observation_pages_emulator.py"
+    },
+    {
+      "kind": "source",
+      "path": "apps/android/scripts/test_owner_revocations.py"
     },
     {
       "kind": "source",
@@ -426,6 +458,10 @@
     {
       "kind": "source",
       "path": "apps/android/scripts/test_setup_recovery.py"
+    },
+    {
+      "kind": "source",
+      "path": "apps/android/scripts/test_task_lease.py"
     },
     {
       "kind": "source",
@@ -457,6 +493,10 @@
     },
     {
       "kind": "source",
+      "path": "apps/android/tests/TaskLeaseTest.java"
+    },
+    {
+      "kind": "source",
       "path": "apps/android/tests/TouchGestureTest.java"
     },
     {
@@ -470,6 +510,14 @@
     {
       "kind": "source",
       "path": "apps/android/tests/approvalrecovery/ApprovalSchedulingTest.java"
+    },
+    {
+      "kind": "source",
+      "path": "apps/android/tests/approvalrecovery/EnrollmentStoreBoundaryTest.java"
+    },
+    {
+      "kind": "source",
+      "path": "apps/android/tests/approvalrecovery/OwnerRevocationsTest.java"
     },
     {
       "kind": "source",
@@ -493,6 +541,10 @@
     },
     {
       "kind": "source",
+      "path": "apps/android/tests/files/MultiFileScopesTest.java"
+    },
+    {
+      "kind": "source",
       "path": "apps/android/tests/files/PrivateFileStorageTest.java"
     },
     {
@@ -502,6 +554,14 @@
     {
       "kind": "source",
       "path": "apps/android/tests/invitation/InvitationFeedbackTest.java"
+    },
+    {
+      "kind": "source",
+      "path": "apps/android/tests/multi/MultiAiControlTest.java"
+    },
+    {
+      "kind": "source",
+      "path": "apps/android/tests/multi/README.md"
     },
     {
       "kind": "source",
@@ -662,6 +722,10 @@
     {
       "kind": "document",
       "path": "docs/feedback-operations.md"
+    },
+    {
+      "kind": "source",
+      "path": "docs/multi-ai-protocol.md"
     },
     {
       "kind": "document",
@@ -949,6 +1013,14 @@
     },
     {
       "kind": "source",
+      "path": "relay/service/tests/multi-ai-roundtrip.mjs"
+    },
+    {
+      "kind": "source",
+      "path": "relay/service/tests/multi-ai-state.test.mjs"
+    },
+    {
+      "kind": "source",
       "path": "relay/service/tests/pair-recovery.mjs"
     },
     {
@@ -974,6 +1046,10 @@
     {
       "kind": "source",
       "path": "relay/service/tests/test_reports.py"
+    },
+    {
+      "kind": "source",
+      "path": "relay/service/tests/test_task_lease.py"
     },
     {
       "kind": "source",

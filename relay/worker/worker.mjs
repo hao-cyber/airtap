@@ -200,8 +200,8 @@ async function publicAsset(request, env) {
 function route(request) {
   const url = new URL(request.url);
   if (request.url.includes('?') || url.hash) return null;
-  if (request.method === 'GET' && ['/v1/device', '/v1/device/pairing', '/v1/pair/status', '/v1/status'].includes(url.pathname)) return url.pathname;
-  if (request.method === 'POST' && ['/v1/setup', '/v1/device/pairing', '/v1/pair', '/v1/device/approve', '/v1/command', '/v1/revoke', '/v1/device/revoke'].includes(url.pathname)) return url.pathname;
+  if (request.method === 'GET' && ['/v1/device', '/v1/device/pairing', '/v1/pair/status', '/v1/status', '/v1/device/grants'].includes(url.pathname)) return url.pathname;
+  if (request.method === 'POST' && ['/v1/setup', '/v1/device/pairing', '/v1/pair', '/v1/device/approve', '/v1/command', '/v1/revoke', '/v1/device/revoke', '/v1/device/multi/enable', '/v1/device/invitations', '/v1/device/invitations/cancel', '/v1/device/grants/approve', '/v1/device/grants/revoke', '/v1/tasks/acquire', '/v1/tasks/renew', '/v1/tasks/release'].includes(url.pathname)) return url.pathname;
   return null;
 }
 function configured(env) {
@@ -277,8 +277,10 @@ export class PairingRelay extends DurableObject {
         if (usable && !this.device && live(socket, this.state.generation)) this.device = socket;
         else retire(socket, 'inactive_session');
       }
+      await this.restoreTransport();
     });
   }
+  async restoreTransport() {}
   protocolVersion() { return 2; }
   replaceAuthenticatedDeviceConnection() { return false; }
   headers() { return { ...H, 'X-Airtap-Protocol-Version': String(this.protocolVersion()) }; }
@@ -322,6 +324,7 @@ export class PairingRelay extends DurableObject {
     if (!this.active()) return this.json(403, { error: 'phone_approval_required' });
     return null;
   }
+  emptyPostBody(path) { return ['/v1/device/pairing', '/v1/revoke', '/v1/device/revoke'].includes(path); }
   async fetch(request) {
     const path = route(request);
     if (!path) return this.json(404, { error: 'not_found' });
@@ -330,9 +333,9 @@ export class PairingRelay extends DurableObject {
     const tokenHash = token ? await hash(token) : null;
     let body;
     if (request.method === 'POST') {
-      const empty = ['/v1/device/pairing', '/v1/revoke', '/v1/device/revoke'].includes(path);
+      const empty = this.emptyPostBody(path);
       if (!empty && !/^application\/json(?:\s*;\s*charset=utf-8)?$/i.test(request.headers.get('Content-Type') ?? '')) return this.json(415, { error: 'json_required' });
-      const parsed = await readBody(request, empty ? 0 : path === '/v1/command' ? COMMAND_LIMIT : path === '/v1/device/approve' ? 4096 : 1024);
+      const parsed = await readBody(request, empty ? 0 : path === '/v1/command' ? COMMAND_LIMIT : path === '/v1/device/approve' || path.startsWith('/v1/tasks/') || path.startsWith('/v1/device/') ? 4096 : 1024);
       if (parsed.error) return this.json(parsed.error.status, await parsed.error.json());
       if (!empty) {
         try { body = JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(parsed.bytes)); }
@@ -515,3 +518,445 @@ export class PairingRelay extends DurableObject {
 
 // Shared primitives for the separately deployed, multi-device service entry.
 export { publicAsset, route, bearer, readBody, hash, equal, exact, HEX32, HEX64, now };
+
+// Opt-in v4 extension. The original single-grant state and execution path remain
+// untouched until the enrolled device explicitly migrates them.
+const MULTI_CAPS = ['multi_ai_v1', 'task_lease_v1'];
+const leaseInteger = n => Number.isSafeInteger(n) && n > 0;
+const sequenceInteger = n => Number.isSafeInteger(n) && n >= 0;
+const h32 = n => typeof n === 'string' && HEX32.test(n);
+const sameCaps = (a, b) => Array.isArray(a) && JSON.stringify(a) === JSON.stringify(b);
+const TASK_TTL = 120000;
+const FENCE_WAIT = 15000;
+export class MultiPairingRelay extends PairingRelay {
+  emptyPostBody(path) { return path === '/v1/device/revoke' && this.multi() ? false : super.emptyPostBody(path); }
+  multi() { return this.state.mode === 'multi' && this.state.schema_version === 2; }
+  transportReady() { return !!this.device && live(this.device, this.state.generation) && attachment(this.device)?.multiHello === true; }
+  active() { return this.multi() ? !this.globalExpired() && Object.keys(this.state.grants).length > 0 : super.active(); }
+  connected() { return this.multi() ? this.active() && this.transportReady() : super.connected(); }
+  grantByHash(tokenHash) {
+    if (!this.multi()) return equal(tokenHash, this.state.candidate?.hash) ? this.state.candidate : null;
+    return Object.values(this.state.grants).find(g => equal(tokenHash, g.hash)) ?? null;
+  }
+  controllerClaim(tokenHash) { return this.grantByHash(tokenHash)?.id ?? null; }
+  controllerSequence(tokenHash) { return this.multi() ? this.grantByHash(tokenHash)?.sequence ?? 0 : this.state.sequence ?? 0; }
+  controllerAuth(tokenHash, pendingAllowed = false) {
+    if (!this.multi()) return super.controllerAuth(tokenHash, pendingAllowed);
+    if (this.globalExpired()) return this.json(410, { error: 'expired_or_revoked' });
+    if (this.grantByHash(tokenHash)) return null;
+    if (equal(tokenHash, this.state.invitation?.candidate?.hash))
+      return pendingAllowed ? null : this.json(403, { error: 'phone_approval_required' });
+    return this.json(401, { error: 'unauthorized' });
+  }
+  taskMatchesConnection(task = this.state.task) {
+    return !!task && this.transportReady() && task.connectionId === attachment(this.device)?.connectionId;
+  }
+  async restoreTransport() {
+    if (!this.multi()) return;
+    const t = this.state.task, a = attachment(this.device);
+    const confirmed = t && t.state === 'ready' && t.expiresAtMs > Date.now() && this.taskMatchesConnection(t) &&
+      !a?.pendingCommand && a?.task?.leaseId === t.leaseId && a.task.epoch === t.epoch &&
+      a.task.expiresAtMs === t.expiresAtMs && a.task.operationId === t.operationId && a.task.renewalSequence === t.renewalSequence;
+    // Hibernation is safe only with matching durable state AND socket evidence.
+    // Unknown in-flight work retires this transport rather than guessing ready.
+    if (a?.pendingCommand || t && !confirmed) {
+      this.disconnect('task_recovery_required', 503, 1012);
+      await this.persist(this.closedState(this.state, t));
+    }
+  }
+  closedState(state, task) {
+    if (!task) return { ...state, task: null };
+    const item = { claimId: task.claimId, taskId: task.taskId, leaseId: task.leaseId, epoch: task.epoch };
+    return { ...state, task: null, closedTasks: [...state.closedTasks.filter(t => t.leaseId !== task.leaseId), item].slice(-32) };
+  }
+  async scheduleMulti() {
+    const deadlines = [this.state.invitation?.expiresAt * 1000, this.state.task?.state !== 'releasing' ? this.state.task?.expiresAtMs : null].filter(n => Number.isFinite(n) && n > Date.now());
+    if (deadlines.length) await this.ctx.storage.setAlarm(Math.min(...deadlines));
+    else await this.ctx.storage.deleteAlarm();
+  }
+  async expire() {
+    if (!this.multi()) return super.expire();
+    let s = this.state;
+    if (s.invitation && s.invitation.expiresAt <= now()) {
+      await this.persist({ ...s, invitation: null }); s = this.state;
+    }
+    if (s.task && !this.taskMatchesConnection()) {
+      this.resolveFence(this.json(503, { error: 'device_disconnected' }));
+      await this.persist(this.closedState(s, s.task)); s = this.state;
+    }
+    if (s.task && s.task.state !== 'releasing' && s.task.expiresAtMs <= Date.now()) await this.beginRelease(s.task);
+    if (this.state.task?.state === 'releasing') this.sendFence();
+    await this.scheduleMulti();
+  }
+  multiState() {
+    const s = this.state, i = s.invitation;
+    return { mode: 'multi', generation: s.generation, max_grants: 4, invitation_sequence: s.invitationSequence,
+      grants: Object.values(s.grants).map(g => ({ claim_id: g.id, name: g.name, state: 'approved',
+        ...scope(g.scope), command_sequence: g.sequence, lease_required: g.lease_required, lease_ready: g.lease_ready })),
+      invitation: i ? { invitation_id: i.id, invitation_sequence: i.sequence, state: i.candidate ? 'pending' : 'waiting', pairing_expires_at: i.expiresAt,
+        candidate: i.candidate ? { claim_id: i.candidate.id, name: i.candidate.name, verification_code: i.candidate.code } : null } : null };
+  }
+  pairState(identity) {
+    const g = this.state.grants[identity.id], i = this.state.invitation;
+    return { state: g ? 'approved' : 'pending', claim_id: identity.id, verification_code: identity.code,
+      pairing_expires_at: g ? identity.pairingExpires : i.expiresAt,
+      ...(g ? { session_expires_at: null, allow_tap: g.scope.allowTap, ...scope(g.scope), command_sequence: g.sequence,
+        lease_required: g.lease_required, lease_ready: g.lease_ready } : {}) };
+  }
+  multiStatus(g) {
+    const connected = this.connected(), a = connected ? attachment(this.device) : null, t = this.state.task;
+    const task = { state: t ? t.claimId === g.id ? t.state === 'ready' ? 'ready' : 'fencing' : 'busy' : 'idle',
+      task_id: null, lease_id: null, lease_epoch: null, expires_at_ms: null, renewal_sequence: null };
+    if (t?.claimId === g.id) Object.assign(task, { task_id: t.taskId, lease_epoch: t.epoch, expires_at_ms: t.expiresAtMs,
+      renewal_sequence: t.renewalSequence, ...(t.state === 'ready' ? { lease_id: t.leaseId } : {}) });
+    return { mode: 'multi', claim_id: g.id, deviceConnected: connected, pending: this.pending?.claimId === g.id ? 1 : 0,
+      session_expires_at: null, allow_tap: g.scope.allowTap, ...scope(g.scope), command_sequence: g.sequence,
+      connection_id: a?.connectionId ?? null, connected_at: a?.connectedAt ?? null, last_seen_at: a?.lastSeenAt ?? null,
+      command_budget_remaining: null, lease_required: g.lease_required, lease_ready: g.lease_ready, task };
+  }
+  async enableMulti(body) {
+    if (this.globalExpired()) return this.json(410, { error: 'device_unenrolled' });
+    if (!exact(body, ['capabilities']) || !sameCaps(body.capabilities, MULTI_CAPS)) return this.json(400, { error: 'invalid_request' });
+    if (this.multi()) return this.json(200, this.multiState());
+    const s = this.state;
+    if (this.protocolVersion() !== 4 || s.version !== 1 || s.schema_version !== undefined || s.mode !== undefined ||
+        !['idle', 'waiting', 'pending', 'approved', 'revoked'].includes(s.phase) || !Array.isArray(s.seen))
+      return this.json(409, { error: 'unsupported_state_schema' });
+    const grants = {};
+    if (s.phase === 'approved') {
+      if (s.persistent !== true || !h32(s.candidate?.id) || !HEX64.test(s.candidate?.hash ?? '') ||
+          !sequenceInteger(s.sequence ?? 0)) return this.json(409, { error: 'unsupported_state_schema' });
+      const c = s.candidate;
+      grants[c.id] = { ...c, state: 'approved', pairingExpires: s.pairingExpires, sequence: s.sequence ?? 0, seen: [...s.seen],
+        scope: { persistent: true, allApps: s.allApps === true, allowControl: s.allowControl === true,
+          allowedPackages: [...(s.allowedPackages ?? [])], allowTap: s.allowTap === true }, lease_required: false, lease_ready: false };
+    }
+    let invitation = null;
+    if (['waiting', 'pending'].includes(s.phase) && s.pairingExpires > now()) {
+      if (!HEX64.test(s.ticketHash ?? '') || s.phase === 'waiting' && s.candidate !== null || s.phase === 'pending' &&
+          (!h32(s.candidate?.id) || !HEX64.test(s.candidate?.hash ?? '') || typeof s.candidate.name !== 'string' || !/^[0-9]{6}$/.test(s.candidate.code ?? '')))
+        return this.json(409, { error: 'unsupported_state_schema' });
+      invitation = { id: randomHex(16), sequence: 1, origin: 'legacy_v4', ticketHash: s.ticketHash, expiresAt: s.pairingExpires,
+        candidate: s.candidate ? { ...s.candidate, capabilities: [] } : null };
+    }
+    const next = { ...s, schema_version: 2, mode: 'multi', grants, invitation, invitationSequence: invitation ? 1 : 0,
+      task: null, taskEpoch: 0, closedTasks: [], phase: 'multi', candidate: null, ticketHash: null, persistent: false, seen: [] };
+    // Persist first; a failed migration cannot invalidate the old pairing.
+    await this.persist(next); this.disconnect('multi_protocol_enabled', 503, 1012); await this.scheduleMulti();
+    return this.json(200, this.multiState());
+  }
+  async pairMulti(body) {
+    const caps = exact(body, ['ticket', 'controller_token', 'name', 'capabilities']) && sameCaps(body.capabilities, ['task_lease_v1']);
+    const legacy = exact(body, ['ticket', 'controller_token', 'name']);
+    if ((!caps && !legacy) || !h32(body?.ticket) || typeof body.controller_token !== 'string' || !HEX64.test(body.controller_token) ||
+        typeof body.name !== 'string' || [...body.name].length < 1 || [...body.name].length > 80 || /[\p{Cc}\p{Cf}\p{Cs}]/u.test(body.name) || !body.name.trim())
+      return this.json(400, { error: 'invalid_pairing_request' });
+    const i = this.state.invitation;
+    if (!i || !equal(await hash(body.ticket), i.ticketHash)) return this.json(401, { error: 'invalid_or_consumed_ticket' });
+    if (legacy && i.origin !== 'legacy_v4') return this.json(409, { error: 'client_upgrade_required' });
+    const controllerHash = await hash(body.controller_token);
+    if (equal(controllerHash, this.state.deviceHash) || this.grantByHash(controllerHash)) return this.json(400, { error: 'distinct_controller_token_required' });
+    if (i.candidate) {
+      if (equal(controllerHash, i.candidate.hash) && body.name === i.candidate.name && sameCaps(body.capabilities ?? [], i.candidate.capabilities))
+        return this.json(200, this.pairState(i.candidate));
+      return this.json(409, { error: 'ticket_already_claimed' });
+    }
+    let sample; do { sample = crypto.getRandomValues(new Uint32Array(1))[0]; } while (sample >= 4294000000);
+    const candidate = { id: randomHex(16), hash: controllerHash, name: body.name, code: String(sample % 1000000).padStart(6, '0'), capabilities: body.capabilities ?? [] };
+    await this.persist({ ...this.state, invitation: { ...i, candidate } });
+    return this.json(200, this.pairState(candidate));
+  }
+  async invitation(body, cancel = false) {
+    if (!exact(body, cancel ? ['invitation_id', 'invitation_sequence'] : ['invitation_id', 'invitation_sequence', 'ticket']) ||
+        !h32(body.invitation_id) || !leaseInteger(body.invitation_sequence) || !cancel && !h32(body.ticket)) return this.json(400, { error: 'invalid_request' });
+    const s = this.state, i = s.invitation;
+    if (cancel) {
+      if (i && (i.id !== body.invitation_id || i.sequence !== body.invitation_sequence)) return this.json(409, { error: 'stale_invitation' });
+      if (!i && body.invitation_sequence > s.invitationSequence) return this.json(409, { error: 'stale_invitation' });
+      if (i) { await this.persist({ ...s, invitation: null }); await this.scheduleMulti(); }
+      return this.json(200, { ok: true });
+    }
+    const ticketHash = await hash(body.ticket);
+    if (i && i.id === body.invitation_id && i.sequence === body.invitation_sequence && equal(i.ticketHash, ticketHash)) return this.invitationResult(i);
+    // Durable watermark, retained across expiry/cancel/revoke; a 32-ID cache
+    // alone would allow a delayed request to reopen after eviction.
+    if (body.invitation_sequence <= s.invitationSequence) return this.json(409, { error: 'stale_invitation' });
+    if (i) return this.json(409, { error: 'invitation_pending' });
+    if (Object.keys(s.grants).length >= 4) return this.json(409, { error: 'grant_limit_reached' });
+    if (Object.values(s.grants).some(g => !g.lease_ready)) return this.json(409, { error: 'client_upgrade_required' });
+    if (Object.keys(s.grants).length && !this.transportReady()) return this.json(409, { error: 'device_upgrade_required' });
+    if (![this.env.CLI_SHA256, this.env.AGENT_SHA256].every(x => typeof x === 'string' && HEX64.test(x))) return this.json(503, { error: 'artifact_metadata_unavailable' });
+    const next = { id: body.invitation_id, sequence: body.invitation_sequence, origin: 'multi_ai_v1', ticketHash, expiresAt: now() + 300, candidate: null };
+    await this.persist({ ...s, invitation: next, invitationSequence: next.sequence }); await this.scheduleMulti();
+    return this.invitationResult(next);
+  }
+  invitationResult(i) { return this.json(200, { invitation_id: i.id, invitation_sequence: i.sequence, pairing_expires_at: i.expiresAt,
+    expires_at: null, cli_sha256: this.env.CLI_SHA256, agent_sha256: this.env.AGENT_SHA256 }); }
+  async approveMulti(body) {
+    const desired = approvalScope(body);
+    if (!desired?.persistent || body.allow_tap !== false || !h32(body.claim_id)) return this.json(400, { error: 'invalid_approval' });
+    const s = this.state, existing = s.grants[body.claim_id];
+    if (existing && (existing.scope.allowTap !== false || existing.scope.allApps !== true || existing.scope.allowControl !== true || existing.scope.allowedPackages.length !== 0)) return this.json(409, { error: 'approval_scope_conflict' });
+    if (existing) return this.json(200, { ok: true, claim_id: existing.id, session_expires_at: null, allow_tap: existing.scope.allowTap, ...scope(existing.scope), command_sequence: existing.sequence });
+    const i = s.invitation;
+    if (!i?.candidate || i.candidate.id !== body.claim_id) return this.json(409, { error: 'stale_claim' });
+    const c = i.candidate, legacy = i.origin === 'legacy_v4' && Object.keys(s.grants).length === 0 && !c.capabilities.includes('task_lease_v1');
+    const g = { ...c, state: 'approved', pairingExpires: i.expiresAt, sequence: 0, seen: [], scope: { ...desired, allowTap: false }, lease_required: !legacy, lease_ready: false };
+    await this.persist({ ...s, grants: { ...s.grants, [g.id]: g }, invitation: null }); await this.scheduleMulti();
+    return this.json(200, { ok: true, claim_id: g.id, session_expires_at: null, allow_tap: false, ...scope(g.scope) });
+  }
+  async handle(path, request, body, token, tokenHash) {
+    if (path === '/v1/device/multi/enable') {
+      if (!equal(tokenHash, this.state.deviceHash)) return this.json(401, { error: 'unauthorized' });
+      return this.enableMulti(body);
+    }
+    if (!this.multi()) return super.handle(path, request, body, token, tokenHash);
+    if (path === '/v1/pair') return this.pairMulti(body);
+    if (path.startsWith('/v1/device')) {
+      if (!equal(tokenHash, this.state.deviceHash)) return this.json(401, { error: 'unauthorized' });
+      if (path === '/v1/device/grants' || path === '/v1/device/pairing' && request.method === 'GET') return this.json(200, this.multiState());
+      if (path === '/v1/device/pairing' || path === '/v1/device/approve') return this.json(409, { error: 'multi_api_required' });
+      if (path === '/v1/device/invitations') return this.invitation(body);
+      if (path === '/v1/device/invitations/cancel') return this.invitation(body, true);
+      if (path === '/v1/device/grants/approve') return this.approveMulti(body);
+      if (path === '/v1/device/grants/revoke') {
+        if (!exact(body, ['claim_id']) || !h32(body.claim_id)) return this.json(400, { error: 'invalid_request' });
+        return this.revokeGrant(body.claim_id);
+      }
+      if (path === '/v1/device/revoke') return this.revoke(body);
+      if (path === '/v1/device') {
+        if (!this.active()) return this.json(403, { error: 'phone_approval_required' });
+        return this.accept(request);
+      }
+    }
+    const denied = this.controllerAuth(tokenHash, path === '/v1/pair/status'); if (denied) return denied;
+    const g = this.grantByHash(tokenHash);
+    if (path === '/v1/pair/status') return this.json(200, this.pairState(g ?? this.state.invitation.candidate));
+    if (path === '/v1/status') return this.json(200, this.multiStatus(g));
+    if (path === '/v1/revoke') return this.revokeGrant(g.id);
+    if (path.startsWith('/v1/tasks/')) return this.taskRequest(path.slice('/v1/tasks/'.length), body, g.id);
+    if (path === '/v1/command') return this.command(body, g.id);
+    return this.json(404, { error: 'not_found' });
+  }
+  async revoke(body) {
+    if (!this.multi()) return super.revoke();
+    if (!exact(body, ['expected_generation']) || !sequenceInteger(body.expected_generation)) return this.json(400, { error: 'invalid_request' });
+    const generation = this.state.generation;
+    if (body.expected_generation > generation) return this.json(409, { error: 'generation_mismatch' });
+    // A delayed retry confirms its old stop without touching later grants.
+    if (body.expected_generation < generation) return this.json(200, { ok: true, generation });
+    if (!sequenceInteger(generation + 1)) return this.json(503, { error: 'storage_unavailable' });
+    const next = { ...this.state, grants: {}, invitation: null, task: null, generation: generation + 1 };
+    this.disconnect('revoked', 410);
+    // Do not advance the in-memory receipt watermark before the write commits.
+    // Otherwise a failed write followed by a retry could report durable success.
+    await this.persist(next); await this.scheduleMulti(); return this.json(200, { ok: true, generation: next.generation });
+  }
+  async revokeGrant(claimId) {
+    const s = this.state, grants = { ...s.grants }; delete grants[claimId];
+    // Invalidate authorization before any storage/network wait. Persist failure
+    // is failure, but the revoked controller is never admitted in this process.
+    this.state = { ...s, grants }; await this.persist(this.state);
+    if (this.pending?.claimId === claimId) this.finish(this.json(410, { error: 'revoked_outcome_unknown' }));
+    if (this.state.task?.claimId === claimId) {
+      await this.beginRelease(this.state.task);
+      if (this.state.task && this.transportReady()) {
+        const result = this.awaitFence();
+        return { pendingResponse: result.pendingResponse.then(async r => this.json(200, { ok: true, device_stop_confirmed: r.ok })) };
+      }
+    }
+    if (!Object.keys(grants).length) this.disconnect('no_approved_grants', 410);
+    return this.json(200, { ok: true, device_stop_confirmed: false });
+  }
+  async accept(request) {
+    if (!this.multi()) return super.accept(request);
+    if (request.headers.get('Upgrade')?.toLowerCase() !== 'websocket') return this.json(426, { error: 'websocket_required' });
+    this.disconnect('connection_replaced_outcome_unknown', 503, 1012);
+    if (this.state.task) await this.persist(this.closedState(this.state, this.state.task));
+    return super.accept(request);
+  }
+  taskReady(t) { return this.json(200, { ok: true, state: 'ready', task_id: t.taskId, lease_id: t.leaseId, lease_epoch: t.epoch,
+    expires_at_ms: t.expiresAtMs, expires_in_ms: Math.max(0, t.expiresAtMs - Date.now()), renewal_sequence: t.renewalSequence }); }
+  taskError(error, status = 409) { return this.json(status, { error, ...(error === 'device_busy' || error === 'task_fence_pending' ? { retry_after_ms: 1000 } : {}) }); }
+  async taskRequest(action, body, claimId) {
+    const fields = action === 'acquire' ? ['task_id'] : action === 'renew' ? ['task_id', 'lease_id', 'lease_epoch', 'renewal_id', 'renewal_sequence'] : ['task_id', 'lease_id', 'lease_epoch'];
+    if (!['acquire', 'renew', 'release'].includes(action) || !exact(body, fields) || !h32(body.task_id) || action !== 'acquire' && (!h32(body.lease_id) || !leaseInteger(body.lease_epoch)) ||
+        action === 'renew' && (!h32(body.renewal_id) || !leaseInteger(body.renewal_sequence))) return this.taskError('invalid_request', 400);
+    if (!this.state.grants[claimId]) return this.taskError('unauthorized', 401);
+    const t = this.state.task;
+    if (action === 'release' && this.state.closedTasks.some(c => c.claimId === claimId && c.taskId === body.task_id && c.leaseId === body.lease_id && c.epoch === body.lease_epoch))
+      return this.json(200, { ok: true, state: 'released' });
+    if (action === 'acquire') {
+      if (this.state.closedTasks.some(c => c.claimId === claimId && c.taskId === body.task_id)) return this.taskError('task_closed');
+      if (t) {
+        if (t.claimId !== claimId || t.taskId !== body.task_id) return this.taskError('device_busy', 429);
+        if (t.state === 'releasing') return this.taskError('task_closed');
+        if (t.state === 'ready') return this.taskReady(t);
+        return this.awaitFence();
+      }
+      if (!this.connected()) return this.taskError('device_disconnected', 503);
+      if (this.pending) return this.taskError('device_busy', 429);
+      if (!leaseInteger(this.state.taskEpoch + 1)) return this.taskError('storage_unavailable', 503);
+      const task = { claimId, taskId: body.task_id, leaseId: randomHex(16), epoch: this.state.taskEpoch + 1, state: 'fencing',
+        expiresAtMs: Date.now() + TASK_TTL, operationId: randomHex(16), renewalId: null, renewalSequence: 0,
+        connectionId: attachment(this.device).connectionId, fenceEpoch: this.state.taskEpoch + 1, fenceTtlMs: TASK_TTL };
+      await this.persist({ ...this.state, task, taskEpoch: task.epoch }); await this.scheduleMulti();
+      return this.awaitFence();
+    }
+    if (!t) return this.taskError('lease_expired', 410);
+    if (t.claimId !== claimId || t.taskId !== body.task_id || t.leaseId !== body.lease_id || t.epoch !== body.lease_epoch) return this.taskError('lease_mismatch');
+    if (action === 'release') { await this.beginRelease(t); return this.state.task ? this.awaitFence() : this.json(200, { ok: true, state: 'released' }); }
+    if (t.state === 'releasing' || t.expiresAtMs <= Date.now()) return this.taskError('lease_expired', 410);
+    if (body.renewal_sequence < t.renewalSequence || body.renewal_sequence === t.renewalSequence && body.renewal_id !== t.renewalId) return this.taskError('stale_renewal');
+    if (body.renewal_sequence === t.renewalSequence) return t.state === 'ready' ? this.taskReady(t) : this.awaitFence();
+    if (t.state !== 'ready') return this.taskError('task_fence_pending', 503);
+    if (this.pending) return this.taskError('device_busy', 429);
+    const next = { ...t, state: 'fencing', operationId: randomHex(16), renewalId: body.renewal_id, renewalSequence: body.renewal_sequence,
+      expiresAtMs: Date.now() + TASK_TTL, fenceTtlMs: TASK_TTL };
+    await this.persist({ ...this.state, task: next }); await this.scheduleMulti(); return this.awaitFence();
+  }
+  async beginRelease(t) {
+    if (t.state === 'releasing') return;
+    if (!this.taskMatchesConnection(t)) {
+      this.resolveFence(this.taskError('task_closed'));
+      if (this.pending) this.finish(this.json(409, { error: 'task_closed_outcome_unknown' }));
+      await this.persist(this.closedState(this.state, t)); return;
+    }
+    const epoch = this.state.taskEpoch + 1;
+    if (!leaseInteger(epoch)) { this.disconnect('epoch_exhausted', 503); await this.persist(this.closedState(this.state, t)); return; }
+    const next = { ...t, state: 'releasing', operationId: randomHex(16), fenceEpoch: epoch, fenceTtlMs: 0 };
+    // Keep the in-flight marker until the durable fencing state exists. If
+    // storage fails, retire the uncertain transport; never restore an idle
+    // ready lease while the old native action may still be running.
+    try { await this.persist({ ...this.state, task: next, taskEpoch: epoch }); }
+    catch (error) { this.disconnect('task_release_storage_failure_outcome_unknown', 503, 1011); throw error; }
+    this.resolveFence(this.taskError('task_closed'));
+    if (this.pending) this.finish(this.json(409, { error: 'task_closed_outcome_unknown' }));
+    await this.scheduleMulti(); this.sendFence();
+  }
+  sendFence() {
+    const t = this.state.task;
+    if (!t || !this.taskMatchesConnection(t)) return false;
+    const holder = t.state === 'releasing' ? null : { claim_id: t.claimId, task_id: t.taskId, lease_id: t.leaseId };
+    try { this.device.send(JSON.stringify({ type: 'task_fence', operation_id: t.operationId, lease_epoch: t.fenceEpoch, holder, ttl_ms: t.fenceTtlMs, renewal_sequence: holder ? t.renewalSequence : 0 })); return true; }
+    catch { this.disconnect('device_disconnected', 503); return false; }
+  }
+  awaitFence() {
+    const t = this.state.task;
+    if (!t || !this.taskMatchesConnection(t)) return { pendingResponse: Promise.resolve(this.taskError('device_disconnected', 503)) };
+    const pendingResponse = new Promise(resolve => {
+      const waiter = { operationId: t.operationId, resolve, timer: null };
+      this.fenceWaiters ??= [];
+      waiter.timer = setTimeout(() => { this.fenceWaiters = this.fenceWaiters.filter(w => w !== waiter); resolve(this.taskError('task_fence_pending', 503)); }, FENCE_WAIT);
+      this.fenceWaiters.push(waiter);
+    });
+    this.sendFence(); return { pendingResponse };
+  }
+  resolveFence(response) {
+    const waiters = this.fenceWaiters ?? []; this.fenceWaiters = [];
+    for (const w of waiters) { clearTimeout(w.timer); w.resolve(response.clone()); }
+  }
+  async acknowledgeFence(socket, body) {
+    const t = this.state.task;
+    if (!t || socket !== this.device || body.operation_id !== t.operationId || body.lease_epoch !== t.fenceEpoch) return; // late ACK has no authority
+    if (!body.ok) { this.resolveFence(this.taskError('task_fence_pending', 503)); return; }
+    if (t.state === 'ready') return; // duplicate ACK cannot extend or clear context
+    if (t.state !== 'releasing' && t.expiresAtMs <= Date.now()) { await this.beginRelease(t); return; }
+    const a = attachment(socket);
+    if (t.state === 'releasing') {
+      socket.serializeAttachment({ ...a, task: null, pendingCommand: false });
+      await this.persist(this.closedState(this.state, t)); await this.scheduleMulti();
+      this.resolveFence(this.json(200, { ok: true, state: 'released' }));
+      if (!Object.keys(this.state.grants).length) this.disconnect('no_approved_grants', 410);
+      return;
+    }
+    const g = this.state.grants[t.claimId]; if (!g) { await this.beginRelease(t); return; }
+    // Both records must be present before ready is reported. Crash between them
+    // fails the restore comparison and retires the uncertain transport.
+    socket.serializeAttachment({ ...a, task: { leaseId: t.leaseId, epoch: t.epoch, expiresAtMs: t.expiresAtMs, operationId: t.operationId, renewalSequence: t.renewalSequence }, pendingCommand: false });
+    const next = { ...t, state: 'ready' };
+    await this.persist({ ...this.state, task: next, grants: { ...this.state.grants, [g.id]: { ...g, lease_required: true, lease_ready: true } } });
+    if (next.expiresAtMs <= Date.now()) { await this.beginRelease(next); return; }
+    this.resolveFence(this.taskReady(next));
+  }
+  leaseDenied(cmd, claimId) {
+    const g = this.state.grants[claimId], t = this.state.task;
+    if (!g) return this.json(401, { error: 'unauthorized', admitted: false });
+    const fields = 'lease_id' in cmd || 'lease_epoch' in cmd;
+    if (!fields && !g.lease_required && Object.keys(this.state.grants).length === 1 && !t) return null;
+    let error;
+    if (!h32(cmd.lease_id) || !leaseInteger(cmd.lease_epoch)) error = 'lease_required';
+    else if (!t || t.expiresAtMs <= Date.now()) error = 'lease_expired';
+    else if (t.claimId !== claimId || t.leaseId !== cmd.lease_id || t.epoch !== cmd.lease_epoch) error = 'lease_mismatch';
+    else if (t.state !== 'ready') error = 'task_fence_pending';
+    else if (t.expiresAtMs - Date.now() < 20000) error = 'lease_renew_required';
+    return error ? this.json(error === 'lease_expired' ? 410 : error === 'task_fence_pending' ? 503 : 409, { error, admitted: false }) : null;
+  }
+  async command(cmd, claimId) {
+    if (!this.multi()) return super.command(cmd);
+    if (!cmd || typeof cmd !== 'object' || Array.isArray(cmd)) return this.json(400, { error: 'invalid_command', admitted: false });
+    const { lease_id, lease_epoch, ...raw } = cmd, g = this.state.grants[claimId];
+    const deniedLease = this.leaseDenied(cmd, claimId); if (deniedLease) return deniedLease;
+    if (!commandShape(raw, true)) return this.json(400, { error: 'invalid_command', admitted: false });
+    if (raw.package && (authorizationSurface(raw.package) || !(g.scope.allApps || g.scope.allowedPackages.includes(raw.package)))) return this.json(403, { error: 'package_permission_required', admitted: false });
+    if ((CONTROL_ACTIONS.has(raw.action) || FILE_WRITE_ACTIONS.has(raw.action)) && !g.scope.allowControl) return this.json(403, { error: 'control_permission_required', admitted: false });
+    if (raw.action === 'tap_test' && !g.scope.allowTap) return this.json(403, { error: 'tap_permission_required', admitted: false });
+    if (raw.sequence <= g.sequence) return this.json(409, { error: 'sequence_already_admitted', admitted: false });
+    if (g.seen.includes(raw.id)) return this.json(409, { error: 'request_already_admitted', admitted: false });
+    if (this.pending) return this.json(429, { error: 'device_busy', admitted: false, retry_after_ms: 1000 });
+    if (!this.connected()) return this.json(503, { error: 'device_disconnected', admitted: false });
+    const socket = this.device, generation = this.state.generation;
+    const quota = await this.beforeCommand(raw); if (quota) return quota;
+    const invalid = this.leaseDenied(cmd, claimId); if (invalid) return invalid;
+    if (!this.connected() || this.device !== socket || generation !== this.state.generation) return this.json(503, { error: 'device_disconnected', admitted: false });
+    const fresh = this.state.grants[claimId];
+    // Attachment records an in-flight command before persisting admission. An
+    // interruption at either step cannot restore an apparently idle ready lease.
+    socket.serializeAttachment({ ...attachment(socket), pendingCommand: true });
+    await this.persist({ ...this.state, grants: { ...this.state.grants, [claimId]: { ...fresh, sequence: raw.sequence, seen: [...fresh.seen, raw.id].slice(-200) } } });
+    const pendingResponse = new Promise(resolve => {
+      const entry = { id: raw.id, action: raw.action, generation, claimId, leaseId: lease_id ?? null, epoch: lease_epoch ?? null, resolve, timer: null };
+      this.pending = entry;
+      entry.timer = setTimeout(() => { if (this.pending === entry) { this.finish(this.json(504, { error: 'device_timeout', detail: 'Outcome unknown; inspect before another action.' })); this.disconnect('timeout', 503, 1011); } }, 15000);
+      try { socket.send(JSON.stringify({ type: 'command', claim_id: claimId, lease_id: lease_id ?? null, lease_epoch: lease_epoch ?? null, command: raw })); }
+      catch { this.disconnect('device_disconnected_outcome_unknown', 503, 1011); }
+    });
+    return { pendingResponse };
+  }
+  finish(response) {
+    if (this.multi() && this.device && this.pending) this.device.serializeAttachment({ ...attachment(this.device), pendingCommand: false });
+    super.finish(response);
+  }
+  disconnect(reason, status = 503, code = 1008) {
+    if (this.multi()) this.resolveFence(this.taskError('device_disconnected', 503));
+    super.disconnect(reason, status, code);
+  }
+  async webSocketMessage(socket, data) {
+    if (!this.multi()) return super.webSocketMessage(socket, data);
+    return this.ctx.blockConcurrencyWhile(async () => {
+      if (socket !== this.device || !live(socket, this.state.generation)) return;
+      let body;
+      if (typeof data === 'string' && encode(data).byteLength <= 4096) { try { body = JSON.parse(data); } catch {} }
+      const a = attachment(socket);
+      if (!a?.multiHello) {
+        if (!exact(body, ['type', 'protocol_version', 'capabilities']) || body.type !== 'hello' || body.protocol_version !== 4 || !sameCaps(body.capabilities, MULTI_CAPS)) { this.disconnect('device_upgrade_required', 409); return; }
+        socket.serializeAttachment({ ...a, helloReceived: true, multiHello: true, lastSeenAt: now(), task: null, pendingCommand: false });
+        socket.send(JSON.stringify({ type: 'hello_ack', protocol_version: 4, mode: 'multi', connection_id: a.connectionId })); return;
+      }
+      if (body?.type === 'task_fence_ack') {
+        const valid = body.ok === true ? exact(body, ['type', 'operation_id', 'lease_epoch', 'ok']) : body.ok === false && exact(body, ['type', 'operation_id', 'lease_epoch', 'ok', 'error']) && ['command_in_progress', 'grant_unavailable', 'stale_fence', 'storage_failure'].includes(body.error);
+        if (!valid || !h32(body.operation_id) || !leaseInteger(body.lease_epoch)) { this.disconnect('invalid_fence_ack', 502); return; }
+        await this.acknowledgeFence(socket, body); return;
+      }
+      const p = this.pending, t = this.state.task;
+      if (!p || !this.state.grants[p.claimId] || p.leaseId && (!t || t.state !== 'ready' || t.leaseId !== p.leaseId || t.epoch !== p.epoch || t.expiresAtMs <= Date.now())) {
+        this.disconnect('stale_task_response', 502); return;
+      }
+      return super.webSocketMessage(socket, data);
+    });
+  }
+  async webSocketClose(socket, code, reason) {
+    if (!this.multi()) return super.webSocketClose(socket, code, reason);
+    return this.ctx.blockConcurrencyWhile(async () => { super.webSocketClose(socket, code, reason); await this.expire(); });
+  }
+}

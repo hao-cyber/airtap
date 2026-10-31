@@ -32,8 +32,16 @@ public final class ApprovalRecoveryTest {
     private static void expectCrash(Checked body) throws Exception {try{body.run();throw new AssertionError("missing injected crash");}catch(FakeDisk.Crash expected){}}
     private static void expectFailure(Checked body) throws Exception {try{body.run();throw new AssertionError("missing refusal");}catch(IllegalStateException|IllegalArgumentException|ScopedUi.Refused expected){}}
     private static void closed() throws Exception {check(trust().read(config)==null);}
+    private static void explicitNull(JSONObject value,String key) throws Exception {check(value.has(key)&&value.get(key)==JSONObject.NULL);}
 
     public static void main(String[] args) throws Exception {
+        test("JSONObject host fixture matches Android removal versus explicit JSON null",()->{
+            JSONObject value=new JSONObject().put("empty",JSONObject.NULL).put("old","value");
+            explicitNull(value,"empty");value.put("old",null);check(!value.has("old")&&value.isNull("old"));
+            value.put("absent",null);check(!value.has("absent"));JSONObject copied=value.copy();
+            explicitNull(copied,"empty");check(!copied.has("old")&&!copied.has("absent"));
+            value.put("empty",null);check(!value.has("empty"));explicitNull(copied,"empty");
+        });
         test("consent durable before POST, pending never grants controls",()->{
             String id=begin();check(id.equals(trust().pending(config).getString("approval_id")));closed();check(RelayApi.requests.isEmpty());
             check(ApprovalRecovery.resume(context,config,null));closed();check(CLAIM_A.equals(request(0).body.getString("claim_id")));
@@ -184,6 +192,13 @@ public final class ApprovalRecoveryTest {
             SystemClock.now+=5000;ApprovalRecovery.resume(context,config,null);request(1).respond(accepted().put("allow_tap",true),200,null);closed();
             SystemClock.now+=10000;ApprovalRecovery.resume(context,config,null);request(2).respond(accepted().put("allowed_packages",new JSONArray().put("test.package")),200,null);closed();
         });
+        test("approval requires present JSON-null expiry and rejects Java-null deleted expiry",()->{
+            String id=begin();JSONObject missing=accepted().put("session_expires_at",null);check(!missing.has("session_expires_at"));
+            ApprovalRecovery.resume(context,config,null);request(0).respond(missing,200,null);
+            closed();check(id.equals(trust().pending(config).getString("approval_id")));SystemClock.now+=5000;
+            check(ApprovalRecovery.resume(context,config,null));JSONObject valid=accepted();explicitNull(valid,"session_expires_at");
+            request(1).respond(valid,200,null);check(trust().read(config)!=null);
+        });
         test("unknown network response survives process restart without new owner consent",()->{
             String id=begin();ApprovalRecovery.resume(context,config,null);request(0).respond(null,0,"timeout");reboot();
             check(id.equals(trust().pending(config).getString("approval_id")));ApprovalRecovery.resume(context,config,null);accept(0);check(trust().read(config)!=null);
@@ -318,6 +333,214 @@ public final class ApprovalRecoveryTest {
         test("terminal recovery refusal clears stale connecting footer",()->{
             ConnectionFeedback feedback=new ConnectionFeedback();feedback.reconcile("connecting",null,CLAIM_A);
             check(feedback.reconcile("connecting",null,null).contains("已失效"));
+        });
+        test("empty multi schema persists required JSON-null fields across process restart",()->{
+            trust().enableMulti(config);explicitNull(FakeDisk.record,"pending");explicitNull(FakeDisk.record,"invitation");
+            reboot();check(trust().multi(config)&&trust().grants(config).isEmpty()&&trust().pending(config)==null&&trust().invitation(config)==null);
+            explicitNull(FakeDisk.record,"pending");explicitNull(FakeDisk.record,"invitation");
+        });
+        test("approved single migration retains required JSON-null fields and consumed sequence",()->{
+            String id=begin();trust().completeApproval(config,id);trust().consume(config,37);trust().enableMulti(config);
+            explicitNull(FakeDisk.record,"pending");explicitNull(FakeDisk.record,"invitation");reboot();
+            check(trust().multi(config)&&trust().grant(config,CLAIM_A).getLong("sequence")==37);
+            check(trust().pending(config)==null&&trust().invitation(config)==null);
+        });
+        test("approval completion and cancellation retain required container null fields",()->{
+            trust().enableMulti(config);String a=begin();trust().completeApproval(config,a);trust().requireLease(config,CLAIM_A);
+            JSONObject invite=trust().beginInvitation(config,0);String b=trust().beginApproval(config,CLAIM_B,"B");
+            trust().cancelApproval(config,b);explicitNull(FakeDisk.record,"pending");check("canceled".equals(trust().invitation(config).getString("phase")));
+            check(trust().finishInvitationCancellation(config,invite.getString("invitation_id"),1));explicitNull(FakeDisk.record,"invitation");
+            trust().beginInvitation(config,1);b=trust().beginApproval(config,CLAIM_B,"B");check(trust().completeApproval(config,b));
+            explicitNull(FakeDisk.record,"pending");explicitNull(FakeDisk.record,"invitation");reboot();
+            check(trust().validClaims(config).equals(java.util.Set.of(CLAIM_A,CLAIM_B))&&FakeDisk.record.getLong("invitation_sequence")==2);
+        });
+        test("multi stop preserves explicit empty fields and invitation watermark for later approval",()->{
+            trust().enableMulti(config);String a=begin();trust().completeApproval(config,a);trust().requireLease(config,CLAIM_A);
+            trust().beginInvitation(config,6);trust().beginApproval(config,CLAIM_B,"B");trust().stop();
+            explicitNull(FakeDisk.record,"pending");explicitNull(FakeDisk.record,"invitation");reboot();
+            check(trust().multi(config)&&trust().grants(config).isEmpty()&&FakeDisk.record.getLong("invitation_sequence")==7);
+            String next=begin();trust().completeApproval(config,next);check(trust().validClaims(config).equals(java.util.Set.of(CLAIM_A)));
+        });
+        test("deleted required null differs from explicit null and cannot silently reopen stored grants",()->{
+            String id=begin();trust().completeApproval(config,id);trust().enableMulti(config);JSONObject saved=FakeDisk.record.copy();
+            for(String key:java.util.List.of("pending","invitation")){
+                FakeDisk.record=saved.copy().put(key,null);check(!FakeDisk.record.has(key));int saves=FakeDisk.saves;
+                expectFailure(()->trust().multi(config));expectFailure(()->trust().grant(config,CLAIM_A));check(FakeDisk.saves==saves);
+                FakeDisk.record.put(key,JSONObject.NULL);check(trust().grant(config,CLAIM_A)!=null);
+            }
+        });
+        test("explicit multi migration preserves legacy identity claim sequence and individual fence",()->{
+            String id=begin();trust().completeApproval(config,id);trust().consume(config,91);
+            FakeDisk.record.remove("phase");FakeDisk.record.remove("approval_id");FakeDisk.preferences.edit().remove("approval_id").commit();
+            String old=trust().sessionFence(config),identity=FakeDisk.record.getString("identity");
+            trust().enableMulti(config);check(trust().multi(config));JSONObject a=trust().grant(config,CLAIM_A);
+            check(a.getLong("sequence")==91&&identity.equals(a.getString("identity")));check(old.equals(trust().grantFence(config,CLAIM_A)));
+            check(!a.getBoolean("lease_required")&&!a.getBoolean("lease_ready"));reboot();check(trust().grant(config,CLAIM_A).getLong("sequence")==91);
+        });
+        test("multi enable failure preserves the approved single grant",()->{
+            String id=begin();trust().completeApproval(config,id);trust().consume(config,15);FakeDisk.failSaveAt=FakeDisk.saves+1;
+            expectFailure(()->trust().enableMulti(config));check(!trust().multi(config));check(trust().read(config).getLong("sequence")==15);
+        });
+        test("multi enable marker failure leaves encrypted schema readable and cannot invent grants",()->{
+            String id=begin();trust().completeApproval(config,id);FakeDisk.preferences.failAt=FakeDisk.preferences.calls+1;
+            expectFailure(()->trust().enableMulti(config));reboot();check(trust().multi(config));check(trust().validClaims(config).equals(java.util.Set.of(CLAIM_A)));
+            trust().enableMulti(config);check(trust().grant(config,CLAIM_A)!=null);
+        });
+        test("enabled multi refuses legacy backup and unknown schema instead of downgrading",()->{
+            String id=begin();trust().completeApproval(config,id);JSONObject old=FakeDisk.record.copy();trust().enableMulti(config);JSONObject modern=FakeDisk.record.copy();
+            FakeDisk.record=old;expectFailure(()->trust().read(config));expectFailure(()->trust().multi(config));
+            FakeDisk.record=modern;FakeDisk.record.put("schema_version",3);expectFailure(()->trust().multi(config));
+        });
+        test("another enrollment identity cannot import the previous grant collection",()->{
+            String id=begin();trust().completeApproval(config,id);trust().enableMulti(config);EnrollmentStore.Config other=new EnrollmentStore.Config(config.url,"another-token");
+            check(trust().grant(other,CLAIM_A)==null);expectFailure(()->trust().enableMulti(other));check(trust().grant(config,CLAIM_A)!=null);
+        });
+        test("pending single approval migrates without granting before its same approval completes",()->{
+            String id=begin();trust().enableMulti(config);closed();check(id.equals(trust().pending(config).getString("approval_id")));
+            check(ApprovalRecovery.resume(context,config,null));check("/v1/device/grants/approve".equals(request(0).path));
+            request(0).respond(accepted().put("claim_id",CLAIM_A),200,null);check(trust().grant(config,CLAIM_A)!=null);
+            check(!trust().grant(config,CLAIM_A).getBoolean("lease_required"));
+        });
+        test("second grant approval preserves A and uses independent replay sequences and fences",()->{
+            String id=begin();trust().completeApproval(config,id);trust().enableMulti(config);String carrier=trust().sessionFence(config),aFence=trust().grantFence(config,CLAIM_A);
+            trust().consume(config,CLAIM_A,48);String b=trust().beginApproval(config,CLAIM_B,"AI B");check(trust().grant(config,CLAIM_B)==null);
+            check(trust().isCurrent(config,carrier));trust().completeApproval(config,b);trust().consume(config,CLAIM_B,9);
+            check(trust().grant(config,CLAIM_A).getLong("sequence")==48&&trust().grant(config,CLAIM_B).getLong("sequence")==9);
+            check(trust().grant(config,CLAIM_B).getBoolean("lease_required"));check(trust().isCurrent(config,carrier)&&aFence.equals(trust().grantFence(config,CLAIM_A)));
+            expectFailure(()->trust().consume(config,CLAIM_B,9));expectFailure(()->trust().consume(config,49));
+        });
+        test("B intent marker or encrypted write failure does not stop A",()->{
+            String id=begin();trust().completeApproval(config,id);trust().enableMulti(config);String carrier=trust().sessionFence(config);
+            FakeDisk.preferences.failAt=FakeDisk.preferences.calls+1;expectFailure(()->trust().beginApproval(config,CLAIM_B,"B"));check(trust().isCurrent(config,carrier));
+            FakeDisk.failSaveAt=FakeDisk.saves+1;expectFailure(()->trust().beginApproval(config,CLAIM_B,"B"));check(trust().isCurrent(config,carrier));
+            reboot();check(trust().validClaims(config).equals(java.util.Set.of(CLAIM_A)));
+        });
+        test("B approved-phase write failure preserves A and pending retry",()->{
+            String id=begin();trust().completeApproval(config,id);trust().enableMulti(config);String b=trust().beginApproval(config,CLAIM_B,"B");
+            FakeDisk.failSaveAt=FakeDisk.saves+1;expectFailure(()->trust().completeApproval(config,b));check(trust().grant(config,CLAIM_A)!=null&&trust().grant(config,CLAIM_B)==null);
+            reboot();check(b.equals(trust().pending(config).getString("approval_id")));check(trust().completeApproval(config,b));
+        });
+        test("B final write failure survives restart without modifying A sequence",()->{
+            String id=begin();trust().completeApproval(config,id);trust().enableMulti(config);trust().consume(config,CLAIM_A,76);
+            String b=trust().beginApproval(config,CLAIM_B,"B");FakeDisk.failSaveAt=FakeDisk.saves+2;expectFailure(()->trust().completeApproval(config,b));
+            check(trust().grant(config,CLAIM_B)==null&&trust().grant(config,CLAIM_A).getLong("sequence")==76);reboot();check(trust().completeApproval(config,b));
+            check(trust().grant(config,CLAIM_A).getLong("sequence")==76&&trust().grant(config,CLAIM_B)!=null);
+        });
+        test("B terminal HTTP refusal cancels only B and late approval cannot revive it",()->{
+            String id=begin();trust().completeApproval(config,id);trust().enableMulti(config);String b=trust().beginApproval(config,CLAIM_B,"B");
+            final ApprovalRecovery.Outcome[] result={null};ApprovalRecovery.resume(context,config,v->result[0]=v);request(0).respond(null,410,"expired");
+            check(result[0]==ApprovalRecovery.Outcome.STOPPED&&trust().grant(config,CLAIM_A)!=null&&trust().pending(config)==null);
+            check(!trust().completeApproval(config,b));request(0).respond(accepted().put("claim_id",CLAIM_B),200,null);check(trust().grant(config,CLAIM_B)==null);
+        });
+        test("cancel marker fences B even if the shared-container rewrite fails",()->{
+            String id=begin();trust().completeApproval(config,id);trust().enableMulti(config);String b=trust().beginApproval(config,CLAIM_B,"B");
+            FakeDisk.failSaveAt=FakeDisk.saves+1;expectFailure(()->trust().cancelApproval(config,b));reboot();
+            check(trust().pending(config)==null&&!trust().completeApproval(config,b)&&trust().grant(config,CLAIM_A)!=null);
+        });
+        test("multi duplicate approval callback finds its own grant rather than first owner overview",()->{
+            String id=begin();trust().completeApproval(config,id);trust().enableMulti(config);trust().beginApproval(config,CLAIM_B,"B");
+            final ApprovalRecovery.Outcome[] outcome={null};ApprovalRecovery.resume(context,config,v->outcome[0]=v);request(0).respond(accepted().put("claim_id",CLAIM_B),200,null);
+            trust().consume(config,CLAIM_B,23);request(0).respond(accepted().put("claim_id",CLAIM_B),200,null);
+            check(outcome[0]==ApprovalRecovery.Outcome.APPROVED&&trust().grant(config,CLAIM_B).getLong("sequence")==23);
+        });
+        test("multi approval success for a different claim remains pending and never grants",()->{
+            trust().enableMulti(config);String id=begin();ApprovalRecovery.resume(context,config,null);request(0).respond(accepted().put("claim_id",CLAIM_B),200,null);
+            check(trust().grant(config,CLAIM_A)==null&&id.equals(trust().pending(config).getString("approval_id")));
+        });
+        test("single revoke preserves other grants carrier and monotonic lease requirement",()->{
+            String id=begin();trust().completeApproval(config,id);trust().enableMulti(config);String b=trust().beginApproval(config,CLAIM_B,"B");trust().completeApproval(config,b);
+            String carrier=trust().sessionFence(config);trust().requireLease(config,CLAIM_A);check(trust().grant(config,CLAIM_A).getBoolean("lease_required"));
+            reboot();check(trust().grant(config,CLAIM_A).getBoolean("lease_ready"));trust().revoke(config,CLAIM_B);
+            check(trust().isCurrent(config,carrier)&&trust().grant(config,CLAIM_B)==null);trust().revoke(config,CLAIM_A);check(trust().sessionFence(config)==null);
+            String next=begin();trust().completeApproval(config,next);check(!trust().isCurrent(config,carrier));check(!trust().stopIfCurrent(config,carrier));
+        });
+        test("remote intersection removes local grants and never adds remote-only consent",()->{
+            String id=begin();trust().completeApproval(config,id);trust().enableMulti(config);trust().retain(config,java.util.Set.of(CLAIM_A,CLAIM_B));
+            check(trust().validClaims(config).equals(java.util.Set.of(CLAIM_A)));trust().retain(config,java.util.Set.of(CLAIM_B));check(trust().validClaims(config).isEmpty());
+        });
+        test("four approved grants are the hard bound with one unique pending",()->{
+            trust().enableMulti(config);String[] claims={CLAIM_A,CLAIM_B,"cccccccccccccccccccccccccccccccc","dddddddddddddddddddddddddddddddd"};
+            for(String claim:claims){String id=trust().beginApproval(config,claim,"AI");trust().completeApproval(config,id);}
+            check(trust().grants(config).size()==4);expectFailure(()->trust().beginApproval(config,"eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee","fifth"));
+            expectFailure(()->trust().beginInvitation(config,0));check(trust().grants(config).size()==4);
+        });
+        test("only one pending approval may exist alongside established A",()->{
+            String id=begin();trust().completeApproval(config,id);trust().enableMulti(config);String b=trust().beginApproval(config,CLAIM_B,"B");
+            check(b.equals(trust().beginApproval(config,CLAIM_B,"B")));expectFailure(()->trust().beginApproval(config,"cccccccccccccccccccccccccccccccc","C"));
+            check(trust().grant(config,CLAIM_A)!=null&&b.equals(trust().pending(config).getString("approval_id")));
+        });
+        test("invitation intent persists before HTTP and retries identical random identifiers",()->{
+            trust().enableMulti(config);JSONObject one=trust().beginInvitation(config,7);check(one.getLong("invitation_sequence")==8&&RelayApi.requests.isEmpty());
+            String id=one.getString("invitation_id"),ticket=one.getString("ticket");reboot();JSONObject again=trust().beginInvitation(config,99);
+            check(id.equals(again.getString("invitation_id"))&&ticket.equals(again.getString("ticket"))&&again.getLong("invitation_sequence")==8);
+            check(trust().completeInvitation(config,id,8,TrustedGrant.DISPLAY_EXPIRY,"1".repeat(64),"2".repeat(64)));
+            check(!trust().completeInvitation(config,id,8,TrustedGrant.DISPLAY_EXPIRY+1,"1".repeat(64),"2".repeat(64)));
+        });
+        test("canceled and expired invitation intent retains watermark until matching HTTP acknowledgment",()->{
+            trust().enableMulti(config);JSONObject one=trust().beginInvitation(config,0);String id=one.getString("invitation_id"),ticket=one.getString("ticket");
+            check(trust().cancelInvitation(config,id,1));reboot();check("canceled".equals(trust().invitation(config).getString("phase")));
+            check(id.equals(trust().beginInvitation(config,9).getString("invitation_id")));check(!trust().finishInvitationCancellation(config,id,2));
+            check(trust().finishInvitationCancellation(config,id,1));JSONObject next=trust().beginInvitation(config,0);
+            check(next.getLong("invitation_sequence")==2&&!ticket.equals(next.getString("ticket"))&&!id.equals(next.getString("invitation_id")));
+            check(!trust().completeInvitation(config,id,1,TrustedGrant.DISPLAY_EXPIRY,"1".repeat(64),"2".repeat(64)));
+        });
+        test("second invitation waits for existing legacy grant to prove lease readiness",()->{
+            String id=begin();trust().completeApproval(config,id);trust().enableMulti(config);expectFailure(()->trust().beginInvitation(config,0));
+            trust().requireLease(config,CLAIM_A);JSONObject invite=trust().beginInvitation(config,0);check(invite!=null&&trust().grant(config,CLAIM_A)!=null);
+        });
+        test("legacy invitation adoption preserves original ticket and yields compatible sole grant",()->{
+            trust().enableMulti(config);String ticket="f".repeat(32),invite="e".repeat(32);
+            check(trust().adoptLegacyInvitation(config,invite,1,ticket,TrustedGrant.DISPLAY_EXPIRY,"1".repeat(64),"2".repeat(64)));
+            check(ticket.equals(trust().invitation(config).getString("ticket")));String id=begin();trust().completeApproval(config,id);
+            check(!trust().grant(config,CLAIM_A).getBoolean("lease_required")&&trust().invitation(config)==null);
+        });
+        test("global STOP clears all consent without erasing multi mode or invitation watermark",()->{
+            trust().enableMulti(config);JSONObject invite=trust().beginInvitation(config,10);String id=begin();trust().completeApproval(config,id);String carrier=trust().sessionFence(config);
+            trust().stop();reboot();check(trust().multi(config)&&trust().grants(config).isEmpty()&&trust().pending(config)==null&&trust().invitation(config)==null);
+            JSONObject next=trust().beginInvitation(config,0);check(next.getLong("invitation_sequence")==12);String renewed=begin();trust().completeApproval(config,renewed);
+            check(!trust().isCurrent(config,carrier)&&!trust().stopIfCurrent(config,carrier));
+        });
+        test("persisted global stop nonce fences leftover grants pending and invitations after write failure",()->{
+            String id=begin();trust().completeApproval(config,id);trust().enableMulti(config);String b=trust().beginApproval(config,CLAIM_B,"B");
+            FakeDisk.failSaveAt=FakeDisk.saves+1;trust().stop();reboot();check(trust().multi(config)&&trust().grants(config).isEmpty());
+            check(trust().pending(config)==null&&!trust().completeApproval(config,b));String next=begin();trust().completeApproval(config,next);
+            check(trust().validClaims(config).equals(java.util.Set.of(CLAIM_A))&&trust().grant(config,CLAIM_B)==null);
+        });
+        test("same claim new approval replaces only its individual fence while other AI stays current",()->{
+            String id=begin();trust().completeApproval(config,id);trust().enableMulti(config);String b=trust().beginApproval(config,CLAIM_B,"B");trust().completeApproval(config,b);
+            String carrier=trust().sessionFence(config),old=trust().grantFence(config,CLAIM_B);trust().revoke(config,CLAIM_B);
+            String next=trust().beginApproval(config,CLAIM_B,"B again");trust().completeApproval(config,next);
+            check(!old.equals(trust().grantFence(config,CLAIM_B))&&trust().isCurrent(config,carrier)&&trust().grant(config,CLAIM_A)!=null);
+        });
+        test("explicit revoke also invalidates that claim's pending approval callback",()->{
+            String id=begin();trust().completeApproval(config,id);trust().enableMulti(config);String b=trust().beginApproval(config,CLAIM_B,"B");
+            trust().revoke(config,CLAIM_B);check(!trust().completeApproval(config,b)&&trust().grant(config,CLAIM_A)!=null);
+        });
+        test("crash after invitation intent save restarts with exactly the same durable intent",()->{
+            trust().enableMulti(config);FakeDisk.crashAfterSaveAt=FakeDisk.saves+1;expectCrash(()->trust().beginInvitation(config,15));
+            JSONObject saved=FakeDisk.record.getJSONObject("invitation");String id=saved.getString("invitation_id"),ticket=saved.getString("ticket");reboot();
+            JSONObject recovered=trust().beginInvitation(config,20);check(id.equals(recovered.getString("invitation_id"))&&ticket.equals(recovered.getString("ticket")));
+            check(recovered.getLong("invitation_sequence")==16&&trust().grants(config).isEmpty());
+        });
+        test("invitation write failure neither consumes local watermark nor modifies an existing AI",()->{
+            String id=begin();trust().completeApproval(config,id);trust().enableMulti(config);trust().requireLease(config,CLAIM_A);
+            String carrier=trust().sessionFence(config);FakeDisk.failSaveAt=FakeDisk.saves+1;expectFailure(()->trust().beginInvitation(config,3));
+            check(trust().invitation(config)==null&&trust().isCurrent(config,carrier));reboot();check(trust().beginInvitation(config,3).getLong("invitation_sequence")==4);
+        });
+        test("cancel invitation invalidates a delayed approval but does not delete an existing AI",()->{
+            String id=begin();trust().completeApproval(config,id);trust().enableMulti(config);trust().requireLease(config,CLAIM_A);JSONObject invite=trust().beginInvitation(config,0);
+            String b=trust().beginApproval(config,CLAIM_B,"B");check(trust().cancelInvitation(config,invite.getString("invitation_id"),1));
+            check(!trust().completeApproval(config,b)&&trust().grant(config,CLAIM_A)!=null&&trust().grant(config,CLAIM_B)==null);
+        });
+        test("empty multi approval activation fault stays closed and retries only the same persisted consent",()->{
+            trust().enableMulti(config);String id=begin();FakeDisk.preferences.failAt=FakeDisk.preferences.calls+1;
+            expectFailure(()->trust().completeApproval(config,id));closed();reboot();check(id.equals(trust().pending(config).getString("approval_id")));
+            check(trust().completeApproval(config,id)&&trust().grant(config,CLAIM_A)!=null);
+        });
+        test("multi malformed duplicate grants and missing container fields fail closed",()->{
+            String id=begin();trust().completeApproval(config,id);trust().enableMulti(config);JSONObject valid=FakeDisk.record.copy();
+            FakeDisk.record.getJSONArray("grants").put(FakeDisk.record.getJSONArray("grants").getJSONObject(0).copy());expectFailure(()->trust().read(config));
+            FakeDisk.record=valid;FakeDisk.record.remove("invitation");expectFailure(()->trust().multi(config));
         });
         System.out.println("TOTAL "+passed);
     }

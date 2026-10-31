@@ -24,6 +24,8 @@ restore=source[source.index('        if (saved != null && !upgrade'):source.inde
 extracted['onCreate saved invitation restore']=restore
 harness='''package io.airtap.preview;import org.json.JSONObject;import android.os.Bundle;
 final class MainActivityHarness extends android.app.Activity {
+ final SingleOwner multiOwner=new SingleOwner();
+ static final class SingleOwner {boolean multi,changeReady;int stops;boolean enabled(EnrollmentStore.Config config){return multi;}void pause(){}void bindIdentity(EnrollmentStore.Config c){}void stopAll(){stops++;}boolean serviceChangeReady(){return changeReady;}}
  final android.os.Handler main=new android.os.Handler();final Prefs prefs=new Prefs();final ConnectionFeedback connectionFeedback=new ConnectionFeedback();
  final SetupRecovery.Backoff setupBackoff=new SetupRecovery.Backoff(),pollBackoff=new SetupRecovery.Backoff();
  EnrollmentStore.Config config;InvitationArtifacts invitationArtifacts;boolean visible=true,busy,polling,storageError,upgrade,setupPaused,setupExhausted,invitationUncertain;int epoch;long invitationExpiry,nextPoll;String ticket,claim,code,candidate,message="";okhttp3.Call setupCall,pollCall;Runnable setupRetry,refresh=()->{};
@@ -51,5 +53,5 @@ record={'status':'passed','recorded_at':datetime.datetime.now(datetime.timezone.
  'source_sha256':{str(path.relative_to(ROOT)):hashlib.sha256(path.read_bytes()).hexdigest() for path in inputs},
  'extracted_method_sha256':{key:hashlib.sha256(value.encode()).hexdigest() for key,value in extracted.items()},
  'scope':'Production MainActivity first-setup/discovery/enrollment/invitation/prompt/saved-state restore/polling/stop/relay-switch/onPause methods extracted verbatim, plus complete SetupRecovery, RemoteReadiness, ServiceProtocol, InvitationFeedback, InvitationArtifacts and RelayAddress.',
- 'limits':['Synthetic Activity, storage, Handler and HTTP. Does not prove Android system permission screens, actual connectivity, OEM background behavior, deployed relay or personal-AI tasks.']}
+ 'limits':['Original single-owner setup fixtures; multi owner is disabled and covered separately. Synthetic Activity, storage, Handler and HTTP. Does not prove Android system permission screens, actual connectivity, OEM background behavior, deployed relay or personal-AI tasks.']}
 args.output.parent.mkdir(parents=True,exist_ok=True);args.output.write_text(json.dumps(record,ensure_ascii=False,indent=2)+'\n')

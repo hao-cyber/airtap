@@ -33,7 +33,7 @@ public final class FeedbackHarness extends Activity {
 ''' + TEST.read_text() + '\n}\n'
 sources = {
  'org/json/JSONObject.java': fakes.SOURCES['org/json/JSONObject.java'],
- 'org/json/JSONArray.java': '''package org.json;public class JSONArray {private final java.util.List<Object> v=new java.util.ArrayList<>();public JSONArray put(Object x){v.add(x);return this;}public int length(){return v.size();}public JSONObject getJSONObject(int n){return (JSONObject)v.get(n);}}''',
+ 'org/json/JSONArray.java': fakes.SOURCES['org/json/JSONArray.java'],
  'android/app/Activity.java': '''package android.app;public class Activity {boolean destroyed,finishing;public void onResume(){}public void onPause(){}public void onDestroy(){destroyed=true;}public boolean isDestroyed(){return destroyed;}public boolean isFinishing(){return finishing;}public void finish(){finishing=true;}}''',
  'android/widget/LinearLayout.java': '''package android.widget;public class LinearLayout {public int cleared;public void removeAllViews(){cleared++;}}''',
  'android/widget/ScrollView.java': '''package android.widget;public class ScrollView {public void smoothScrollTo(int x,int y){}}''',
@@ -60,6 +60,6 @@ with tempfile.TemporaryDirectory(prefix='airtap-feedback-') as directory:
     tests=[line[5:] for line in run.stdout.splitlines() if line.startswith('PASS ')]
     assert run.stdout.splitlines()[-1]=='TOTAL '+str(len(tests))
 record={'status':'passed','recorded_at':datetime.datetime.now(datetime.timezone.utc).isoformat(),'passed':len(tests),'tests':tests,
- 'source_sha256':{str(path.relative_to(ROOT)):hashlib.sha256(path.read_bytes()).hexdigest() for path in [*production,JAVA/'FeedbackActivity.java',TEST,Path(__file__)]},
+ 'source_sha256':{str(path.relative_to(ROOT)):hashlib.sha256(path.read_bytes()).hexdigest() for path in [*production,JAVA/'FeedbackActivity.java',TEST,ROOT/'tests/approvalrecovery/platform_fakes.py',Path(__file__)]},
  'limits':['Production parser, text, request gate compiled verbatim; Activity lifecycle/read/delete callback methods extracted verbatim with explicit view/network/enrollment fixtures.','Does not replace device UI, actual TLS/API integration, Android FLAG_SECURE or real encrypted enrollment tests.']}
 args.output.parent.mkdir(parents=True,exist_ok=True);args.output.write_text(json.dumps(record,ensure_ascii=False,indent=2)+'\n')

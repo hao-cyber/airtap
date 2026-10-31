@@ -183,6 +183,19 @@ public final class TouchGestureTest {
             check(boundary.frames().stream().mapToInt(GesturePlan.Frame::durationMs).sum() == 10000, "full timeline budget");
             passed("strict multi-touch shape and finite coordinates, integer timings and complete timeline budget");
         }
+        {
+            Run run = new Run(pinch()); run.touch.start(); run.touch.cancel();
+            check(!run.touch.quiescent(), "cancel request is not native completion");
+            run.phone.complete();
+            check(!run.touch.quiescent() && run.phone.pending != null, "stationary release still in flight");
+            run.drain(); check(run.touch.quiescent(), "handoff only after actual UP callback");
+            passed("task handoff drain waits for native in-flight touch and stationary UP completion");
+        }
+        {
+            Run run = new Run(pinch()); run.phone.rejectAt = 2; run.touch.start(); run.touch.cancel(); run.drain();
+            check(run.errors == 1 && !run.touch.quiescent(), "unconfirmed held-pointer cleanup must not allow another task ACK");
+            passed("rejected cleanup stays non-quiescent instead of treating an HTTP error as native drain");
+        }
         System.out.println("TOTAL " + tests);
     }
 }

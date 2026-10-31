@@ -104,9 +104,12 @@ final class PrivateFileStorage {
         if(availableBytes<u.reservedBytes+extra+FREE_RESERVE)FileTransferStore.fail("file_storage_full");
     }
     Usage reclaimSaf(String currentOwner,long now,boolean includeInactive)throws IOException {
+        return reclaimSaf(currentOwner == null ? Set.of() : Set.of(currentOwner), now, includeInactive);
+    }
+    Usage reclaimSaf(Set<String> currentOwners,long now,boolean includeInactive)throws IOException {
         for(Path claim:claims()) {
             fence.run();
-            SafStagingCleanup.reclaim(claim.resolve("saf"),now,includeInactive&&!claim.getFileName().toString().equals(currentOwner),fence,sync);
+            SafStagingCleanup.reclaim(claim.resolve("saf"),now,includeInactive&&!currentOwners.contains(claim.getFileName().toString()),fence,sync);
         }
         return ownerUsage();
     }

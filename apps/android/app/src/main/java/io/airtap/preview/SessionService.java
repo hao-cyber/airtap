@@ -102,8 +102,8 @@ public final class SessionService extends Service {
                 } else {
                     if (executionReady) paused(SessionService.this);
                     releaseScreen();
-                    if (control != null && !control.isAuthorized()) control.restore();
                 }
+                if(control!=null)control.restore(); // Also continues owner-approved multi-grant completion while another grant is connected.
                 if (foregroundReady) main.postDelayed(this, 2000);
             } catch (Exception failure) {
                 logFailure("grant_read", failure); halt();

@@ -25,7 +25,7 @@ TOKEN = re.compile(r'^[0-9a-f]{64}$')
 TICKET = re.compile(r'^[0-9a-f]{32}$')
 MAX_RESPONSE = 512 * 1024
 MAX_COMMAND = 8192
-VERSION = '0.4.0-cli.8'
+VERSION = '0.4.0-cli.9'
 PACKAGE = re.compile(r'^[A-Za-z_][A-Za-z0-9_]*(?:\.[A-Za-z_][A-Za-z0-9_]*)+$')
 NODE = re.compile(r'^[1-9][0-9]{0,3}$')
 NODE_COMMANDS = {'click', 'long-click', 'set-text', 'scroll', 'node-action', 'focus', 'set-selection', 'select-all', 'copy', 'cut', 'paste', 'insert-text', 'delete-text', 'editor-action'}
@@ -38,6 +38,18 @@ FILE_LIMIT = 8 * 1024 * 1024
 FILE_CHUNK_LIMIT = 4096
 FILE_COMMANDS = ('file-share', 'file-roots', 'file-list', 'file-stat', 'file-read', 'file-download', 'file-upload', 'file-upload-status', 'file-upload-finish', 'file-upload-abort')
 DEFAULT_CONFIG = pathlib.Path.home() / '.config/airtap/preview.json'
+MAX_INTEGER = 9007199254740991
+TASK_COMMANDS = ('task-acquire', 'task-renew', 'task-release')
+TASK_ERRORS = {
+    'lease_required': 409, 'lease_mismatch': 409, 'lease_renew_required': 409,
+    'task_closed': 409, 'lease_expired': 410, 'device_busy': 429,
+    'task_fence_pending': 503, 'device_disconnected': 503,
+    'client_upgrade_required': 409, 'device_upgrade_required': 409,
+    'stale_renewal': 409,
+}
+TASK_BEFORE_OBSERVE = {'ping', 'apps', 'windows', 'foreground', 'system_actions', 'audio_state',
+              'observe', 'read_tree', 'home', 'file_roots', 'file_list', 'file_stat',
+              'file_read', 'file_upload_status'}
 
 class Failure(Exception):
     def __init__(self, code, **details):
@@ -463,6 +475,20 @@ def request(url, path, token=None, body=None, method='GET', timeout=25, local_te
         if result['status'] == 429 and result.get('data') == {'error': 'ingress_rate_limited'}:
             raise Failure('ingress_rate_limited', status=429, elapsed_ms=result['elapsed_ms'],
                           outcome='not_dispatched', retry_action=False, wait_seconds=60)
+        # Only the bounded multi-AI error contract may cross this boundary.
+        data = result.get('data', {})
+        code = data.get('error')
+        if (data.get('protocol_version') == 4 and isinstance(code, str)
+                and TASK_ERRORS.get(code) == result['status']
+                and set(data) <= {'protocol_version', 'error', 'admitted', 'retry_after_ms'}
+                and ('admitted' not in data or data['admitted'] is False)):
+            details = {}
+            delay = data.get('retry_after_ms')
+            if type(delay) is int and 100 <= delay <= 15000:
+                details['retry_after_ms'] = delay
+            raise Failure(code, status=result['status'], elapsed_ms=result['elapsed_ms'],
+                          outcome='not_dispatched' if data.get('admitted') is False else 'unknown',
+                          retry_action=False, **details)
         # Do not echo arbitrary relay content: it could reflect credentials.
         raise Failure('http_error', status=result['status'], elapsed_ms=result['elapsed_ms'],
                       outcome='unknown' if method == 'POST' else 'not_available', retry_action=False)
@@ -526,6 +552,8 @@ def remember_approval(args, config, status):
     scope['command_sequence'] = max(scope['command_sequence'], config.get('command_sequence', 0))
     config.update(scope)
     config.update(state='approved', session_expires_at=None, allow_tap=False)
+    for key in ('mode', 'claim_id', 'lease_required', 'lease_ready'):
+        if key in status: config[key] = status[key]
     save_config(args.config, config)
 
 def redact(value, token):
@@ -544,6 +572,13 @@ def safe_pair_status(data):
     if state not in ('idle', 'waiting', 'pending', 'approved', 'revoked'):
         raise Failure('invalid_pairing_response')
     result = {'state': state, 'protocol_version': 4}
+    if 'mode' in data:
+        if data['mode'] != 'multi': raise Failure('invalid_pairing_response')
+        result['mode'] = 'multi'
+    for key in ('lease_required', 'lease_ready'):
+        if key in data:
+            if type(data[key]) is not bool: raise Failure('invalid_pairing_response')
+            result[key] = data[key]
     for key, pattern in [('claim_id', TICKET), ('verification_code', re.compile(r'^\d{6}$'))]:
         value = data.get(key)
         if value is not None:
@@ -588,15 +623,288 @@ def status_request(args, config, timeout=None):
         status[key] = data.get(key)
     if config.get('connection_id') != status['connection_id']:
         config.pop('snapshot', None); config.pop('observation', None)
+        if config.get('task_lease'): clear_task_views(config)
     config['connection_id'] = status['connection_id']
+    if data.get('mode') == 'multi':
+        status['task'] = reconcile_task(args, config, data.get('task'))
     remember_approval(args, config, status)
     return {'ok': True, **status, 'elapsed_ms': result['elapsed_ms']}
 
+def clear_task_views(config):
+    config.pop('snapshot', None)
+    config.pop('observation', None)
+    config['task_needs_observation'] = True
+
+
+def invalidate_task(config, state):
+    if config.get('task_lease'):
+        config['task_lease']['state'] = state
+        clear_task_views(config)
+
+
+def task_integer(value, minimum=1):
+    return type(value) is int and minimum <= value <= MAX_INTEGER
+
+
+def task_hex(value):
+    return isinstance(value, str) and TICKET.fullmatch(value) is not None
+
+
+def same_lease(a, b):
+    return all(a.get(key) == b.get(key) for key in ('task_id', 'lease_id', 'lease_epoch'))
+
+
+def task_live(lease):
+    now = time.time()
+    return (lease.get('state') == 'ready' and type(lease.get('recorded_at')) in (int, float)
+            and type(lease.get('local_expires_at')) in (int, float)
+            and lease['recorded_at'] <= now < lease['local_expires_at'])
+
+
+def safe_task_status(value):
+    if not isinstance(value, dict) or value.get('state') not in ('idle', 'busy', 'fencing', 'ready'):
+        raise Failure('invalid_task_status')
+    result = {key: value.get(key) for key in ('state', 'task_id', 'lease_id', 'lease_epoch', 'expires_at_ms')}
+    if result['state'] in ('idle', 'busy'):
+        if any(result[key] is not None for key in result if key != 'state'):
+            raise Failure('invalid_task_status')
+    elif result['state'] == 'ready':
+        if (not task_hex(result['task_id']) or not task_hex(result['lease_id'])
+                or not task_integer(result['lease_epoch']) or not task_integer(result['expires_at_ms'])):
+            raise Failure('invalid_task_status')
+    elif (result['lease_id'] is not None or (result['task_id'] is not None and not task_hex(result['task_id']))
+          or (result['lease_epoch'] is not None and not task_integer(result['lease_epoch']))
+          or (result['expires_at_ms'] is not None and not task_integer(result['expires_at_ms']))):
+        raise Failure('invalid_task_status')
+    if 'renewal_sequence' in value:
+        if result['state'] in ('idle', 'busy'):
+            if value['renewal_sequence'] is not None: raise Failure('invalid_task_status')
+        elif not task_integer(value['renewal_sequence'], 0): raise Failure('invalid_task_status')
+        else: result['renewal_sequence'] = value['renewal_sequence']
+    return result
+
+
+def reconcile_task(args, config, value):
+    result = safe_task_status(value)
+    previous = config.get('task_lease', {})
+    if result['state'] == 'ready':
+        # Status is scoped to the authenticated controller; never adopt busy metadata.
+        if previous.get('state') in ('releasing', 'closed') and same_lease(previous, result):
+            return result  # An uncertain release must be resolved, never undone by status.
+        changed = not same_lease(previous, result)
+        now = time.time()
+        remaining = min(120, result['expires_at_ms'] / 1000 - now)
+        if not changed and not previous.get('pending_renewal') and previous.get('local_expires_at') is not None:
+            # A status read must not extend a locally known lease deadline.
+            remaining = min(remaining, previous['local_expires_at'] - now)
+        lease = {**result, 'recorded_at': now, 'local_expires_at': now + max(0, remaining)}
+        if 'renewal_sequence' not in lease:
+            lease['renewal_sequence'] = previous.get('renewal_sequence') if not changed else None
+        if not changed:
+            if 'pending_renewal' in previous: lease['pending_renewal'] = previous['pending_renewal']
+            if task_integer(previous.get('renewal_sequence'), 0):
+                lease['renewal_sequence'] = max(previous['renewal_sequence'], lease.get('renewal_sequence') or 0)
+        if remaining <= 0:
+            lease['state'] = 'expired'
+        config['task_lease'] = lease
+        if changed or previous.get('state') != 'ready' or remaining <= 0:
+            clear_task_views(config)
+    elif previous:
+        # A scoped idle/busy status proves the old lease no longer owns this
+        # device, even after its bounded release receipt has been evicted.
+        if previous.get('state') == 'releasing' and result['state'] in ('idle', 'busy'):
+            invalidate_task(config, 'closed')
+        # Otherwise keep the acquire/release intent for explicit recovery.
+        elif previous.get('state') not in ('acquiring', 'releasing', 'closed'):
+            invalidate_task(config, 'lost')
+        clear_task_views(config)
+    save_config(args.config, config)
+    return result
+
+
+def checked_task_ready(result, expected):
+    data = result.get('data', {})
+    if (data.get('protocol_version') != 4 or data.get('ok') is not True or data.get('state') != 'ready'
+            or not task_hex(data.get('task_id')) or not task_hex(data.get('lease_id'))
+            or not task_integer(data.get('lease_epoch')) or not task_integer(data.get('expires_at_ms'))
+            or not task_integer(data.get('expires_in_ms')) or data['expires_in_ms'] > 120000
+            or data['task_id'] != expected['task_id']):
+        raise Failure('invalid_task_response', retry_action=False)
+    if 'lease_id' in expected and not same_lease(expected, data):
+        raise Failure('invalid_task_response', retry_action=False)
+    elapsed = result.get('elapsed_ms')
+    if type(elapsed) not in (int, float) or not math.isfinite(elapsed) or elapsed < 0:
+        raise Failure('invalid_task_response', retry_action=False)
+    if 'renewal_sequence' in data and not task_integer(data['renewal_sequence'], 0):
+        raise Failure('invalid_task_response', retry_action=False)
+    now = time.time()
+    return {key: data[key] for key in ('state', 'task_id', 'lease_id', 'lease_epoch', 'expires_at_ms')} | {
+        'recorded_at': now, 'local_expires_at': now + max(0, data['expires_in_ms'] - elapsed) / 1000,
+        'renewal_sequence': data.get('renewal_sequence', 0)}
+
+
+def task_call(args, config, operation, body, timeout=None):
+    return request(config['url'], '/v1/tasks/' + operation, config['controller_token'], body=body,
+                   method='POST', timeout=timeout or args.timeout, local_test=args.allow_local_http)
+
+
+def ready_task_output(lease):
+    return {'ok': True, **{key: lease[key] for key in ('state', 'task_id', 'lease_id', 'lease_epoch', 'expires_at_ms')},
+            'expires_in_ms': max(0, int((lease['local_expires_at'] - time.time()) * 1000)),
+            'instruction': 'Keep this task through final result verification, then task-release. Observe/read-tree before actions on a new task. Unknown actions must not be replayed.'}
+
+
+def acquire_task(args, config):
+    requested = getattr(args, 'task_id', None)
+    if requested is not None and not task_hex(requested):
+        raise Failure('invalid_task_id', retry_action=False)
+    # Read before creating an intent, including when local task state was lost.
+    status_request(args, config)
+    if config.get('mode') != 'multi':
+        raise Failure('task_leases_not_supported', instruction='Keep the existing single-AI connection; do not re-pair to enable task leases.')
+    previous = config.get('task_lease', {})
+    if previous.get('state') == 'releasing':
+        raise Failure('task_release_pending', instruction='Resolve task-release using the saved identity before starting another task.')
+    if previous.get('state') == 'ready' and task_live(previous):
+        if requested is not None and requested != previous['task_id']:
+            raise Failure('task_already_active', retry_action=False)
+        return ready_task_output(previous)
+    if previous.get('state') == 'acquiring':
+        if requested is not None and requested != previous['task_id']:
+            raise Failure('task_acquire_pending', retry_action=False)
+        task_id = previous['task_id']
+    else:
+        if requested is not None and requested == previous.get('task_id'):
+            raise Failure('task_closed', retry_action=False)
+        task_id = requested or secrets.token_hex(16)
+    config['task_lease'] = {'state': 'acquiring', 'task_id': task_id}
+    clear_task_views(config)
+    save_config(args.config, config)  # The same intent survives a lost response/process exit.
+    try:
+        result = task_call(args, config, 'acquire', {'task_id': task_id})
+        lease = checked_task_ready(result, {'task_id': task_id})
+    except Failure as failure:
+        if failure.result['error'] in ('task_closed', 'lease_expired'):
+            invalidate_task(config, 'closed'); save_config(args.config, config)
+        raise
+    config['task_lease'] = lease
+    config.update(lease_required=True, lease_ready=True)
+    save_config(args.config, config)
+    if not task_live(lease): raise Failure('lease_expired', retry_action=False)
+    return ready_task_output(lease)
+
+
+def renew_task(args, config, timeout=None):
+    lease = config.get('task_lease', {})
+    if lease.get('state') == 'uncertain':
+        status_request(args, config, timeout)
+        lease = config.get('task_lease', {})
+    if not task_live(lease) and not lease.get('pending_renewal'):
+        invalidate_task(config, 'expired'); save_config(args.config, config)
+        raise Failure('task_acquire_required', instruction='Run task-acquire explicitly, then observe again. Do not replay the previous action.')
+    pending = lease.get('pending_renewal')
+    if pending is None:
+        sequence = lease.get('renewal_sequence', 0)
+        if sequence is None:
+            raise Failure('renewal_sequence_unknown', instruction='The recovered task lacks its renewal sequence. Do not guess it; check updated task status or release this task before starting a new task and observing again.')
+        if not task_integer(sequence, 0) or sequence == MAX_INTEGER: raise Failure('renewal_sequence_exhausted')
+        pending = {'renewal_id': secrets.token_hex(16), 'renewal_sequence': sequence + 1}
+        lease['pending_renewal'] = pending
+        save_config(args.config, config)
+    if (not isinstance(pending, dict) or not task_hex(pending.get('renewal_id'))
+            or not task_integer(pending.get('renewal_sequence'))):
+        raise Failure('invalid_saved_renewal')
+    body = {key: lease[key] for key in ('task_id', 'lease_id', 'lease_epoch')}
+    body.update(pending)
+    try:
+        result = task_call(args, config, 'renew', body, timeout)
+        renewed = checked_task_ready(result, lease)
+        if 'renewal_sequence' in result['data'] and result['data']['renewal_sequence'] != pending['renewal_sequence']:
+            raise Failure('invalid_task_response', retry_action=False)
+    except Failure as failure:
+        if failure.result['error'] in ('lease_expired', 'lease_mismatch', 'task_closed', 'device_disconnected'):
+            invalidate_task(config, 'lost')
+        elif failure.result.get('outcome') == 'unknown':
+            clear_task_views(config)
+        save_config(args.config, config)
+        raise
+    config['task_lease'] = {**renewed, 'renewal_sequence': pending['renewal_sequence']}
+    save_config(args.config, config)
+    if not task_live(config['task_lease']):
+        invalidate_task(config, 'expired'); save_config(args.config, config)
+        raise Failure('lease_expired', retry_action=False)
+    return ready_task_output(config['task_lease'])
+
+
+def release_task(args, config):
+    lease = config.get('task_lease', {})
+    if lease.get('state') == 'closed': return {'ok': True, 'state': 'released'}
+    if not all(key in lease for key in ('task_id', 'lease_id', 'lease_epoch')):
+        status_request(args, config)
+        lease = config.get('task_lease', {})
+    if not task_hex(lease.get('task_id')) or not task_hex(lease.get('lease_id')) or not task_integer(lease.get('lease_epoch')):
+        raise Failure('task_identity_unavailable', instruction='Check status. A pending acquire cannot be reported released without a matching lease.')
+    body = {key: lease[key] for key in ('task_id', 'lease_id', 'lease_epoch')}
+    lease['state'] = 'releasing'
+    clear_task_views(config)
+    save_config(args.config, config)
+    result = task_call(args, config, 'release', body)
+    data = result.get('data', {})
+    if data.get('protocol_version') != 4 or data.get('ok') is not True or data.get('state') != 'released':
+        raise Failure('task_release_not_confirmed', retry_action=False)
+    invalidate_task(config, 'closed'); save_config(args.config, config)
+    return {'ok': True, 'state': 'released'}
+
+
+def task_command(args, config):
+    if args.command == 'task-acquire': return acquire_task(args, config)
+    if args.command == 'task-renew': return renew_task(args, config)
+    return release_task(args, config)
+
+
+def ensure_task(args, config, action, timeout=None):
+    lease = config.get('task_lease', {})
+    if lease.get('state') == 'uncertain':
+        raise Failure('task_status_required', instruction='Check status to reconcile the existing task, then observe. Never replay an uncertain action.')
+    if not task_live(lease):
+        if lease.get('state') == 'ready':
+            invalidate_task(config, 'expired'); save_config(args.config, config)
+        raise Failure('task_acquire_required', instruction='Run task-acquire once for the whole task, then observe. Do not acquire/release around each command.')
+    if lease.get('pending_renewal') or lease['local_expires_at'] - time.time() < 45:
+        renew_task(args, config, timeout)
+    if config.get('task_needs_observation') and action not in TASK_BEFORE_OBSERVE:
+        raise Failure('fresh_task_observation_required', retry_action=False,
+                      instruction='Observe or read-tree in the current task before selecting a new action; do not replay an old target.')
+
+
 def command_request(args, config, body, timeout=None):
+    leased = config.get('lease_required') is True or 'task_lease' in config
+    if not leased:
+        return _command_request(args, config, body, timeout)
+    try:
+        ensure_task(args, config, body['action'], timeout)
+        lease = config['task_lease']
+        body = {**body, 'lease_id': lease['lease_id'], 'lease_epoch': lease['lease_epoch']}
+        return _command_request(args, config, body, timeout)
+    except Failure as failure:
+        code = failure.result['error']
+        if code in ('lease_expired', 'lease_mismatch', 'lease_required', 'task_closed', 'device_disconnected'):
+            invalidate_task(config, 'lost')
+        elif failure.result.get('outcome') == 'unknown':
+            clear_task_views(config)
+            if config.get('task_lease', {}).get('state') == 'ready':
+                config['task_lease']['state'] = 'uncertain'
+        elif code == 'lease_renew_required':
+            clear_task_views(config)
+        save_config(args.config, config)
+        raise
+
+def _command_request(args, config, body, timeout=None):
     sequence = config.get('command_sequence', 0) + 1
     if sequence > 9007199254740991:
         raise Failure('sequence_exhausted')
     body = {**body, 'sequence': sequence}
+    if len(json_bytes(body)) > MAX_COMMAND: raise Failure('request_body_too_large', retry_action=False)
     config['command_sequence'] = sequence
     save_config(args.config, config)  # Consume before sending; unknown results are never replayed.
     result = request(config['url'], '/v1/command', config['controller_token'], body=body,
@@ -656,6 +964,7 @@ def command_request(args, config, body, timeout=None):
             output = getattr(args, 'output', None) or args.config.parent / 'observations' / (body['id'] + '.jpg')
             private_write(output, raw, replace=False)
             config['observation'] = {**value, 'issued_at': time.time(), 'expires_at': time.time() + max(0, value['expires_in_ms'] - result['elapsed_ms']) / 1000}
+            if config.get('task_lease'): config['task_needs_observation'] = False
             save_config(args.config, config)
             value.update(output=str(output.absolute()), bytes=len(raw), sha256=hashlib.sha256(raw).hexdigest())
         return {'ok': True, 'request_id': body['id'], 'elapsed_ms': result['elapsed_ms'],
@@ -768,6 +1077,7 @@ def remember_snapshot(args, config, value, package, request_started, continuatio
     else:
         config['snapshot'] = {'id': snapshot, 'package': package, 'node_ids': ids,
                               'issued_at': request_started, 'expires_at': request_started + expiry / 1000}
+    if config.get('task_lease'): config['task_needs_observation'] = False
     save_config(args.config, config)
 
 _config_lock = None
@@ -1036,6 +1346,10 @@ def main():
     pair = sub.add_parser('pair-start')
     pair.add_argument('--url', required=True); pair.add_argument('--name', default='My AI')
     pair.add_argument('--ticket-stdin', action='store_true', required=True)
+    pair.add_argument('--task-lease', action='store_true', help='Declare task_lease_v1 for a multi-AI invitation; preserve this choice on pairing retries.')
+    for name in TASK_COMMANDS:
+        task = sub.add_parser(name)
+        if name == 'task-acquire': task.add_argument('--task-id', help='Optional32hex task identity; an uncertain acquire reuses its saved identity.')
     pair_status = sub.add_parser('pair-status'); pair_status.add_argument('--wait', action='store_true')
     for command in ('status', 'wait-ready', 'revoke', 'ping', 'apps', 'windows', 'foreground', 'observe', 'read-tree', 'read-tree-page', 'read-node-text', 'system-actions', 'audio-state', *sorted(CONTROL_COMMANDS)):
         child = sub.add_parser(command)
@@ -1121,7 +1435,7 @@ def main():
             config = load_config(args.config, args.allow_local_http)
             if config.get('state') != 'pending':
                 raise Failure('config_exists_reuse_connection_or_choose_new_path')
-            if config['url'] != url or config.get('pairing_name') != args.name:
+            if config['url'] != url or config.get('pairing_name') != args.name or config.get('pairing_capabilities', []) != (['task_lease_v1'] if args.task_lease else []):
                 raise Failure('pairing_identity_mismatch', instruction='Use the same URL, name and private config. Do not replace an uncertain pairing identity.')
         ticket = sys.stdin.readline(128).strip()
         if not TICKET.fullmatch(ticket): raise Failure('invalid_pairing_ticket')
@@ -1145,8 +1459,11 @@ def main():
                 return {'ok': True, **status, 'instruction': 'Tell the owner the code now. Wait for approval on their phone, then run wait-ready. Keep this private config for future tasks.'}
         else:
             config = {'url': url, 'controller_token': secrets.token_hex(32), 'state': 'pending', 'pairing_name': args.name}
+            if args.task_lease: config['pairing_capabilities'] = ['task_lease_v1']
             save_config(args.config, config, replace=False)
-        result = request(url, '/v1/pair', body={'ticket': ticket, 'controller_token': config['controller_token'], 'name': args.name}, method='POST', timeout=args.timeout, local_test=args.allow_local_http)
+        pair_body = {'ticket': ticket, 'controller_token': config['controller_token'], 'name': args.name}
+        if config.get('pairing_capabilities'): pair_body['capabilities'] = config['pairing_capabilities']
+        result = request(url, '/v1/pair', body=pair_body, method='POST', timeout=args.timeout, local_test=args.allow_local_http)
         status = safe_pair_status(result['data']); config.update(status); save_config(args.config, config)
         return {'ok': True, **status, 'instruction': 'Tell the owner the code now. Wait for approval on their phone, then run wait-ready. Keep this private config for future tasks.'}
     config = load_config(args.config, args.allow_local_http)
@@ -1156,10 +1473,11 @@ def main():
     if args.command == 'revoke':
         result = request(config['url'], '/v1/revoke', config['controller_token'], method='POST', timeout=args.timeout, local_test=args.allow_local_http)
         if result.get('data', {}).get('ok') is not True: raise Failure('revocation_not_confirmed')
-        config.update(state='revoked'); config.pop('snapshot', None); config.pop('observation', None); save_config(args.config, config)
+        config.update(state='revoked'); invalidate_task(config, 'closed'); config.pop('snapshot', None); config.pop('observation', None); save_config(args.config, config)
         return {'ok': True, 'state': 'revoked'}
     if config.get('state') != 'approved': raise Failure('approval_required', instruction='Run pair-status after the owner approves.')
     safe_scope(config)
+    if args.command in TASK_COMMANDS: return task_command(args, config)
     if args.command in FILE_COMMANDS: return file_command(args, config)
     request_id = args.request_id or uuid.uuid4()
     if request_id.version != 4 or request_id.variant != uuid.RFC_4122: raise Failure('invalid_request_id')

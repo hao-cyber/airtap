@@ -1,0 +1,63 @@
+#!/usr/bin/env python3
+"""Run production multi transport/command authority methods with synthetic platform effects."""
+import argparse,datetime,hashlib,importlib.util,json,os,subprocess,tempfile
+from pathlib import Path
+ROOT=Path(__file__).resolve().parents[1];JAVA=ROOT/'app/src/main/java/io/airtap/preview'
+p=argparse.ArgumentParser();p.add_argument('--output',type=Path);args=p.parse_args()
+spec=importlib.util.spec_from_file_location('fakes',ROOT/'tests/approvalrecovery/platform_fakes.py');f=importlib.util.module_from_spec(spec);spec.loader.exec_module(f)
+source=(JAVA/'PreviewService.java').read_text();extracted={}
+def method(signature):
+ start=source.index(signature);end=source.index('\n',start) if '\n' not in source[start:source.index('}',start)] else source.index('\n    }',start)+6
+ value=source[start:end];extracted[signature]=value;return value
+# JSON fixture preserves the exact object shape through transport; this is deliberately
+# not a JSON parser or WebSocket test. Real JSON/wire cases run in workerd separately.
+fixtures=dict(f.SOURCES)
+fixtures['org/json/JSONObject.java']=fixtures['org/json/JSONObject.java'].replace('public JSONObject put(','''private static final Map<String,JSONObject> wire=new HashMap<>();public JSONObject(){}public JSONObject(String text){JSONObject v=wire.get(text);if(v==null)throw new IllegalArgumentException("synthetic wire");fields.putAll(v.copy().fields);}public String toString(){String key=UUID.randomUUID().toString();wire.put(key,copy());return key;}public int length(){return fields.size();}public JSONObject put(''')
+fixtures['io/airtap/preview/ScopedUi.java']='package io.airtap.preview;final class ScopedUi{static final class Refused extends RuntimeException{final String code;Refused(String c){super(c);code=c;}}}'
+fixtures['android/os/Handler.java']='package android.os;public class Handler{public void removeCallbacks(Runnable r){}}'
+fixtures['okhttp3/WebSocket.java']='package okhttp3;public interface WebSocket{boolean send(String value);boolean close(int code,String reason);}'
+fixtures['io/airtap/preview/OwnerRevocations.java']='package io.airtap.preview;final class OwnerRevocations{static boolean all,failQueue;static Long queuedGeneration;static int unknownQueued;static void queueAllUnknown(android.content.Context c,EnrollmentStore.Config config){if(failQueue)throw new IllegalStateException();all=true;unknownQueued++;}static void queueAll(android.content.Context c,EnrollmentStore.Config config,long g){if(failQueue)throw new IllegalStateException();all=true;queuedGeneration=g;}static java.util.Set<String> revoked=java.util.Set.of();static boolean allPending(android.content.Context c,EnrollmentStore.Config config){return all;}static java.util.Set<String> claimsPending(android.content.Context c,EnrollmentStore.Config config){return revoked;}}'
+fixtures['io/airtap/preview/FileScopes.java']='package io.airtap.preview;final class FileScopes{static boolean quiet=true;static java.util.Set<String> retained;static void revoke(android.content.Context c){}static boolean quiescent(){return quiet;}static void retain(android.content.Context c,java.util.Set<String> claims){retained=java.util.Set.copyOf(claims);}}'
+fixtures['io/airtap/preview/WorkspaceShares.java']='package io.airtap.preview;final class WorkspaceShares{static int invalidations;static void revokeAll(android.content.Context c){invalidations++;}}'
+fixtures['io/airtap/preview/CompanionUi.java']='''package io.airtap.preview;import org.json.*;import java.util.function.*;final class CompanionUi{
+ interface Reply{void success(JSONObject v);void error(String c);}boolean quiet=true;int clears,cancels,executions;String owner;BooleanSupplier commandGate,shareGate;Reply reply;
+ void clear(){clears++;}void cancelGestures(){cancels++;}boolean quiescent(){return quiet;}boolean unlocked(){return true;}ScreenPreparation.State screenState(){return ScreenPreparation.State.READY;}void validateRequest(JSONObject q){}void execute(JSONObject q,Reply r,BooleanSupplier c,String o,BooleanSupplier a){executions++;reply=r;commandGate=c;owner=o;shareGate=a;}}
+'''
+fixtures['android/accessibilityservice/GestureDescription.java']='package android.accessibilityservice;public class GestureDescription{public static int getMaxStrokeCount(){return 20;}}'
+fixtures['io/airtap/preview/BuildConfig.java']='package io.airtap.preview;final class BuildConfig{static final String VERSION_NAME="synthetic",BUILD_TYPE="test";static final int VERSION_CODE=40;}'
+fixtures['io/airtap/preview/Constants.java']='package io.airtap.preview;class PagedTree{static int MAX_NODES=1,MAX_CAPTURE_BYTES=1,MAX_PAGE_NODES=1;}class TreeReadBudget{static int MAX_BYTES=1;}class ObservedText{static int MAX_CHUNK_UTF16=1;}class GesturePlan{static int MAX_POINTS=1,MAX_TOTAL_MS=1;static int trackLimit(int n){return n;}}'
+block=source[source.index('    private final TaskLease tasks'):source.index('    void ownerModeChanged()')]
+service='''package io.airtap.preview;import org.json.*;import okhttp3.WebSocket;import android.os.SystemClock;
+final class PreviewService extends android.content.Context{
+ static PreviewService instance;final android.os.Handler main=new android.os.Handler();final CompanionUi ui=new CompanionUi();
+ static final java.util.regex.Pattern ID=java.util.regex.Pattern.compile("[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}");
+ boolean multiMode=true,multiHello,authorized=true,approvalInFlight;int grantChanges;java.util.List<Runnable> retries=new java.util.ArrayList<>();int generation=1,disconnects;long activeCommand,commandSerial;Runnable helloTask;java.util.Set<String> remoteGrants=java.util.Set.of();EnrollmentStore.Config config;WebSocket socket;
+ static final class Recovery{int cancellations;void cancel(){cancellations++;}void prepare(java.util.function.BooleanSupplier gate,ScreenPreparation.Completion done){if(gate.getAsBoolean())done.ready(false);}}final Recovery recovery=new Recovery();
+ PreviewService(EnrollmentStore.Config c,WebSocket ws){instance=this;config=c;socket=ws;}boolean current(WebSocket ws,int run){return authorized&&socket==ws&&generation==run;}void disconnected(WebSocket ws,int run,int status){if(current(ws,run)){disconnects++;disconnectTask();socket=null;}}
+ void ownerGrantsChanged(){grantChanges++;}void scheduleRestore(int run,long delay){retries.add(()->{SystemClock.now+=delay;try{resumeMultiApproval();}catch(Exception e){throw new RuntimeException(e);}});}void resumePending()throws Exception{resumeMultiApproval();}
+ void receive(JSONObject value){multiMessage(socket,generation,value.toString());}void disconnect(){disconnectTask();}void reconnect(WebSocket ws){socket=ws;}void raw(JSONObject q){command(socket,generation,q.toString());}
+ void success(WebSocket w,String id,JSONObject result){w.send(RelayApi.json("id",id,"ok",true,"result",result).toString());}void error(WebSocket w,String id,String code){w.send(RelayApi.json("id",id,"ok",false,"error",code).toString());}
+ java.util.Map<String,String> snapshot()throws Exception{return grantSnapshot();}void reconcile(java.util.Set<String> remote,java.util.Map<String,String> snap)throws Exception{retainRemote(remote,snap);}
+'''+block+'\n'+ '\n'.join(method(x) for x in ['    private void resumeMultiApproval() throws Exception {','    private java.util.Map<String,String> grantSnapshot() throws Exception {','    private void retainRemote(java.util.Set<String> remote,java.util.Map<String,String> snapshot) throws Exception {','    private void multiMessage(WebSocket ws,int run,String text) {','    private void command(WebSocket ws, int run, String text) {'])+'\n}'
+fixtures['io/airtap/preview/PreviewService.java']=service
+owner_source=(JAVA/'MultiAiOwner.java').read_text()
+def owner_method(signature):
+ start=owner_source.index(signature);end=owner_source.index('\n',start) if '\n' not in owner_source[start:owner_source.index('}',start)] else owner_source.index('\n    }',start)+6
+ value=owner_source[start:end];extracted['MultiAiOwner:'+signature]=value;return value
+fixtures['okhttp3/Call.java']='package okhttp3;public interface Call{void cancel();}'
+fixtures['android/app/Activity.java']='package android.app;public class Activity extends android.content.Context{public boolean isDestroyed(){return false;}}'
+fixtures['android/app/AlertDialog.java']='package android.app;public class AlertDialog{public interface Click{void click(Object dialog,int which);}public static Click positive;public static class Builder{public Builder(Activity a){}public Builder setTitle(String t){return this;}public Builder setMessage(String m){return this;}public Builder setNegativeButton(String t,Click c){return this;}public Builder setPositiveButton(String t,Click c){positive=c;return this;}public void show(){}}}'
+fixtures['io/airtap/preview/PreviewState.java']=fixtures['io/airtap/preview/PreviewState.java'].replace('static EnrollmentStore.Config config;', 'static void stop(String message){throw new AssertionError("cold owner fixture must use direct persisted stop");}static EnrollmentStore.Config config;')
+fixtures['io/airtap/preview/OwnerIdentityHarness.java']='package io.airtap.preview;import org.json.JSONObject;import android.app.AlertDialog;final class OwnerIdentityHarness{android.app.Activity owner=new android.app.Activity();EnrollmentStore.Config identity;int generation,flushes;String message;boolean visible=true,busy;JSONObject remote;long nextPoll;okhttp3.Call call;void change(String text){message=text;}void flushRevokes(){flushes++;}'+owner_method('    void bindIdentity(EnrollmentStore.Config config){')+owner_method('    private boolean current(int run,EnrollmentStore.Config config){')+owner_method('    void stopAll(){')+'boolean accepts(int run,EnrollmentStore.Config c){return current(run,c);}}'
+
+sources=[JAVA/(n+'.java') for n in ['TrustedGrant','ApprovalRecovery','TaskLease','MultiAiProtocol','ServiceProtocol','ScreenPreparation']]
+test=ROOT/'tests/multi/MultiAiControlTest.java';jdk=Path(os.environ['JAVA_HOME'])/'bin'
+with tempfile.TemporaryDirectory(prefix='airtap-multi-control-') as directory:
+ temp=Path(directory);generated=[]
+ for name,value in fixtures.items():
+  path=temp/name;path.parent.mkdir(parents=True,exist_ok=True);path.write_text(value);generated.append(path)
+ subprocess.run([str(jdk/'javac'),'--release','17','-d',str(temp),*map(str,sources),str(test),*map(str,generated)],check=True)
+ run=subprocess.run([str(jdk/'java'),'-cp',str(temp),'io.airtap.preview.MultiAiControlTest'],capture_output=True,text=True);print(run.stdout,end='')
+ if run.returncode:raise SystemExit(run.stderr)
+if args.output:
+ args.output.parent.mkdir(parents=True,exist_ok=True);args.output.write_text(json.dumps({'status':'passed','passed':run.stdout.count('PASS '),'checks':run.stdout.splitlines(),'recorded_at':datetime.datetime.now(datetime.timezone.utc).isoformat(),'scope':'Production TrustedGrant, TaskLease, MultiAiProtocol and extracted PreviewService authority/fence/command/reconciliation paths with synthetic Android, disk, time, UI/provider drain and WebSocket effects. JSON transport fixture maps object shapes, not parser bytes. No actual Android network, service lifecycle, gestures or files.','extracted_sha256':{k:hashlib.sha256(v.encode()).hexdigest() for k,v in extracted.items()}},indent=2)+'\n')

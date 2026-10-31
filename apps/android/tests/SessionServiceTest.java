@@ -92,8 +92,8 @@ public final class SessionServiceTest {
             control.locked=false;Handler.advance(70000);require(Context.power.lock.isHeld());
         });
         test("controller authorization loss pauses screen while consent remains recoverable",()->{
-            ready();int count=Context.power.lock.acquires;control.authorized=false;Handler.advance(2000);
-            require(!Context.power.lock.isHeld()&&control.restores==1&&!SessionService.readyFor(control,1));
+            ready();int count=Context.power.lock.acquires,restores=control.restores;control.authorized=false;Handler.advance(2000);
+            require(!Context.power.lock.isHeld()&&control.restores==restores+1&&!SessionService.readyFor(control,1));
             require(RESTORING.equals(service.notice.title)&&service.stopped==0&&trust().read(config)!=null);
             Handler.advance(120000);require(Context.power.lock.acquires==count);
         });

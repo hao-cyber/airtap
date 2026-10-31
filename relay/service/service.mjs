@@ -1,5 +1,5 @@
 import { DurableObject } from 'cloudflare:workers';
-import { PairingRelay, publicAsset, route, bearer, readBody, hash, equal, exact, HEX32, HEX64, now } from '../worker/worker.mjs';
+import { MultiPairingRelay, publicAsset, route, bearer, readBody, hash, equal, exact, HEX32, HEX64, now } from '../worker/worker.mjs';
 
 import { FeedbackStore, feedbackEnabled, isFeedbackPath, feedbackListPath, feedbackRequest, adminAuthenticated } from './feedback.mjs';
 
@@ -71,6 +71,18 @@ const toolSpecs = {
 const mcpTools = Object.entries(toolSpecs).map(([action, spec]) => ({ name: 'phone_' + action, description: spec.description,
   inputSchema: { type: 'object', properties: spec.properties, required: Object.keys(spec.properties).filter(k => !spec.optional?.includes(k)), additionalProperties: false },
   annotations: { readOnlyHint: ['status', 'apps', 'windows', 'foreground', 'observe', 'read_tree', 'read_tree_page', 'read_node_text', 'system_actions', 'audio_state', 'file_roots', 'file_list', 'file_stat', 'file_read', 'file_upload_status'].includes(action), openWorldHint: true } }));
+const leaseFields = { lease_id: { type: 'string', pattern: '^[a-f0-9]{32}$' }, lease_epoch: { type: 'integer', minimum: 1 } };
+const taskFields = { task_id: { type: 'string', pattern: '^[a-f0-9]{32}$' } };
+const multiSpecs = Object.fromEntries(Object.entries(toolSpecs).map(([action, spec]) => [action, action === 'status' ? spec :
+  { ...spec, properties: { ...spec.properties, ...leaseFields }, optional: [...(spec.optional ?? []), ...Object.keys(leaseFields)] }]));
+Object.assign(multiSpecs, {
+  task_acquire: { description: 'Acquire one task lease before observing and acting. Keep it through final verification across tool calls. Busy/fencing is not ready; never automatically replay phone actions.', properties: taskFields },
+  task_renew: { description: 'Renew the current task. Persist a random renewal_id and increasing renewal_sequence before sending. Retry that exact intent after a lost reply; recover the sequence from phone_status, never guess.', properties: { ...taskFields, ...leaseFields, renewal_id: taskFields.task_id, renewal_sequence: { type: 'integer', minimum: 1 } } },
+  task_release: { description: 'Release your task after final verification. Does not revoke the pairing. Resolve an uncertain release using the same task/lease identity.', properties: { ...taskFields, ...leaseFields } },
+});
+const multiTools = Object.entries(multiSpecs).map(([action, spec]) => ({ name: 'phone_' + action, description: spec.description,
+  inputSchema: { type: 'object', properties: spec.properties, required: Object.keys(spec.properties).filter(k => !spec.optional?.includes(k)), additionalProperties: false },
+  annotations: { readOnlyHint: action === 'status', openWorldHint: true } }));
 const rpcResponse = (id, result, error) => new Response(JSON.stringify({ jsonrpc: '2.0', id, ...(error ? { error } : { result }) }),
   { headers: { ...HEADERS, 'Content-Type': 'application/json' } });
 
@@ -124,14 +136,14 @@ export default { async fetch(request, env) {
     if (!ingressIp || !env.INGRESS) return reply(503, { error: 'edge_identity_unavailable' });
     // Stop endpoints have a separate bucket so ordinary polling cannot use up
     // their allowance. Edge limits still apply; this is not guaranteed delivery.
-    const stop = request.method === 'POST' && /^\/d\/[a-f0-9]{32}\/v1\/(?:revoke|device\/(?:revoke|unenroll))$/.test(path);
+    const stop = request.method === 'POST' && /^\/d\/[a-f0-9]{32}\/v1\/(?:revoke|tasks\/release|device\/(?:revoke|unenroll|grants\/revoke|invitations\/cancel))$/.test(path);
     const feedback = isFeedbackPath(path.replace(/^\/d\/[a-f0-9]{32}/, ''));
     const admission = await env.INGRESS.limit({ key: ingressIp + (feedback ? ':feedback' : stop ? ':stop' : ':ordinary') });
     if (!admission.success) return reply(429, { error: 'ingress_rate_limited' });
     if (['/agent.md', '/cli/airtap.py'].includes(path)) return await artifact(request, env, path);
     if (path === '/v1/service' && request.method === 'GET') return reply(200, {
       service_id: env.SERVICE_ID, label: env.SERVICE_LABEL, registration_open: env.REGISTRATION_OPEN === 'true', control_open: env.CONTROL_OPEN === 'true',
-      enrollment_mode: 'public', enrollment_expires_at: null, pairing_ttl_seconds: 300, session_ttl_seconds: null, command_budget: null, capabilities: ['companion_v1', 'paged_tree_v1', 'node_text_v1', 'windows_v1', 'volume_v1', 'atomic_input_v1', 'system_actions_v1', 'semantic_node_v1', 'drag_v1', 'gesture_v1', 'files_v1', 'file_share_v1', ...(feedbackEnabled(env) ? ['feedback_v1'] : [])], persistent_pairing: true,
+      enrollment_mode: 'public', enrollment_expires_at: null, pairing_ttl_seconds: 300, session_ttl_seconds: null, command_budget: null, capabilities: ['multi_ai_v1', 'task_lease_v1', 'companion_v1', 'paged_tree_v1', 'node_text_v1', 'windows_v1', 'volume_v1', 'atomic_input_v1', 'system_actions_v1', 'semantic_node_v1', 'drag_v1', 'gesture_v1', 'files_v1', 'file_share_v1', ...(feedbackEnabled(env) ? ['feedback_v1'] : [])], persistent_pairing: true,
     });
     if (isFeedbackPath(path)) {
       if (!feedbackEnabled(env)) return reply(404, { error: 'not_found' });
@@ -278,7 +290,7 @@ export class AdmissionRegistry extends DurableObject {
   }
 }
 
-export class ServiceDeviceRelay extends PairingRelay {
+export class ServiceDeviceRelay extends MultiPairingRelay {
   protocolVersion() { return 4; }
   // The same authenticated device may recover from a half-open old transport.
   // This is not controller authority and does not create or renew a grant.
@@ -288,6 +300,7 @@ export class ServiceDeviceRelay extends PairingRelay {
   expiryValue() { return null; }
   globalExpired() { return this.state.serviceRetired === true; }
   async schedule() {
+    if (this.multi()) return this.scheduleMulti();
     const s = this.state;
     if (!this.globalExpired() && !s.persistent && ['approved', 'waiting', 'pending'].includes(s.phase)) await this.ctx.storage.setAlarm((s.phase === 'approved' ? s.sessionExpires : s.pairingExpires) * 1000);
     else await this.ctx.storage.deleteAlarm();
@@ -317,7 +330,7 @@ export class ServiceDeviceRelay extends PairingRelay {
       const denied = this.controllerAuth(tokenHash);
       if (denied) return { response: denied };
       if (this.state.serviceRetired) return { response: this.json(410, { error: 'device_unenrolled' }) };
-      const quota = await registry(this.env).charge(this.state.serviceId, this.state.deviceHash, 'request', 4096);
+      const quota = rpc.method === 'tools/call' && rpc.params?.name === 'phone_task_release' ? {} : await registry(this.env).charge(this.state.serviceId, this.state.deviceHash, 'request', 4096);
       if (quota.error) return { response: this.json(quota.status, { error: quota.error }) };
       const version = request.headers.get('MCP-Protocol-Version');
       if (version && version !== MCP_VERSION && version !== '2025-06-18') return { response: this.json(400, { error: 'unsupported_mcp_version' }) };
@@ -327,17 +340,17 @@ export class ServiceDeviceRelay extends PairingRelay {
       }
       if (rpc.method === 'initialize') return { response: rpcResponse(rpc.id, { protocolVersion: rpc.params?.protocolVersion === '2025-06-18' ? '2025-06-18' : MCP_VERSION,
         capabilities: { tools: {} }, serverInfo: { name: 'Airtap', version: '0.4.0' },
-        instructions: 'Call phone_status first. Use next_sequence for each tool call. See actual images, observe after actions, never replay unknown actions. Keep the connection for future tasks.' }) };
+        instructions: this.multi() ? 'Call phone_status first. Acquire one phone_task_acquire lease for the whole authorized task, observe before actions, and release after final verification. Phone action tools require your ready lease_id/lease_epoch and next_sequence; task tools use their own task/renewal identity. Preserve renewal_id and increasing renewal_sequence before sending; retry only the same control intent after a lost reply. Never replay unknown phone actions. Keep the pairing for future tasks.' : 'Call phone_status first. Use next_sequence for each tool call. See actual images, observe after actions, never replay unknown actions. Keep the connection for future tasks.' }) };
       if (rpc.method === 'ping') return { response: rpcResponse(rpc.id, {}) };
-      if (rpc.method === 'tools/list') return { response: rpcResponse(rpc.id, { tools: mcpTools }) };
+      if (rpc.method === 'tools/list') return { response: rpcResponse(rpc.id, { tools: this.multi() ? multiTools : mcpTools }) };
       if (rpc.method !== 'tools/call') return { response: rpcResponse(rpc.id, null, { code: -32601, message: 'Method not found' }) };
       const action = typeof rpc.params?.name === 'string' ? rpc.params.name.replace(/^phone_/, '') : '';
-      const spec = toolSpecs[action], args = rpc.params?.arguments ?? {};
+      const spec = (this.multi() ? multiSpecs : toolSpecs)[action], args = rpc.params?.arguments ?? {};
       if (!spec || rpc.params.name !== 'phone_' + action || !args || typeof args !== 'object' || Array.isArray(args)
           || Object.keys(args).some(k => !(k in spec.properties)) || Object.keys(spec.properties).some(k => !spec.optional?.includes(k) && !(k in args)))
         return { response: rpcResponse(rpc.id, null, { code: -32602, message: 'Invalid tool arguments' }) };
-      if (action === 'status') return { response: rpcResponse(rpc.id, { content: [{ type: 'text', text: JSON.stringify({ connected: this.connected(), persistent: true, all_apps: true, next_sequence: (this.state.sequence ?? 0) + 1 }) }] }) };
-      const result = await this.command({ ...args, id: crypto.randomUUID(), action });
+      if (action === 'status') return { response: rpcResponse(rpc.id, { content: [{ type: 'text', text: JSON.stringify({ ...(this.multi() ? this.multiStatus(this.grantByHash(tokenHash)) : {}), connected: this.connected(), persistent: true, all_apps: true, next_sequence: this.controllerSequence(tokenHash) + 1 }) }] }) };
+      const result = action.startsWith('task_') ? await this.taskRequest(action.slice(5), args, this.controllerClaim(tokenHash)) : await this.command({ ...args, id: crypto.randomUUID(), action }, this.controllerClaim(tokenHash));
       return { command: result?.pendingResponse ?? Promise.resolve(result) };
     });
     if (admitted.response) return admitted.response;
@@ -353,7 +366,7 @@ export class ServiceDeviceRelay extends PairingRelay {
       content.push({ type: 'resource', resource: { uri: 'airtap-file:chunk', mimeType: 'application/octet-stream', blob: value.result.data_base64 } });
       delete value.result.data_base64;
     }
-    content.push({ type: 'text', text: JSON.stringify({ ...value, next_sequence: (this.state.sequence ?? 0) + 1 }) });
+    content.push({ type: 'text', text: JSON.stringify({ ...value, next_sequence: this.controllerSequence(tokenHash) + 1 }) });
     return rpcResponse(rpc.id, { content, isError: !response.ok || value.ok !== true });
   }
   async reports(request) {
@@ -373,7 +386,7 @@ export class ServiceDeviceRelay extends PairingRelay {
         if (!this.state.serviceId || this.state.serviceRetired) return this.json(410, { error: 'device_unenrolled' });
         // No phone command admission/sequence, quota charge, or device RPC is involved.
         const actor = { role, device_id: this.state.serviceId, ...(role === 'controller' ? {
-          claim_id: this.state.candidate.id, scope: 'claim:' + this.state.serviceId + ':' + this.state.candidate.id
+          claim_id: this.controllerClaim(tokenHash), scope: 'claim:' + this.state.serviceId + ':' + this.controllerClaim(tokenHash)
         } : {}) };
         return { actor, generation: this.state.generation };
       });
@@ -385,7 +398,7 @@ export class ServiceDeviceRelay extends PairingRelay {
         if (this.state.serviceRetired) return this.json(410, { error: 'device_unenrolled' });
         if (role === 'controller') {
           const denied = this.controllerAuth(tokenHash); if (denied) return denied;
-          if (admitted.generation !== this.state.generation || admitted.actor.claim_id !== this.state.candidate?.id)
+          if (admitted.generation !== this.state.generation || admitted.actor.claim_id !== this.controllerClaim(tokenHash))
             return this.json(410, { error: 'expired_or_revoked' });
         } else if (!equal(tokenHash, this.state.deviceHash)) return this.json(401, { error: 'unauthorized' });
         return this.json(result.status, result.body);
@@ -401,7 +414,7 @@ export class ServiceDeviceRelay extends PairingRelay {
       return this.ctx.blockConcurrencyWhile(async () => {
         if (!equal(tokenHash, this.state.deviceHash)) return this.json(401, { error: 'unauthorized' });
         // Persist the terminal device state before releasing registry capacity.
-        const next = { ...this.state, serviceRetired: true, phase: 'revoked', ticketHash: null, allowTap: false, allowControl: false, allowedPackages: [], generation: this.state.generation + 1 };
+        const next = { ...this.state, ...(this.multi() ? { grants: {}, invitation: null, task: null } : {}), serviceRetired: true, phase: 'revoked', ticketHash: null, allowTap: false, allowControl: false, allowedPackages: [], generation: this.state.generation + 1 };
         this.state = next; this.disconnect('device_unenrolled', 410);
         // A durable registry fence survives failure of this Device write. It
         // keeps capacity reserved, allows only owner cleanup retries, and never
@@ -427,19 +440,19 @@ export class ServiceDeviceRelay extends PairingRelay {
     // Validate the real role before charging this device's quota. Knowing the
     // public route ID (or sending somebody else's bearer) cannot spend it.
     let authenticated = false;
-    if (path === '/v1/pair') authenticated = typeof body?.ticket === 'string' && HEX32.test(body.ticket) && equal(await hash(body.ticket), this.state.ticketHash) && ['waiting', 'pending'].includes(this.state.phase) && now() < this.state.pairingExpires;
+    if (path === '/v1/pair') authenticated = typeof body?.ticket === 'string' && HEX32.test(body.ticket) && (this.multi() ? !!this.state.invitation && equal(await hash(body.ticket), this.state.invitation.ticketHash) && now() < this.state.invitation.expiresAt : equal(await hash(body.ticket), this.state.ticketHash) && ['waiting', 'pending'].includes(this.state.phase) && now() < this.state.pairingExpires);
     else if (path.startsWith('/v1/device')) authenticated = equal(tokenHash, this.state.deviceHash);
     else authenticated = this.controllerAuth(tokenHash, path === '/v1/pair/status') === null;
-    if (authenticated && !['/v1/revoke', '/v1/device/revoke'].includes(path)) {
+    if (authenticated && !['/v1/revoke', '/v1/device/revoke', '/v1/device/grants/revoke', '/v1/device/invitations/cancel', '/v1/tasks/release'].includes(path)) {
       const generation = this.state.generation;
       const result = await registry(this.env).charge(this.state.serviceId, this.state.deviceHash, 'request', 4096);
       if (result.error) return this.json(result.status, { error: result.error });
       await this.expire();
       if (generation !== this.state.generation || this.state.serviceRetired) return this.json(410, { error: 'expired_or_revoked' });
     }
-    if (path === '/v1/device/approve' && (body?.persistent !== true || body?.all_apps !== true || body?.allow_control !== true))
+    if (!this.multi() && path === '/v1/device/approve' && (body?.persistent !== true || body?.all_apps !== true || body?.allow_control !== true))
       return this.json(400, { error: 'complete_phone_approval_required' });
-    if (path === '/v1/device/pairing' && request.method === 'POST' && authenticated) {
+    if (!this.multi() && path === '/v1/device/pairing' && request.method === 'POST' && authenticated) {
       // These digests reach the AI through the owner's phone invitation, before
       // it downloads either artifact. Refuse misconfiguration before minting a
       // ticket; do not replace a pairing just to discover missing metadata.

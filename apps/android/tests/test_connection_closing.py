@@ -41,11 +41,11 @@ import java.util.*;
 import java.nio.charset.StandardCharsets;
 final class PreviewService {
   private WebSocket socket;
-  private boolean authorized = true, connected,notificationBlocked,restoring;
+  private boolean authorized = true, connected,notificationBlocked,restoring,multiMode,multiHello,grantRefreshInFlight;
   private long activeCommand = 1;
   private int generation = 1, retry,connections,attempts,notificationFailures;
   private String state, lastDiagnostic,sessionFence,restoringFence,url="wss://synthetic.invalid",token="synthetic";private RecoveryStatus recoveryStatus;
-  private Runnable reconnectTask,handshakeTask;
+  private Runnable reconnectTask,handshakeTask,helloTask;
   private ConnectivityManager.NetworkCallback networkCallback;
   private Network currentNetwork;
   private final ConnectivityManager network=new ConnectivityManager();
@@ -58,6 +58,10 @@ final class PreviewService {
   int stopped, reconnects, executed;
   ''' + marker + '\n' + deadline + '\n' + methods + '''
   <T>T getSystemService(Class<T> type){return type.cast(network);}
+  // Single-mode fixture: multi dispatch must never silently become a no-op.
+  private void multiMessage(WebSocket ws,int run,String text){throw new AssertionError("unexpected multi dispatch in single fixture");}
+  private void scheduleRestore(int run,long delay){throw new AssertionError("unexpected multi restore in single fixture");}
+  private void disconnectTask(){if(multiMode)throw new AssertionError("unexpected multi task in single fixture");}
   private void command(WebSocket ws,int run,String text){executed++;}
   // Existing closure cases begin with a transport that has completed its actual onOpen callback.
   WebSocketListener connect(WebSocket ws, int run) {
@@ -262,6 +266,7 @@ final class PreviewService {
     void advance(long duration) { long end = time + duration; while (true) { callbacks.sort(Comparator.comparingLong(Scheduled::at)); if (callbacks.isEmpty() || callbacks.get(0).at() > end) break; Scheduled item = callbacks.remove(0); time = item.at(); item.callback().run(); } time = end; }
   }
 }
+final class MultiAiProtocol {static Object hello(){throw new AssertionError("unexpected multi hello in single fixture");}}
 // This fixture exercises ordinary transport failures; TLS classification is covered by test_tls_policy.py.
 final class TlsPolicy {static final String USER_MESSAGE="synthetic security failure";static boolean isSecurityFailure(Throwable failure){return false;}}
 final class SessionService {static boolean ready=true,permitted=true;static boolean notificationsAllowed(PreviewService service){return permitted;}static boolean readyFor(PreviewService service,int generation){return ready;}static void end(PreviewService service){}static void paused(PreviewService service){}}
@@ -297,6 +302,6 @@ assert len(checks) == 15
 if args.output:
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(json.dumps({'passed': len(checks), 'total': 15, 'checks': checks,
-        'scope': 'Host JVM. Exact production connect/callback/deadline/current/disconnected/backoff/stop/suspend/network-reset methods, real ScreenPreparation; fake transport can withhold handshake callbacks and delay main-thread delivery. Not device or real-network validation.',
+        'scope': 'Host JVM. Exact production connect/callback/deadline/current/disconnected/backoff/stop/suspend/network-reset methods, real ScreenPreparation; fake transport can withhold handshake callbacks and delay main-thread delivery. Single-mode cases only; multi-only stubs throw if reached. Not device or real-network validation.',
         'source_sha256': {name: hashlib.sha256((SOURCE / name).read_bytes()).hexdigest()
                           for name in ('PreviewService.java', 'ScreenPreparation.java')}}, indent=2) + '\n')

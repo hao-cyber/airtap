@@ -38,6 +38,7 @@ final class ApprovalRecovery {
         JSONObject pending = new TrustedGrant(app).pending(config);
         if (pending == null) return false;
         String id = pending.getString("approval_id"), claim = pending.getString("claim");
+        boolean multi = new TrustedGrant(app).multi(config);
         final Attempt run;
         synchronized (LOCK) {
             if (attempt == null || !id.equals(attempt.id)) attempt = new Attempt(id);
@@ -46,7 +47,7 @@ final class ApprovalRecovery {
             run.inFlight = true;
         }
         try {
-            RelayApi.requestStatus(config.url, "/v1/device/approve", "POST", config.token,
+            RelayApi.requestStatus(config.url, multi ? "/v1/device/grants/approve" : "/v1/device/approve", "POST", config.token,
                     RelayApi.json("claim_id", claim, "allow_tap", false, "allow_control", true,
                             "allowed_packages", new JSONArray(), "persistent", true, "all_apps", true), (body, status, error) -> {
                 Outcome outcome = Outcome.RETRY;
@@ -54,7 +55,7 @@ final class ApprovalRecovery {
                     TrustedGrant trust = new TrustedGrant(app);
                     EnrollmentStore.Config current = new EnrollmentStore(app).read();
                     JSONObject stillPending = sameIdentity(config, current) ? trust.pending(current) : null;
-                    JSONObject active = sameIdentity(config, current) ? trust.read(current) : null;
+                    JSONObject active = sameIdentity(config, current) ? trust.grant(current, claim) : null;
                     if (stillPending == null || !id.equals(stillPending.optString("approval_id"))) {
                         // A completed duplicate may report success, but must never rewrite its sequence.
                         outcome = active != null && id.equals(active.optString("approval_id")) ? Outcome.APPROVED : Outcome.SUPERSEDED;
@@ -64,6 +65,7 @@ final class ApprovalRecovery {
                         }
                     } else {
                         approved(body);
+                        if (multi && !claim.equals(body.getString("claim_id"))) throw new IllegalArgumentException();
                         outcome = trust.completeApproval(config, id) ? Outcome.APPROVED : Outcome.SUPERSEDED;
                     }
                 } catch (Exception failure) { /* Unknown storage/network result preserves consent, never grants access. */ }

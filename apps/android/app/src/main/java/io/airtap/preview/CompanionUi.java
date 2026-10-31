@@ -31,6 +31,7 @@ final class CompanionUi {
     private Rect imageBounds, imageWindowBounds;
     private int imageRotation;
     private TouchGesture activeGesture;
+    private boolean uncertainGesture;
     private PagedTree<AccessibilityNodeInfo> pagedTree;
     private static final long TREE_SCAN_MS = 5000;
     private static final long TTL = 30000;
@@ -38,6 +39,11 @@ final class CompanionUi {
     CompanionUi(AccessibilityService service, BooleanSupplier authorized) { this.service = service; this.authorized = authorized; }
     void clear() { revision++; nodes.clear(); snapshot = null; imageId = null; pagedTree = null; }
     void cancelGestures() { if (activeGesture != null) activeGesture.cancel(); }
+    boolean quiescent() { return activeGesture == null && !uncertainGesture; }
+    private void gestureFinished() {
+        if (activeGesture != null && !activeGesture.quiescent()) uncertainGesture = true;
+        activeGesture = null;
+    }
     private void check() {
         if (!authorized.getAsBoolean()) throw new ScopedUi.Refused("permission_denied");
         if (FileScopes.pickerActive(service)) throw new ScopedUi.Refused("file_authorization_in_progress");
@@ -259,11 +265,16 @@ final class CompanionUi {
         } catch (Exception error) { clear(); throw error; }
     }
     void execute(JSONObject request, Reply reply, BooleanSupplier commandCurrent) {
+        String owner;
+        try { owner = FileScopes.owner(service); } catch (Exception unavailable) { reply.error("permission_denied"); return; }
+        execute(request, reply, commandCurrent, owner, authorized);
+    }
+    void execute(JSONObject request, Reply reply, BooleanSupplier commandCurrent, String owner, BooleanSupplier shareAuthority) {
         try {
             if (activeGesture != null) throw new ScopedUi.Refused("busy");
             String action = request.getString("action");
             if (FileScopes.ACTIONS.contains(action)) {
-                FileScopes.execute(service, request, () -> {
+                FileScopes.execute(service, owner, request, shareAuthority, () -> {
                     if (!commandCurrent.getAsBoolean()) throw new ScopedUi.Refused("permission_denied");
                     check(); noOwnerWindow();
                 }, reply);
@@ -463,8 +474,8 @@ final class CompanionUi {
             if (!displayBounds().equals(capturedBounds) || capturedRotation != service.getSystemService(android.view.WindowManager.class).getDefaultDisplay().getRotation())
                 throw new ScopedUi.Refused("window_changed");
         }, new TouchGesture.Reply() {
-            public void completed() { activeGesture = null; reply.success(RelayApi.json("accepted", true, "action", action, "requires_observation", true)); }
-            public void error(String code) { activeGesture = null; reply.error(code); }
+            public void completed() { gestureFinished(); reply.success(RelayApi.json("accepted", true, "action", action, "requires_observation", true)); }
+            public void error(String code) { gestureFinished(); reply.error(code); }
         });
         clear(); check(); activeGesture = operation; operation.start();
     }

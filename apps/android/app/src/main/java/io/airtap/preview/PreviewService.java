@@ -20,7 +20,7 @@ import okhttp3.WebSocket;
 import okhttp3.WebSocketListener;
 import okio.ByteString;
 
-/** One explicitly trusted AI, durable across process and network recovery. */
+/** Persisted owner grants and a single task execution context, fenced across reconnects. */
 public final class PreviewService extends AccessibilityService {
     static PreviewService instance;
     private static final Pattern ID = Pattern.compile("[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}");
@@ -44,6 +44,109 @@ public final class PreviewService extends AccessibilityService {
     private int generation, retry, connections, attempts;
     private String url, token;
     private String sessionFence, restoringFence;
+    private boolean multiMode, multiHello, approvalInFlight;
+    private java.util.Set<String> remoteGrants = java.util.Set.of();
+    private Runnable helloTask;
+    private long nextGrantRefresh, nextOwnerRetry;
+    private boolean grantRefreshInFlight;
+    private final TaskLease tasks = new TaskLease(SystemClock::elapsedRealtime, new TaskLease.Effects() {
+        public void invalidate() { invalidateTask(); }
+        public boolean quiescent() { return ui.quiescent() && FileScopes.quiescent(); }
+        public boolean approved(String claim) throws Exception { return !OwnerRevocations.allPending(PreviewService.this,config) && !OwnerRevocations.claimsPending(PreviewService.this,config).contains(claim) && remoteGrants.contains(claim) && new TrustedGrant(PreviewService.this).grant(config,claim) != null; }
+        public void requireLease(String claim) throws Exception { new TrustedGrant(PreviewService.this).requireLease(config,claim); }
+    });
+    private record CommandAuthority(String claim, String grantFence, TaskLease.Ticket ticket, WebSocket socket, int generation, boolean leased) {}
+    private void invalidateTask() { activeCommand=0; recovery.cancel();ui.clear();ui.cancelGestures();WorkspaceShares.revokeAll(this); }
+    private void disconnectTask() { multiHello=false;if(helloTask!=null)main.removeCallbacks(helloTask);helloTask=null;tasks.disconnect(); }
+    private boolean authorityCurrent(CommandAuthority authority) {
+        if(authority==null||!current(authority.socket,authority.generation))return false;
+        try {
+            TrustedGrant trust=new TrustedGrant(this);
+            if(!authority.grantFence.equals(trust.grantFence(config,authority.claim)))return false;
+            if(!multiMode)return true;
+            if(!multiHello||!remoteGrants.contains(authority.claim)||OwnerRevocations.allPending(this,config)||OwnerRevocations.claimsPending(this,config).contains(authority.claim))return false;
+            if(authority.leased)return tasks.current(authority.ticket);
+            JSONObject grant=trust.grant(config,authority.claim);
+            return tasks.idle()&&trust.grants(config).size()==1&&grant!=null&&!ServiceProtocol.bool(grant,"lease_required");
+        }catch(Exception unavailable){return false;}
+    }
+    void ownerModeChanged() { suspend("正在更新 AI 连接");restore(); }
+    void ownerGrantsChanged() {
+        if(multiMode) {
+            try {
+                TrustedGrant trust=new TrustedGrant(this);String holder=tasks.claim();
+                java.util.Set<String> revoked=OwnerRevocations.claimsPending(this,config);
+                if(OwnerRevocations.allPending(this,config)||trust.grants(config).isEmpty()||holder==null&&!revoked.isEmpty()||holder!=null&&(trust.grant(config,holder)==null||revoked.contains(holder)))tasks.disconnect();
+            }
+            catch(Exception unreadable){storageUnavailable();return;}
+            refreshMultiGrants();
+        } else restore();
+    }
+    private void resumeMultiApproval() throws Exception {
+        if(approvalInFlight||new TrustedGrant(this).pending(config)==null)return;
+        approvalInFlight=true;
+        try {
+            boolean sent=ApprovalRecovery.resume(this,config,outcome->{
+                approvalInFlight=false;if(instance!=this)return;
+                if(outcome==ApprovalRecovery.Outcome.APPROVED)ownerGrantsChanged();
+                else if(outcome==ApprovalRecovery.Outcome.RETRY&&!authorized)scheduleRestore(generation,5000);
+            });
+            if(!sent){approvalInFlight=false;if(!authorized)scheduleRestore(generation,5000);}
+        } catch(Exception failure) { approvalInFlight=false;throw failure; }
+    }
+    private java.util.Map<String,String> grantSnapshot() throws Exception {
+        java.util.Map<String,String> result=new java.util.HashMap<>();TrustedGrant trust=new TrustedGrant(this);
+        for(JSONObject g:trust.grants(config)){String claim=g.getString("claim");result.put(claim,trust.grantFence(config,claim));}return result;
+    }
+    private void retainRemote(java.util.Set<String> remote,java.util.Map<String,String> snapshot) throws Exception {
+        TrustedGrant trust=new TrustedGrant(this);java.util.Set<String> keep=new java.util.HashSet<>(remote);
+        for(JSONObject g:trust.grants(config)){String claim=g.getString("claim");if(!java.util.Objects.equals(snapshot.get(claim),trust.grantFence(config,claim)))keep.add(claim);}
+        trust.retain(config,keep);FileScopes.retain(this,trust.validClaims(config));
+    }
+    private void refreshMultiGrants() {
+        if(config==null||!multiMode||grantRefreshInFlight)return;int run=generation;String expected=sessionFence;
+        final java.util.Map<String,String> snapshot;
+        try{snapshot=grantSnapshot();}catch(Exception unreadable){storageUnavailable();return;}
+        grantRefreshInFlight=true;nextGrantRefresh=SystemClock.elapsedRealtime()+10000;
+        RelayApi.requestStatus(config.url,"/v1/device/grants","GET",config.token,null,(body,status,error)->{
+            if(instance!=this||generation!=run)return;grantRefreshInFlight=false;
+            if(error!=null){if(status==401||status==403||status==410)stop("连接已解除，请重新邀请自己的 AI");return;}
+            try{
+                TrustedGrant trust=new TrustedGrant(this);if(expected!=null&&!trust.isCurrent(config,expected))return;
+                remoteGrants=MultiAiProtocol.claims(body);retainRemote(remoteGrants,snapshot);
+                String holder=tasks.claim();if(holder!=null&&trust.grant(config,holder)==null)tasks.disconnect();
+                if(trust.grants(config).isEmpty()){suspend("等待连接自己的 AI");SessionService.end(this);}
+                else if(!authorized)restore();
+            }catch(Exception unreadable){storageUnavailable();}
+        });
+    }
+    private void restoreMulti() throws Exception {
+        config=new EnrollmentStore(this).read();multiMode=true;
+        if(SystemClock.elapsedRealtime()>=nextOwnerRetry){nextOwnerRetry=SystemClock.elapsedRealtime()+5000;OwnerRevocations.flush(this,config,null);}
+        if(OwnerRevocations.allPending(this,config))return;
+        resumeMultiApproval();
+        if(authorized){if(SystemClock.elapsedRealtime()>=nextGrantRefresh)refreshMultiGrants();return;}
+        if(restoring)return;
+        TrustedGrant trust=new TrustedGrant(this);String expected=trust.sessionFence(config);
+        if(expected==null)return;
+        if(!SessionService.notificationsAllowed(this)){waitForNotifications();return;}
+        restoringFence=expected;if(!SessionService.ensureRestoring(this)){notificationUnavailable(generation,true);return;}
+        final java.util.Map<String,String> snapshot=grantSnapshot();
+        restoring=true;int run=generation;state="正在核实已保存的 AI 连接";recoveryStatus=RecoveryStatus.VERIFYING_CONNECTION;
+        // Local multi mode is the durable, explicitly requested migration intent. Repeating enable is idempotent.
+        RelayApi.requestStatus(config.url,"/v1/device/multi/enable","POST",config.token,RelayApi.json("capabilities",new org.json.JSONArray().put("multi_ai_v1").put("task_lease_v1")),(body,status,error)->{
+            if(instance!=this||generation!=run)return;restoring=false;
+            try{
+                if(!trust.isCurrent(config,expected))return;
+                if(error!=null){if(status==401||status==403||status==410)stopRestoring(expected,"连接已解除，请重新邀请自己的 AI");else{recoveryStatus=RecoveryStatus.NETWORK_RECONNECTING;scheduleRestore(run,10000);}return;}
+                remoteGrants=MultiAiProtocol.claims(body);retainRemote(remoteGrants,snapshot);
+                if(trust.grants(config).isEmpty()){SessionService.end(this);return;}
+                if(!trust.isCurrent(config,expected))return;
+                notificationBlocked=false;sessionFence=expected;restoringFence=null;authorized=true;url=RelayAddress.webSocket(config.url);token=config.token;PreviewState.config=config;
+                SessionService.begin(this);
+            }catch(Exception unreadable){storageUnavailable();}
+        });
+    }
     private String state = "等待连接自己的 AI";
     private String lastDiagnostic = "";
     private RecoveryStatus recoveryStatus = RecoveryStatus.WAITING_FOR_AI;
@@ -108,7 +211,11 @@ public final class PreviewService extends AccessibilityService {
     boolean notificationBlocked() { return notificationBlocked; }
 
     void restore() {
-        if (authorized || restoring || instance != this) return;
+        if(instance!=this)return;
+        try { if(new TrustedGrant(this).multi(new EnrollmentStore(this).read())) { restoreMulti(); return; } }
+        catch(Exception unreadable){storageUnavailable();return;}
+        multiMode=false;
+        if (authorized || restoring) return;
         try {
             config = new EnrollmentStore(this).read();
             JSONObject trust = new TrustedGrant(this).read(config);
@@ -237,6 +344,7 @@ public final class PreviewService extends AccessibilityService {
         finally { suspend(message); SessionService.end(this); recoveryStatus = RecoveryStatus.WAITING_FOR_AI; notificationFailures = 0; PreviewState.grantAvailable = false; }
     }
     private void suspend(String message) {
+        disconnectTask();grantRefreshInFlight=false;
         authorized = false; connected = false; restoring = false; activeCommand = 0; generation++;
         sessionFence = null; restoringFence = null;
         transportOpen.set(false);
@@ -288,7 +396,10 @@ public final class PreviewService extends AccessibilityService {
                     state = "已连接（手机主动 WSS）";
                     recoveryStatus = RecoveryStatus.CONNECTED;
                     lastDiagnostic = "HTTP=101 exception=none cause=none";
-                    ws.send("hello");
+                    if(multiMode){
+                        multiHello=false;ws.send(MultiAiProtocol.hello().toString());
+                        helloTask=()->{if(current(ws,run)&&!multiHello){disconnected(ws,run,0);ws.cancel();}};main.postDelayed(helloTask,HANDSHAKE_TIMEOUT_MS);
+                    }else ws.send("hello");
                 });
             }
             @Override public void onMessage(WebSocket ws, String text) {
@@ -297,7 +408,7 @@ public final class PreviewService extends AccessibilityService {
                             PreviewDiagnostics.Reason.request_too_large, 1009, run, socket == ws ? 1 : 0);
                     ws.close(1009, "request too large"); return;
                 }
-                main.post(() -> { if (current(ws, run)) command(ws, run, text); });
+                main.post(() -> { if (current(ws, run)) { if(multiMode)multiMessage(ws,run,text);else command(ws,run,text); } });
             }
             @Override public void onMessage(WebSocket ws, ByteString bytes) {
                 PreviewDiagnostics.event(PreviewService.this, PreviewDiagnostics.Event.socket_close_requested,
@@ -378,11 +489,13 @@ public final class PreviewService extends AccessibilityService {
                 PreviewDiagnostics.Reason.none, status, run, socket == ws ? 1 : 0);
         if (socket != ws || generation != run) return;
         cancelHandshake();
+        disconnectTask();
         socket = null;
         connected = false;
         activeCommand = 0;
         recovery.cancel();
         if (!valid()) { stop("会话授权到期，请重新配对"); return; }
+        if(multiMode&&status==1008){suspend("连接需要重新核实，原授权已保留");scheduleRestore(generation,2000);return;}
         if (status == 401 || status == 403 || status == 410 || status == 1008) { stop("中继拒绝授权，请重新配对"); return; }
         long delay = Math.min(30000, 1000L << Math.min(retry++, 5));
         delay = (long) (delay * (0.75 + jitter.nextDouble() * 0.5));
@@ -441,6 +554,7 @@ public final class PreviewService extends AccessibilityService {
                 PreviewDiagnostics.Reason.network_change, 0, run, -1);
         WebSocket previous = socket;
         cancelHandshake();
+        disconnectTask();
         socket = null;
         connected = false;
         activeCommand = 0;
@@ -456,14 +570,43 @@ public final class PreviewService extends AccessibilityService {
         scheduleConnect(run, 500);
     }
 
+    private void multiMessage(WebSocket ws,int run,String text) {
+        try{
+            JSONObject message=new JSONObject(text);String type=message.getString("type");
+            if("hello_ack".equals(type)){
+                if(multiHello)throw new IllegalArgumentException();MultiAiProtocol.helloAck(message);multiHello=true;
+                if(helloTask!=null)main.removeCallbacks(helloTask);helloTask=null;tasks.connected();return;
+            }
+            if(!multiHello)throw new IllegalArgumentException();
+            if("task_fence".equals(type)){
+                TaskLease.Fence fence=MultiAiProtocol.fence(message);String error=tasks.apply(fence);
+                JSONObject ack=RelayApi.json("type","task_fence_ack","operation_id",fence.operation(),"lease_epoch",fence.epoch(),"ok",error==null);
+                if(error!=null)ack.put("error",error);if(current(ws,run))ws.send(ack.toString());
+                if("storage_failure".equals(error)||"grant_unavailable".equals(error)){disconnected(ws,run,0);ws.close(1011,"revalidate_grants");}
+                return;
+            }
+            if(!"command".equals(type))throw new IllegalArgumentException();
+            command(ws,run,text);
+        }catch(Exception malformed){disconnectTask();ws.close(1008,"invalid_multi_message");}
+    }
     private void command(WebSocket ws, int run, String text) {
         String id = null;
         try {
-            JSONObject request = new JSONObject(text); id = request.getString("id");
+            JSONObject request = new JSONObject(text);TrustedGrant trust=new TrustedGrant(this);String owner;TaskLease.Ticket ticket=null;boolean leased=false;
+            if(multiMode){
+                MultiAiProtocol.Envelope envelope=MultiAiProtocol.envelope(request);request=envelope.command();owner=envelope.claim();
+                if(envelope.lease()!=null){ticket=tasks.ticket(owner,envelope.lease(),envelope.epoch());leased=true;}
+            }else {JSONObject grant=trust.read(config);if(grant==null)throw new ScopedUi.Refused("permission_denied");owner=grant.getString("claim");}
+            id = request.getString("id");
             if (!ID.matcher(id).matches()) { ws.close(1008, "invalid_id"); return; }
             long sequence = ServiceProtocol.integer(request, "sequence");
             if (!current(ws, run)) return;
-            new TrustedGrant(this).consume(config, sequence);
+            String grantFence=trust.grantFence(config,owner);
+            CommandAuthority authority=new CommandAuthority(owner,grantFence,ticket,ws,run,leased);
+            if(grantFence==null||!authorityCurrent(authority))throw new ScopedUi.Refused("task_not_ready");
+            if (activeCommand != 0 || !ui.quiescent() || !FileScopes.quiescent()) { error(ws,id,"busy");return; }
+            if(multiMode)trust.consume(config,owner,sequence);else trust.consume(config, sequence);
+            if(!authorityCurrent(authority))throw new ScopedUi.Refused("task_not_ready");
             request.remove("sequence");
             String action = request.getString("action");
             if ("ping".equals(action)) {
@@ -484,7 +627,8 @@ public final class PreviewService extends AccessibilityService {
             ui.validateRequest(request);
             long command = ++commandSerial; activeCommand = command;
             String requestId = id;
-            java.util.function.BooleanSupplier commandCurrent = () -> current(ws, run) && activeCommand == command;
+            java.util.function.BooleanSupplier commandCurrent = () -> authorityCurrent(authority) && activeCommand == command;
+            JSONObject actionRequest=request;
             CompanionUi.Reply reply = new CompanionUi.Reply() {
                 private boolean finish() {
                     if (!commandCurrent.getAsBoolean()) return false;
@@ -496,9 +640,9 @@ public final class PreviewService extends AccessibilityService {
             recovery.prepare(commandCurrent, new ScreenPreparation.Completion() {
                 @Override public void ready(boolean recovered) {
                     if (!commandCurrent.getAsBoolean()) return;
-                    if (recovered && request.has("snapshot_id")) { reply.error("fresh_snapshot_required"); return; }
-                    if (recovered && request.has("observation_id")) { reply.error("fresh_observation_required"); return; }
-                    ui.execute(request, reply, commandCurrent);
+                    if (recovered && actionRequest.has("snapshot_id")) { reply.error("fresh_snapshot_required"); return; }
+                    if (recovered && actionRequest.has("observation_id")) { reply.error("fresh_observation_required"); return; }
+                    ui.execute(actionRequest, reply, commandCurrent, authority.claim, () -> authorityCurrent(authority));
                 }
                 @Override public void error(String code) { reply.error(code); }
             });

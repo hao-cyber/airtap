@@ -5,7 +5,7 @@ import java.util.*;
 import java.util.concurrent.atomic.*;
 
 public final class PrivateFileStorageTest {
-    static int passed;static final String A="a".repeat(32),B="b".repeat(32),ID="1".repeat(32);
+    static int passed;static final String A="a".repeat(32),B="b".repeat(32),C="c".repeat(32),ID="1".repeat(32);
     interface Test{void run()throws Exception;}
     static void test(String name,Test t)throws Exception{t.run();passed++;System.out.println("PASS "+name);}
     static void check(boolean b){if(!b)throw new AssertionError();}
@@ -16,6 +16,14 @@ public final class PrivateFileStorageTest {
     static Properties record(Path m,String state,int size)throws Exception{Properties p=new Properties();p.setProperty("state",state);p.setProperty("size",String.valueOf(size));Files.createDirectories(m.getParent());try(OutputStream out=Files.newOutputStream(m)){p.store(out,null);}return p;}
     static void begin(Path root,String claim,String id,int size)throws Exception{new FileTransferStore(root.resolve(claim),()->{}).begin("file-"+id,id,size,FileTransferStore.digest(new byte[size]));}
     static long charged(PrivateFileStorage s)throws Exception{var u=s.usage(true);return u.usedBytes()+u.reservedBytes();}
+    static Path safPayload(Path root,String claim,long expires)throws Exception{
+        Path journal=root.resolve(claim+"/saf/publications/"+ID+".properties");Properties p=record(journal,"writing",10000);
+        p.setProperty("expires",Long.toString(expires));p.setProperty("reference","synthetic-provider/"+claim);
+        try(OutputStream out=Files.newOutputStream(journal)){p.store(out,null);}
+        record(root.resolve(claim+"/saf/staging/transfers/"+ID+".properties"),"finished",10000);
+        Path blob=root.resolve(claim+"/saf/staging/workspace/"+ID);file(blob,10000);return blob;
+    }
+    static Properties safJournal(Path root,String claim)throws Exception{Properties p=new Properties();try(InputStream in=Files.newInputStream(root.resolve(claim+"/saf/publications/"+ID+".properties"))){p.load(in);}return p;}
     public static void main(String[]args)throws Exception{
         test("unpaired empty storage is inspectable and clearable",()->{var s=storage(fresh(),1048576);check(s.usage(false).usedBytes()==0);check(s.clearWorkspaces().workspaceBytes()==0);});
         test("all claims and SAF local bytes count while external files do not",()->{Path r=fresh();file(r.resolve(A+"/workspace/old"),100);file(r.resolve(B+"/workspace/new"),200);file(r.resolve(A+"/saf/staging/workspace/blob"),300);var u=storage(r,10000).usage(true);check(u.usedBytes()==600&&u.workspaceBytes()==300);});
@@ -46,6 +54,26 @@ public final class PrivateFileStorageTest {
             Path r=fresh();long now=System.currentTimeMillis();Path m=r.resolve(A+"/saf/publications/"+ID+".properties");Properties p=record(m,"receiving",100000);p.setProperty("expires","1");try(OutputStream out=Files.newOutputStream(m)){p.store(out,null);}
             file(r.resolve(A+"/saf/staging/transfers/"+ID+".part"),90000);var s=storage(r,200000);refused("file_private_storage_budget",()->s.checkNew(100000,100000000));
             s.reclaimSaf(A,now,false);check(!Files.exists(r.resolve(A+"/saf/staging/transfers/"+ID+".part")));s.checkNew(100000,100000000);
+        });
+        test("multi-grant reclamation preserves both valid owners and retires only inactive third claim",()->{
+            Path r=fresh();long now=System.currentTimeMillis();Path a=safPayload(r,A,now+100000),b=safPayload(r,B,now+100000),c=safPayload(r,C,now+100000);
+            byte[] aJournal=Files.readAllBytes(r.resolve(A+"/saf/publications/"+ID+".properties")),bJournal=Files.readAllBytes(r.resolve(B+"/saf/publications/"+ID+".properties"));
+            var s=storage(r,1000000);s.reclaimSaf(Set.of(A,B),now,true);
+            check(Files.size(a)==10000&&Files.size(b)==10000&&!Files.exists(c));
+            check(Arrays.equals(aJournal,Files.readAllBytes(r.resolve(A+"/saf/publications/"+ID+".properties")))&&Arrays.equals(bJournal,Files.readAllBytes(r.resolve(B+"/saf/publications/"+ID+".properties"))));
+            Properties retired=safJournal(r,C);check(SafStagingCleanup.reclaimed(retired)&&retired.getProperty("reference").equals("synthetic-provider/"+C)&&retired.getProperty("reclaim_reason").equals("pairing_inactive"));
+            s.reclaimSaf(Set.of(A,B),now,true);check(Files.size(a)==10000&&Files.size(b)==10000);
+        });
+        test("expired payload of valid A is reclaimed while valid B unexpired payload survives",()->{
+            Path r=fresh();long now=System.currentTimeMillis();Path a=safPayload(r,A,now-1),b=safPayload(r,B,now+100000);
+            storage(r,1000000).reclaimSaf(Set.of(A,B),now,true);
+            check(!Files.exists(a)&&Files.size(b)==10000&&safJournal(r,A).getProperty("reclaim_reason").equals("expired")&&!SafStagingCleanup.reclaimed(safJournal(r,B)));
+        });
+        test("shrinking valid claim set retires A without changing B provider journal or payload",()->{
+            Path r=fresh();long now=System.currentTimeMillis();Path a=safPayload(r,A,now+100000),b=safPayload(r,B,now+100000);var s=storage(r,1000000);
+            s.reclaimSaf(Set.of(A,B),now,true);byte[] journal=Files.readAllBytes(r.resolve(B+"/saf/publications/"+ID+".properties"));s.reclaimSaf(Set.of(B),now,true);
+            check(!Files.exists(a)&&Files.size(b)==10000&&SafStagingCleanup.reclaimed(safJournal(r,A)));
+            check(Arrays.equals(journal,Files.readAllBytes(r.resolve(B+"/saf/publications/"+ID+".properties"))));
         });
         test("orphan staged files have age fence for active claim and explicit old-claim recovery",()->{
             Path r=fresh();Path current=r.resolve(B+"/saf/staging/transfers/"+ID+".part"),old=r.resolve(A+"/saf/staging/transfers/"+ID+".part");file(current,100);file(old,100);

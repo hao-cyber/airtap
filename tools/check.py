@@ -16,11 +16,12 @@ ROOT = Path(__file__).resolve().parents[1]
 HOST_SCRIPTS = (
     'test_observation_pages', 'test_atomic_input', 'test_drag', 'test_semantic_nodes', 'test_windows', 'test_session_screen', 'test_session_recovery_gate',
     'test_audio_volume', 'test_file_transfer', 'test_approval_recovery',
-    'test_approval_scheduling', 'test_setup_recovery', 'test_tls_policy', 'test_feedback', 'test_invitation_feedback',
+    'test_approval_scheduling', 'test_task_lease', 'test_multi_ai_control', 'test_multi_file_scopes',
+    'test_enrollment_record_limits', 'test_owner_revocations', 'test_setup_recovery', 'test_tls_policy', 'test_feedback', 'test_invitation_feedback',
 )
 PROTOCOL_SCRIPTS = (
     'companion-roundtrip', 'file-transfer-roundtrip', 'usage-storage',
-    'pair-recovery', 'feedback-roundtrip', 'invitation-artifacts',
+    'pair-recovery', 'feedback-roundtrip', 'invitation-artifacts', 'multi-ai-roundtrip',
 )
 
 
@@ -97,6 +98,7 @@ def commands(suite, output, install_deps):
         for name in PROTOCOL_SCRIPTS:
             steps.append((name, ['node', str(ROOT / 'relay/service/tests' / (name + '.mjs')),
                                 '--output', str(output / (name + '.json'))], ROOT, 240))
+        steps.append(('multi-ai-state', ['node', '--test', str(ROOT / 'relay/service/tests/multi-ai-state.test.mjs')], ROOT, 60))
     if suite in ('android', 'all'):
         steps.append(('android-compile-lint', ['sh', './gradlew', '--no-daemon', '--console=plain',
                                              ':app:compileDebugJavaWithJavac', ':app:lintDebug'], ROOT / 'apps/android', 1200))

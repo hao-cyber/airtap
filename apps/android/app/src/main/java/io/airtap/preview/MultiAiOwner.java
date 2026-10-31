@@ -1,0 +1,150 @@
+package io.airtap.preview;
+
+import android.app.Activity;
+import android.app.AlertDialog;
+import android.content.*;
+import android.view.WindowManager;
+import android.widget.*;
+import org.json.*;
+import java.util.*;
+import java.util.function.Consumer;
+
+/** Protected owner surface. Adding an invitation never stops another approved AI. */
+final class MultiAiOwner {
+    private final Activity owner;
+    private final Runnable changed;
+    private final Consumer<String> folder;
+    private EnrollmentStore.Config identity;
+    private JSONObject remote;
+    private String message="";
+    private boolean busy,visible;
+    private int generation;
+    private long nextPoll;
+    private okhttp3.Call call;
+    MultiAiOwner(Activity owner,Runnable changed,Consumer<String> folder){this.owner=owner;this.changed=changed;this.folder=folder;}
+    boolean enabled(EnrollmentStore.Config config){try{return new TrustedGrant(owner).multi(config);}catch(Exception e){return false;}}
+    void bindIdentity(EnrollmentStore.Config config){
+        if(identity==null||config==null||!identity.url.equals(config.url)||!identity.token.equals(config.token)){
+            generation++;if(call!=null)call.cancel();call=null;busy=false;remote=null;nextPoll=0;
+        }
+        identity=config;
+    }
+    void resume(EnrollmentStore.Config config){bindIdentity(config);visible=true;nextPoll=0;}
+    void pause(){visible=false;generation++;busy=false;if(call!=null)call.cancel();call=null;}
+    private void change(String text){message=text;changed.run();}
+    private boolean current(int run,EnrollmentStore.Config config){return visible&&!owner.isDestroyed()&&run==generation&&identity!=null&&config.url.equals(identity.url)&&config.token.equals(identity.token);}
+    void enable(EnrollmentStore.Config config){
+        bindIdentity(config);
+        new AlertDialog.Builder(owner).setTitle("连接多个自己的 AI")
+          .setMessage("会保留现有 AI 的连接。每位 AI 分别核码授权，按完整任务轮流使用同一部手机。它们使用同一套手机账号和画面，没有账号隔离。支持任务接管的新版接入工具完成准备后，才能添加下一位 AI。")
+          .setNegativeButton("返回",null).setPositiveButton("开启并保留原连接",(d,w)->{
+            try{new TrustedGrant(owner).enableMulti(config);remote=null;nextPoll=0;if(PreviewService.instance!=null)PreviewService.instance.ownerModeChanged();change("正在保留原连接并准备多 AI 管理…");poll(true);}
+            catch(Exception failure){change("未能保存设置，原连接记录已保留，请检查手机存储。");}
+          }).show();
+    }
+    void tick(){if(visible&&identity!=null&&enabled(identity)&&!busy&&android.os.SystemClock.elapsedRealtime()>=nextPoll)poll(false);}
+    private void poll(boolean enable){
+        if(busy||identity==null)return;busy=true;int run=generation;EnrollmentStore.Config config=identity;
+        String path=enable?"/v1/device/multi/enable":"/v1/device/grants";
+        call=RelayApi.requestStatus(config.url,path,enable?"POST":"GET",config.token,enable?RelayApi.json("capabilities",new JSONArray().put("multi_ai_v1").put("task_lease_v1")):null,(body,status,error)->{
+            if(!current(run,config))return;busy=false;call=null;nextPoll=android.os.SystemClock.elapsedRealtime()+3000;
+            if(error!=null){if(status==409&&!enable){poll(true);return;}change("暂时无法核实服务状态，原授权和邀请已保留，可稍后重试。");return;}
+            try{MultiAiProtocol.claims(body);remote=body;restoreInvitation();changed.run();}
+            catch(Exception malformed){change("服务返回的连接状态无法核实，请检查版本或稍后重试。");}
+        });
+    }
+    private Button button(String text,Runnable action){Button b=new Button(owner){@Override public boolean onFilterTouchEventForSecurity(android.view.MotionEvent event){return (event.getFlags()&(android.view.MotionEvent.FLAG_WINDOW_IS_OBSCURED|android.view.MotionEvent.FLAG_WINDOW_IS_PARTIALLY_OBSCURED))==0&&super.onFilterTouchEventForSecurity(event);}};b.setText(text);b.setFilterTouchesWhenObscured(true);b.setEnabled(!busy);AppUi.button(b,AppUi.SECONDARY);b.setOnClickListener(v->action.run());return b;}
+    private void text(LinearLayout box,String value,int size){box.addView(AppUi.text(owner,value,size));AppUi.space(box,12);}
+    void render(LinearLayout box){
+        text(box,"我的 AI 连接",28);text(box,"分别授权，同一时间由一位 AI 完成一个任务。手机账号与画面由这些 AI 共同使用。",16);
+        if(!message.isEmpty())text(box,message,15);
+        try{
+            TrustedGrant trust=new TrustedGrant(owner);List<JSONObject> grants=trust.grants(identity);
+            if(OwnerRevocations.allPending(owner,identity)){text(box,"所有 AI 已在本机停止，正在确认服务端解除。确认前暂不新建邀请。",16);box.addView(button("继续确认解除",()->flushRevokes()));return;}
+            if(!OwnerRevocations.claimsPending(owner,identity).isEmpty()){text(box,"部分 AI 已在本机停止，服务端解除还在确认。",15);box.addView(button("继续确认解除",()->flushRevokes()));}
+            for(JSONObject grant:grants){String claim=grant.getString("claim");text(box,grant.getString("name"),20);text(box,grant.optBoolean("lease_ready",false)?"已授权 · 按任务轮流使用":"已授权 · 等待 AI 完成任务接管准备",14);
+                box.addView(button("文件夹权限",()->folder.accept(claim)));box.addView(button("解除这位 AI",()->revoke(claim,grant.optString("name","我的 AI"))));
+            }
+            JSONObject pending=trust.pending(identity),invitation=trust.invitation(identity),candidate=null;
+            if(remote!=null&&!remote.isNull("invitation")){JSONObject r=remote.getJSONObject("invitation");if(invitation!=null&&invitation.getString("invitation_id").equals(r.getString("invitation_id"))&&invitation.getLong("invitation_sequence")==r.getLong("invitation_sequence")&&!r.isNull("candidate")&&!"canceled".equals(invitation.getString("phase")))candidate=r.getJSONObject("candidate");}
+            if(pending!=null){text(box,"正在完成你已核码确认的连接，其他 AI 的授权保持有效。",16);box.addView(button("继续核实",()->{if(PreviewService.instance!=null)PreviewService.instance.restore();poll(false);}));}
+            else if(candidate!=null){String claim=MultiAiProtocol.hex(candidate,"claim_id"),code=candidate.getString("verification_code"),name=candidate.getString("name");if(!code.matches("[0-9]{6}"))throw new IllegalArgumentException();text(box,name+" 请求连接（名称由对方提供）",18);text(box,code.substring(0,3)+" "+code.substring(3),44);text(box,"与自己的 AI 告诉你的六位数字核对。确认后它可持续查看和操作整台手机。",16);box.addView(button("数字一致，连接这位 AI",()->approve(claim,name)));}
+            else if(invitation!=null){String phase=invitation.getString("phase");text(box,"canceled".equals(phase)?"正在确认取消这次邀请":"邀请已保存，交给另一位自己的 AI",18);
+                if("ready".equals(phase)&&invitation.getLong("pairing_expires_at")>System.currentTimeMillis()/1000){box.addView(button("复制接入邀请",()->copy(invitation)));box.addView(button("查看接入邀请",()->show(invitation)));}
+                else if(!"canceled".equals(phase))box.addView(button("继续准备原邀请",()->create(false)));
+            }
+            if(invitation!=null||pending!=null)box.addView(button("取消这次邀请",this::cancel));
+            else if(grants.size()<4)box.addView(button("添加另一位自己的 AI",()->create(true)));
+            else text(box,"已连接 4 位 AI。解除不再使用的一位后，可添加新的 AI。",15);
+            box.addView(button("刷新连接状态",()->poll(false)));
+            box.addView(button("停止并解除所有 AI",this::stopAll));
+        }catch(Exception unreadable){text(box,"暂时无法读取本机授权，原记录已保留。请检查手机存储。",16);}
+    }
+    private void flushRevokes(){try{OwnerRevocations.flush(owner,identity,()->{if(visible)changed.run();});}catch(Exception failure){change("解除结果尚未确认，请检查网络或存储后重试。");}}
+    private void restoreInvitation()throws Exception {
+        flushRevokes();
+        JSONObject invite=new TrustedGrant(owner).invitation(identity);
+        if(invite!=null&&"canceled".equals(invite.getString("phase"))){cancel();return;}
+    }
+    private void create(boolean fresh){
+        if(busy||identity==null)return;
+        try{
+            if(OwnerRevocations.allPending(owner,identity)){change("请先确认全部 AI 已解除，再创建新的邀请。");return;}
+            if(remote==null){poll(true);return;}
+            JSONObject invitation=new TrustedGrant(owner).beginInvitation(identity,MultiAiProtocol.integer(remote,"invitation_sequence",true));
+            if("canceled".equals(invitation.getString("phase"))){cancel();return;}
+            busy=true;int run=generation;EnrollmentStore.Config config=identity;
+            JSONObject body=RelayApi.json("invitation_id",invitation.getString("invitation_id"),"invitation_sequence",invitation.getLong("invitation_sequence"),"ticket",invitation.getString("ticket"));
+            call=RelayApi.requestStatus(config.url,"/v1/device/invitations","POST",config.token,body,(reply,status,error)->{
+                if(!current(run,config))return;busy=false;call=null;
+                if(error!=null){change(status==409?"另一位 AI 的任务接管准备尚未完成，或原邀请仍在等待。请让原 AI 使用新版接入工具完成一次任务接管，再刷新重试。":"邀请结果尚未确认。原邀请已保存，请继续准备，不会更换票据。");return;}
+                try{ServiceProtocol.version(reply);String id=MultiAiProtocol.hex(reply,"invitation_id");long sequence=MultiAiProtocol.integer(reply,"invitation_sequence",false),expiry=MultiAiProtocol.integer(reply,"pairing_expires_at",false);
+                    if(!id.equals(invitation.getString("invitation_id"))||sequence!=invitation.getLong("invitation_sequence")||!reply.has("expires_at")||!reply.isNull("expires_at"))throw new IllegalArgumentException();
+                    new TrustedGrant(owner).completeInvitation(config,id,sequence,expiry,reply.getString("cli_sha256"),reply.getString("agent_sha256"));change("邀请已准备好，复制给另一位自己的 AI，回来核对六位数字。");poll(false);
+                }catch(Exception invalid){change("邀请尚未核实，请继续准备原邀请。原有 AI 不受影响。");}
+            });
+        }catch(Exception failure){change("暂时无法保存新邀请。原有 AI 授权未更换，请检查存储或取消已结束的邀请后重试。");}
+    }
+    private String prompt(JSONObject invite)throws Exception {
+        long expiry=invite.getLong("pairing_expires_at");String ticket=invite.getString("ticket");if(expiry<=System.currentTimeMillis()/1000)throw new IllegalArgumentException();
+        InvitationArtifacts artifacts=new InvitationArtifacts(identity.url,InvitationArtifacts.fingerprint(identity.token),ticket,expiry,invite.getString("cli_sha256"),invite.getString("agent_sha256"));
+        return "请接入我的 Airtap 手机，使用支持 task_lease_v1 的新版工具（Python CLI 申请时使用 pair-start --task-lease）。\n"+artifacts.verificationInstructions()+"\n接入说明：\n"+identity.url+"/agent.md\nPython CLI：\n"+identity.url+"/cli/airtap.py\n手机服务地址：\n"+identity.url+"\n接入票据（不要公开）：\nAIRTAP_PAIRING_TICKET="+ticket+"\n申请后把六位核对码告诉我，等我在手机确认。保存私有连接配置；每个完整任务先取得任务租约，必要时续租，完成后释放任务，不撤销授权。重新取得任务后先观察，未知操作不要重放。";
+    }
+    private void copy(JSONObject invite){try{ClipData data=ClipData.newPlainText("我的 AI 手机邀请",prompt(invite));android.os.PersistableBundle extras=new android.os.PersistableBundle();extras.putBoolean("android.content.extra.IS_SENSITIVE",true);data.getDescription().setExtras(extras);owner.getSystemService(ClipboardManager.class).setPrimaryClip(data);change("已复制，粘贴给你自己的 AI 即可。");}catch(Exception failure){change("邀请已过期或尚未核实，请取消后准备新邀请。");}}
+    private void show(JSONObject invite){try{TextView t=AppUi.text(owner,prompt(invite),14);t.setTextIsSelectable(true);ScrollView scroll=new ScrollView(owner);scroll.addView(t);AlertDialog dialog=new AlertDialog.Builder(owner).setTitle("我的 AI 接入邀请").setView(scroll).setPositiveButton("返回",null).create();dialog.getWindow().addFlags(WindowManager.LayoutParams.FLAG_SECURE);dialog.show();}catch(Exception failure){change("邀请已过期或尚未核实。");}}
+    private void approve(String claim,String name){try{if(OwnerRevocations.allPending(owner,identity))return;new TrustedGrant(owner).beginApproval(identity,claim,name);if(PreviewService.instance!=null)PreviewService.instance.restore();change("正在完成你已核码确认的连接，原有 AI 授权保持不变。");}catch(Exception failure){change("未能保存确认，请检查存储；原有 AI 授权保持不变。");}}
+    private void cancel(){
+        if(busy)return;try{TrustedGrant trust=new TrustedGrant(owner);JSONObject invitation=trust.invitation(identity);if(invitation==null)return;String id=invitation.getString("invitation_id");long seq=invitation.getLong("invitation_sequence");trust.cancelInvitation(identity,id,seq);
+            busy=true;int run=generation;EnrollmentStore.Config config=identity;call=RelayApi.requestStatus(config.url,"/v1/device/invitations/cancel","POST",config.token,RelayApi.json("invitation_id",id,"invitation_sequence",seq),(body,status,error)->{if(!current(run,config))return;busy=false;call=null;try{if(error==null){ServiceProtocol.version(body);if(!ServiceProtocol.bool(body,"ok"))throw new IllegalArgumentException();trust.finishInvitationCancellation(config,id,seq);change("已取消这次邀请，其他 AI 的授权保持不变。");poll(false);}else change("本机已取消这次邀请，服务端确认尚未完成，可刷新重试。");}catch(Exception failure){change("取消结果尚未核实，请刷新重试。");}});
+        }catch(Exception failure){change("暂时无法保存取消状态，请检查手机存储。");}
+    }
+    private void revoke(String claim,String name){new AlertDialog.Builder(owner).setTitle("解除 "+name+"？").setMessage("这位 AI 将不能继续使用手机。其他 AI 的授权保留；已复制到其他 App 的内容无法追回。").setNegativeButton("返回",null).setPositiveButton("解除",(d,w)->{try{OwnerRevocations.queue(owner,identity,claim);if(PreviewService.instance!=null)PreviewService.instance.ownerGrantsChanged();new TrustedGrant(owner).revoke(identity,claim);FileScopes.revoke(owner,claim);if(PreviewService.instance!=null)PreviewService.instance.ownerGrantsChanged();requestRevoke(claim);}catch(Exception failure){change("暂时无法确认本机已停止，请检查存储。");}}).show();}
+    private void requestRevoke(String claim){change("这位 AI 已在本机停止，正在确认服务端解除。");flushRevokes();}
+    boolean serviceChangeReady(){
+        try{TrustedGrant trust=new TrustedGrant(owner);return remote!=null&&remote.getJSONArray("grants").length()==0&&remote.isNull("invitation")&&trust.grants(identity).isEmpty()&&trust.pending(identity)==null&&trust.invitation(identity)==null&&!OwnerRevocations.allPending(owner,identity)&&OwnerRevocations.claimsPending(owner,identity).isEmpty();}
+        catch(Exception unreadable){return false;}
+    }
+    void stopAll(){
+        try{if(OwnerRevocations.allPending(owner,identity)){flushRevokes();change("正在继续确认原来那次全部解除。");return;}}
+        catch(Exception unreadable){ /* Local stop remains available when retry metadata cannot be read. */ }
+        Long knownGeneration=null;
+        try{if(remote!=null)knownGeneration=MultiAiProtocol.integer(remote,"generation",true);}
+        catch(Exception invalid){remote=null;}
+        final Long expectedGeneration=knownGeneration;
+        new AlertDialog.Builder(owner).setTitle("停止所有 AI？")
+            .setMessage("全部本机授权、邀请和当前任务都会停止。以后使用需要重新邀请并核码。")
+            .setNegativeButton("返回",null).setPositiveButton("停止所有",(d,w)->{
+                boolean intentSaved=false,localStopped=false;
+                try{if(expectedGeneration==null)OwnerRevocations.queueAllUnknown(owner,identity);else OwnerRevocations.queueAll(owner,identity,expectedGeneration);intentSaved=true;}
+                catch(Exception failure){ /* Still attempt the independent local stop below. */ }
+                try{
+                    if(PreviewService.instance==null)new TrustedGrant(owner).stop();else PreviewState.stop("已停止所有 AI");
+                    localStopped=true;
+                }catch(Exception failure){ /* PreviewService.stop always closes execution, even on persistence failure. */ }
+                try{FileScopes.revoke(owner);}catch(Exception failure){ /* Grant and task fences deny future reads independently. */ }
+                remote=null;
+                if(intentSaved)flushRevokes();
+                change(localStopped&&intentSaved?"本机全部 AI 已停止，服务端解除正在确认。":localStopped?"本机全部 AI 已停止，但未能保存服务端解除请求。请检查存储后重试。":"暂时无法确认停止已持久保存，请检查手机存储后重试。");
+            }).show();
+    }
+}

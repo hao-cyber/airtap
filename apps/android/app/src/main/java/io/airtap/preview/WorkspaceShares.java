@@ -13,17 +13,18 @@ final class WorkspaceShares {
     private static final Map<String,Ticket> TICKETS=new HashMap<>(); // Main thread only.
     private static final Handler MAIN=new Handler(Looper.getMainLooper());
     static final class Ticket {
-        final String id,owner,path,mime,version,name;final long size,epoch,deadline; final int sessionEpoch;
-        Ticket(String owner,String path,String mime,FileTransferStore.Entry file,long epoch){
+        final String id,owner,path,mime,version,name;final long size,epoch,scopeEpoch,deadline; final int sessionEpoch; final java.util.function.BooleanSupplier authority;
+        Ticket(String owner,String path,String mime,FileTransferStore.Entry file,long epoch,long scopeEpoch,java.util.function.BooleanSupplier authority){
             this.id=UUID.randomUUID().toString().replace("-","");this.owner=owner;this.path=path;this.mime=mime;
-            this.version=file.version();this.name=file.name();this.size=file.size();this.epoch=epoch;
-            this.deadline=SystemClock.elapsedRealtime()+TTL;this.sessionEpoch=PreviewState.epoch;
+            this.version=file.version();this.name=file.name();this.size=file.size();this.epoch=epoch;this.scopeEpoch=scopeEpoch;
+            this.authority=authority;this.deadline=SystemClock.elapsedRealtime()+TTL;this.sessionEpoch=PreviewState.epoch;
         }
     }
     static Uri uri(Context c,Ticket t){return new Uri.Builder().scheme("content").authority(c.getPackageName()+".workspace-share").appendPath(t.id).appendPath(t.name).build();}
     static void revokeAll(Context c){
         for(Ticket t:new ArrayList<>(TICKETS.values()))revoke(c,t);
     }
+    static void revokeOwner(Context c,String owner){for(Ticket t:new ArrayList<>(TICKETS.values()))if(t.owner.equals(owner))revoke(c,t);}
     private static void revoke(Context c,Ticket t){
         TICKETS.remove(t.id);c.revokeUriPermission(uri(c,t),Intent.FLAG_GRANT_READ_URI_PERMISSION);
     }
@@ -32,21 +33,21 @@ final class WorkspaceShares {
             throw new SecurityException("share_unavailable");
         Ticket t=TICKETS.get(uri.getPathSegments().get(0));
         if(t==null||!t.name.equals(uri.getLastPathSegment()))throw new SecurityException("share_unavailable");
-        // PreviewState/authorization transitions are main-thread owned; do not decrypt the durable grant per data chunk.
+        // Read on main: the captured task and grant fence must still authorize this exact owner.
         PreviewService service=PreviewService.instance;
         try {
             if(t.deadline<=SystemClock.elapsedRealtime()||t.sessionEpoch!=PreviewState.epoch||service==null||!service.isAuthorized()
-                    ||FileScopes.epoch(c)!=t.epoch||!t.owner.equals(PreviewState.claim)) {
+                    ||FileScopes.epoch(c)!=t.epoch||FileScopes.scopeEpoch(c,t.owner)!=t.scopeEpoch||!t.authority.getAsBoolean()) {
                 revoke(c,t);throw new SecurityException("share_expired_or_revoked");
             }
         }catch(SecurityException e){throw e;}catch(Exception e){revoke(c,t);throw new SecurityException("share_unavailable");}
         return t;
     }
-    static JSONObject open(Context c,String owner,String path,String mime,String target,FileTransferStore.Entry file,Runnable fence)throws Exception{
+    static JSONObject open(Context c,String owner,String path,String mime,String target,FileTransferStore.Entry file,Runnable fence,java.util.function.BooleanSupplier authority)throws Exception{
         fence.run();
         for(Ticket t:new ArrayList<>(TICKETS.values()))if(t.deadline<=SystemClock.elapsedRealtime())revoke(c,t);
         if(TICKETS.size()>=LIMIT)throw new FileTransferStore.Failure("file_share_limit");
-        Ticket t=new Ticket(owner,path,mime,file,FileScopes.epoch(c));Uri uri=uri(c,t);
+        Ticket t=new Ticket(owner,path,mime,file,FileScopes.epoch(c),FileScopes.scopeEpoch(c,owner),authority);Uri uri=uri(c,t);
         Intent send=new Intent(Intent.ACTION_SEND).setType(mime).putExtra(Intent.EXTRA_STREAM,uri)
                 .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
         send.setClipData(ClipData.newRawUri(file.name(),uri));

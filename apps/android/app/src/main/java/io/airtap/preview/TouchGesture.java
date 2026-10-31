@@ -31,6 +31,7 @@ final class TouchGesture {
         this.service = service; this.gate = gate; this.reply = reply; this.bounds = new Rect(bounds); frames = plan.frames();
     }
     void start() { advance(); }
+    boolean quiescent() { return finished && !inFlight && held.isEmpty(); }
     void cancel() {
         if (finished) return;
         cancelled = "gesture_cancelled_outcome_unknown";

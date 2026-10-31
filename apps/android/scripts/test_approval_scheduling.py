@@ -24,6 +24,8 @@ def method(filename,signature):
 activity='''package io.airtap.preview;
 import org.json.JSONObject;
 final class MainActivityHarness extends android.app.Activity {
+ final SingleOwner multiOwner=new SingleOwner();
+ static final class SingleOwner {boolean enabled(EnrollmentStore.Config config){return false;}}
  final ConnectionFeedback connectionFeedback=new ConnectionFeedback();final android.os.Handler main=new android.os.Handler();
  EnrollmentStore.Config config;Object invitationArtifacts;boolean busy,storageError;int epoch,changes;String claim,ticket,code,candidate,message="";long invitationExpiry;
  MainActivityHarness(EnrollmentStore.Config c,String claim){config=c;this.claim=claim;candidate="synthetic owner-confirmed AI";}
@@ -33,12 +35,15 @@ service='''package io.airtap.preview;
 import org.json.JSONObject;import android.net.ConnectivityManager;import okhttp3.WebSocket;
 final class PreviewService extends android.content.Context {
  static PreviewService instance;final android.os.Handler main=new android.os.Handler();
- boolean authorized,restoring,connected,notificationBlocked;long activeCommand;int generation,retry,connects,networkStarts,notificationFailures;String state,url,token,sessionFence,restoringFence;
+ boolean authorized,restoring,connected,notificationBlocked,multiMode,grantRefreshInFlight;long activeCommand;int generation,retry,connects,networkStarts,notificationFailures;String state,url,token,sessionFence,restoringFence;
  RecoveryStatus recoveryStatus=RecoveryStatus.WAITING_FOR_AI;java.util.concurrent.atomic.AtomicBoolean transportOpen=new java.util.concurrent.atomic.AtomicBoolean(true);
  Object networkCallback,currentNetwork;Runnable reconnectTask,handshakeTask;WebSocket socket;EnrollmentStore.Config config;
  static final class Ui {int clears,cancellations;ScreenPreparation.State screen=ScreenPreparation.State.READY;ScreenPreparation.State screenState(){return screen;}void clear(){clears++;}void cancelGestures(){cancellations++;}}final Ui ui=new Ui();
  static final class Recovery {int cancellations;void cancel(){cancellations++;}}final Recovery recovery=new Recovery();
  PreviewService(){instance=this;}
+ // New multi branches are covered separately, not stubbed into successful approval here.
+ void restoreMulti(){throw new AssertionError("unexpected multi restore in single fixture");}
+ void disconnectTask(){if(multiMode)throw new AssertionError("unexpected multi task in single fixture");}
  boolean executable(){return executionAllowed();}
  void observeNetwork(int run){if(run!=generation)throw new AssertionError();networkStarts++;}
  void connect(int run){if(run!=generation||!authorized)throw new AssertionError();connects++;}
@@ -64,5 +69,5 @@ record={'status':'passed','recorded_at':datetime.datetime.now(datetime.timezone.
         'source_sha256':{str(path.relative_to(ROOT)):hashlib.sha256(path.read_bytes()).hexdigest() for path in inputs},
         'scope':'Production approve/pendingApproval/onDestroy and restore, notification gating/recovery, typed status and stop/suspend methods are extracted verbatim and executed with complete production TrustedGrant, ApprovalRecovery, ConnectionFeedback and ServiceProtocol.',
         'limits':['Deterministic synthetic Android Activity, per-owner Handler, persistence and HTTP. No Activity refresh is injected after destruction. The service connect() endpoint is a counter: these tests prove dispatch into connection startup, not actual Android binding, sockets, notifications or OEM background execution.',
-                  'Real Android Back/process recreation, notifications, storage and network must still be exercised on device/emulator.']}
+                  'These fixtures exercise the original single-owner flow; multi-only service entrypoints throw if reached. Real Android Back/process recreation, notifications, storage and network must still be exercised on device/emulator.']}
 args.output.parent.mkdir(parents=True,exist_ok=True);args.output.write_text(json.dumps(record,ensure_ascii=False,indent=2)+'\n')

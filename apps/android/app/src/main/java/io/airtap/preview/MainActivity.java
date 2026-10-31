@@ -39,12 +39,13 @@ public final class MainActivity extends Activity {
     private TextView feedback;
     private UpdateNotice updates;
     private final FileGrantAttempt fileGrantAttempt = new FileGrantAttempt();
+    private final MultiAiOwner multiOwner = new MultiAiOwner(this, () -> { renderKey=null;render(); }, this::sharedFolderAccess);
     private final Runnable refresh = new Runnable() {
         @Override public void run() {
             if (!visible) return;
             PreviewService service = PreviewService.instance;
             if (service != null && !service.isAuthorized()) service.restore();
-            continueSetup(); render(); refreshPreparation(); poll(); main.postDelayed(this, 2000);
+            continueSetup(); multiOwner.tick();render(); refreshPreparation();if(!multiOwner.enabled(config))poll(); main.postDelayed(this, 2000);
         }
     };
     @Override public void onCreate(Bundle saved) {
@@ -117,12 +118,17 @@ public final class MainActivity extends Activity {
         } else if (!accessibility || !notifications) {
             permissions(accessibility, operationConfigured);
             if (trusted != null || pending != null) paragraph("原 AI 连接已保留。恢复上面这一项后会继续连接，无需重新配对。");
+        } else if (multiOwner.enabled(config)) {
+            multiOwner.bindIdentity(config);multiOwner.render(content);
+            content.addView(button("远程使用准备", v -> remotePreparation()));
+            content.addView(button("回到手机桌面", v -> startActivity(new Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_HOME).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))));
         } else if (trusted != null) {
             heading(recoveryTitle(recovery));
             paragraph(recoveryDetail(recovery));
             paragraph("回到自己的 AI 对话，直接告诉它你想做什么。已保留整台手机的授权，无需每次重新配对。你随时可以停止并解除连接。");
             content.addView(button("远程使用准备", v -> remotePreparation()));
             primary("回到手机桌面", v -> startActivity(new Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_HOME).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)));
+            content.addView(button("连接多个自己的 AI", v -> multiOwner.enable(config)));
             content.addView(button("停止并解除 AI 连接", v -> disconnect()));
         } else if (pending != null) {
             heading("正在完成 AI 连接");
@@ -257,7 +263,7 @@ public final class MainActivity extends Activity {
         return config != null && config.url.equals(getPreferences(0).getString("invitation_identity", ""));
     }
     private void continueSetup() {
-        if (!visible || storageError || upgrade || busy || setupExhausted) return;
+        if (!visible || storageError || upgrade || busy || setupExhausted || multiOwner.enabled(config)) return;
         if (trust() != null || pendingApproval() != null) {
             getPreferences(0).edit().remove("setup_continue").remove("invitation_identity").apply();
             invitationUncertain = false; return;
@@ -339,9 +345,10 @@ public final class MainActivity extends Activity {
         EnrollmentStore.Config next = new EnrollmentStore.Config(identity.origin(), identity.deviceId, identity.token, true);
         if (!getPreferences(0).edit().putInt("protocol", 4).commit()) throw new IllegalStateException();
         new EnrollmentStore(this).save(next);
-        config = next; PreviewState.config = next; busy = false; setupBackoff.reset(); change(""); continueSetup();
+        config = next; PreviewState.config = next; multiOwner.bindIdentity(next); busy = false; setupBackoff.reset(); change(""); continueSetup();
     }
     private void invite() {
+        if(multiOwner.enabled(config))return;
         if (busy || config == null || trust() != null || pendingApproval() != null || storageError) return;
         try {
             new TrustedGrant(this).stop();
@@ -367,6 +374,7 @@ public final class MainActivity extends Activity {
         });
     }
     private void checkInvitation(boolean manual) {
+        if(multiOwner.enabled(config))return;
         if (busy || config == null || trust() != null || pendingApproval() != null) return;
         fenceSetup(); if (manual) setupBackoff.reset(); setupExhausted = false; invitationUncertain = true; busy = true;
         change("正在核查原邀请…"); queryInvitation(epoch, config);
@@ -411,6 +419,7 @@ public final class MainActivity extends Activity {
     }
     private void share() { String value = prompt(); if (value != null) startActivity(Intent.createChooser(new Intent(Intent.ACTION_SEND).setType("text/plain").putExtra(Intent.EXTRA_TEXT, value), "发送给自己的 AI")); }
     private void poll() {
+        if(multiOwner.enabled(config))return;
         if (!visible || polling || busy || (ticket == null && !invitationUncertain && claim == null) || config == null || pendingApproval() != null || System.currentTimeMillis() < nextPoll) return;
         polling = true; int run = epoch; EnrollmentStore.Config identity = config;
         pollCall = RelayApi.requestStatus(identity.url, "/v1/device/pairing", "GET", identity.token, null, (body, status, error) -> {
@@ -438,6 +447,7 @@ public final class MainActivity extends Activity {
         });
     }
     private void approve() {
+        if(multiOwner.enabled(config))return;
         if (busy || claim == null || config == null || PreviewService.instance == null || !SessionService.notificationsAllowed(this)) return;
         ++epoch; String approvedClaim = claim;
         try {
@@ -458,6 +468,7 @@ public final class MainActivity extends Activity {
         }
     }
     private void disconnect() {
+        if(multiOwner.enabled(config)){multiOwner.stopAll();return;}
         fenceSetup(); int run = epoch; setupExhausted = true; invitationUncertain = false;
         getPreferences(0).edit().remove("setup_continue").remove("invitation_identity").apply();
         ticket = null; invitationArtifacts = null; claim = null; code = null; invitationExpiry = 0;
@@ -576,6 +587,10 @@ public final class MainActivity extends Activity {
     }
     private void switchService(String address) {
         if (busy || storageError) return;
+        boolean previousMulti=multiOwner.enabled(config);
+        if(previousMulti&&!multiOwner.serviceChangeReady()){
+            change("更换服务前先停止并解除全部 AI。确认完成后，再保存新服务地址。");multiOwner.stopAll();return;
+        }
         try {
             String origin = RelayAddress.requireRoot(address);
             fenceSetup(); setupExhausted = false; invitationUncertain = false;
@@ -586,10 +601,10 @@ public final class MainActivity extends Activity {
             // Save the new identity atomically before replacing the displayed configuration.
             EnrollmentStore.Config next = new EnrollmentStore.Config(origin, EnrollmentStore.token().substring(0, 32), EnrollmentStore.token(), false);
             new EnrollmentStore(this).save(next);
-            config = next; PreviewState.config = next; upgrade = false;
+            config = next; PreviewState.config = next; multiOwner.bindIdentity(next); upgrade = false;
             if (!getPreferences(0).edit().putInt("protocol", 4).putString("service", origin).commit()) throw new IllegalStateException();
             ++epoch; ticket = null; invitationArtifacts = null; claim = null; polling = false;
-            if (previous != null) RelayApi.request(previous.url, "/v1/device/revoke", "POST", previous.token, null, (body, error) -> {});
+            if (previous != null && !previousMulti) RelayApi.request(previous.url, "/v1/device/revoke", "POST", previous.token, null, (body, error) -> {});
             enroll();
         } catch (Exception failure) { change("无法准备新连接，请检查服务地址和手机存储后重试。"); }
     }
@@ -644,7 +659,7 @@ public final class MainActivity extends Activity {
     }
     private void confirmReclaimStaging() {
         new AlertDialog.Builder(this).setTitle("回收内部暂存？")
-                .setMessage("只回收过期上传和以前 AI 连接留下的内部文件副本。当前连接未过期的上传仍可继续。共享文件夹原文件、配对和文件夹权限不变；未知创建结果与已知文档身份会保留，避免重复创建或误删。")
+                .setMessage("只回收过期上传和以前 AI 连接留下的内部文件副本。所有仍获授权 AI 的未过期上传都可继续。共享文件夹原文件、配对和文件夹权限不变；未知创建结果与已知文档身份会保留，避免重复创建或误删。")
                 .setNegativeButton("取消",null).setPositiveButton("确认回收",(dialog,which)->{
                     if(fileStorageBusy)return;fileStorageBusy=true;
                     FileScopes.ownerReclaimStaging(this,(usage,error)->{
@@ -655,7 +670,13 @@ public final class MainActivity extends Activity {
     }
     private void sharedFolderAccess() {
         try {
-            String owner = FileScopes.owner(this);
+            java.util.List<JSONObject> grants=new TrustedGrant(this).grants(config);
+            if(grants.size()>1){String[] labels=new String[grants.size()];for(int i=0;i<labels.length;i++)labels[i]=grants.get(i).getString("name");new AlertDialog.Builder(this).setTitle("选择 AI 的文件夹权限").setItems(labels,(dialog,index)->sharedFolderAccess(grants.get(index).optString("claim"))).setNegativeButton("返回",null).show();return;}
+            sharedFolderAccess(FileScopes.owner(this));
+        }catch(Exception failure){change("暂时无法读取文件授权，请稍后再试。");}
+    }
+    private void sharedFolderAccess(String owner) {
+        try {
             if (owner == null) { change("先连接自己的 AI，再设置它可访问的文件夹。"); return; }
             String chosen = FileScopes.chosenName(this, owner);
             new AlertDialog.Builder(this).setTitle("文件访问")
@@ -672,7 +693,7 @@ public final class MainActivity extends Activity {
                                     .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_WRITE_URI_PERMISSION | Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION), request);
                         } catch (Exception unavailable) { fileGrantAttempt.cancel(); FileScopes.picker(this, false); change("这台设备暂时无法打开系统文件夹选择器。Airtap 工作目录仍可使用。"); }
                     }).setNeutralButton(chosen == null ? "返回" : "取消文件夹授权", (dialog, which) -> {
-                        if (chosen != null) { FileScopes.revoke(this); change("已取消文件夹授权，原文件未删除。"); }
+                        if (chosen != null) { FileScopes.revoke(this,owner); change("已取消文件夹授权，原文件未删除。"); }
                     }).setNegativeButton("知道了", null).show();
         } catch (Exception failure) { change("暂时无法读取文件授权，请稍后再试。"); }
     }
@@ -690,6 +711,7 @@ public final class MainActivity extends Activity {
     }
     @Override public void onResume() {
         super.onResume(); visible = true;
+        multiOwner.resume(config);
         SessionRecoveryGate.acknowledgeForegroundStart(this);
         try { SessionService.ensureRestoring(this); }
         catch (Exception unreadable) { storageError = true; }
@@ -699,6 +721,7 @@ public final class MainActivity extends Activity {
         main.post(refresh);
     }
     @Override public void onPause() {
+        multiOwner.pause();
         visible = false; setupPaused = busy || setupPaused; fenceSetup(); main.removeCallbacks(refresh); super.onPause();
     }
     @Override public void onDestroy() { ++epoch; main.removeCallbacksAndMessages(null); super.onDestroy(); }

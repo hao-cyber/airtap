@@ -7,7 +7,7 @@
  static void check(boolean v){if(!v)throw new AssertionError();}
  static void rejects(Checked run)throws Exception{try{run.run();}catch(IllegalArgumentException expected){return;}throw new AssertionError("accepted invalid response");}
  static JSONObject summary(String id){return new JSONObject().put("report_id",id).put("title","连接恢复问题").put("status","new").put("created_at",1793000000L).put("updated_at",1793000001L).put("expires_at",1795592000L).put("duplicate_of",JSONObject.NULL);}
- static JSONObject list(String cursor){return new JSONObject().put("protocol_version",4).put("reports",new JSONArray().put(summary(ID))).put("next_cursor",cursor);}
+ static JSONObject list(String cursor){return new JSONObject().put("protocol_version",4).put("reports",new JSONArray().put(summary(ID))).put("next_cursor",cursor==null?JSONObject.NULL:cursor);}
  static JSONObject report(String id){return new JSONObject().put("protocol_version",4).put("report",summary(id).put("description","打开后未连接").put("supplements",new JSONArray()).put("maintenance_reply","正在检查"));}
  static JSONObject deleted(String id){return new JSONObject().put("protocol_version",4).put("ok",true).put("deleted",true).put("report_id",id);}
  static FeedbackApi.Pending last(){return FeedbackApi.calls.get(FeedbackApi.calls.size()-1);}
