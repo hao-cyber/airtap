@@ -1,0 +1,51 @@
+{
+  "schema": "airtap-physical-observation-v1",
+  "recorded_at": "2026-11-01T00:03:18+08:00",
+  "status": "interrupted_idle_not_a_recovery_pass",
+  "scope": "Maintainer read-only observation of one physical Android phone; no personal AI task was executed in this window.",
+  "device": {
+    "model": "Meizu Note 16",
+    "android_version": 15,
+    "physical_usb_power": true,
+    "stay_on_while_plugged_in": 0
+  },
+  "artifact": {
+    "version_code": 42,
+    "version_name": "0.4.0-beta.12",
+    "source_commit": "78a0db2db3dd607857b945349acbd0ffcbb9472c",
+    "installed_apk_sha256": "8e79f3182604d1812f4e42440924661da424e142b37f66f2a6a30d7faba2700d",
+    "matches_signed_candidate": true,
+    "public_release": false
+  },
+  "preconditions_and_interventions": [
+    "The original pairing and phone accounts were retained during the upgrade.",
+    "After upgrade, the accessibility permission remained configured but the operation service was not bound. The recovery carrier started; this did not restore device control by itself.",
+    "The maintainer enabled Flyme background and associated startup settings through system UI, then toggled the accessibility service off and on and confirmed the system permission dialog.",
+    "The original connection resumed after that manual intervention. This is not an autonomous upgrade recovery pass.",
+    "The maintainer returned HOME and requested screen sleep before observation. No phone UI actions or upgrade were issued by this test during the observation window."
+  ],
+  "observation": {
+    "start_at": "2026-10-31T23:00:44.096207+08:00",
+    "final_sample_at": "2026-11-01T00:01:15.472289+08:00",
+    "elapsed_seconds": 3631.4,
+    "samples": 114,
+    "method": "Read-only adb pidof/dumpsys sampling, approximately every 30 seconds, with a separate final sample; diagnostic log readback after the interruption.",
+    "maximum_sample_gap_seconds": 205.4,
+    "same_process_in_all_samples": true,
+    "operation_service_bound_in_all_samples": true,
+    "all_sample_commands_succeeded": true,
+    "power_wakefulness_counts": {"Dozing": 92, "Awake": 22},
+    "deep_device_idle_in_any_sample": false,
+    "first_observed_awake_at": "2026-10-31T23:50:46.738007+08:00",
+    "wake_event": "PowerManagerService recorded WAKE_REASON_POWER_BUTTON at 23:50:43.033. The event does not identify who initiated it.",
+    "uninterrupted_60_minute_idle_passed": false
+  },
+  "conclusions": [
+    "The process and operation-service binding persisted in every collected sample.",
+    "The screen woke after approximately 50 minutes, so this is not a full 60-minute uninterrupted idle pass.",
+    "Dozing is a screen wakefulness state here; device idle mode was false. This does not verify deep Doze or unpowered endurance.",
+    "No Muse or Instinct autonomous wake, SMS GUI, cross-app task, network recovery, or subsequent-use result is established by these samples.",
+    "This candidate observation does not change the public recommended APK or establish readiness to replace another phone's existing control path."
+  ],
+  "privacy": "This record was manually reduced to version, timing, diagnostic classifications and outcomes. Raw phone/system evidence remains private; no phone serial, account, message content or pairing credential is included."
+}
