@@ -1,0 +1,9 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android" package="io.airtap.fixture.multitarget">
+  <uses-sdk android:minSdkVersion="34" android:targetSdkVersion="36" />
+  <application android:debuggable="true" android:label="Native synthetic target" android:theme="@android:style/Theme.Material.Light.NoActionBar">
+    <activity android:name="test.multi.TargetActivity" android:exported="true"><intent-filter><action android:name="android.intent.action.MAIN"/><category android:name="android.intent.category.LAUNCHER"/></intent-filter></activity>
+    <activity android:name="test.multi.GrantActivity" android:exported="true" />
+    <receiver android:name="test.multi.ConfigureReceiver" android:exported="true" />
+    <provider android:name="test.multi.SlowDocuments" android:authorities="io.airtap.fixture.multitarget.documents" android:exported="true" android:grantUriPermissions="true" android:permission="android.permission.MANAGE_DOCUMENTS"><intent-filter><action android:name="android.content.action.DOCUMENTS_PROVIDER"/></intent-filter></provider>
+  </application>
+</manifest>

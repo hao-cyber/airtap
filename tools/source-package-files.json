@@ -565,6 +565,50 @@
     },
     {
       "kind": "source",
+      "path": "apps/android/tests/multi/native/README.md"
+    },
+    {
+      "kind": "source",
+      "path": "apps/android/tests/multi/native/client/io/airtap/preview/NativeBridge.java"
+    },
+    {
+      "kind": "source",
+      "path": "apps/android/tests/multi/native/client/io/airtap/preview/NativeFolderActivity.java"
+    },
+    {
+      "kind": "source",
+      "path": "apps/android/tests/multi/native/prepare.py"
+    },
+    {
+      "kind": "source",
+      "path": "apps/android/tests/multi/native/relay.mjs"
+    },
+    {
+      "kind": "source",
+      "path": "apps/android/tests/multi/native/run.py"
+    },
+    {
+      "kind": "source",
+      "path": "apps/android/tests/multi/native/target/AndroidManifest.xml"
+    },
+    {
+      "kind": "source",
+      "path": "apps/android/tests/multi/native/target/test/multi/ConfigureReceiver.java"
+    },
+    {
+      "kind": "source",
+      "path": "apps/android/tests/multi/native/target/test/multi/GrantActivity.java"
+    },
+    {
+      "kind": "source",
+      "path": "apps/android/tests/multi/native/target/test/multi/SlowDocuments.java"
+    },
+    {
+      "kind": "source",
+      "path": "apps/android/tests/multi/native/target/test/multi/TargetActivity.java"
+    },
+    {
+      "kind": "source",
       "path": "apps/android/tests/observationpages/ObservationPagesTest.java"
     },
     {
