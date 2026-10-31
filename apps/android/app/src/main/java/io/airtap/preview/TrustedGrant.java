@@ -45,6 +45,36 @@ final class TrustedGrant {
             return "approved".equals(value.optString("phase")) && currentIntent(value, value.optString("approval_id")) ? value : null;
         }
     }
+    /** Local stale-callback fence only; possessing it never grants device authorization. */
+    String sessionFence(EnrollmentStore.Config config) throws Exception {
+        synchronized (LOCK) {
+            return fenceOf(read(config));
+        }
+    }
+    /** Pure identity for a snapshot returned by read(); does not validate or authorize it. */
+    static String fenceOf(JSONObject approvedRecord) throws Exception {
+        if (approvedRecord == null) return null;
+        // Legacy grants have no approval ID. Neither branch includes mutable replay state.
+        String approval = approvedRecord.has("approval_id") ? "approval:" + approvedRecord.getString("approval_id") : "legacy";
+        String input = "airtap-session-fence-v1\n" + approvedRecord.getString("identity") + "\n"
+                + approvedRecord.getString("claim") + "\n" + approval;
+        byte[] digest = MessageDigest.getInstance("SHA-256").digest(input.getBytes(StandardCharsets.UTF_8));
+        StringBuilder fence = new StringBuilder(64);
+        for (byte b : digest) fence.append(String.format(java.util.Locale.ROOT, "%02x", b & 255));
+        return fence.toString();
+    }
+    boolean isCurrent(EnrollmentStore.Config config, String expectedFence) throws Exception {
+        synchronized (LOCK) {
+            return expectedFence != null && expectedFence.equals(sessionFence(config));
+        }
+    }
+    boolean stopIfCurrent(EnrollmentStore.Config config, String expectedFence) throws Exception {
+        synchronized (LOCK) {
+            if (!isCurrent(config, expectedFence)) return false;
+            stop();
+            return true;
+        }
+    }
     JSONObject pending(EnrollmentStore.Config config) throws Exception {
         synchronized (LOCK) {
             JSONObject value = record(config);

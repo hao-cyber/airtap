@@ -33,7 +33,7 @@ service='''package io.airtap.preview;
 import org.json.JSONObject;import android.net.ConnectivityManager;import okhttp3.WebSocket;
 final class PreviewService extends android.content.Context {
  static PreviewService instance;final android.os.Handler main=new android.os.Handler();
- boolean authorized,restoring,connected,notificationBlocked;long activeCommand;int generation,retry,connects,networkStarts,notificationFailures;String state,url,token;
+ boolean authorized,restoring,connected,notificationBlocked;long activeCommand;int generation,retry,connects,networkStarts,notificationFailures;String state,url,token,sessionFence,restoringFence;
  RecoveryStatus recoveryStatus=RecoveryStatus.WAITING_FOR_AI;java.util.concurrent.atomic.AtomicBoolean transportOpen=new java.util.concurrent.atomic.AtomicBoolean(true);
  Object networkCallback,currentNetwork;Runnable reconnectTask,handshakeTask;WebSocket socket;EnrollmentStore.Config config;
  static final class Ui {int clears,cancellations;ScreenPreparation.State screen=ScreenPreparation.State.READY;ScreenPreparation.State screenState(){return screen;}void clear(){clears++;}void cancelGestures(){cancellations++;}}final Ui ui=new Ui();
@@ -42,7 +42,7 @@ final class PreviewService extends android.content.Context {
  boolean executable(){return executionAllowed();}
  void observeNetwork(int run){if(run!=generation)throw new AssertionError();networkStarts++;}
  void connect(int run){if(run!=generation||!authorized)throw new AssertionError();connects++;}
-'''+ '\n'.join(method('PreviewService.java',s) for s in ['    void restore() {','    private void retryApproval(int run) {','    private void scheduleRestore(int run, long delay) {','    private void waitForNotifications() {','    void notificationUnavailable(int run, boolean startFailed) {','    void notificationReady(int run) {','    private boolean executionAllowed() {','    RecoveryStatus recoveryStatus() {','    void stop(String message) {','    private void suspend(String message) {'])+'\n}\n'
+'''+ '\n'.join(method('PreviewService.java',s) for s in ['    void restore() {','    private void stopRestoring(String expectedFence, String message) {','    void stoppedLocally(String expectedFence) {','    void sessionCarrierUnavailable() {','    void storageUnavailable() {','    private void retryApproval(int run) {','    private void scheduleRestore(int run, long delay) {','    private void waitForNotifications() {','    void notificationUnavailable(int run, boolean startFailed) {','    void notificationReady(int run) {','    private boolean executionAllowed() {','    RecoveryStatus recoveryStatus() {','    void stop(String message) {','    private void suspend(String message) {'])+'\n}\n'
 sources=[PRODUCTION/(name+'.java') for name in ['TrustedGrant','ApprovalRecovery','ConnectionFeedback','ServiceProtocol','RecoveryStatus','ScreenPreparation']]
 with tempfile.TemporaryDirectory(prefix='airtap-approval-scheduling-') as directory:
     temp=Path(directory);generated=[]

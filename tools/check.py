@@ -14,7 +14,7 @@ import time
 
 ROOT = Path(__file__).resolve().parents[1]
 HOST_SCRIPTS = (
-    'test_observation_pages', 'test_atomic_input', 'test_drag', 'test_semantic_nodes', 'test_windows', 'test_session_screen',
+    'test_observation_pages', 'test_atomic_input', 'test_drag', 'test_semantic_nodes', 'test_windows', 'test_session_screen', 'test_session_recovery_gate',
     'test_audio_volume', 'test_file_transfer', 'test_approval_recovery',
     'test_approval_scheduling', 'test_setup_recovery', 'test_tls_policy', 'test_feedback', 'test_invitation_feedback',
 )

@@ -43,6 +43,7 @@ public final class PreviewService extends AccessibilityService {
     private Runnable reconnectTask, handshakeTask;
     private int generation, retry, connections, attempts;
     private String url, token;
+    private String sessionFence, restoringFence;
     private String state = "等待连接自己的 AI";
     private String lastDiagnostic = "";
     private RecoveryStatus recoveryStatus = RecoveryStatus.WAITING_FOR_AI;
@@ -89,6 +90,7 @@ public final class PreviewService extends AccessibilityService {
     boolean isAuthorized() { return authorized; }
     boolean isConnected() { return connected; }
     int sessionGeneration() { return generation; }
+    String sessionFence() { return sessionFence; }
     long remainingMillis() { return authorized ? TimeUnit.DAYS.toMillis(1) : 0; }
     boolean unlocked() { return ui.unlocked(); }
     ScreenRecovery screenRecovery() { return recovery; }
@@ -128,14 +130,20 @@ public final class PreviewService extends AccessibilityService {
                 return;
             }
             if (!SessionService.notificationsAllowed(this)) { waitForNotifications(); return; }
+            String expectedFence = TrustedGrant.fenceOf(trust);
+            restoringFence = expectedFence;
+            if (!SessionService.ensureRestoring(this)) { notificationUnavailable(generation, true); return; }
             restoring = true; int run = generation;
             state = "正在恢复与我的 AI 的连接";
             recoveryStatus = RecoveryStatus.VERIFYING_CONNECTION;
             RelayApi.requestStatus(config.url, "/v1/device/pairing", "GET", config.token, null, (body, status, error) -> {
                 if (generation != run || instance != this) return;
                 restoring = false;
+                try {
+                    if (!new TrustedGrant(this).isCurrent(config, expectedFence)) return;
+                } catch (Exception unreadable) { storageUnavailable(); return; }
                 if (error != null) {
-                    if (status == 401 || status == 403 || status == 410) stop("连接已解除，请重新邀请自己的 AI");
+                    if (status == 401 || status == 403 || status == 410) stopRestoring(expectedFence, "连接已解除，请重新邀请自己的 AI");
                     else {
                         boolean secureFailure = TlsPolicy.USER_MESSAGE.equals(error);
                         state = secureFailure ? TlsPolicy.USER_MESSAGE : "等待网络恢复，配对已保留";
@@ -149,23 +157,48 @@ public final class PreviewService extends AccessibilityService {
                     if (!"approved".equals(body.getString("state")) || !body.getBoolean("persistent") || !body.getBoolean("all_apps")
                             || !body.getBoolean("allow_control") || !body.isNull("session_expires_at")
                             || !trust.getString("claim").equals(body.getJSONObject("candidate").getString("claim_id"))) {
-                        stop("连接授权已变化，请重新邀请自己的 AI"); return;
+                        stopRestoring(expectedFence, "连接授权已变化，请重新邀请自己的 AI"); return;
                     }
                     // Re-read after network: an owner stop must fence a delayed successful response.
-                    JSONObject current = new TrustedGrant(this).read(config);
-                    if (current == null || !current.getString("claim").equals(trust.getString("claim"))) return;
+                    JSONObject current;
+                    try {
+                        current = new TrustedGrant(this).read(config);
+                        if (current == null || !expectedFence.equals(TrustedGrant.fenceOf(current))) return;
+                    } catch (Exception unreadable) { storageUnavailable(); return; }
                     if (!SessionService.notificationsAllowed(this)) { waitForNotifications(); return; }
                     PreviewState.config = config; TrustedGrant.show(current);
                     notificationBlocked = false;
+                    sessionFence = expectedFence; restoringFence = null;
                     authorized = true; PreviewState.grantAvailable = false;
                     url = RelayAddress.webSocket(config.url); token = config.token;
                     state = "正在连接我的 AI";
                     // No socket or device command until the visible foreground notice exists.
                     // Its asynchronous callback is generation-fenced just like relay approval.
                     SessionService.begin(this);
-                } catch (Exception failure) { stop("服务版本或授权不匹配，请检查更新"); }
+                } catch (Exception failure) { stopRestoring(expectedFence, "服务版本或授权不匹配，请检查更新"); }
             });
-        } catch (Exception failure) { stop("无法读取已保存的连接，请重新接入"); }
+        } catch (Exception failure) { storageUnavailable(); }
+    }
+    private void stopRestoring(String expectedFence, String message) {
+        try {
+            if (!new TrustedGrant(this).stopIfCurrent(config, expectedFence)) return;
+            suspend(message); recoveryStatus = RecoveryStatus.WAITING_FOR_AI; SessionService.end(this);
+        } catch (Exception unreadable) { storageUnavailable(); }
+    }
+    void stoppedLocally(String expectedFence) {
+        if (expectedFence == null || (!expectedFence.equals(sessionFence) && !expectedFence.equals(restoringFence))) return;
+        suspend("已停止手机控制"); recoveryStatus = RecoveryStatus.WAITING_FOR_AI;
+    }
+    void sessionCarrierUnavailable() {
+        suspend("正在恢复原 AI 连接，尚不能操作手机");
+        recoveryStatus = RecoveryStatus.VERIFYING_CONNECTION;
+        scheduleRestore(generation, 2000);
+    }
+    void storageUnavailable() {
+        suspend("暂时无法读取或保存原 AI 连接，记录已保留，请检查手机存储");
+        recoveryStatus = RecoveryStatus.STORAGE_UNAVAILABLE;
+        SessionService.end(this);
+        scheduleRestore(generation, 10000);
     }
     private void retryApproval(int run) {
         scheduleRestore(run, 10000);
@@ -187,6 +220,7 @@ public final class PreviewService extends AccessibilityService {
         if (run != generation || instance != this) return;
         // A missing stop affordance closes execution immediately, but does not erase owner consent.
         suspend("连接通知暂不可用，原配对已保留");
+        SessionService.end(this);
         recoveryStatus = startFailed ? RecoveryStatus.NOTIFICATION_START_RETRY : RecoveryStatus.NOTIFICATIONS_REQUIRED;
         long delay = startFailed ? Math.min(30000, 5000L << Math.min(notificationFailures++, 3)) : 2000;
         scheduleRestore(generation, delay);
@@ -200,10 +234,11 @@ public final class PreviewService extends AccessibilityService {
     }
     void stop(String message) {
         try { new TrustedGrant(this).stop(); }
-        finally { suspend(message); recoveryStatus = RecoveryStatus.WAITING_FOR_AI; notificationFailures = 0; PreviewState.grantAvailable = false; }
+        finally { suspend(message); SessionService.end(this); recoveryStatus = RecoveryStatus.WAITING_FOR_AI; notificationFailures = 0; PreviewState.grantAvailable = false; }
     }
     private void suspend(String message) {
         authorized = false; connected = false; restoring = false; activeCommand = 0; generation++;
+        sessionFence = null; restoringFence = null;
         transportOpen.set(false);
         WorkspaceShares.revokeAll(this);
         recovery.cancel();
@@ -215,7 +250,7 @@ public final class PreviewService extends AccessibilityService {
         }
         currentNetwork = null;
         WebSocket previous = socket; socket = null; if (previous != null) previous.cancel();
-        token = null; url = null; retry = 0; state = message; SessionService.end(this);
+        token = null; url = null; retry = 0; state = message; SessionService.paused(this);
     }
     private void connect(int run) {
         if (generation != run || !executionAllowed() || socket != null) return;

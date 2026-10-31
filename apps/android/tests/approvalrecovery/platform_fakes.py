@@ -21,15 +21,15 @@ public final class FakeDisk {
   static void apply(Map<String,Object> dst,Map<String,Object> delta){for(var e:delta.entrySet())if(e.getValue()==null)dst.remove(e.getKey());else dst.put(e.getKey(),e.getValue());}
   void reboot(){memory.clear();memory.putAll(disk);failAt=crashBeforeAt=crashAfterAt=0;}
  }
- public static Prefs preferences=new Prefs();static JSONObject record;static EnrollmentStore.Config config;static int saves,failSaveAt,crashBeforeSaveAt,crashAfterSaveAt;static boolean failForget;
- static void reset(){preferences=new Prefs();record=null;config=null;saves=failSaveAt=crashBeforeSaveAt=crashAfterSaveAt=0;failForget=false;}
- static void reboot(){preferences.reboot();saves=failSaveAt=crashBeforeSaveAt=crashAfterSaveAt=0;failForget=false;}
+ public static Prefs preferences=new Prefs();static JSONObject record;static EnrollmentStore.Config config;static int saves,failSaveAt,crashBeforeSaveAt,crashAfterSaveAt;static boolean failForget,failReadRecord;
+ static void reset(){preferences=new Prefs();record=null;config=null;saves=failSaveAt=crashBeforeSaveAt=crashAfterSaveAt=0;failForget=failReadRecord=false;}
+ static void reboot(){preferences.reboot();saves=failSaveAt=crashBeforeSaveAt=crashAfterSaveAt=0;failForget=failReadRecord=false;}
 }
 ''',
 'io/airtap/preview/EnrollmentStore.java': '''package io.airtap.preview;import android.content.Context;import org.json.JSONObject;
 final class EnrollmentStore {EnrollmentStore(Context c){}EnrollmentStore(Context c,String purpose){if(!"trusted-ai".equals(purpose))throw new AssertionError("real encrypted purpose required");}
  static final class Config {final String url,token;final boolean registered;Config(String u,String t){url=u;token=t;registered=true;}boolean publicService(){return true;}boolean enrolled(){return registered;}}
- Config read(){return FakeDisk.config;}JSONObject readRecord(){return FakeDisk.record==null?null:FakeDisk.record.copy();}
+ Config read(){return FakeDisk.config;}JSONObject readRecord(){if(FakeDisk.failReadRecord)throw new IllegalStateException("read failed");return FakeDisk.record==null?null:FakeDisk.record.copy();}
  void saveRecord(JSONObject value){FakeDisk.saves++;if(FakeDisk.saves==FakeDisk.crashBeforeSaveAt)throw new FakeDisk.Crash();if(FakeDisk.saves==FakeDisk.failSaveAt)throw new IllegalStateException("disk failed");FakeDisk.record=value.copy();if(FakeDisk.saves==FakeDisk.crashAfterSaveAt)throw new FakeDisk.Crash();}
  void forget(){if(FakeDisk.failForget)throw new IllegalStateException("delete failed");FakeDisk.record=null;}
  static String token(){return java.util.UUID.randomUUID().toString().replace("-","")+java.util.UUID.randomUUID().toString().replace("-","");}}
@@ -51,6 +51,6 @@ SCHEDULING_SOURCES = {
 'android/app/Activity.java': '''package android.app;public class Activity extends android.content.Context {private boolean destroyed;public void onDestroy(){destroyed=true;}public boolean isDestroyed(){return destroyed;}}''',
 'android/net/ConnectivityManager.java': '''package android.net;public class ConnectivityManager {public void unregisterNetworkCallback(Object callback){}}''',
 'okhttp3/WebSocket.java': '''package okhttp3;public interface WebSocket {void cancel();}''',
-'io/airtap/preview/SessionService.java': '''package io.airtap.preview;final class SessionService {static boolean permitted=true,ready,deferBegin,startFails;static int begun,ended,run;static boolean notificationsAllowed(android.content.Context c){return permitted;}static boolean readyFor(PreviewService c,int generation){return ready&&permitted&&run==generation&&PreviewService.instance==c;}static void begin(android.content.Context c){begun++;PreviewService p=(PreviewService)c;run=p.generation;if(startFails){p.notificationUnavailable(run,true);return;}if(!deferBegin){ready=true;p.notificationReady(run);}}static void end(android.content.Context c){ended++;ready=false;}}''',
+'io/airtap/preview/SessionService.java': '''package io.airtap.preview;final class SessionService {static boolean permitted=true,ready,deferBegin,startFails,carrier,restoreStartFails;static int begun,ended,run,restores;static boolean ensureRestoring(android.content.Context c){restores++;carrier=permitted&&!restoreStartFails;return carrier;}static void paused(android.content.Context c){ready=false;}static boolean notificationsAllowed(android.content.Context c){return permitted;}static boolean readyFor(PreviewService c,int generation){return ready&&permitted&&run==generation&&PreviewService.instance==c;}static void begin(android.content.Context c){begun++;PreviewService p=(PreviewService)c;run=p.generation;if(startFails){p.notificationUnavailable(run,true);return;}if(!deferBegin){ready=true;p.notificationReady(run);}}static void end(android.content.Context c){ended++;ready=false;carrier=false;}}''',
 'io/airtap/preview/RelayAddress.java': '''package io.airtap.preview;final class RelayAddress {static String webSocket(String base){return base.replace("https:","wss:")+"/socket";}}''',
 }

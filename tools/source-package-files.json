@@ -239,6 +239,10 @@
     },
     {
       "kind": "source",
+      "path": "apps/android/app/src/main/java/io/airtap/preview/SessionRecoveryGate.java"
+    },
+    {
+      "kind": "source",
       "path": "apps/android/app/src/main/java/io/airtap/preview/SessionScreenLease.java"
     },
     {
@@ -409,6 +413,14 @@
     },
     {
       "kind": "source",
+      "path": "apps/android/scripts/test_session_recovery_emulator.py"
+    },
+    {
+      "kind": "source",
+      "path": "apps/android/scripts/test_session_recovery_gate.py"
+    },
+    {
+      "kind": "source",
       "path": "apps/android/scripts/test_session_screen.py"
     },
     {
@@ -522,6 +534,26 @@
     {
       "kind": "source",
       "path": "apps/android/tests/semanticnodes/platform_fakes.py"
+    },
+    {
+      "kind": "source",
+      "path": "apps/android/tests/sessionrecovery/README.md"
+    },
+    {
+      "kind": "source",
+      "path": "apps/android/tests/sessionrecovery/SessionRecoveryGateTest.java"
+    },
+    {
+      "kind": "source",
+      "path": "apps/android/tests/sessionrecovery/emulator/AndroidManifest.xml"
+    },
+    {
+      "kind": "source",
+      "path": "apps/android/tests/sessionrecovery/emulator/src/io/airtap/preview/FixtureDependencies.java"
+    },
+    {
+      "kind": "source",
+      "path": "apps/android/tests/sessionrecovery/emulator/src/io/airtap/preview/MainActivity.java"
     },
     {
       "kind": "source",

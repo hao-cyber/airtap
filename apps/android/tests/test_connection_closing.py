@@ -44,7 +44,7 @@ final class PreviewService {
   private boolean authorized = true, connected,notificationBlocked,restoring;
   private long activeCommand = 1;
   private int generation = 1, retry,connections,attempts,notificationFailures;
-  private String state, lastDiagnostic,url="wss://synthetic.invalid",token="synthetic";private RecoveryStatus recoveryStatus;
+  private String state, lastDiagnostic,sessionFence,restoringFence,url="wss://synthetic.invalid",token="synthetic";private RecoveryStatus recoveryStatus;
   private Runnable reconnectTask,handshakeTask;
   private ConnectivityManager.NetworkCallback networkCallback;
   private Network currentNetwork;
@@ -264,7 +264,7 @@ final class PreviewService {
 }
 // This fixture exercises ordinary transport failures; TLS classification is covered by test_tls_policy.py.
 final class TlsPolicy {static final String USER_MESSAGE="synthetic security failure";static boolean isSecurityFailure(Throwable failure){return false;}}
-final class SessionService {static boolean ready=true,permitted=true;static boolean notificationsAllowed(PreviewService service){return permitted;}static boolean readyFor(PreviewService service,int generation){return ready;}static void end(PreviewService service){}}
+final class SessionService {static boolean ready=true,permitted=true;static boolean notificationsAllowed(PreviewService service){return permitted;}static boolean readyFor(PreviewService service,int generation){return ready;}static void end(PreviewService service){}static void paused(PreviewService service){}}
 final class TrustedGrant {final PreviewService owner;TrustedGrant(PreviewService service){owner=service;}void stop(){owner.stopped++;}}
 final class PreviewState {static boolean grantAvailable;}
 final class WorkspaceShares {static void revokeAll(PreviewService service){}}

@@ -507,6 +507,7 @@ public final class MainActivity extends Activity {
             case SYSTEM_AUTH_REQUIRED -> "请完成手机解锁验证";
             case SECURE_CONNECTION_REQUIRED -> "请检查安全连接更新";
             case NOTIFICATIONS_REQUIRED -> "请开启连接通知";
+            case STORAGE_UNAVAILABLE -> "暂时无法读取原连接";
             case NOTIFICATION_START_RETRY -> "正在恢复连接通知";
             case NETWORK_RECONNECTING -> "网络恢复后自动连接";
             case SCREEN_UNAVAILABLE -> "已连接，屏幕暂不可用";
@@ -519,6 +520,7 @@ public final class MainActivity extends Activity {
             case SCREEN_PREPARABLE -> "手机正在息屏或显示系统允许退出的锁屏。任务到来时会尝试自动唤醒，你不用一直点亮屏幕。";
             case SYSTEM_AUTH_REQUIRED -> "系统当前要求密码或生物识别，需要本人在手机完成验证。验证后会恢复原连接，AI 再查看屏幕继续。";
             case SECURE_CONNECTION_REQUIRED -> "无法验证服务的安全连接。原 AI 配对已保留，请检查 Airtap 和系统更新；不要关闭证书校验或重新配对来绕过这个问题。";
+            case STORAGE_UNAVAILABLE -> "暂时无法读取或保存本机的连接记录，手机操作已暂停。请检查存储后重试；无需先删除记录或重新配对。";
             case NOTIFICATIONS_REQUIRED -> "连接记录仍在。开启 Airtap 的系统通知后会自动继续，无需重新配对。";
             case NOTIFICATION_START_RETRY -> "系统暂时没有启动连接通知，Airtap 正在自动重试。原 AI 授权已保留；持续未恢复时，可查看后台运行设置。";
             case NETWORK_RECONNECTING -> "当前网络或服务连接中断，Airtap 会自动重连。保持手机联网即可，无需重新发送邀请。";
@@ -679,6 +681,9 @@ public final class MainActivity extends Activity {
     }
     @Override public void onResume() {
         super.onResume(); visible = true;
+        SessionRecoveryGate.acknowledgeForegroundStart(this);
+        try { SessionService.ensureRestoring(this); }
+        catch (Exception unreadable) { storageError = true; }
         // Returning to our protected screen ends a cancelled or interrupted picker attempt.
         if (FileScopes.pickerActive(this)) { fileGrantAttempt.cancel(); FileScopes.picker(this, false); }
         setupPaused = true; pollBackoff.reset(); nextPoll = 0;

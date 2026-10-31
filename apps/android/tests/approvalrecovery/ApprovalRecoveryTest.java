@@ -192,6 +192,114 @@ public final class ApprovalRecoveryTest {
             expectFailure(()->trust().beginApproval(config,"invalid","AI"));closed();String id=begin();trust().completeApproval(config,id);
             expectFailure(()->trust().consume(config,0));expectFailure(()->trust().consume(config,9007199254740992L));
         });
+        test("session fence reads do not write consent and survive process restart",()->{
+            String id=begin();trust().completeApproval(config,id);String fence=trust().sessionFence(config);
+            check(fence!=null&&fence.matches("[a-f0-9]{64}"));
+            var original=new java.util.LinkedHashMap<>(FakeDisk.record.fields);int saves=FakeDisk.saves,commits=FakeDisk.preferences.calls;
+            check(fence.equals(trust().sessionFence(config)));check(trust().isCurrent(config,fence));
+            check(FakeDisk.saves==saves&&FakeDisk.preferences.calls==commits);check(original.equals(FakeDisk.record.fields));
+            reboot();check(fence.equals(trust().sessionFence(config)));check(trust().isCurrent(config,fence));
+            check(id.equals(trust().read(config).getString("approval_id")));
+        });
+        test("snapshot fence remains tied to the observed consent when current authorization changes",()->{
+            check(TrustedGrant.fenceOf(null)==null);
+            String id=begin();trust().completeApproval(config,id);JSONObject observed=trust().read(config);
+            String fence=TrustedGrant.fenceOf(observed);check(fence.equals(trust().sessionFence(config)));
+            trust().stop();String next=begin();trust().completeApproval(config,next);
+            String current=trust().sessionFence(config);check(!fence.equals(current));
+            check(fence.equals(TrustedGrant.fenceOf(observed)));check(!trust().isCurrent(config,fence));
+            check(!trust().stopIfCurrent(config,fence));check(trust().isCurrent(config,current));
+        });
+        test("consuming replay sequences preserves the same session fence",()->{
+            String id=begin();trust().completeApproval(config,id);String fence=trust().sessionFence(config);
+            trust().consume(config,71);check(fence.equals(trust().sessionFence(config)));reboot();
+            trust().consume(config,72);check(trust().isCurrent(config,fence));check(trust().read(config).getLong("sequence")==72);
+        });
+        test("session fence includes claim independently of approval ID",()->{
+            String id=begin();trust().completeApproval(config,id);String fence=trust().sessionFence(config);
+            FakeDisk.record.put("claim",CLAIM_B);check(!fence.equals(trust().sessionFence(config)));
+            check(!trust().stopIfCurrent(config,fence));check(CLAIM_B.equals(trust().read(config).getString("claim")));
+        });
+        test("old STOP cannot delete a new claim or reset its replay sequence",()->{
+            String id=begin();trust().completeApproval(config,id);String fence=trust().sessionFence(config);trust().stop();
+            String next=trust().beginApproval(config,CLAIM_B,"second AI");trust().completeApproval(config,next);trust().consume(config,123);
+            check(!fence.equals(trust().sessionFence(config)));check(!trust().isCurrent(config,fence));check(!trust().stopIfCurrent(config,fence));
+            reboot();check(CLAIM_B.equals(trust().read(config).getString("claim")));check(trust().read(config).getLong("sequence")==123);
+        });
+        test("same claim with new approval ID rejects the old STOP",()->{
+            String id=begin();trust().completeApproval(config,id);String fence=trust().sessionFence(config);trust().stop();
+            String next=begin();check(!id.equals(next));trust().completeApproval(config,next);String current=trust().sessionFence(config);
+            check(!fence.equals(current));check(!trust().stopIfCurrent(config,fence));reboot();
+            check(trust().isCurrent(config,current));check(next.equals(trust().read(config).getString("approval_id")));
+        });
+        test("session fence includes enrollment identity independently of claim and approval ID",()->{
+            String id=begin();trust().completeApproval(config,id);String fence=trust().sessionFence(config);trust().stop();
+            EnrollmentStore.Config other=new EnrollmentStore.Config(config.url,"replacement-token");FakeDisk.config=other;
+            String next=trust().beginApproval(other,CLAIM_A,"same AI");trust().completeApproval(other,next);
+            // Hold claim and approval ID constant to exercise only the persisted identity boundary.
+            FakeDisk.record.put("approval_id",id);FakeDisk.preferences.edit().putString("approval_id",id).commit();
+            String current=trust().sessionFence(other);check(current!=null&&!fence.equals(current));
+            check(trust().sessionFence(config)==null);check(!trust().stopIfCurrent(config,fence));check(!trust().stopIfCurrent(other,fence));
+            reboot();check(trust().isCurrent(other,current));check(id.equals(trust().read(other).getString("approval_id")));
+        });
+        test("legacy session fence is stable without migration and differs from modern consent",()->{
+            String id=begin();trust().completeApproval(config,id);String modern=trust().sessionFence(config);
+            FakeDisk.record.remove("phase");FakeDisk.record.remove("approval_id");FakeDisk.record.put("sequence",845L);
+            FakeDisk.preferences.edit().remove("approval_id").commit();
+            var original=new java.util.LinkedHashMap<>(FakeDisk.record.fields);int saves=FakeDisk.saves,commits=FakeDisk.preferences.calls;
+            String legacy=trust().sessionFence(config);check(legacy!=null&&!legacy.equals(modern));
+            check(legacy.equals(TrustedGrant.fenceOf(trust().read(config))));
+            check(!trust().stopIfCurrent(config,modern));check(original.equals(FakeDisk.record.fields));
+            check(FakeDisk.saves==saves&&FakeDisk.preferences.calls==commits);reboot();check(trust().isCurrent(config,legacy));
+            trust().consume(config,846);check(legacy.equals(trust().sessionFence(config)));check(!FakeDisk.record.has("phase")&&!FakeDisk.record.has("approval_id"));
+        });
+        test("missing and pending consent cannot produce or satisfy a session fence",()->{
+            check(trust().sessionFence(config)==null);check(!trust().isCurrent(config,null));check(!trust().stopIfCurrent(config,null));
+            String id=begin();int saves=FakeDisk.saves,commits=FakeDisk.preferences.calls;
+            check(trust().sessionFence(config)==null);check(!trust().isCurrent(config,id));check(!trust().stopIfCurrent(config,id));
+            check(id.equals(trust().pending(config).getString("approval_id")));check(FakeDisk.saves==saves&&FakeDisk.preferences.calls==commits);
+        });
+        test("invalid STOP fences preserve the current approved record",()->{
+            String id=begin();trust().completeApproval(config,id);String fence=trust().sessionFence(config);
+            int saves=FakeDisk.saves,commits=FakeDisk.preferences.calls;
+            for(String stale:new String[]{null,"",id,"invalid",fence+"x"}){
+                check(!trust().isCurrent(config,stale));check(!trust().stopIfCurrent(config,stale));
+            }
+            check(trust().isCurrent(config,fence));check(FakeDisk.saves==saves&&FakeDisk.preferences.calls==commits);
+        });
+        test("persisted STOP needs no controller and remains closed after process restart",()->{
+            String id=begin();trust().completeApproval(config,id);String fence=trust().sessionFence(config);
+            // No PreviewService, in-memory controller, or UI state participates in this operation.
+            reboot();check(trust().stopIfCurrent(config,fence));closed();check(trust().sessionFence(config)==null);
+            check(!trust().stopIfCurrent(config,fence));reboot();closed();check(trust().pending(config)==null);
+            check(!trust().isCurrent(config,fence));check(!ApprovalRecovery.resume(context,config,null));
+        });
+        test("stopped marker refuses session fence even when encrypted deletion failed",()->{
+            String id=begin();trust().completeApproval(config,id);String fence=trust().sessionFence(config);
+            FakeDisk.failForget=true;check(trust().stopIfCurrent(config,fence));check(FakeDisk.record!=null);
+            check(trust().sessionFence(config)==null);check(!trust().isCurrent(config,fence));check(!trust().stopIfCurrent(config,fence));
+            reboot();closed();check(trust().sessionFence(config)==null);check(trust().pending(config)==null);
+        });
+        test("STOP record deletion stays durable when the stopped marker commit fails",()->{
+            String id=begin();trust().completeApproval(config,id);String fence=trust().sessionFence(config);
+            FakeDisk.preferences.failAt=FakeDisk.preferences.calls+1;check(trust().stopIfCurrent(config,fence));check(FakeDisk.record==null);
+            reboot();closed();check(trust().sessionFence(config)==null);check(!trust().isCurrent(config,fence));
+        });
+        test("STOP reports failure when neither durable stopped marker nor record deletion succeeds",()->{
+            String id=begin();trust().completeApproval(config,id);String fence=trust().sessionFence(config);
+            FakeDisk.preferences.failAt=FakeDisk.preferences.calls+1;FakeDisk.failForget=true;
+            expectFailure(()->trust().stopIfCurrent(config,fence));closed();check(FakeDisk.record!=null);
+            // Both disk writes failed: only this process is closed; never report durable STOP success.
+            reboot();check(trust().isCurrent(config,fence));check(trust().stopIfCurrent(config,fence));reboot();closed();
+        });
+        test("grant read failure refuses fence and STOP without deleting or rewriting consent",()->{
+            String id=begin();trust().completeApproval(config,id);String fence=trust().sessionFence(config);
+            var original=new java.util.LinkedHashMap<>(FakeDisk.record.fields);int saves=FakeDisk.saves,commits=FakeDisk.preferences.calls;
+            FakeDisk.failReadRecord=true;
+            expectFailure(()->trust().sessionFence(config));expectFailure(()->trust().isCurrent(config,fence));
+            expectFailure(()->trust().stopIfCurrent(config,fence));check(original.equals(FakeDisk.record.fields));
+            check(FakeDisk.saves==saves&&FakeDisk.preferences.calls==commits);reboot();check(trust().isCurrent(config,fence));
+        });
         test("remote revoke clears success footer tied to old claim",()->{
             ConnectionFeedback feedback=new ConnectionFeedback();feedback.approved(CLAIM_A);
             check(SUCCESS.equals(feedback.reconcile(SUCCESS,CLAIM_A,null)));

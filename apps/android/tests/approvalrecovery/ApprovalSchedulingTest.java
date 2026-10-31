@@ -14,7 +14,7 @@ public final class ApprovalSchedulingTest {
     static void reset()throws Exception{
         FakeDisk.reset();RelayApi.requests.clear();WorkspaceShares.revocations=0;android.os.SystemClock.now=100000;
         var attempt=ApprovalRecovery.class.getDeclaredField("attempt");attempt.setAccessible(true);attempt.set(null,null);
-        SessionService.permitted=true;SessionService.ready=SessionService.deferBegin=SessionService.startFails=false;SessionService.begun=SessionService.ended=0;
+        SessionService.permitted=true;SessionService.ready=SessionService.deferBegin=SessionService.startFails=false;SessionService.begun=SessionService.ended=SessionService.restores=0;SessionService.carrier=SessionService.restoreStartFails=false;
         config=new EnrollmentStore.Config("https://relay.invalid/d/11111111111111111111111111111111","synthetic-secret-A");FakeDisk.config=config;
         service=new PreviewService();activity=new MainActivityHarness(config,A);
     }
@@ -156,6 +156,35 @@ public final class ApprovalSchedulingTest {
             service.ui.screen=ScreenPreparation.State.AUTHENTICATION_REQUIRED;require(service.recoveryStatus()==RecoveryStatus.SYSTEM_AUTH_REQUIRED);
             service.ui.screen=ScreenPreparation.State.UNAVAILABLE;require(service.recoveryStatus()==RecoveryStatus.SCREEN_UNAVAILABLE);
             require(RelayApi.requests.size()==1&&service.ui.clears==0&&service.recovery.cancellations==0);
+        });
+        test("approved recovery enters visible carrier before HTTP without enabling execution",()->{
+            String id=trust().beginApproval(config,A,"synthetic");trust().completeApproval(config,id);service.restore();
+            require(SessionService.carrier&&SessionService.restores==1&&RelayApi.requests.size()==1&&!service.authorized&&!service.executable()&&service.connects==0);
+            request(0).respond(null,0,"timeout");require(SessionService.carrier&&service.main.pending()==1&&trust().read(config)!=null);
+        });
+        test("storage read failure keeps original trust and resumes after readable retry",()->{
+            String id=trust().beginApproval(config,A,"synthetic");trust().completeApproval(config,id);String fence=trust().sessionFence(config);
+            FakeDisk.failReadRecord=true;service.restore();require(FakeDisk.record!=null&&!service.authorized&&service.recoveryStatus()==RecoveryStatus.STORAGE_UNAVAILABLE&&service.main.pending()==1);
+            FakeDisk.failReadRecord=false;service.main.advance(10000);require(fence.equals(trust().sessionFence(config)));connectedReply(0,A);ready();
+        });
+        test("storage failure after pairing GET keeps trust and closes carrier",()->{
+            String id=trust().beginApproval(config,A,"synthetic");trust().completeApproval(config,id);service.restore();FakeDisk.failReadRecord=true;
+            connectedReply(0,A);require(FakeDisk.record!=null&&!service.authorized&&!SessionService.carrier&&service.recoveryStatus()==RecoveryStatus.STORAGE_UNAVAILABLE);
+        });
+        test("old revoke reply cannot stop replacement consent without a generation change",()->{
+            String id=trust().beginApproval(config,A,"synthetic");trust().completeApproval(config,id);service.restore();
+            trust().stop();id=trust().beginApproval(config,A,"synthetic new consent");trust().completeApproval(config,id);String next=trust().sessionFence(config);
+            request(0).respond(null,410,"revoked");require(next.equals(trust().sessionFence(config))&&!service.authorized);service.restore();connectedReply(1,A);ready();
+        });
+        test("carrier loss closes commands but retains trust and revalidates",()->{
+            active();String fence=trust().sessionFence(config);service.activeCommand=9;service.sessionCarrierUnavailable();
+            require(!service.authorized&&!service.executable()&&service.activeCommand==0&&fence.equals(trust().sessionFence(config))&&service.main.pending()==1);
+            service.main.advance(2000);connectedReply(1,A);require(service.executable()&&service.connects==2);
+        });
+        test("STOP from restoring notification closes all retries after durable fence",()->{
+            String id=trust().beginApproval(config,A,"synthetic");trust().completeApproval(config,id);service.restore();String fence=trust().sessionFence(config);
+            require(trust().stopIfCurrent(config,fence));service.stoppedLocally(fence);connectedReply(0,A);service.main.advance(60000);
+            require(!service.authorized&&service.main.pending()==0&&trust().read(config)==null);
         });
         System.out.println("TOTAL "+count);
     }
