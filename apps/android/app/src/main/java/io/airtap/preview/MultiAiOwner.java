@@ -22,16 +22,17 @@ final class MultiAiOwner {
     private long nextPoll;
     private okhttp3.Call call;
     private AlertDialog enableCheck;
+    private Object invitationRead;
     MultiAiOwner(Activity owner,Runnable changed,Consumer<String> folder){this.owner=owner;this.changed=changed;this.folder=folder;}
     boolean enabled(EnrollmentStore.Config config){try{return new TrustedGrant(owner).multi(config);}catch(Exception e){return false;}}
     void bindIdentity(EnrollmentStore.Config config){
         if(identity==null||config==null||!identity.url.equals(config.url)||!identity.token.equals(config.token)){
-            generation++;if(call!=null)call.cancel();call=null;busy=false;remote=null;nextPoll=0;dismissEnableCheck();
+            generation++;invitationRead=null;if(call!=null)call.cancel();call=null;busy=false;remote=null;nextPoll=0;dismissEnableCheck();
         }
         identity=config;
     }
     void resume(EnrollmentStore.Config config){bindIdentity(config);visible=true;nextPoll=0;}
-    void pause(){visible=false;generation++;busy=false;if(call!=null)call.cancel();call=null;dismissEnableCheck();}
+    void pause(){visible=false;generation++;invitationRead=null;busy=false;if(call!=null)call.cancel();call=null;dismissEnableCheck();}
     private void change(String text){message=text;changed.run();}
     private boolean current(int run,EnrollmentStore.Config config){return visible&&!owner.isDestroyed()&&run==generation&&identity!=null&&config.url.equals(identity.url)&&config.token.equals(identity.token);}
     private void dismissEnableCheck(){if(enableCheck!=null){enableCheck.dismiss();enableCheck=null;}}
@@ -140,14 +141,42 @@ final class MultiAiOwner {
             }catch(Exception unknown){ /* A failed or malformed read cannot create consent or change mode. */ }
         });}catch(Exception unavailable){busy=false;call=null;}
     }
-    private void poll(boolean enable){
-        if(busy||identity==null)return;busy=true;int run=generation;EnrollmentStore.Config config=identity;
-        call=RelayApi.requestStatus(config.url,"/v1/device/grants","GET",config.token,null,(body,status,error)->{
-            if(!current(run,config))return;busy=false;call=null;nextPoll=android.os.SystemClock.elapsedRealtime()+3000;
-            if(error!=null){change("暂时无法核实服务状态，原授权和邀请已保留，可稍后重试。");return;}
-            try{MultiAiProtocol.claims(body);remote=body;restoreInvitation();changed.run();}
-            catch(Exception malformed){change("服务返回的连接状态无法核实，请检查版本或稍后重试。");}
-        });
+    private void cancelInvitationRead(){
+        if(invitationRead==null)return;invitationRead=null;generation++;
+        if(call!=null)call.cancel();call=null;busy=false;
+    }
+    private Map<String,String> invitationContext(EnrollmentStore.Config config)throws Exception{
+        EnrollmentStore.Config saved=new EnrollmentStore(owner).read();TrustedGrant trust=new TrustedGrant(owner);
+        if(saved==null||!saved.enrolled()||!saved.publicService()||!saved.url.equals(config.url)||!saved.token.equals(config.token)||!trust.multi(config))throw new IllegalStateException();
+        Map<String,String> context=new TreeMap<>();
+        // STOP must invalidate this intent even when the multi grant set was already empty.
+        context.put("stop",owner.getSharedPreferences("trust-state",0).getString("stop_nonce",""));
+        for(JSONObject grant:trust.grants(config)){String claim=grant.getString("claim");context.put(claim,trust.grantFence(config,claim));}
+        JSONObject invite=trust.invitation(config),pending=trust.pending(config);
+        if(invite!=null)context.put("invitation",invite.getString("invitation_id")+":"+invite.getLong("invitation_sequence")+":"+invite.getString("phase"));
+        if(pending!=null)context.put("pending",pending.getString("approval_id"));
+        return context;
+    }
+    private void poll(boolean createAfterRead){
+        if(busy||identity==null||!visible)return;
+        final Object intent=createAfterRead?new Object():null;
+        final EnrollmentStore.Config config=identity;final int run=generation;
+        try{
+            final Map<String,String> context=createAfterRead?invitationContext(config):null;
+            busy=true;invitationRead=intent;
+            call=RelayApi.requestStatus(config.url,"/v1/device/grants","GET",config.token,null,(body,status,error)->{
+                if(!current(run,config)||(createAfterRead&&invitationRead!=intent))return;
+                // Consume once before continuing: a duplicate GET reply cannot issue another POST.
+                invitationRead=null;busy=false;call=null;nextPoll=android.os.SystemClock.elapsedRealtime()+3000;
+                if(error!=null||status!=200){change("暂时无法核实服务状态，原授权和邀请已保留，可稍后重试。");return;}
+                try{
+                    MultiAiProtocol.claims(body);
+                    if(createAfterRead&&!context.equals(invitationContext(config))){change("连接状态已变化，请重新选择是否添加自己的 AI。");return;}
+                    remote=body;restoreInvitation();
+                    if(createAfterRead&&!busy)create(false);else changed.run();
+                }catch(Exception malformed){change("服务返回的连接状态无法核实，请检查版本或稍后重试。");}
+            });
+        }catch(Exception unavailable){invitationRead=null;busy=false;call=null;change("暂时无法核实服务状态，原授权和邀请已保留，可稍后重试。");}
     }
     private Button button(String text,Runnable action){Button b=new Button(owner){@Override public boolean onFilterTouchEventForSecurity(android.view.MotionEvent event){return (event.getFlags()&(android.view.MotionEvent.FLAG_WINDOW_IS_OBSCURED|android.view.MotionEvent.FLAG_WINDOW_IS_PARTIALLY_OBSCURED))==0&&super.onFilterTouchEventForSecurity(event);}};b.setText(text);b.setFilterTouchesWhenObscured(true);b.setEnabled(!busy);AppUi.button(b,AppUi.SECONDARY);b.setOnClickListener(v->action.run());return b;}
     private void text(LinearLayout box,String value,int size){box.addView(AppUi.text(owner,value,size));AppUi.space(box,12);}
@@ -190,7 +219,7 @@ final class MultiAiOwner {
         return remote!=null&&new TrustedGrant(owner).grants(identity).isEmpty()&&remote.getJSONArray("grants").length()>0;
     }
     private void create(boolean fresh){
-        if(busy||identity==null)return;
+        if(busy||identity==null||!visible)return;
         try{
             if(OwnerRevocations.allPending(owner,identity)){change("请先确认全部 AI 已解除，再创建新的邀请。");return;}
             if(remote==null){poll(true);return;}
@@ -218,17 +247,19 @@ final class MultiAiOwner {
     private void show(JSONObject invite){try{TextView t=AppUi.text(owner,prompt(invite),14);t.setTextIsSelectable(true);ScrollView scroll=new ScrollView(owner);scroll.addView(t);AlertDialog dialog=new AlertDialog.Builder(owner).setTitle("我的 AI 接入邀请").setView(scroll).setPositiveButton("返回",null).create();dialog.getWindow().addFlags(WindowManager.LayoutParams.FLAG_SECURE);dialog.show();}catch(Exception failure){change("邀请已过期或尚未核实。");}}
     private void approve(String claim,String name){try{if(OwnerRevocations.allPending(owner,identity))return;new TrustedGrant(owner).beginApproval(identity,claim,name);if(PreviewService.instance!=null)PreviewService.instance.restore();change("正在完成你已核码确认的连接，原有 AI 授权保持不变。");}catch(Exception failure){change("未能保存确认，请检查存储；原有 AI 授权保持不变。");}}
     private void cancel(){
+        cancelInvitationRead();
         if(busy)return;try{TrustedGrant trust=new TrustedGrant(owner);JSONObject invitation=trust.invitation(identity);if(invitation==null)return;String id=invitation.getString("invitation_id");long seq=invitation.getLong("invitation_sequence");trust.cancelInvitation(identity,id,seq);
             busy=true;int run=generation;EnrollmentStore.Config config=identity;call=RelayApi.requestStatus(config.url,"/v1/device/invitations/cancel","POST",config.token,RelayApi.json("invitation_id",id,"invitation_sequence",seq),(body,status,error)->{if(!current(run,config))return;busy=false;call=null;try{if(error==null){ServiceProtocol.version(body);if(!ServiceProtocol.bool(body,"ok"))throw new IllegalArgumentException();trust.finishInvitationCancellation(config,id,seq);change("已取消这次邀请，其他 AI 的授权保持不变。");poll(false);}else change("本机已取消这次邀请，服务端确认尚未完成，可刷新重试。");}catch(Exception failure){change("取消结果尚未核实，请刷新重试。");}});
         }catch(Exception failure){change("暂时无法保存取消状态，请检查手机存储。");}
     }
-    private void revoke(String claim,String name){new AlertDialog.Builder(owner).setTitle("解除 "+name+"？").setMessage("这位 AI 将不能继续使用手机。其他 AI 的授权保留；已复制到其他 App 的内容无法追回。").setNegativeButton("返回",null).setPositiveButton("解除",(d,w)->{try{OwnerRevocations.queue(owner,identity,claim);if(PreviewService.instance!=null)PreviewService.instance.ownerGrantsChanged();new TrustedGrant(owner).revoke(identity,claim);FileScopes.revoke(owner,claim);if(PreviewService.instance!=null)PreviewService.instance.ownerGrantsChanged();requestRevoke(claim);}catch(Exception failure){change("暂时无法确认本机已停止，请检查存储。");}}).show();}
+    private void revoke(String claim,String name){cancelInvitationRead();new AlertDialog.Builder(owner).setTitle("解除 "+name+"？").setMessage("这位 AI 将不能继续使用手机。其他 AI 的授权保留；已复制到其他 App 的内容无法追回。").setNegativeButton("返回",null).setPositiveButton("解除",(d,w)->{try{OwnerRevocations.queue(owner,identity,claim);if(PreviewService.instance!=null)PreviewService.instance.ownerGrantsChanged();new TrustedGrant(owner).revoke(identity,claim);FileScopes.revoke(owner,claim);if(PreviewService.instance!=null)PreviewService.instance.ownerGrantsChanged();requestRevoke(claim);}catch(Exception failure){change("暂时无法确认本机已停止，请检查存储。");}}).show();}
     private void requestRevoke(String claim){change("这位 AI 已在本机停止，正在确认服务端解除。");flushRevokes();}
     boolean serviceChangeReady(){
         try{TrustedGrant trust=new TrustedGrant(owner);return remote!=null&&remote.getJSONArray("grants").length()==0&&remote.isNull("invitation")&&trust.grants(identity).isEmpty()&&trust.pending(identity)==null&&trust.invitation(identity)==null&&!OwnerRevocations.allPending(owner,identity)&&OwnerRevocations.claimsPending(owner,identity).isEmpty();}
         catch(Exception unreadable){return false;}
     }
     void stopAll(){
+        cancelInvitationRead();
         try{if(OwnerRevocations.allPending(owner,identity)){flushRevokes();change("正在继续确认原来那次全部解除。");return;}}
         catch(Exception unreadable){ /* Local stop remains available when retry metadata cannot be read. */ }
         Long knownGeneration=null;

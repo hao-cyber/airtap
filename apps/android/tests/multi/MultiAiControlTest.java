@@ -14,6 +14,9 @@ public final class MultiAiControlTest{
  static JSONObject discovery(){return RelayApi.json("protocol_version",4,"enrollment_mode","public","enrollment_expires_at",JSONObject.NULL,"pairing_ttl_seconds",300,"session_ttl_seconds",JSONObject.NULL,"command_budget",JSONObject.NULL,"service_id",T,"label","Synthetic relay","registration_open",true,"control_open",true,"capabilities",new JSONArray().put("companion_v1").put("multi_ai_v1").put("task_lease_v1"));}
  static JSONObject multiState(String claim){JSONArray grants=new JSONArray();if(claim!=null)grants.put(RelayApi.json("claim_id",claim,"name","Synthetic old AI","state","approved","command_sequence",7,"lease_required",false,"lease_ready",false,"persistent",true,"all_apps",true,"allow_control",true,"allowed_packages",new JSONArray()));return RelayApi.json("protocol_version",4,"mode","multi","generation",5,"max_grants",4,"invitation_sequence",0,"grants",grants,"invitation",JSONObject.NULL);}
  static void unchanged(OwnerIdentityHarness owner)throws Exception{check(!trust.multi(config)&&trust.grant(config,A).getLong("sequence")==7&&service.ownerModeChanges==0&&owner.polls==0);}
+ static OwnerIdentityHarness invitationOwner()throws Exception{trust.requireLease(config,A);OwnerIdentityHarness owner=new OwnerIdentityHarness();owner.bindIdentity(config);return owner;}
+ static long invitationPosts(){return RelayApi.requests.stream().filter(r->r.path.equals("/v1/device/invitations")&&r.method.equals("POST")).count();}
+ static JSONObject invitationReply(JSONObject request){return RelayApi.json("protocol_version",4,"invitation_id",request.getString("invitation_id"),"invitation_sequence",request.getLong("invitation_sequence"),"pairing_expires_at",System.currentTimeMillis()/1000+300,"expires_at",JSONObject.NULL,"cli_sha256","1".repeat(64),"agent_sha256","2".repeat(64));}
  public static void main(String[]args)throws Exception{
   test("structured hello and permanent first fence disable the legacy envelope",()->{service.receive(command(A,null,1));check(service.ui.executions==1&&A.equals(service.ui.owner));service.ui.reply.success(new JSONObject());service.receive(fence(1,A));check(ws.last().getBoolean("ok")&&trust.grant(config,A).getBoolean("lease_required"));service.receive(command(A,null,2));check(!ws.last().getBoolean("ok")&&service.ui.executions==1);});
   test("multi refuses raw single commands while unchanged single dispatch remains usable",()->{service.receive(RelayApi.json("id",ID,"action","file_roots","sequence",1));check(ws.close==1008&&service.ui.executions==0);FakeDisk.reset();FakeDisk.config=config;trust=new TrustedGrant(new android.content.Context());String consent=trust.beginApproval(config,A,"single AI");trust.completeApproval(config,consent);service.multiMode=false;service.raw(RelayApi.json("id",ID,"action","file_roots","sequence",1));check(service.ui.executions==1);});
@@ -153,6 +156,71 @@ public final class MultiAiControlTest{
   });
   test("invalid or unavailable remote mode read leaves stopped single state intact",()->{
     for(int response=0;response<3;response++){OwnerIdentityHarness owner=singleOwner();trust.stop();owner.emptyCheck();var req=RelayApi.requests.get(0);if(response==0)req.respond(null,0,"offline");else if(response==1)req.respond(multiState(A).put("invitation",null),200,null);else req.respond(RelayApi.json("protocol_version",4,"state","revoked"),200,null);check(!trust.multi(config)&&trust.read(config)==null);}
+  });
+  test("one explicit add reads state then creates one durable invitation without a second click",()->{
+    OwnerIdentityHarness owner=invitationOwner();owner.add();check(owner.busy&&RelayApi.requests.size()==1&&trust.invitation(config)==null);
+    var read=RelayApi.requests.get(0);check(read.method.equals("GET")&&read.path.equals("/v1/device/grants"));trust.consume(config,A,8);read.respond(multiState(A),200,null);
+    check(invitationPosts()==1&&owner.busy);var post=RelayApi.requests.get(1);JSONObject invite=trust.invitation(config);
+    check(post.body.getString("invitation_id").equals(invite.getString("invitation_id"))&&post.body.getString("ticket").equals(invite.getString("ticket"))&&trust.grant(config,A).getLong("sequence")==8);
+    read.respond(multiState(A),200,null);check(invitationPosts()==1&&owner.busy&&owner.call==post);
+    post.respond(invitationReply(post.body),200,null);check("ready".equals(trust.invitation(config).getString("phase"))&&invitationPosts()==1);
+    read.respond(multiState(A),200,null);check(invitationPosts()==1);
+  });
+  test("failed malformed and synchronous state reads release busy and require an explicit retry",()->{
+    for(int mode=0;mode<4;mode++){reset();OwnerIdentityHarness owner=invitationOwner();if(mode==3)RelayApi.throwNext=true;owner.add();
+      if(mode<3)RelayApi.requests.get(0).respond(mode==1?multiState(A).put("protocol_version",3):mode==2?multiState(A):null,mode==2?503:mode==0?0:200,mode==0?"offline":null);
+      check(!owner.busy&&trust.invitation(config)==null&&invitationPosts()==0);owner.add();RelayApi.requests.get(RelayApi.requests.size()-1).respond(multiState(A),200,null);check(invitationPosts()==1);
+    }
+  });
+  test("a background state refresh never creates an invitation",()->{
+    OwnerIdentityHarness owner=invitationOwner();owner.backgroundPoll();RelayApi.requests.get(0).respond(multiState(A),200,null);check(invitationPosts()==0&&trust.invitation(config)==null&&!owner.busy);
+  });
+  test("pause and identity change invalidate late add reads without blocking a later request",()->{
+    for(boolean pause:new boolean[]{true,false}){reset();OwnerIdentityHarness owner=invitationOwner();owner.add();var old=RelayApi.requests.get(0);
+      if(pause){owner.pause();owner.visible=true;}else owner.bindIdentity(new EnrollmentStore.Config("https://other.invalid/d/"+B,"f".repeat(64)));
+      check(old.cancelled&&!owner.busy);old.respond(multiState(A),200,null);check(invitationPosts()==0&&trust.invitation(config)==null);
+      owner.bindIdentity(config);owner.add();var next=RelayApi.requests.get(1);old.respond(multiState(A),200,null);check(owner.busy&&owner.call==next);next.respond(multiState(A),200,null);check(invitationPosts()==1);
+    }
+  });
+  test("STOP dialog cancels the add read and returning permits a new explicit add",()->{
+    OwnerIdentityHarness owner=invitationOwner();owner.add();var old=RelayApi.requests.get(0);owner.stopAll();check(old.cancelled&&!owner.busy);old.respond(multiState(A),200,null);
+    check(invitationPosts()==0&&trust.grant(config,A)!=null&&trust.invitation(config)==null);owner.add();RelayApi.requests.get(1).respond(multiState(A),200,null);check(invitationPosts()==1);
+  });
+  test("confirmed STOP and a failed remote-stop write cannot revive an invitation from old reads",()->{
+    for(boolean failedQueue:new boolean[]{true,false}){reset();OwnerIdentityHarness owner=invitationOwner();owner.add();var old=RelayApi.requests.get(0);PreviewService.instance=null;OwnerRevocations.failQueue=failedQueue;owner.stopAll();android.app.AlertDialog.positive.click(null,0);old.respond(multiState(A),200,null);
+      check(invitationPosts()==0&&trust.grants(config).isEmpty()&&trust.invitation(config)==null&&!owner.busy);
+    }
+  });
+  test("revocation dialog and cancel action abandon old add reads but do not stick busy",()->{
+    for(boolean revoke:new boolean[]{true,false}){reset();OwnerIdentityHarness owner=invitationOwner();owner.add();var old=RelayApi.requests.get(0);if(revoke)owner.remove(A);else owner.cancelAdd();
+      check(old.cancelled&&!owner.busy);old.respond(multiState(A),200,null);check(invitationPosts()==0&&trust.invitation(config)==null&&trust.grant(config,A)!=null);
+      owner.add();RelayApi.requests.get(1).respond(multiState(A),200,null);check(invitationPosts()==1);
+    }
+  });
+  test("notification STOP independent grant revocation and persisted identity change invalidate add context",()->{
+    for(int action=0;action<3;action++){reset();OwnerIdentityHarness owner=invitationOwner();owner.add();var read=RelayApi.requests.get(0);
+      if(action==0)trust.stop();else if(action==1)trust.revoke(config,A);else FakeDisk.config=new EnrollmentStore.Config(config.url,"f".repeat(64));
+      read.respond(multiState(A),200,null);check(invitationPosts()==0&&trust.invitation(config)==null&&!owner.busy);
+    }
+  });
+  test("independently canceled original invitation is not replaced by a delayed add read",()->{
+    OwnerIdentityHarness owner=invitationOwner();JSONObject invite=trust.beginInvitation(config,0);owner.add();var read=RelayApi.requests.get(0);
+    trust.cancelInvitation(config,invite.getString("invitation_id"),invite.getLong("invitation_sequence"));trust.finishInvitationCancellation(config,invite.getString("invitation_id"),invite.getLong("invitation_sequence"));
+    read.respond(multiState(A),200,null);check(invitationPosts()==0&&trust.invitation(config)==null&&!owner.busy);
+  });
+  test("unknown invitation POST retains the same ID sequence and ticket for explicit retry",()->{
+    OwnerIdentityHarness owner=invitationOwner();owner.add();RelayApi.requests.get(0).respond(multiState(A),200,null);var first=RelayApi.requests.get(1);first.respond(null,0,"lost_response");
+    check(!owner.busy&&trust.invitation(config)!=null);owner.add();var retry=RelayApi.requests.get(2);check(invitationPosts()==2);
+    for(String key:List.of("invitation_id","invitation_sequence","ticket"))check(first.body.get(key).equals(retry.body.get(key)));
+  });
+  test("empty multi can continue an explicit add after read while remote orphan grants still block it",()->{
+    for(boolean orphan:new boolean[]{false,true}){reset();trust.stop();OwnerIdentityHarness owner=new OwnerIdentityHarness();owner.bindIdentity(config);owner.add();RelayApi.requests.get(0).respond(multiState(orphan?A:null),200,null);
+      check(invitationPosts()==(orphan?0:1));if(orphan)check(trust.invitation(config)==null);
+    }
+  });
+  test("a later STOP invalidates an add read even when both grant snapshots are empty",()->{
+    trust.stop();OwnerIdentityHarness owner=new OwnerIdentityHarness();owner.bindIdentity(config);owner.add();var read=RelayApi.requests.get(0);trust.stop();read.respond(multiState(null),200,null);
+    check(invitationPosts()==0&&trust.invitation(config)==null&&!owner.busy);
   });
   System.out.println("TOTAL "+passed);
  }
