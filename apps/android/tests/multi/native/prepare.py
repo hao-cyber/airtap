@@ -8,11 +8,14 @@ ROOT=HERE.parents[4]
 PACKAGE='io.airtap.fixture.multi'
 def main():
     p=argparse.ArgumentParser(description=__doc__)
+    p.add_argument('--source-root',type=Path,default=ROOT,help='Read-only frozen production checkout to package');p.add_argument('--expected-commit',help='Require this production HEAD before and after copying');
     p.add_argument('--output',type=Path,required=True);p.add_argument('--avd-name',required=True)
     p.add_argument('--sdk',type=Path,required=True);p.add_argument('--jdk',type=Path,required=True)
     p.add_argument('--rootable-system-image',type=Path,help='Optional installed Google APIs arm64 system image; required for native port443 reverse')
     p.add_argument('--build-only',action='store_true',help='Build new isolated APKs without creating another AVD')
-    args=p.parse_args();out=args.output.resolve();out.mkdir(mode=0o700,parents=True,exist_ok=False)
+    args=p.parse_args();source_root=args.source_root.resolve();production_commit=subprocess.check_output(['git','rev-parse','HEAD'],cwd=source_root,text=True).strip();
+    if args.expected_commit and production_commit!=args.expected_commit:raise RuntimeError('production_head_mismatch')
+    out=args.output.resolve();out.mkdir(mode=0o700,parents=True,exist_ok=False)
     env={**os.environ,'JAVA_HOME':str(args.jdk),'ANDROID_HOME':str(args.sdk)}
     def run(*a,input=None):return subprocess.run(list(map(str,a)),input=input,text=True,capture_output=True,check=True,env=env).stdout
     tls=out/'tls';tls.mkdir()
@@ -21,7 +24,7 @@ def main():
     (tls/'ext.cnf').write_text('subjectAltName=DNS:localhost\nbasicConstraints=CA:FALSE\nkeyUsage=digitalSignature,keyEncipherment\nextendedKeyUsage=serverAuth\n')
     run('openssl','x509','-req','-in',tls/'server.csr','-CA',tls/'ca.pem','-CAkey',tls/'ca-key.pem','-CAcreateserial','-out',tls/'cert.pem','-days','2','-extfile',tls/'ext.cnf')
     build=out/'build';build.mkdir()
-    android=ROOT/'apps/android'
+    android=source_root/'apps/android'
     for f in ['gradlew','gradlew.bat','settings.gradle','build.gradle','gradle.properties']:
         if (android/f).exists():shutil.copy2(android/f,build/f)
     shutil.copytree(android/'gradle',build/'gradle')
@@ -35,7 +38,7 @@ def main():
         dst=build/'app/src/main/java'/src.relative_to(HERE/'client');dst.parent.mkdir(parents=True,exist_ok=True);shutil.copy2(src,dst)
     gradle=build/'app/build.gradle';text=gradle.read_text().replace("applicationId 'io.airtap.preview'",f"applicationId '{PACKAGE}'").replace('minifyEnabled true','minifyEnabled false');gradle.write_text(text)
     manifest=build/'app/src/main/AndroidManifest.xml';text=manifest.read_text().replace('android:usesCleartextTraffic="false"','android:usesCleartextTraffic="false" android:networkSecurityConfig="@xml/native_network_security"')
-    text=text.replace('</application>','<receiver android:name="io.airtap.preview.NativeBridge" android:exported="true"/><activity android:name="io.airtap.preview.NativeFolderActivity" android:exported="true"/>\n</application>');manifest.write_text(text)
+    text=text.replace('</application>','<receiver android:name="io.airtap.preview.NativeBridge" android:exported="true"/><receiver android:name="io.airtap.preview.NativeOwnerUi" android:exported="true"/><activity android:name="io.airtap.preview.NativeFolderActivity" android:exported="true"/>\n</application>');manifest.write_text(text)
     res=build/'app/src/main/res';(res/'raw').mkdir(exist_ok=True);shutil.copy2(tls/'ca.pem',res/'raw/native_ca.pem')
     (res/'xml/native_network_security.xml').write_text('<network-security-config><base-config cleartextTrafficPermitted="false"><trust-anchors><certificates src="@raw/native_ca"/></trust-anchors></base-config></network-security-config>')
     with (out/'build.log').open('w') as log:
@@ -55,7 +58,9 @@ def main():
         if not (image/'system.img').is_file():raise RuntimeError('missing_rootable_image')
         config=out/'avd/config.ini';rows=config.read_text().splitlines();updates={'image.sysdir.1':str(image)+'/', 'tag.id':'google_apis','tag.display':'Google APIs','PlayStore.enabled':'false'}
         config.write_text('\n'.join(k+'='+updates[k] if (k:=line.split('=',1)[0]) in updates else line for line in rows)+'\n')
-    report={'production_java_sha256':hashes,'production_java_unchanged':True,'package':PACKAGE,'avd_name':args.avd_name,'build_differences':['test-only applicationId','no shrinking','test-only NativeBridge and NativeFolderActivity','private CA only; production TlsPolicy unchanged'],'client_sha256':hashlib.sha256((out/'client.apk').read_bytes()).hexdigest(),'target_sha256':hashlib.sha256((out/'target.apk').read_bytes()).hexdigest()}
+    assert subprocess.check_output(['git','rev-parse','HEAD'],cwd=source_root,text=True).strip()==production_commit
+    assert all(hashlib.sha256((android/name).read_bytes()).hexdigest()==sha for name,sha in hashes.items())
+    report={'production_root':str(source_root),'production_commit':production_commit,'production_java_sha256':hashes,'production_java_unchanged':True,'package':PACKAGE,'avd_name':args.avd_name,'build_differences':['test-only applicationId','no shrinking','test-only NativeBridge, NativeFolderActivity, NativeOwnerUi','private CA only; production TlsPolicy unchanged'],'client_sha256':hashlib.sha256((out/'client.apk').read_bytes()).hexdigest(),'target_sha256':hashlib.sha256((out/'target.apk').read_bytes()).hexdigest()}
     (out/'build-metadata.private.json').write_text(json.dumps(report,indent=2)+'\n')
     for f in tls.iterdir():f.chmod(0o600)
     print(json.dumps({'output':str(out),'built':True,'production_java_files':len(hashes)}))

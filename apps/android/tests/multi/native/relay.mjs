@@ -2,17 +2,26 @@
 // Private native-test transport: unchanged production modules in real workerd.
 // No fake phone, automatic approval, test backend endpoint, or device operation.
 import { createHash, randomBytes } from 'node:crypto';
-import { readFile, writeFile, mkdir, chmod, realpath } from 'node:fs/promises';
+import { readFile, writeFile, appendFile, mkdir, chmod, realpath } from 'node:fs/promises';
 import { createServer } from 'node:https';
 import { request as httpRequest } from 'node:http';
 import { createInterface } from 'node:readline';
 import { join, resolve, relative, isAbsolute } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { createRequire } from 'node:module';
+import { gunzipSync, inflateSync, brotliDecompressSync } from 'node:zlib';
 
 const emit = value => process.stdout.write(JSON.stringify(value) + '\n');
 const hex = bytes => randomBytes(bytes).toString('hex');
 const digest = bytes => createHash('sha256').update(bytes).digest('hex');
+const decodedResponse = (bytes, encoding) => {
+  const decoders = { gzip: gunzipSync, deflate: inflateSync, br: brotliDecompressSync };
+  for (const name of String(encoding ?? '').toLowerCase().split(',').map(s => s.trim()).filter(s => s && s !== 'identity').reverse()) {
+    if (!Object.hasOwn(decoders, name)) throw new Error('unsupported_content_encoding');
+    bytes = decoders[name](bytes, { maxOutputLength: 1024 * 1024 });
+  }
+  return bytes;
+};
 const args = new Map();
 for (let i = 2; i < process.argv.length; i += 2) {
   const key = process.argv[i], value = process.argv[i + 1];
@@ -54,6 +63,36 @@ async function main() {
   if (inside === '' || (!inside.startsWith('..' + '/') && inside !== '..' && !isAbsolute(inside))) throw new Error('private_state_required');
   const responses = join(actualStateDir, 'responses');
   await mkdir(responses, { recursive: true, mode: 0o700 }); await chmod(responses, 0o700);
+  // Test-only transport faults. Admin requests below dispatch directly to workerd,
+  // never through this map. Nothing is injected into production worker modules.
+  const faultFile = join(actualStateDir, 'faults.private.jsonl');
+  await writeFile(faultFile, '', { flag: 'a', mode: 0o600 }); await chmod(faultFile, 0o600);
+  const faultModes = { service: ['missing_caps', 'disconnect'], enable: ['reject_404', 'drop_response'], pairing: ['disconnect'], revoke: ['disconnect'] };
+  const faults = new Map(), faultHistory = [];
+  let faultSequence = 0, faultLogErrors = 0, faultLog = Promise.resolve();
+  const recordFault = event => {
+    // Only synthetic fault metadata: no request paths, bodies, tokens or headers.
+    const line = JSON.stringify({ at: new Date().toISOString(), ...event }) + '\n';
+    faultLog = faultLog.then(() => appendFile(faultFile, line, { mode: 0o600 })).catch(() => { faultLogErrors++; });
+  };
+  const faultSnapshot = () => ({ log_file: faultFile, log_errors: faultLogErrors,
+    active: Object.fromEntries([...faults].map(([target, fault]) => [target, fault.fault_id])),
+    faults: faultHistory.map(fault => ({ ...fault })) });
+  const selectFault = request => {
+    const path = new URL(request.url, 'https://localhost').pathname;
+    const target = request.method === 'GET' && path === '/v1/service' ? 'service'
+      : request.method === 'POST' && /^\/d\/[a-f0-9]{32}\/v1\/device\/multi\/enable$/.test(path) ? 'enable'
+      : request.method === 'GET' && /^\/d\/[a-f0-9]{32}\/v1\/device\/pairing$/.test(path) ? 'pairing'
+      : request.method === 'POST' && /^\/d\/[a-f0-9]{32}\/v1\/device\/grants\/revoke$/.test(path) ? 'revoke' : null;
+    const fault = faults.get(target);
+    if (!fault) return null;
+    fault.hits++;
+    if (fault.remaining !== null && --fault.remaining === 0) { faults.delete(target); fault.active = false; }
+    recordFault({ event: 'trigger', fault_id: fault.fault_id, target, mode: fault.mode, hit: fault.hits });
+    // Capture this exact admission. clear/replacement cannot release its response
+    // or apply a newer fault to an already forwarded request. No response queue.
+    return fault;
+  };
   const port = Number(args.get('--port') ?? 8443);
   if (!Number.isInteger(port) || port < 0 || port > 65535) throw new Error('invalid_port');
   const requireWorker = createRequire(join(root, 'relay/worker/package.json'));
@@ -103,13 +142,61 @@ async function main() {
     if (restarting || shuttingDown) { response.writeHead(503); response.end(); return; }
     let upstream;
     try {
+      const fault = selectFault(request);
+      if (fault?.mode === 'disconnect') { request.resume(); response.destroy(); return; }
+      if (fault?.mode === 'reject_404') {
+        request.resume(); response.writeHead(404, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
+        response.end(JSON.stringify({ protocol_version: 4, error: 'native_test_rejected' })); return;
+      }
+      if (fault) fault.forwarded++;
       upstream = httpRequest(upstreamUrl(request.url), { method: request.method, headers: forwardHeaders(request) }, incoming => {
+        if (fault) {
+          // Both remaining modes consume a small real response, but never retain
+          // it after completion. A dropped enable still reaches real persistence.
+          const chunks = []; let size = 0, finished = false;
+          if (incoming.headers['content-encoding']) fault.encoded_responses++;
+          const fail = () => {
+            if (finished) return; finished = true; fault.failures++;
+            recordFault({ event: 'upstream_incomplete', fault_id: fault.fault_id });
+            incoming.destroy(); response.destroy();
+          };
+          incoming.on('data', chunk => { size += chunk.length; if (size > 1024 * 1024) fail(); else chunks.push(chunk); });
+          incoming.on('error', fail); incoming.on('aborted', fail);
+          incoming.on('end', () => {
+            if (finished) return; finished = true; fault.upstream_completed++;
+            let body; try { body = JSON.parse(decodedResponse(Buffer.concat(chunks), incoming.headers['content-encoding']).toString('utf8')); } catch {}
+            if (fault.mode === 'drop_response') {
+              const committed = incoming.statusCode === 200 && body?.protocol_version === 4 && body.mode === 'multi' && Array.isArray(body.grants);
+              if (committed) fault.commit_acknowledged++;
+              fault.dropped++;
+              recordFault({ event: 'response_dropped', fault_id: fault.fault_id, status: incoming.statusCode, commit_acknowledged: committed });
+              response.destroy(); return;
+            }
+            if (incoming.statusCode !== 200 || body?.protocol_version !== 4 || !Array.isArray(body.capabilities)) {
+              fault.failures++; recordFault({ event: 'unexpected_service_response', fault_id: fault.fault_id, status: incoming.statusCode });
+              response.destroy(); return;
+            }
+            body.capabilities = body.capabilities.filter(cap => !['multi_ai_v1', 'task_lease_v1'].includes(cap));
+            const bytes = Buffer.from(JSON.stringify(body));
+            const headers = { ...incoming.headers, 'content-type': 'application/json', 'content-length': bytes.length, 'cache-control': 'no-store' };
+            for (const key of ['transfer-encoding', 'content-encoding', 'etag', 'content-md5', 'digest']) delete headers[key];
+            fault.modified++;
+            recordFault({ event: 'capabilities_removed', fault_id: fault.fault_id, status: incoming.statusCode });
+            response.writeHead(200, headers); response.end(bytes);
+          });
+          return;
+        }
         response.writeHead(incoming.statusCode, incoming.headers); incoming.pipe(response);
         incoming.on('error', () => response.destroy());
       });
-      upstream.on('error', () => { if (!response.headersSent) response.writeHead(502); response.end(); });
+      upstream.on('error', () => {
+        if (fault) { fault.failures++; recordFault({ event: 'upstream_error', fault_id: fault.fault_id }); response.destroy(); return; }
+        if (!response.headersSent) response.writeHead(502); response.end();
+      });
       request.on('aborted', () => upstream.destroy()); request.on('error', () => upstream.destroy());
-      response.on('close', () => { if (!response.writableEnded) upstream.destroy(); });
+      // A client timeout must not cancel an enable whose outcome we are testing.
+      // Drain its upstream response promptly even after the client disconnects.
+      response.on('close', () => { if (!response.writableEnded && fault?.mode !== 'drop_response') upstream.destroy(); });
       request.pipe(upstream);
     } catch { upstream?.destroy(); response.writeHead(400); response.end(); }
   });
@@ -174,6 +261,27 @@ async function main() {
         const file = join(responses, id + '-' + hex(8) + '.json');
         await writeFile(file, JSON.stringify(result) + '\n', { mode: 0o600, flag: 'wx' });
         emit({ id, ok: true, status: response.status, response_file: file });
+      } else if (value.op === 'fault_set') {
+        if (Object.keys(value).some(key => !['id', 'op', 'target', 'mode', 'times'].includes(key))
+            || !Object.hasOwn(faultModes, value.target) || !faultModes[value.target].includes(value.mode)
+            || value.times !== undefined && (!Number.isSafeInteger(value.times) || value.times < 1 || value.times > 10000)) throw new Error('invalid_fault');
+        if (faultHistory.length >= 1000) throw new Error('fault_history_full');
+        const previous = faults.get(value.target); if (previous) previous.active = false;
+        const fault = { fault_id: ++faultSequence, target: value.target, mode: value.mode, remaining: value.times ?? null,
+          active: true, hits: 0, forwarded: 0, upstream_completed: 0, encoded_responses: 0, commit_acknowledged: 0, dropped: 0, modified: 0, failures: 0 };
+        faults.set(value.target, fault); faultHistory.push(fault);
+        recordFault({ event: 'set', id, ...fault }); await faultLog;
+        emit({ id, ok: true, fault: { ...fault }, metrics: faultSnapshot() });
+      } else if (value.op === 'fault_clear') {
+        if (Object.keys(value).some(key => !['id', 'op', 'target'].includes(key))
+            || value.target !== undefined && !Object.hasOwn(faultModes, value.target)) throw new Error('invalid_fault');
+        const targets = value.target === undefined ? [...faults.keys()] : [value.target];
+        for (const target of targets) { const fault = faults.get(target); if (fault) fault.active = false; faults.delete(target); }
+        recordFault({ event: 'clear', id, target: value.target ?? 'all' }); await faultLog;
+        emit({ id, ok: true, metrics: faultSnapshot() });
+      } else if (value.op === 'fault_metrics') {
+        if (Object.keys(value).some(key => !['id', 'op'].includes(key))) throw new Error('invalid_fault');
+        await faultLog; emit({ id, ok: true, metrics: faultSnapshot() });
       } else if (value.op === 'close_ws') {
         emit({ id, ok: true, closed: closeWebSockets() });
       } else if (value.op === 'restart') {

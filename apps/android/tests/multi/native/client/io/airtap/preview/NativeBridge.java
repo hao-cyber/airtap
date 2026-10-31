@@ -20,6 +20,8 @@ public final class NativeBridge extends BroadcastReceiver {
                     if(config!=null)throw new IllegalStateException("existing_enrollment");
                     config=new EnrollmentStore.Config("https://localhost",q.getString("device_id"),q.getString("token"),true);
                     store.save(config); PreviewState.config=config;
+                    c.getSharedPreferences("io.airtap.preview.MainActivity",0).edit().putInt("protocol",4).commit();
+                    c.getSharedPreferences("updates",0).edit().putLong("checked",System.currentTimeMillis()).commit();
                     break;
                 case "approve":
                     trust.beginApproval(config,q.getString("claim"),q.getString("name"));
@@ -27,8 +29,8 @@ public final class NativeBridge extends BroadcastReceiver {
                     PreviewService.instance.restore();
                     break;
                 case "enable":
-                    trust.enableMulti(config);
-                    if(PreviewService.instance!=null)PreviewService.instance.ownerModeChanged();
+                    trust.beginMigration(config,trust.sessionFence(config));
+                    if(PreviewService.instance!=null)PreviewService.instance.restore();
                     break;
                 case "invitation":
                     reply.put("invitation",trust.beginInvitation(config,q.getLong("watermark")));
@@ -49,6 +51,14 @@ public final class NativeBridge extends BroadcastReceiver {
                     if(PreviewService.instance!=null)PreviewState.stop("Synthetic owner stop");else trust.stop();
                     FileScopes.revoke(c);OwnerRevocations.flush(c,config,null);
                     break;
+                case "queue_revoke": OwnerRevocations.queue(c,config,q.getString("claim"));break;
+                case "notification_stop":
+                    boolean sent=false;
+                    for(android.service.notification.StatusBarNotification n:c.getSystemService(android.app.NotificationManager.class).getActiveNotifications()){
+                        android.app.Notification.Action[] actions=n.getNotification().actions;
+                        if(actions!=null)for(android.app.Notification.Action action:actions)if("停止控制".contentEquals(action.title)){action.actionIntent.send();sent=true;}
+                    }
+                    if(!sent)throw new IllegalStateException("stop_notification_action_missing");break;
                 case "flush": OwnerRevocations.flush(c,config,null);break;
                 case "restore": if(PreviewService.instance!=null)PreviewService.instance.restore();break;
                 case "inspect": break;
@@ -57,6 +67,9 @@ public final class NativeBridge extends BroadcastReceiver {
             JSONArray grants=new JSONArray();
             if(config!=null)for(JSONObject grant:trust.grants(config))grants.put(grant);
             reply.put("grants",grants).put("multi",config!=null&&trust.multi(config));
+            reply.put("migration",config==null||trust.migration(config)==null?JSONObject.NULL:trust.migration(config));
+            reply.put("grant_fence",config==null||trust.sessionFence(config)==null?JSONObject.NULL:trust.sessionFence(config));
+            reply.put("pending_claim_revokes",new JSONArray(config==null?java.util.Set.of():OwnerRevocations.claimsPending(c,config)));
             PreviewService service=PreviewService.instance;
             reply.put("bound",service!=null).put("authorized",service!=null&&service.isAuthorized()).put("connected",service!=null&&service.isConnected());
             reply.put("file_quiescent",FileScopes.quiescent());

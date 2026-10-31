@@ -589,6 +589,10 @@
     },
     {
       "kind": "source",
+      "path": "apps/android/tests/multi/native/client/io/airtap/preview/NativeOwnerUi.java"
+    },
+    {
+      "kind": "source",
       "path": "apps/android/tests/multi/native/prepare.py"
     },
     {
@@ -598,6 +602,10 @@
     {
       "kind": "source",
       "path": "apps/android/tests/multi/native/run.py"
+    },
+    {
+      "kind": "source",
+      "path": "apps/android/tests/multi/native/run_owner.py"
     },
     {
       "kind": "source",
