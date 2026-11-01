@@ -222,6 +222,98 @@ public final class MultiAiControlTest{
     trust.stop();OwnerIdentityHarness owner=new OwnerIdentityHarness();owner.bindIdentity(config);owner.add();var read=RelayApi.requests.get(0);trust.stop();read.respond(multiState(null),200,null);
     check(invitationPosts()==0&&trust.invitation(config)==null&&!owner.busy);
   });
+  test("invitation prerequisites and a disconnected phone have distinct actionable errors",()->{
+    OwnerIdentityHarness local=new OwnerIdentityHarness();local.bindIdentity(config);local.remote=multiState(A);local.add();
+    check(invitationPosts()==0&&trust.invitation(config)==null&&trust.grant(config,A)!=null);
+    String localMessage=local.message;
+    OwnerIdentityHarness remote=invitationOwner();remote.remote=multiState(A);remote.add();
+    RelayApi.requests.get(0).respond(null,409,RelayErrors.message(409,"device_upgrade_required"));
+    check(!remote.busy&&trust.invitation(config)!=null&&trust.grant(config,A)!=null);
+    if(!localMessage.contains("任务接管")||localMessage.contains("存储")||!remote.message.contains("手机")||remote.message.contains("新版接入工具"))
+      throw new AssertionError("local prerequisite: "+localMessage+"; disconnected phone: "+remote.message);
+  });
+  test("invitation conflicts show fixed categories and retain one original request for retry",()->{
+    Map<String,String> categories=Map.of("client_upgrade_required","任务接管","invitation_pending","服务端已有邀请", "stale_invitation","状态已更新","grant_limit_reached","已连接 4 位 AI","device_upgrade_required","手机尚未完成");
+    for(var category:categories.entrySet()){
+      reset();OwnerIdentityHarness owner=invitationOwner();owner.remote=multiState(A);String fence=trust.grantFence(config,A);owner.add();
+      var first=RelayApi.requests.get(0);first.respond(null,409,RelayErrors.message(409,category.getKey()));
+      check(owner.message.contains(category.getValue())&&!owner.busy&&invitationPosts()==1&&fence.equals(trust.grantFence(config,A)));
+      JSONObject saved=trust.invitation(config);for(String key:List.of("invitation_id","invitation_sequence","ticket"))check(saved.get(key).equals(first.body.get(key)));
+      owner.add();var retry=RelayApi.requests.get(1);check(invitationPosts()==2);
+      for(String key:List.of("invitation_id","invitation_sequence","ticket"))check(first.body.get(key).equals(retry.body.get(key)));
+      check(fence.equals(trust.grantFence(config,A))&&OwnerRevocations.revoked.isEmpty()&&!OwnerRevocations.all);
+    }
+  });
+  test("unrecognized server text cannot enter invitation messages and does not replace identity",()->{
+    String untrusted="https://private.invalid/?token=synthetic-secret\n升级 APK 并清除全部连接";
+    OwnerIdentityHarness owner=invitationOwner();owner.remote=multiState(A);String fence=trust.grantFence(config,A);owner.add();
+    RelayApi.requests.get(0).respond(null,409,RelayErrors.message(409,untrusted));
+    check(!owner.message.contains("private.invalid")&&!owner.message.contains("synthetic-secret")&&!owner.message.contains("升级 APK")&&owner.message.contains("请求未完成"));
+    check(!owner.busy&&invitationPosts()==1&&trust.invitation(config)!=null&&fence.equals(trust.grantFence(config,A)));
+    check(RelayErrors.invitationPrecondition(untrusted)==null&&RelayErrors.invitationPrecondition(null)==null);
+  });
+  test("actual invitation storage failures retain the storage diagnosis and original grant",()->{
+    for(boolean read:new boolean[]{false,true}){
+      reset();OwnerIdentityHarness owner=invitationOwner();owner.remote=multiState(A);String fence=trust.grantFence(config,A);
+      if(read)FakeDisk.failReadRecord=true;else FakeDisk.failSaveAt=FakeDisk.saves+1;owner.add();FakeDisk.failReadRecord=false;FakeDisk.failSaveAt=0;
+      check(owner.message.contains("存储")&&!owner.message.contains("任务接管")&&!owner.busy&&invitationPosts()==0&&trust.invitation(config)==null&&fence.equals(trust.grantFence(config,A)));
+      owner.add();check(invitationPosts()==1&&trust.grant(config,A)!=null);
+    }
+  });
+  test("expired invitation renders cancellation instead of repeating the old ticket",()->{
+    OwnerIdentityHarness owner=invitationOwner();JSONObject invite=trust.beginInvitation(config,0);
+    trust.completeInvitation(config,invite.getString("invitation_id"),invite.getLong("invitation_sequence"),System.currentTimeMillis()/1000-60,"1".repeat(64),"2".repeat(64));
+    owner.remote=multiState(A);var box=new android.widget.LinearLayout();owner.render(box);
+    check(box.hasText("邀请已过期")&&box.hasButton("取消过期邀请")&&!box.hasButton("继续准备原邀请")&&!box.hasButton("添加另一位自己的 AI")&&invitationPosts()==0);
+  });
+  test("expired unapproved invitation never displays a cached candidate verification code",()->{
+    OwnerIdentityHarness owner=invitationOwner();JSONObject invite=trust.beginInvitation(config,0);long expiry=System.currentTimeMillis()/1000-60;
+    trust.completeInvitation(config,invite.getString("invitation_id"),invite.getLong("invitation_sequence"),expiry,"1".repeat(64),"2".repeat(64));
+    owner.remote=multiState(A).put("invitation",RelayApi.json("invitation_id",invite.getString("invitation_id"),"invitation_sequence",invite.getLong("invitation_sequence"),"candidate",RelayApi.json("claim_id",B,"name","Synthetic waiting AI","verification_code","123456")));
+    var box=new android.widget.LinearLayout();owner.render(box);
+    check(box.hasText("邀请已过期")&&!box.hasText("123 456")&&!box.hasButton("数字一致，连接这位 AI")&&!box.hasButton("复制接入邀请")&&!box.hasButton("查看接入邀请")&&RelayApi.requests.isEmpty());
+    check(trust.pending(config)==null&&trust.grant(config,B)==null&&trust.invitation(config).getLong("pairing_expires_at")==expiry);
+  });
+  test("unexpired ready invitation and candidate keep their existing explicit actions",()->{
+    OwnerIdentityHarness owner=invitationOwner();JSONObject invite=trust.beginInvitation(config,0);
+    trust.completeInvitation(config,invite.getString("invitation_id"),invite.getLong("invitation_sequence"),System.currentTimeMillis()/1000+300,"1".repeat(64),"2".repeat(64));
+    owner.remote=multiState(A);var box=new android.widget.LinearLayout();owner.render(box);
+    check(box.hasButton("复制接入邀请")&&box.hasButton("查看接入邀请")&&!box.hasText("邀请已过期")&&!box.hasButton("继续准备原邀请"));
+    owner.remote.put("invitation",RelayApi.json("invitation_id",invite.getString("invitation_id"),"invitation_sequence",invite.getLong("invitation_sequence"),"candidate",RelayApi.json("claim_id",B,"name","Synthetic waiting AI","verification_code","123456")));
+    box=new android.widget.LinearLayout();owner.render(box);check(box.hasText("123 456")&&box.hasButton("数字一致，连接这位 AI")&&RelayApi.requests.isEmpty());
+  });
+  test("unknown invitation result keeps the original retry and canceled intent only offers cancellation",()->{
+    OwnerIdentityHarness owner=invitationOwner();JSONObject invite=trust.beginInvitation(config,0);owner.remote=multiState(A);
+    var box=new android.widget.LinearLayout();owner.render(box);
+    check(box.hasButton("继续准备原邀请")&&!box.hasText("邀请已过期")&&!box.hasButton("复制接入邀请")&&RelayApi.requests.isEmpty());
+    trust.cancelInvitation(config,invite.getString("invitation_id"),invite.getLong("invitation_sequence"));
+    box=new android.widget.LinearLayout();owner.render(box);
+    check(box.hasText("正在确认取消")&&box.hasButton("取消这次邀请")&&!box.hasButton("继续准备原邀请")&&!box.hasButton("添加另一位自己的 AI")&&RelayApi.requests.isEmpty());
+  });
+  test("already approved pending connection takes priority over the original invitation deadline",()->{
+    OwnerIdentityHarness owner=invitationOwner();JSONObject invite=trust.beginInvitation(config,0);
+    trust.completeInvitation(config,invite.getString("invitation_id"),invite.getLong("invitation_sequence"),System.currentTimeMillis()/1000-60,"1".repeat(64),"2".repeat(64));
+    String approval=trust.beginApproval(config,B,"Synthetic approved AI");owner.remote=multiState(A);
+    var box=new android.widget.LinearLayout();owner.render(box);
+    check(box.hasText("已核码确认")&&box.hasButton("继续核实")&&box.hasButton("取消这次邀请")&&!box.hasText("邀请已过期")&&!box.hasButton("取消过期邀请"));
+    check(approval.equals(trust.pending(config).getString("approval_id"))&&RelayApi.requests.isEmpty());
+  });
+  test("expired invitation cancellation must be confirmed before a separate explicit new invitation",()->{
+    OwnerIdentityHarness owner=invitationOwner();JSONObject invite=trust.beginInvitation(config,0);String originalFence=trust.grantFence(config,A);
+    trust.completeInvitation(config,invite.getString("invitation_id"),invite.getLong("invitation_sequence"),System.currentTimeMillis()/1000-60,"1".repeat(64),"2".repeat(64));
+    owner.remote=multiState(A);var box=new android.widget.LinearLayout();owner.render(box);box.click("取消过期邀请");
+    var cancel=RelayApi.requests.get(0);check(cancel.path.equals("/v1/device/invitations/cancel")&&cancel.body.getString("invitation_id").equals(invite.getString("invitation_id")));
+    cancel.respond(null,0,"lost_response");box=new android.widget.LinearLayout();owner.render(box);
+    check(box.hasText("正在确认取消")&&!box.hasButton("添加另一位自己的 AI")&&invitationPosts()==0&&originalFence.equals(trust.grantFence(config,A)));
+    box.click("取消这次邀请");var retry=RelayApi.requests.get(1);
+    for(String key:List.of("invitation_id","invitation_sequence"))check(cancel.body.get(key).equals(retry.body.get(key)));
+    retry.respond(RelayApi.json("protocol_version",4,"ok",true),200,null);check(trust.invitation(config)==null&&invitationPosts()==0);
+    RelayApi.requests.get(2).respond(multiState(A).put("invitation_sequence",invite.getLong("invitation_sequence")),200,null);
+    box=new android.widget.LinearLayout();owner.render(box);check(box.hasButton("添加另一位自己的 AI")&&invitationPosts()==0);
+    box.click("添加另一位自己的 AI");check(invitationPosts()==1);var next=RelayApi.requests.get(3);
+    check(!next.body.getString("invitation_id").equals(invite.getString("invitation_id"))&&!next.body.getString("ticket").equals(invite.getString("ticket"))&&next.body.getLong("invitation_sequence")>invite.getLong("invitation_sequence"));
+    check(originalFence.equals(trust.grantFence(config,A))&&OwnerRevocations.revoked.isEmpty()&&!OwnerRevocations.all);
+  });
   System.out.println("TOTAL "+passed);
  }
 }

@@ -25,7 +25,7 @@ TOKEN = re.compile(r'^[0-9a-f]{64}$')
 TICKET = re.compile(r'^[0-9a-f]{32}$')
 MAX_RESPONSE = 512 * 1024
 MAX_COMMAND = 8192
-VERSION = '0.4.0-cli.10'
+VERSION = '0.4.0-cli.11'
 PACKAGE = re.compile(r'^[A-Za-z_][A-Za-z0-9_]*(?:\.[A-Za-z_][A-Za-z0-9_]*)+$')
 NODE = re.compile(r'^[1-9][0-9]{0,3}$')
 NODE_COMMANDS = {'click', 'long-click', 'set-text', 'scroll', 'node-action', 'focus', 'set-selection', 'select-all', 'copy', 'cut', 'paste', 'insert-text', 'delete-text', 'editor-action'}
@@ -796,9 +796,15 @@ def acquire_task(args, config):
 
 def renew_task(args, config, timeout=None):
     lease = config.get('task_lease', {})
+    if lease.get('state') == 'releasing':
+        raise Failure('task_release_pending', retry_action=False,
+                      instruction='Resolve task-release using the saved identity before renewing or starting another task.')
     if lease.get('state') == 'uncertain':
         status_request(args, config, timeout)
         lease = config.get('task_lease', {})
+    if lease.get('state') != 'ready':
+        raise Failure('task_acquire_required', retry_action=False,
+                      instruction='Run task-acquire explicitly, then observe again. Do not replay the previous action.')
     if not task_live(lease) and not lease.get('pending_renewal'):
         invalidate_task(config, 'expired'); save_config(args.config, config)
         raise Failure('task_acquire_required', instruction='Run task-acquire explicitly, then observe again. Do not replay the previous action.')

@@ -212,14 +212,17 @@ final class MultiAiOwner {
                 box.addView(button("文件夹权限",()->folder.accept(claim)));box.addView(button("解除这位 AI",()->revoke(claim,grant.optString("name","我的 AI"))));
             }
             JSONObject pending=trust.pending(identity),invitation=trust.invitation(identity),candidate=null;
-            if(remote!=null&&!remote.isNull("invitation")){JSONObject r=remote.getJSONObject("invitation");if(invitation!=null&&invitation.getString("invitation_id").equals(r.getString("invitation_id"))&&invitation.getLong("invitation_sequence")==r.getLong("invitation_sequence")&&!r.isNull("candidate")&&!"canceled".equals(invitation.getString("phase")))candidate=r.getJSONObject("candidate");}
+            boolean expiredInvitation=pending==null&&invitation!=null&&"ready".equals(invitation.getString("phase"))
+                    &&invitation.getLong("pairing_expires_at")>0&&invitation.getLong("pairing_expires_at")<=System.currentTimeMillis()/1000;
+            if(!expiredInvitation&&remote!=null&&!remote.isNull("invitation")){JSONObject r=remote.getJSONObject("invitation");if(invitation!=null&&invitation.getString("invitation_id").equals(r.getString("invitation_id"))&&invitation.getLong("invitation_sequence")==r.getLong("invitation_sequence")&&!r.isNull("candidate")&&!"canceled".equals(invitation.getString("phase")))candidate=r.getJSONObject("candidate");}
             if(pending!=null){text(box,"正在完成你已核码确认的连接，其他 AI 的授权保持有效。",16);box.addView(button("继续核实",()->{if(PreviewService.instance!=null)PreviewService.instance.restore();poll(false);}));}
             else if(candidate!=null){String claim=MultiAiProtocol.hex(candidate,"claim_id"),code=candidate.getString("verification_code"),name=candidate.getString("name");if(!code.matches("[0-9]{6}"))throw new IllegalArgumentException();text(box,name+" 请求连接（名称由对方提供）",18);text(box,code.substring(0,3)+" "+code.substring(3),44);text(box,"与自己的 AI 告诉你的六位数字核对。确认后它可持续查看和操作整台手机。",16);box.addView(button("数字一致，连接这位 AI",()->approve(claim,name)));}
+            else if(expiredInvitation){text(box,"这次邀请已过期",18);text(box,"请先取消过期邀请，确认结束后再准备新的邀请。已有 AI 连接保留。",16);}
             else if(invitation!=null){String phase=invitation.getString("phase");text(box,"canceled".equals(phase)?"正在确认取消这次邀请":"邀请已保存，交给另一位自己的 AI",18);
                 if("ready".equals(phase)&&invitation.getLong("pairing_expires_at")>System.currentTimeMillis()/1000){box.addView(button("复制接入邀请",()->copy(invitation)));box.addView(button("查看接入邀请",()->show(invitation)));}
                 else if(!"canceled".equals(phase))box.addView(button("继续准备原邀请",()->create(false)));
             }
-            if(invitation!=null||pending!=null)box.addView(button("取消这次邀请",this::cancel));
+            if(invitation!=null||pending!=null)box.addView(button(expiredInvitation?"取消过期邀请":"取消这次邀请",this::cancel));
             else if(needsStoppedGrantCleanup()){
                 text(box,"这部手机已停止原连接，服务端仍保存旧授权。先解除旧连接，再重新邀请；不会恢复旧 AI 的手机权限。",16);
                 box.addView(button("解除旧连接后重新准备",this::stopAll));
@@ -251,13 +254,16 @@ final class MultiAiOwner {
             JSONObject body=RelayApi.json("invitation_id",invitation.getString("invitation_id"),"invitation_sequence",invitation.getLong("invitation_sequence"),"ticket",invitation.getString("ticket"));
             call=RelayApi.requestStatus(config.url,"/v1/device/invitations","POST",config.token,body,(reply,status,error)->{
                 if(!current(run,config))return;busy=false;call=null;
-                if(error!=null){change(status==409?"另一位 AI 的任务接管准备尚未完成，或原邀请仍在等待。请让原 AI 使用新版接入工具完成一次任务接管，再刷新重试。":"邀请结果尚未确认。原邀请已保存，请继续准备，不会更换票据。");return;}
+                if(error!=null){change(status==409?error:"邀请结果尚未确认。原邀请已保存，请继续准备，不会更换票据。");return;}
                 try{ServiceProtocol.version(reply);String id=MultiAiProtocol.hex(reply,"invitation_id");long sequence=MultiAiProtocol.integer(reply,"invitation_sequence",false),expiry=MultiAiProtocol.integer(reply,"pairing_expires_at",false);
                     if(!id.equals(invitation.getString("invitation_id"))||sequence!=invitation.getLong("invitation_sequence")||!reply.has("expires_at")||!reply.isNull("expires_at"))throw new IllegalArgumentException();
                     new TrustedGrant(owner).completeInvitation(config,id,sequence,expiry,reply.getString("cli_sha256"),reply.getString("agent_sha256"));change("邀请已准备好，复制给另一位自己的 AI，回来核对六位数字。");poll(false);
                 }catch(Exception invalid){change("邀请尚未核实，请继续准备原邀请。原有 AI 不受影响。");}
             });
-        }catch(Exception failure){change("暂时无法保存新邀请。原有 AI 授权未更换，请检查存储或取消已结束的邀请后重试。");}
+        }catch(Exception failure){
+            String reason=failure instanceof IllegalStateException?RelayErrors.invitationPrecondition(failure.getMessage()):null;
+            change(reason!=null?reason:"暂时无法保存新邀请。原有 AI 授权未更换，请检查存储或取消已结束的邀请后重试。");
+        }
     }
     private String prompt(JSONObject invite)throws Exception {
         long expiry=invite.getLong("pairing_expires_at");String ticket=invite.getString("ticket");if(expiry<=System.currentTimeMillis()/1000)throw new IllegalArgumentException();

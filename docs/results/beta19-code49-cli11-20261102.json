@@ -1,0 +1,35 @@
+{
+  "schema": "airtap-scoped-checks-v1",
+  "recorded_at": "2026-11-02",
+  "artifact": "Android 0.4.0-beta.19/code49 and CLI 0.4.0-cli.11",
+  "status": "local_checks_passed_device_and_personal_ai_pending",
+  "apk_sha256": "027b8d6021029bbd234f7694812cf14f46026667087ec527277ff55d156233e0",
+  "apk_bytes": 599501,
+  "cli_sha256": "4d2cd31f76437d622f11a4c2a9491ba1d4150d661cb4b139f629faf8948bb1c6",
+  "changes": [
+    "An unresolved task release cannot be revived by a saved renewal. Uncertain leases must reconcile to ready before renewal.",
+    "Invitation failures use local error mappings with appropriate next steps instead of treating every conflict as an AI upgrade problem.",
+    "Expired unapproved invitations hide old codes and require cancellation confirmation before a separate new invitation action. Previously confirmed approval recovery has priority.",
+    "The agent guide requires a confirmed multi-AI task lease before wait-ready, including recovery and tool upgrades.",
+    "The security document describes device isolation, relay plaintext access, feedback retention and shared phone content boundaries."
+  ],
+  "checks": {
+    "core_steps_passed_before_final_expiry_presentation_change": 36,
+    "final_android_multi_ai_host_cases_passed": 64,
+    "cli_task_lease_cases_passed": 37,
+    "cli_post_action_cases_passed": 19,
+    "assembleRelease": "passed",
+    "lintRelease": {"errors": 0, "warnings": 11},
+    "release_signature_verified": true,
+    "release_signer_unchanged": true,
+    "apk_version_verified": true,
+    "android_build_inputs_unchanged_during_build": true
+  },
+  "limits": [
+    "Host checks use synthetic state and local services; they are not real personal-AI acceptance.",
+    "The core suite preceded the final expiry presentation change, which received the expanded 64-case host check and release build/lint.",
+    "This record does not establish upgrade recovery, background reliability, multi-AI handoff or first-time user success on a real phone.",
+    "No public APK recommendation or relay deployment was changed by these checks."
+  ],
+  "privacy": "Reviewed aggregate results and artifact digests only; no raw phone content, chat, pairing data, secrets or private deployment paths."
+}

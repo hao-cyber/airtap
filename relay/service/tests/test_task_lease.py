@@ -208,6 +208,58 @@ class TaskTest(unittest.TestCase):
             cli.renew_task(self.args, self.config)
         self.assertEqual(request.call_args.kwargs['body']['renewal_id'], '4' * 32)
 
+    def test_nonrenewable_state_cannot_be_revived_or_overwritten_by_renew(self):
+        for state in ('releasing', 'closed', 'released', 'lost', 'expired', 'acquiring', None):
+            for pending in (False, True):
+                with self.subTest(state=state, pending=pending):
+                    self.give_lease()
+                    self.config['task_lease']['state'] = state
+                    if pending:
+                        self.config['task_lease']['pending_renewal'] = {'renewal_id': '4' * 32, 'renewal_sequence': 1}
+                    cli.save_config(self.path, self.config)
+                    before = self.path.read_bytes()
+                    with patch.object(cli, 'request', return_value=self.ready()) as request:
+                        failure = self.failure('task_release_pending' if state == 'releasing' else 'task_acquire_required',
+                                               lambda: cli.renew_task(self.args, self.saved()))
+                        request.assert_not_called()
+                    self.assertIs(failure.get('retry_action'), False)
+                    self.assertEqual(self.path.read_bytes(), before)
+
+    def test_uncertain_pending_renewal_can_retry_only_after_ready_status(self):
+        self.give_lease()
+        pending = {'renewal_id': '4' * 32, 'renewal_sequence': 1}
+        self.config['task_lease'].update(state='uncertain', pending_renewal=pending)
+        cli.save_config(self.path, self.config)
+        state = {k: v for k, v in self.ready()['data'].items() if k in ('state', 'task_id', 'lease_id', 'lease_epoch', 'expires_at_ms')}
+        with patch.object(cli, 'request', side_effect=[self.status(state), self.ready()]) as request:
+            cli.renew_task(self.args, self.saved())
+        self.assertEqual([call.args[1] for call in request.call_args_list], ['/v1/status', '/v1/tasks/renew'])
+        self.assertEqual(request.call_args.kwargs['body'], {'task_id': TASK, 'lease_id': LEASE, 'lease_epoch': 2, **pending})
+        self.assertEqual(self.saved()['task_lease']['state'], 'ready')
+        self.assertNotIn('pending_renewal', self.saved()['task_lease'])
+        self.assertNotIn('snapshot', self.saved())
+
+    def test_uncertain_pending_renewal_cannot_outlive_nonready_status(self):
+        for state in ('idle', 'busy', 'fencing', 'expired'):
+            with self.subTest(status=state):
+                self.give_lease()
+                pending = {'renewal_id': '4' * 32, 'renewal_sequence': 1}
+                self.config['task_lease'].update(state='uncertain', pending_renewal=pending)
+                cli.save_config(self.path, self.config)
+                task = {'state': state, 'task_id': None, 'lease_id': None, 'lease_epoch': None, 'expires_at_ms': None}
+                if state == 'expired':
+                    task = {'state': 'ready', 'task_id': TASK, 'lease_id': LEASE, 'lease_epoch': 2,
+                            'expires_at_ms': int(self.now * 1000) - 1}
+                with patch.object(cli, 'request', side_effect=[self.status(task), self.ready()]) as request:
+                    failure = self.failure('task_acquire_required', lambda: cli.renew_task(self.args, self.saved()))
+                self.assertIs(failure.get('retry_action'), False)
+                self.assertEqual([call.args[1] for call in request.call_args_list], ['/v1/status'])
+                lease = self.saved()['task_lease']
+                self.assertEqual(lease['state'], 'expired' if state == 'expired' else 'lost')
+                self.assertEqual(lease['pending_renewal'], pending)
+                self.assertEqual((lease['task_id'], lease['lease_id'], lease['lease_epoch']), (TASK, LEASE, 2))
+                self.assertNotIn('snapshot', self.saved())
+
     def test_expired_or_clock_regressed_task_does_not_renew_or_dispatch(self):
         for jump in (-1, 130):
             self.now = 1000; self.give_lease(); self.now += jump
@@ -414,6 +466,102 @@ m.lock_config(pathlib.Path(sys.argv[2])); print('locked',flush=True); sys.stdin.
 
 class ProcessRoundtripTest(unittest.TestCase):
     """Actual CLI subprocesses and a loopback-only HTTP fixture, not a relay/device."""
+    def test_lost_release_blocks_renew_across_processes_with_or_without_pending_renewal(self):
+        import http.server
+        import socket
+        import threading
+        for pending in (False, True):
+            with self.subTest(pending_renewal=pending), tempfile.TemporaryDirectory() as directory:
+                path = Path(directory).resolve() / 'phone.json'
+                now = time.time()
+                task = {'state': 'ready', 'task_id': TASK, 'lease_id': LEASE, 'lease_epoch': 2,
+                        'expires_at_ms': int((now + 120) * 1000), 'renewal_sequence': 0}
+                state = {'requests': [], 'lose_renew': pending, 'lose_release': True, 'released': False,
+                         'persisted_intents': []}
+                class Handler(http.server.BaseHTTPRequestHandler):
+                    def log_message(self, *args): pass
+                    def do_GET(self):
+                        state['requests'].append((self.path, None))
+                        self.send_json({'protocol_version': 4, 'mode': 'multi', 'claim_id': CLAIM,
+                                        'persistent': True, 'all_apps': True, 'allow_control': True,
+                                        'session_expires_at': None, 'command_sequence': 7,
+                                        'deviceConnected': True, 'pending': 0, 'connection_id': 'd' * 32,
+                                        'lease_required': True, 'lease_ready': True, 'task': task})
+                    def do_POST(self):
+                        body = json.loads(self.rfile.read(int(self.headers['Content-Length'])))
+                        state['requests'].append((self.path, body))
+                        saved = json.loads(path.read_text())['task_lease']
+                        if self.path == '/v1/tasks/renew':
+                            state['persisted_intents'].append(saved.get('pending_renewal') == {
+                                'renewal_id': body['renewal_id'], 'renewal_sequence': body['renewal_sequence']})
+                            if state['lose_renew']:
+                                state['lose_renew'] = False
+                                self.lose_response(); return
+                            self.send_json({'protocol_version': 4, 'ok': True, **task, 'expires_in_ms': 120000,
+                                            'renewal_sequence': body['renewal_sequence']}); return
+                        if self.path == '/v1/tasks/release':
+                            state['persisted_intents'].append(saved['state'] == 'releasing')
+                            if state['lose_release']:
+                                state['lose_release'] = False
+                                # Lost before the server applies the release: status still says ready.
+                                self.lose_response(); return
+                            state['released'] = True
+                            self.send_json({'protocol_version': 4, 'ok': True, 'state': 'released'}); return
+                        self.send_json({'protocol_version': 4, 'error': 'unexpected_request'})
+                    def lose_response(self):
+                        self.connection.shutdown(socket.SHUT_RDWR); self.connection.close()
+                    def send_json(self, data):
+                        raw = json.dumps(data).encode()
+                        self.send_response(200); self.send_header('Content-Type', 'application/json')
+                        self.send_header('Content-Length', str(len(raw))); self.end_headers(); self.wfile.write(raw)
+                server = http.server.ThreadingHTTPServer(('127.0.0.1', 0), Handler)
+                thread = threading.Thread(target=server.serve_forever, daemon=True); thread.start()
+                cli.save_config(path, {'url': 'http://127.0.0.1:' + str(server.server_port), 'controller_token': TOKEN,
+                                      'state': 'approved', 'persistent': True, 'all_apps': True, 'allow_control': True,
+                                      'session_expires_at': None, 'command_sequence': 7, 'mode': 'multi',
+                                      'lease_required': True, 'lease_ready': True,
+                                      'task_lease': {**task, 'recorded_at': now, 'local_expires_at': now + 120}})
+                def invoke(command, error=None):
+                    run = subprocess.run([sys.executable, str(ROOT / 'cli/airtap.py'), '--allow-local-http',
+                                          '--config', str(path), command], capture_output=True, text=True, timeout=10)
+                    self.assertEqual(run.returncode, 1 if error else 0, run.stdout + run.stderr)
+                    self.assertNotIn(TOKEN, run.stdout + run.stderr)
+                    result = json.loads(run.stdout)
+                    if error: self.assertEqual(result['error'], error)
+                    return result
+                try:
+                    if pending:
+                        self.assertEqual(invoke('task-renew', 'network_failure')['outcome'], 'unknown')
+                        self.assertIn('pending_renewal', cli.load_config(path, True)['task_lease'])
+                    self.assertEqual(invoke('task-release', 'network_failure')['outcome'], 'unknown')
+                    before = path.read_bytes()
+                    count = len(state['requests'])
+                    for _ in range(2):
+                        self.assertFalse(invoke('task-renew', 'task_release_pending')['retry_action'])
+                        self.assertEqual(path.read_bytes(), before)
+                        self.assertEqual(len(state['requests']), count)
+                    self.assertEqual(invoke('status')['task']['state'], 'ready')
+                    self.assertEqual(cli.load_config(path, True)['task_lease']['state'], 'releasing')
+                    invoke('task-renew', 'task_release_pending')
+                    self.assertEqual(len(state['requests']), count + 1)
+                    self.assertEqual(invoke('task-release')['state'], 'released')
+                    closed = path.read_bytes()
+                    invoke('task-renew', 'task_acquire_required')
+                    self.assertEqual(path.read_bytes(), closed)
+                    self.assertEqual([endpoint for endpoint, _ in state['requests']],
+                                     (['/v1/tasks/renew'] if pending else []) +
+                                     ['/v1/tasks/release', '/v1/status', '/v1/tasks/release'])
+                    release_bodies = [body for endpoint, body in state['requests'] if endpoint.endswith('/release')]
+                    self.assertEqual(release_bodies, [{'task_id': TASK, 'lease_id': LEASE, 'lease_epoch': 2}] * 2)
+                    self.assertTrue(state['released'])
+                    self.assertTrue(all(state['persisted_intents']))
+                    final = cli.load_config(path, True)
+                    self.assertEqual(final['task_lease']['state'], 'closed')
+                    self.assertEqual(final['state'], 'approved')
+                    self.assertEqual(final['controller_token'], TOKEN)
+                finally:
+                    server.shutdown(); server.server_close(); thread.join(5)
+
     def test_processes_keep_task_and_recover_lost_acquire_then_release(self):
         import http.server
         import socket
