@@ -48,7 +48,8 @@ public final class MainActivity extends Activity {
         } catch (Exception unavailable) { /* Fixed status only: no paths, tokens or exception text. */ }
         try {
             boolean same = saved != null && config != null && saved.url.equals(config.url) && saved.token.equals(config.token);
-            result.put("activity", RelayApi.json("visible", visible, "busy", busy, "storage_error", storageError, "identity_matches", same));
+            result.put("activity", RelayApi.json("visible", visible, "busy", busy, "storage_error", storageError, "identity_matches", same,
+                    "button_touch_events", buttonTouchEvents, "button_touch_rejected", buttonTouchRejected, "button_touch_last_flags", buttonTouchLastFlags));
             result.put("owner", multiOwner.diagnostics(saved));
         } catch (Exception unavailable) {
             try { result.put("owner", RelayApi.json("status", "unavailable")); } catch (Exception ignored) { /* No exception text. */ }
@@ -66,6 +67,8 @@ public final class MainActivity extends Activity {
     private final ConnectionFeedback connectionFeedback = new ConnectionFeedback();
     private EnrollmentStore.Config config;
     private boolean visible, busy, polling, storageError, upgrade, fileStorageBusy;
+    private long buttonTouchEvents, buttonTouchRejected;
+    private int buttonTouchLastFlags;
     private int epoch;
     private final SetupRecovery.Backoff setupBackoff = new SetupRecovery.Backoff(), pollBackoff = new SetupRecovery.Backoff();
     private okhttp3.Call setupCall, pollCall;
@@ -116,8 +119,12 @@ public final class MainActivity extends Activity {
     private Button button(String name, View.OnClickListener click) {
         Button b = new Button(this) {
             @Override public boolean onFilterTouchEventForSecurity(android.view.MotionEvent event) {
-                return (event.getFlags() & (android.view.MotionEvent.FLAG_WINDOW_IS_OBSCURED | android.view.MotionEvent.FLAG_WINDOW_IS_PARTIALLY_OBSCURED)) == 0
+                if (buttonTouchEvents < Long.MAX_VALUE) buttonTouchEvents++;
+                buttonTouchLastFlags = event.getFlags();
+                boolean accepted = (event.getFlags() & (android.view.MotionEvent.FLAG_WINDOW_IS_OBSCURED | android.view.MotionEvent.FLAG_WINDOW_IS_PARTIALLY_OBSCURED)) == 0
                         && super.onFilterTouchEventForSecurity(event);
+                if (!accepted && buttonTouchRejected < Long.MAX_VALUE) buttonTouchRejected++;
+                return accepted;
             }
         };
         b.setText(name); b.setFilterTouchesWhenObscured(true); b.setOnClickListener(click); AppUi.button(b, AppUi.SECONDARY); return b;

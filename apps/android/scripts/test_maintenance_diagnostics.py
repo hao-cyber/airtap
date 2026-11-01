@@ -26,14 +26,25 @@ def method(path, signature):
 dump = method(JAVA / 'MainActivity.java', '    @Override public void dump(')
 service = method(JAVA / 'PreviewService.java', '    JSONObject diagnostics(')
 owner = method(JAVA / 'MultiAiOwner.java', '    JSONObject diagnostics(')
+button = method(JAVA / 'MainActivity.java', '    private Button button(')
 fixtures['android/app/Activity.java'] = '''package android.app;
 public class Activity extends android.content.Context {public int defaultDumps;
  public void dump(String prefix,java.io.FileDescriptor fd,java.io.PrintWriter writer,String[] args){defaultDumps++;writer.println("DEFAULT_SYSTEM_DUMP");}}
 '''
 fixtures['io/airtap/preview/MainActivity.java'] = '''package io.airtap.preview;
-import org.json.JSONObject;public final class MainActivity extends android.app.Activity {
+import org.json.JSONObject;import android.view.View;import android.widget.Button;public final class MainActivity extends android.app.Activity {
  EnrollmentStore.Config config;boolean visible,busy,storageError;final MultiAiOwner multiOwner=new MultiAiOwner();
-''' + dump + '\n}'
+ long buttonTouchEvents,buttonTouchRejected;int buttonTouchLastFlags;
+ Button testButton(){return button("synthetic-private-control-name",v->{});}
+''' + dump + '\n' + button + '\n}'
+fixtures['android/view/View.java'] = 'package android.view;public class View {public interface OnClickListener {void onClick(View view);}}'
+fixtures['android/view/MotionEvent.java'] = 'package android.view;public final class MotionEvent {public static final int FLAG_WINDOW_IS_OBSCURED=1,FLAG_WINDOW_IS_PARTIALLY_OBSCURED=2;private final int flags;public MotionEvent(int flags){this.flags=flags;}public int getFlags(){return flags;}}'
+fixtures['android/widget/Button.java'] = '''package android.widget;public class Button extends android.view.View {
+ public boolean parentAllows=true,filterWhenObscured;public int parentChecks;public Button(android.content.Context c){}
+ public boolean onFilterTouchEventForSecurity(android.view.MotionEvent event){parentChecks++;return parentAllows;}
+ public void setText(String text){}public void setFilterTouchesWhenObscured(boolean value){filterWhenObscured=value;}public void setOnClickListener(OnClickListener listener){}
+}'''
+fixtures['io/airtap/preview/AppUi.java'] = 'package io.airtap.preview;final class AppUi {static final int SECONDARY=1;static void button(android.widget.Button button,int style){}}'
 fixtures['android/app/AlertDialog.java'] = 'package android.app;public final class AlertDialog {public boolean showing;public boolean isShowing(){return showing;}}'
 fixtures['io/airtap/preview/MultiAiOwner.java'] = '''package io.airtap.preview;
 import org.json.JSONObject;final class MultiAiOwner {EnrollmentStore.Config identity;boolean visible,busy;
@@ -79,11 +90,12 @@ public final class MaintenanceDiagnosticsTest {
   check(Objects.equals(record,FakeDisk.record==null?null:FakeDisk.record.toString()));
   check(saves==FakeDisk.saves&&commits==FakeDisk.preferences.calls&&memory.equals(FakeDisk.preferences.memory)&&disk.equals(FakeDisk.preferences.disk));
   check(RelayApi.requests.isEmpty()&&activity.defaultDumps==0);
-  for(String forbidden:List.of(CONFIG.url,SECRET,CLAIM,NAME,"synthetic-private-error"))check(!result.contains(forbidden));
+  for(String forbidden:List.of(CONFIG.url,SECRET,CLAIM,NAME,"synthetic-private-error","synthetic-private-control-name"))check(!result.contains(forbidden));
   System.out.print(result);return result;
  }
  public static void main(String[] args)throws Exception{
   test("default, unknown and mixed dump arguments leave diagnostic storage unread",()->{
+   activity.buttonTouchEvents=9;activity.buttonTouchRejected=3;activity.buttonTouchLastFlags=2;
    for(String[] flags:new String[][]{null,new String[0],new String[]{"other"},new String[]{"--airtap-diagnostics","extra"}}){
     check(print(flags).equals("DEFAULT_SYSTEM_DUMP\n"));check(EnrollmentStore.diagnosticReads==0);}
    check(activity.defaultDumps==4&&FakeDisk.saves==0&&FakeDisk.preferences.calls==0);
@@ -128,6 +140,22 @@ public final class MaintenanceDiagnosticsTest {
    String result=dump();check(result.contains("\"storage_error\":true")&&result.contains("\"enable_check_visible\":true")&&result.contains("\"last_enable_stage\":\"checking_service\""));
    check(activity.visible&&activity.busy&&activity.storageError&&activity.multiOwner.enableCheck.showing);
   });
+  test("button diagnostics preserve both obscured guards and parent short circuit",()->{
+   var b=activity.testButton();check(b.filterWhenObscured);
+   check(b.onFilterTouchEventForSecurity(new android.view.MotionEvent(0))&&b.parentChecks==1);
+   for(int flags:new int[]{1,2,3})check(!b.onFilterTouchEventForSecurity(new android.view.MotionEvent(flags)));
+   check(b.parentChecks==1&&activity.buttonTouchEvents==4&&activity.buttonTouchRejected==3&&activity.buttonTouchLastFlags==3);
+   b.parentAllows=false;check(!b.onFilterTouchEventForSecurity(new android.view.MotionEvent(0))&&b.parentChecks==2);
+   b.parentAllows=true;check(b.onFilterTouchEventForSecurity(new android.view.MotionEvent(32))&&b.parentChecks==3);
+   check(activity.buttonTouchEvents==6&&activity.buttonTouchRejected==4&&activity.buttonTouchLastFlags==32);
+   String result=dump();check(result.contains("\"button_touch_events\":6")&&result.contains("\"button_touch_rejected\":4")&&result.contains("\"button_touch_last_flags\":32"));
+   check(activity.buttonTouchEvents==6&&activity.buttonTouchRejected==4&&b.parentChecks==3);
+  });
+  test("touch counters saturate without changing the original rejection",()->{
+   activity.buttonTouchEvents=Long.MAX_VALUE;activity.buttonTouchRejected=Long.MAX_VALUE;var b=activity.testButton();
+   check(!b.onFilterTouchEventForSecurity(new android.view.MotionEvent(1))&&b.parentChecks==0);
+   check(activity.buttonTouchEvents==Long.MAX_VALUE&&activity.buttonTouchRejected==Long.MAX_VALUE);dump();
+  });
   System.out.println("TOTAL "+passed);
  }
 }
@@ -161,7 +189,7 @@ for row in rows:
     assert set(row) == keys
     assert row['device_base_sha256'] in (None, expected_hash)
     assert set(row['service']) <= service_keys
-    assert set(row['activity']) == {'visible', 'busy', 'storage_error', 'identity_matches'}
+    assert set(row['activity']) == {'visible', 'busy', 'storage_error', 'identity_matches', 'button_touch_events', 'button_touch_rejected', 'button_touch_last_flags'}
     assert set(row['owner']) == {'visible', 'busy', 'enable_check_visible', 'identity_matches', 'last_enable_stage'}
 checks = [line for line in run.stdout.splitlines() if line.startswith('PASS ')]
 checks.append('PASS emitted diagnostic JSON has only the reviewed fixed keys and exact canonical hash')
@@ -172,6 +200,6 @@ if args.output:
         'status': 'passed', 'passed': len(checks), 'checks': checks,
         'recorded_at': datetime.datetime.now(datetime.timezone.utc).isoformat(),
         'source_sha256': {str(path.relative_to(ROOT)): hashlib.sha256(path.read_bytes()).hexdigest() for path in [*sources, JAVA/'MainActivity.java', JAVA/'PreviewService.java', JAVA/'MultiAiOwner.java', FAKES, Path(__file__)]},
-        'extracted_sha256': {'MainActivity.dump': hashlib.sha256(dump.encode()).hexdigest(), 'PreviewService.diagnostics': hashlib.sha256(service.encode()).hexdigest(), 'MultiAiOwner.diagnostics': hashlib.sha256(owner.encode()).hexdigest()},
+        'extracted_sha256': {'MainActivity.dump': hashlib.sha256(dump.encode()).hexdigest(), 'MainActivity.button': hashlib.sha256(button.encode()).hexdigest(), 'PreviewService.diagnostics': hashlib.sha256(service.encode()).hexdigest(), 'MultiAiOwner.diagnostics': hashlib.sha256(owner.encode()).hexdigest()},
         'scope': 'Production trust logic and verbatim dump/service methods; synthetic Android preferences, encrypted-store adapter and JSON serializer. No phone, Android dumpsys dispatch, actual UI, network or lifecycle validation. Real bounded encrypted diagnostic file reads are checked separately by test_enrollment_record_limits.py.'
     }, indent=2) + '\n')

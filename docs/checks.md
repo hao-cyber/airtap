@@ -35,6 +35,8 @@ python3 tools/check.py --suite android
 
 维护候选 code46 增加显式只读诊断入口：`adb shell dumpsys activity io.airtap.preview/.MainActivity --airtap-diagnostics`。它只输出连接模式、迁移阶段、授权数量、服务状态和设备地址摘要，不输出原始地址、凭据、核码、AI 名称或界面内容，也不执行连接、恢复或授权操作。存储读取不确定时返回未知，不修复记录。该入口依赖已授权的 USB 调试和现有 Activity，仅用于维护；日常使用不需要。地址摘要仍可关联同一设备，诊断记录保持私有，对外分享须审核。状态字段和本地按钮阶段不替代个人 AI 的真实任务回执。
 
+维护候选 code47 在 `activity` 中增加 `button_touch_events`、`button_touch_rejected` 和 `button_touch_last_flags`：分别记录当前 Activity 的普通按钮收到的触摸事件数、被原有安全判断拒绝的次数及最近事件的数值标志。计数只在内存中，Activity 重建后归零；不记录坐标、目标名称或文字，不改变遮挡触摸保护。拒绝数包含原有遮挡检查和基类安全检查；没有新增事件只能说明未到达这些按钮的过滤回调，不能单凭它确定输入在哪一层丢失。计数的是触摸事件，不是点击次数，也不代表业务动作已执行。它不覆盖对话框或多 AI 页自己的按钮；无诊断参数时保持原系统 dump 行为。
+
 ## 当前覆盖
 
 - 分页树与长文本的稳定快照、UTF-16 边界和敏感字段遮蔽，以及 range、动作标签/集合、collection 等已导出元数据变化导致旧页失效的 Java helper 检查。
