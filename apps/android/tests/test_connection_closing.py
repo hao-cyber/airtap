@@ -29,9 +29,9 @@ def method(signature):
 
 
 methods = '\n'.join(method(signature) for signature in (
-    'private boolean valid()', 'private boolean executionAllowed()', 'private boolean current(',
+    'RecoveryStatus recoveryStatus()', 'boolean isConnected()', 'private boolean valid()', 'private boolean executionAllowed()', 'private boolean current(',
     'private void connect(', 'private void awaitHandshake(', 'private void cancelHandshake(',
-    'private void disconnected(', 'private void scheduleConnect(', 'private void resetForNetwork(',
+    'private void disconnected(', 'private void scheduleConnect(', 'private record NetworkPath(', 'private NetworkPath networkPath(', 'private void observeNetwork(', 'private void resetForNetwork(',
     'void stop(', 'private void suspend('))
 marker = next(line for line in service.splitlines() if 'AtomicBoolean transportOpen =' in line)
 deadline = next(line for line in service.splitlines() if 'static final long HANDSHAKE_TIMEOUT_MS =' in line)
@@ -48,6 +48,7 @@ final class PreviewService {
   private Runnable reconnectTask,handshakeTask,helloTask;
   private ConnectivityManager.NetworkCallback networkCallback;
   private Network currentNetwork;
+  private NetworkPath currentNetworkPath;
   private final ConnectivityManager network=new ConnectivityManager();
   private final Client client=new Client();
   private final Random jitter = new Random(0);
@@ -79,6 +80,96 @@ final class PreviewService {
   }
   static void check(boolean value, String message) { if (!value) throw new AssertionError(message); }
   public static void main(String[] args) {
+    PreviewService vpnRecovery=new PreviewService();
+    vpnRecovery.network.capabilities.transports=(1<<NetworkCapabilities.TRANSPORT_VPN)|(1<<NetworkCapabilities.TRANSPORT_WIFI);
+    vpnRecovery.observeNetwork(1);vpnRecovery.retry=5;vpnRecovery.scheduleConnect(1,30000);
+    ConnectivityManager.NetworkCallback vpnCallback=vpnRecovery.networkCallback;
+    vpnCallback.onCapabilitiesChanged(vpnRecovery.network.active,new NetworkCapabilities(1<<NetworkCapabilities.TRANSPORT_VPN,true,true));vpnRecovery.main.drain();
+    check(vpnRecovery.retry==5,"losing the VPN underlay must not reset failure backoff");
+    check(vpnRecovery.reconnects==1,"losing an underlay must not accelerate an existing retry");
+    vpnCallback.onCapabilitiesChanged(vpnRecovery.network.active,new NetworkCapabilities((1<<NetworkCapabilities.TRANSPORT_VPN)|(1<<NetworkCapabilities.TRANSPORT_WIFI),true,true));vpnRecovery.main.drain();
+    check(vpnRecovery.retry==0,"a newly available VPN underlay must reset the old offline failure backoff");
+    vpnRecovery.main.advance(250);check(vpnRecovery.attempts==1,"new available path gets one prompt attempt");
+    WebSocket postRecovery=vpnRecovery.socket;postRecovery.listener.onFailure(postRecovery,new java.io.IOException("synthetic TLS EOF after network return"),null);vpnRecovery.main.drain();
+    check(vpnRecovery.retry==1,"a failure on the new path starts at the first retry tier");
+    vpnRecovery.main.advance(1250);check(vpnRecovery.attempts==2,"first new-path failure retries within 1250ms rather than old 30s tier");
+    System.out.println("PASS vpn_underlay_recovery_resets_old_failure_backoff");
+
+    PreviewService duplicatePath=new PreviewService();duplicatePath.observeNetwork(1);duplicatePath.retry=5;duplicatePath.scheduleConnect(1,30000);
+    Runnable originalRetry=duplicatePath.reconnectTask;
+    for(int i=0;i<100;i++)duplicatePath.networkCallback.onCapabilitiesChanged(duplicatePath.network.active,new NetworkCapabilities(1<<NetworkCapabilities.TRANSPORT_WIFI,true,true));
+    duplicatePath.main.advance(1000);
+    check(duplicatePath.retry==5&&duplicatePath.reconnectTask==originalRetry&&duplicatePath.reconnects==1&&duplicatePath.attempts==0,
+        "identical route callbacks must neither reset backoff, postpone its timer, nor create fast retries");
+    duplicatePath.main.advance(29000);check(duplicatePath.attempts==1,"unchanged path retains its originally scheduled bounded retry");
+    System.out.println("PASS repeated_network_capabilities_do_not_accelerate_or_postpone_backoff");
+
+    PreviewService fewerUnderlays=new PreviewService();int vpnAndCell=(1<<NetworkCapabilities.TRANSPORT_VPN)|(1<<NetworkCapabilities.TRANSPORT_CELLULAR);
+    fewerUnderlays.network.capabilities.transports=vpnAndCell|(1<<NetworkCapabilities.TRANSPORT_WIFI);fewerUnderlays.observeNetwork(1);fewerUnderlays.retry=5;fewerUnderlays.scheduleConnect(1,30000);
+    for(int i=0;i<100;i++)fewerUnderlays.networkCallback.onCapabilitiesChanged(fewerUnderlays.network.active,new NetworkCapabilities(vpnAndCell,true,true));fewerUnderlays.main.drain();
+    check(fewerUnderlays.retry==0&&fewerUnderlays.reconnects==2,"a changed combination with a remaining validated cellular path resets once");
+    fewerUnderlays.main.advance(250);check(fewerUnderlays.attempts==1,"remaining usable underlay permits one prompt attempt");
+    WebSocket cellularAttempt=fewerUnderlays.socket;cellularAttempt.listener.onFailure(cellularAttempt,new java.io.IOException("synthetic cellular failure"),null);fewerUnderlays.main.drain();
+    Runnable sameBackoff=fewerUnderlays.reconnectTask;
+    for(int i=0;i<100;i++)fewerUnderlays.networkCallback.onCapabilitiesChanged(fewerUnderlays.network.active,new NetworkCapabilities(vpnAndCell,true,true));fewerUnderlays.main.drain();
+    check(fewerUnderlays.retry==1&&fewerUnderlays.reconnectTask==sameBackoff&&fewerUnderlays.reconnects==3,"repeated remaining-underlay callbacks preserve the new failure backoff");
+    System.out.println("PASS partial_underlay_switch_resets_once_when_another_transport_remains");
+
+    for(boolean validationLoss:new boolean[]{false,true}){
+      PreviewService pathReturn=new PreviewService();pathReturn.observeNetwork(1);pathReturn.retry=5;pathReturn.scheduleConnect(1,30000);
+      NetworkCapabilities unavailable=new NetworkCapabilities(1<<NetworkCapabilities.TRANSPORT_WIFI,validationLoss,!validationLoss);
+      pathReturn.networkCallback.onCapabilitiesChanged(pathReturn.network.active,unavailable);pathReturn.main.drain();
+      check(pathReturn.retry==5&&pathReturn.reconnects==1,"losing internet or validation cannot reset or accelerate failure backoff");
+      for(int i=0;i<100;i++)pathReturn.networkCallback.onCapabilitiesChanged(pathReturn.network.active,new NetworkCapabilities(1<<NetworkCapabilities.TRANSPORT_WIFI,true,true));
+      pathReturn.main.drain();check(pathReturn.retry==0&&pathReturn.reconnects==2,"one usable-path edge resets backoff once despite repeated callbacks");
+      pathReturn.main.advance(250);check(pathReturn.attempts==1,"internet/validation return starts only one attempt");
+    }
+    System.out.println("PASS internet_and_validation_recovery_each_accelerate_once");
+
+    for(boolean established:new boolean[]{false,true}){
+      PreviewService inFlightPath=new PreviewService();inFlightPath.observeNetwork(1);inFlightPath.connect(1);WebSocket sameSocket=inFlightPath.socket;
+      if(established){sameSocket.listener.onOpen(sameSocket,new Response(101));inFlightPath.main.drain();}
+      Runnable sameDeadline=inFlightPath.handshakeTask;inFlightPath.retry=5;
+      inFlightPath.networkCallback.onCapabilitiesChanged(inFlightPath.network.active,new NetworkCapabilities(1<<NetworkCapabilities.TRANSPORT_CELLULAR,true,true));inFlightPath.main.drain();
+      check(inFlightPath.retry==0&&inFlightPath.socket==sameSocket&&inFlightPath.handshakeTask==sameDeadline&&sameSocket.cancels==0&&inFlightPath.reconnects==0,
+          "a capability route improvement resets retry without cancelling a pending or healthy transport");
+      sameSocket.listener.onFailure(sameSocket,new java.io.IOException("synthetic route settling"),null);inFlightPath.main.drain();
+      check(inFlightPath.retry==1,"in-flight failure after a new route starts at the first tier");
+      inFlightPath.main.advance(1250);check(inFlightPath.attempts==2&&inFlightPath.executed==0,"new-path retry neither duplicates transport nor replays work");
+    }
+    System.out.println("PASS route_change_keeps_inflight_and_healthy_socket_lifetime");
+
+    PreviewService newDefault=new PreviewService();newDefault.observeNetwork(1);Network oldDefault=newDefault.network.active,newRoute=new Network();
+    ConnectivityManager.NetworkCallback defaultCallback=newDefault.networkCallback;newDefault.retry=5;newDefault.scheduleConnect(1,30000);
+    newDefault.network.active=newRoute;defaultCallback.onAvailable(newRoute);newDefault.main.drain();
+    check(newDefault.retry==5&&newDefault.recoveryStatus()==RecoveryStatus.NETWORK_RECONNECTING,"availability alone is not a validated new path");
+    defaultCallback.onCapabilitiesChanged(newRoute,new NetworkCapabilities(1<<NetworkCapabilities.TRANSPORT_WIFI,true,false));newDefault.main.drain();
+    defaultCallback.onCapabilitiesChanged(oldDefault,new NetworkCapabilities(1<<NetworkCapabilities.TRANSPORT_CELLULAR,true,true));newDefault.main.drain();
+    check(newDefault.retry==5,"unvalidated or stale-network callbacks cannot reset current backoff");
+    defaultCallback.onCapabilitiesChanged(newRoute,new NetworkCapabilities(1<<NetworkCapabilities.TRANSPORT_WIFI,true,true));newDefault.main.drain();
+    check(newDefault.retry==0,"new default path resets only after usable capabilities arrive");
+    newDefault.main.advance(250);WebSocket currentRouteSocket=newDefault.socket;
+    defaultCallback.onLost(oldDefault);defaultCallback.onAvailable(newRoute);newDefault.main.drain();
+    check(newDefault.socket==currentRouteSocket&&currentRouteSocket.cancels==0&&newDefault.attempts==1,"late old loss and duplicate availability preserve new transport");
+    System.out.println("PASS new_default_waits_for_usable_path_and_ignores_stale_network_callbacks");
+
+    PreviewService staleNetwork=new PreviewService();staleNetwork.observeNetwork(1);ConnectivityManager.NetworkCallback staleCallback=staleNetwork.networkCallback;
+    staleNetwork.generation=2;staleNetwork.retry=5;
+    staleCallback.onCapabilitiesChanged(staleNetwork.network.active,new NetworkCapabilities(1<<NetworkCapabilities.TRANSPORT_CELLULAR,true,true));staleCallback.onAvailable(new Network());staleNetwork.main.advance(2000);
+    check(staleNetwork.retry==5&&staleNetwork.attempts==0&&staleNetwork.reconnects==0,"old generation cannot reset or schedule network recovery");
+    PreviewService stoppedNetwork=new PreviewService();stoppedNetwork.observeNetwork(1);ConnectivityManager.NetworkCallback stoppedCallback=stoppedNetwork.networkCallback;Network stoppedNetworkIdentity=stoppedNetwork.network.active;
+    stoppedNetwork.stop("synthetic owner stop");stoppedCallback.onCapabilitiesChanged(stoppedNetworkIdentity,new NetworkCapabilities(1<<NetworkCapabilities.TRANSPORT_CELLULAR,true,true));stoppedCallback.onAvailable(new Network());stoppedNetwork.main.advance(2000);
+    check(stoppedNetwork.attempts==0&&stoppedNetwork.reconnects==0&&!stoppedNetwork.authorized&&stoppedNetwork.recoveryStatus()==RecoveryStatus.WAITING_FOR_AI,"late network callbacks cannot resume owner-stopped control");
+    PreviewService blockedNetwork=new PreviewService();blockedNetwork.observeNetwork(1);SessionService.permitted=false;
+    blockedNetwork.networkCallback.onCapabilitiesChanged(blockedNetwork.network.active,new NetworkCapabilities(1<<NetworkCapabilities.TRANSPORT_CELLULAR,true,true));blockedNetwork.main.advance(2000);
+    check(blockedNetwork.attempts==0&&blockedNetwork.socket==null&&blockedNetwork.notificationBlocked,"a fresh path cannot bypass notification execution gate");SessionService.permitted=true;
+    System.out.println("PASS network_recovery_preserves_generation_stop_and_notification_gates");
+
+    PreviewService visibleReset=new PreviewService();WebSocket visibleSocket=new WebSocket();visibleReset.connect(visibleSocket,1);
+    check(visibleReset.recoveryStatus()==RecoveryStatus.CONNECTED,"fixture starts with actual open connection");visibleReset.resetForNetwork(1);
+    check(!visibleReset.isConnected()&&visibleReset.recoveryStatus()==RecoveryStatus.NETWORK_RECONNECTING&&visibleSocket.cancels==1,"network reset immediately presents reconnecting before the next attempt");
+    System.out.println("PASS network_reset_does_not_leave_cached_connected_state");
+
     PreviewService hidden = new PreviewService(); WebSocket hiddenSocket = new WebSocket();
     hidden.connect(hiddenSocket,1);hidden.prepare(hiddenSocket,1);String hiddenToken=hidden.host.token;
     SessionService.permitted=false;
@@ -120,6 +211,7 @@ final class PreviewService {
     normal.host.screen = ScreenPreparation.State.READY; normal.host.advance(10000); normal.main.drain();
     check(normal.executed == 0 && normal.activeCommand == 0, "ordinary close cancels preparation without replay");
     check(normal.authorized && normal.stopped == 0 && normal.reconnects == 1, "ordinary close retains pairing and schedules recovery once");
+    check(!normal.isConnected()&&normal.recoveryStatus()==RecoveryStatus.NETWORK_RECONNECTING,"disconnected UI must not remain ready");
     closeB.onClosed(b, 1001, "going away"); normal.main.drain();
     check(normal.reconnects == 1, "duplicate close completion does not reconnect twice");
     System.out.println("PASS ordinary_close_cancels_before_handshake_finishes");
@@ -205,6 +297,7 @@ final class PreviewService {
     check(!ownerStop.authorized&&ownerStop.socket==null&&ownerStop.handshakeTask==null&&ownerStop.reconnects==0&&ownerStop.attempts==1&&ownerStop.connections==0,
         "owner stop removes deadline and fences any already queued open/failure/timeout");
     check(ownerStop.stopped==1&&stoppedSocket.sends==0,"stopped transport never sends hello");
+    check(!ownerStop.isConnected()&&ownerStop.recoveryStatus()==RecoveryStatus.WAITING_FOR_AI,"stopped UI stays waiting after late callbacks");
     System.out.println("PASS owner_stop_fences_pending_handshake_and_all_late_callbacks");
 
     for(int deniedStatus:new int[]{401,403,410,1008}){
@@ -234,6 +327,13 @@ final class PreviewService {
     earlyFailure.main.advance(1250);check(earlyFailure.attempts==2,"failure retry starts once");
     System.out.println("PASS failed_handshake_cancels_deadline_without_duplicate_retry");
 
+    PreviewService multiOpening=new PreviewService();multiOpening.multiMode=true;multiOpening.connect(1);WebSocket awaitingHello=multiOpening.socket;
+    awaitingHello.listener.onOpen(awaitingHello,new Response(101));multiOpening.main.drain();
+    check(multiOpening.connected&&!multiOpening.multiHello&&!multiOpening.isConnected(),"open multi transport alone is not an acknowledged connection");
+    check(multiOpening.recoveryStatus()==RecoveryStatus.VERIFYING_CONNECTION&&multiOpening.state.equals("正在核实已保存的 AI 连接"),"multi UI waits for protocol acknowledgement");
+    check(multiOpening.helloTask!=null&&awaitingHello.sends==1,"multi handshake and existing deadline remain in place");
+    System.out.println("PASS multi_socket_open_waits_for_hello_ack_before_presenting_connected");
+
     PreviewService offline=new PreviewService();offline.network.capabilities.validated=false;offline.connect(1);offline.main.advance(6000);
     check(offline.attempts==0&&offline.handshakeTask==null&&offline.socket==null,"no handshake timer before validated network exists");
     offline.network.capabilities.validated=true;offline.main.advance(3000);
@@ -258,12 +358,21 @@ final class PreviewService {
     void drain(){advance(0);}void advance(long duration){long end=time+duration;while(!queue.isEmpty()&&queue.peek().at()<=end){Scheduled item=queue.remove();time=item.at();item.run().run();}time=end;}
   }
   static final class Network {}
-  static final class NetworkCapabilities {static final int NET_CAPABILITY_VALIDATED=1;boolean validated=true;boolean hasCapability(int capability){return validated;}}
-  static final class ConnectivityManager {
-    static final class NetworkCallback{}final Network active=new Network();final NetworkCapabilities capabilities=new NetworkCapabilities();
-    Network getActiveNetwork(){return active;}NetworkCapabilities getNetworkCapabilities(Network network){return capabilities;}void unregisterNetworkCallback(NetworkCallback callback){}
+  static final class NetworkCapabilities {
+    static final int NET_CAPABILITY_VALIDATED=1,NET_CAPABILITY_INTERNET=2;
+    static final int TRANSPORT_CELLULAR=0,TRANSPORT_WIFI=1,TRANSPORT_BLUETOOTH=2,TRANSPORT_ETHERNET=3,TRANSPORT_VPN=4,TRANSPORT_WIFI_AWARE=5,TRANSPORT_LOWPAN=6,TRANSPORT_USB=8;
+    boolean validated=true,internet=true;int transports=1<<TRANSPORT_WIFI;
+    NetworkCapabilities(){}NetworkCapabilities(int transports,boolean internet,boolean validated){this.transports=transports;this.internet=internet;this.validated=validated;}
+    boolean hasCapability(int capability){return capability==NET_CAPABILITY_VALIDATED?validated:capability==NET_CAPABILITY_INTERNET&&internet;}
+    boolean hasTransport(int transport){return (transports&(1<<transport))!=0;}
   }
-  static final class Ui { void clear() {} void cancelGestures() {} }
+  static final class ConnectivityManager {
+    static class NetworkCallback{public void onAvailable(Network network){}public void onLost(Network network){}public void onCapabilitiesChanged(Network network,NetworkCapabilities capabilities){}}
+    Network active=new Network();NetworkCapabilities capabilities=new NetworkCapabilities();NetworkCallback callback;
+    Network getActiveNetwork(){return active;}NetworkCapabilities getNetworkCapabilities(Network network){return capabilities;}
+    void registerDefaultNetworkCallback(NetworkCallback callback){this.callback=callback;}void unregisterNetworkCallback(NetworkCallback callback){if(this.callback==callback)this.callback=null;}
+  }
+  static final class Ui { ScreenPreparation.State screenState(){return ScreenPreparation.State.READY;} void clear() {} void cancelGestures() {} }
   static final class Host implements ScreenPreparation.Platform {
     record Scheduled(long at, Runnable callback) {}
     final List<Scheduled> callbacks = new ArrayList<>();
@@ -280,7 +389,8 @@ final class PreviewService {
     void advance(long duration) { long end = time + duration; while (true) { callbacks.sort(Comparator.comparingLong(Scheduled::at)); if (callbacks.isEmpty() || callbacks.get(0).at() > end) break; Scheduled item = callbacks.remove(0); time = item.at(); item.callback().run(); } time = end; }
   }
 }
-final class MultiAiProtocol {static Object hello(){throw new AssertionError("unexpected multi hello in single fixture");}}
+// Only the outbound hello string is synthetic; the matching ACK/state path runs in test_multi_ai_control.py.
+final class MultiAiProtocol {static Object hello(){return "synthetic_multi_hello";}}
 // This fixture exercises ordinary transport failures; TLS classification is covered by test_tls_policy.py.
 final class TlsPolicy {static final String USER_MESSAGE="synthetic security failure";static boolean isSecurityFailure(Throwable failure){return false;}}
 final class SessionService {static boolean ready=true,permitted=true;static boolean notificationsAllowed(PreviewService service){return permitted;}static boolean readyFor(PreviewService service,int generation){return ready;}static void end(PreviewService service){}static void paused(PreviewService service){}}
@@ -288,7 +398,7 @@ final class TrustedGrant {final PreviewService owner;TrustedGrant(PreviewService
 final class PreviewState {static boolean grantAvailable;}
 final class WorkspaceShares {static void revokeAll(PreviewService service){}}
 final class PreviewDiagnostics {
-  enum Event { socket_closing,socket_closed,disconnected,connect_wait_network,connect_attempt,socket_cancel,socket_open,socket_close_requested,handshake_timeout,reconnect_scheduled,network_reset }
+  enum Event { socket_closing,socket_closed,disconnected,connect_wait_network,connect_attempt,socket_cancel,socket_open,socket_close_requested,handshake_timeout,reconnect_scheduled,network_reset,network_observe,network_available,network_lost,network_capabilities }
   enum Reason { none,stale_callback,request_too_large,text_requests_only,timeout,network_change }
   static Reason closeReason(String reason) { return Reason.none; }
   static void event(Object... values) {if(values[1]==Event.reconnect_scheduled)((PreviewService)values[0]).reconnects++;}
@@ -312,10 +422,10 @@ with tempfile.TemporaryDirectory(prefix='airtap-connection-close-') as directory
                             capture_output=True, text=True, check=True)
 print(result.stdout, end='')
 checks = [line[5:] for line in result.stdout.splitlines() if line.startswith('PASS ')]
-assert len(checks) == 16
+assert len(checks) == 25
 if args.output:
     args.output.parent.mkdir(parents=True, exist_ok=True)
-    args.output.write_text(json.dumps({'passed': len(checks), 'total': 15, 'checks': checks,
-        'scope': 'Host JVM. Exact production connect/callback/deadline/current/disconnected/backoff/stop/suspend/network-reset methods, real ScreenPreparation; fake transport can withhold handshake callbacks and delay main-thread delivery. Single-mode cases only; multi-only stubs throw if reached. Not device or real-network validation.',
+    args.output.write_text(json.dumps({'passed': len(checks), 'total': len(checks), 'checks': checks,
+        'scope': 'Host JVM. Exact production connect/callback/deadline/current/disconnected/backoff/stop/suspend/network-observer/path/reset methods, real ScreenPreparation; fake transport can withhold handshake callbacks and delay main-thread delivery. Public capability edges exercise VPN underlay loss/return, duplicate callbacks, validation/internet return, pending/healthy socket preservation, and stop/notification/generation gates. Single-mode lifecycle plus multi-mode onOpen presentation before hello acknowledgement; multi command/ACK handling is covered separately. Not device or real-network validation.',
         'source_sha256': {name: hashlib.sha256((SOURCE / name).read_bytes()).hexdigest()
                           for name in ('PreviewService.java', 'ScreenPreparation.java')}}, indent=2) + '\n')

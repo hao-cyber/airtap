@@ -1,0 +1,119 @@
+{
+  "schema": "airtap-personal-ai-evidence-review-v1",
+  "recorded_date": "2026-11-02",
+  "status": "passed_bounded_cross_app_task_with_action_and_observation_failures_retained",
+  "client": {
+    "version_name": "0.4.0-beta.19",
+    "version_code": 49,
+    "build_type": "release"
+  },
+  "device_scope": "One previously paired Android test phone.",
+  "actor": "Instinct actual cloud environment using CLI.11 and an existing approved connection in multi-AI mode.",
+  "task": {
+    "steps": [
+      "Read a public post in Xiaohongshu.",
+      "Create a note containing its source and three relevant points.",
+      "Save, leave Notes, reopen the note and verify its contents.",
+      "Return to the launcher and release the task lease."
+    ],
+    "result": "passed for this bounded task",
+    "source_and_saved_note_comparison": "The maintainer visually compared the source screenshots with the reopened note; the source reference and three points matched.",
+    "reopened_note_visual_check": true,
+    "reopened_full_text_tree_equality_check": false,
+    "final_home_visual_check": true
+  },
+  "calls": {
+    "retained": 36,
+    "exit_zero": 34,
+    "exit_nonzero": 2,
+    "post_action_observation_errors": 3,
+    "counting_note": "The three observation errors occurred on calls whose requested action returned exit zero. They are separate from the two rejected action calls."
+  },
+  "initial_readiness": {
+    "pairing_state": "approved",
+    "mode": "multi",
+    "device_connected": true,
+    "task_acquire_state": "ready",
+    "wait_ready_attempts": 1,
+    "connection_ready": true,
+    "screen_ready": true,
+    "needs_system_authentication": false
+  },
+  "action_failures_and_recovery": [
+    {
+      "call_number": 11,
+      "operation": "set-text",
+      "exit_code": 1,
+      "error": "fresh_snapshot_required",
+      "recovery": "Call 12 read a fresh tree; call 13 set-text succeeded."
+    },
+    {
+      "call_number": 16,
+      "operation": "tap",
+      "exit_code": 1,
+      "error": "invalid_coordinate",
+      "cause": "The agent supplied pixel coordinates to the normalized-image interface.",
+      "recovery": "Call 17 observed again; call 18 used normalized coordinates and succeeded."
+    }
+  ],
+  "post_action_observation_failures": [
+    {
+      "call_number": 7,
+      "operation": "launch",
+      "action_exit_code": 0,
+      "observation_error": "window_root_unavailable",
+      "continuation": "Calls 8 and 9 queried windows and read a fresh tree."
+    },
+    {
+      "call_number": 14,
+      "operation": "click",
+      "action_exit_code": 0,
+      "observation_error": "inspection_incomplete",
+      "continuation": "Call 15 obtained a fresh image."
+    },
+    {
+      "call_number": 22,
+      "operation": "swipe",
+      "action_exit_code": 0,
+      "observation_error": "inspection_incomplete",
+      "continuation": "Call 23 obtained a fresh image."
+    }
+  ],
+  "final_status": {
+    "lease_state": "released",
+    "task_state": "idle",
+    "pending_commands": 0,
+    "device_connected": true,
+    "pairing_state": "approved"
+  },
+  "time": {
+    "zone": "Asia/Shanghai",
+    "first_retained_call": "2026-11-02 02:28:59.173546",
+    "last_retained_call": "2026-11-02 02:33:48.758213",
+    "limit": "These are the retained command timestamps, not proof of uninterrupted observation of the phone."
+  },
+  "maintainer_intervention": {
+    "before_task": "The APK upgrade was performed by the maintainer. This task does not establish autonomous upgrade recovery.",
+    "during_task": "Instinct reports no additional human intervention during the business task. The retained command chain is consistent with that report; it is not independent observation of every possible local action.",
+    "pairing_recreated_in_retained_calls": false
+  },
+  "evidence": {
+    "retained_command_records": 36,
+    "command_record_sha256": "9cd9618caacfec23a875d5eb3a10aa0a58f1ca3ba7cab0ff85a8fc2ef4b869ca",
+    "screenshots_reviewed": 4,
+    "screenshot_hashes_match_command_receipts": true,
+    "review": "The returned task-specific stdout/stderr, errors and four source/note/launcher images were reviewed; unrelated existing content had been redacted by the sender.",
+    "capture_limit": "The sender states that receipts were captured during execution. This review received a redacted export, not an independent recording of the whole cloud runtime. Separate visual-tool invocation logs were not provided.",
+    "retrieval_limit": "Evidence was returned through the expected existing email identity. This does not independently prove that email and the previously used chat interface share one execution runtime.",
+    "raw_materials": "Private; not distributed with source."
+  },
+  "not_verified": [
+    "Operation on code50 or any later client version.",
+    "Two personal AIs handing off a live task or competing for a lease.",
+    "Independent wake or recovery after long idle.",
+    "The earlier Google Play failure; it was not retried in this task.",
+    "Migration of another phone from its existing control chain.",
+    "First-time installation by an independent user, other devices or every App workflow."
+  ],
+  "publication_boundary": "No note title or body, source-post text or author, screenshots, user or connection identifiers, phone identifiers, credentials or private paths are included."
+}

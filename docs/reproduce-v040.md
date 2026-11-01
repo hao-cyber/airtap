@@ -35,6 +35,8 @@ python3 relay/service/deploy.py --wrangler "$(pwd)/relay/worker/node_modules/.bi
 
 配置后重新执行曾经失败的原请求，并验证下载文件摘要；自定义客户端标识请求成功，不能代替默认 HTTP 工具的复验。公共服务的这项配置由提供者负责，普通用户无需进入 Cloudflare 控制台。
 
+后续候选包的验收单独记录：[code49 的 Instinct 跨 App 任务](results/beta19-code49-instinct-20261102.json)已核对命令输出与四张结果图；[code50 的真机断网恢复](results/beta20-code50-network-recovery-20261102.json)记录了 25 秒断网、约 44 秒恢复及重试延迟。两者都没有切换官网推荐版本，也不代表双 AI 交接或其他手机迁移已经通过。
+
 验证当前协议和 CLI：
 
 ```sh

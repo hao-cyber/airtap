@@ -40,6 +40,7 @@ public final class PreviewService extends AccessibilityService {
     private long commandSerial, activeCommand;
     private ConnectivityManager.NetworkCallback networkCallback;
     private Network currentNetwork;
+    private NetworkPath currentNetworkPath;
     private Runnable reconnectTask, handshakeTask;
     private int generation, retry, connections, attempts;
     private String url, token;
@@ -208,6 +209,7 @@ public final class PreviewService extends AccessibilityService {
         if (authorized && !SessionService.notificationsAllowed(this)) return RecoveryStatus.NOTIFICATIONS_REQUIRED;
         if (authorized && notificationBlocked) return RecoveryStatus.VERIFYING_CONNECTION;
         if (!connected || !executionAllowed()) return recoveryStatus;
+        if (multiMode && !multiHello) return RecoveryStatus.VERIFYING_CONNECTION;
         return switch (ui.screenState()) {
             case READY -> RecoveryStatus.CONNECTED;
             case SCREEN_OFF, DISMISSIBLE_KEYGUARD -> RecoveryStatus.SCREEN_PREPARABLE;
@@ -216,7 +218,7 @@ public final class PreviewService extends AccessibilityService {
         };
     }
     boolean isAuthorized() { return authorized; }
-    boolean isConnected() { return connected; }
+    boolean isConnected() { return connected && (!multiMode || multiHello); }
     /** Called by the Activity dump on the main thread; reads fields only, never restores work. */
     JSONObject diagnostics(EnrollmentStore.Config expected) {
         boolean same = expected != null && config != null && expected.url.equals(config.url) && expected.token.equals(config.token);
@@ -403,7 +405,7 @@ public final class PreviewService extends AccessibilityService {
             try { getSystemService(ConnectivityManager.class).unregisterNetworkCallback(networkCallback); } catch (Exception ignored) { }
             networkCallback = null;
         }
-        currentNetwork = null;
+        currentNetwork = null; currentNetworkPath = null;
         WebSocket previous = socket; socket = null; if (previous != null) previous.cancel();
         token = null; url = null; retry = 0; state = message; SessionService.paused(this);
     }
@@ -440,8 +442,8 @@ public final class PreviewService extends AccessibilityService {
                     retry = 0;
                     PreviewDiagnostics.event(PreviewService.this, PreviewDiagnostics.Event.socket_open,
                             PreviewDiagnostics.Reason.none, response.code(), run, 1);
-                    state = "已连接（手机主动 WSS）";
-                    recoveryStatus = RecoveryStatus.CONNECTED;
+                    state = multiMode ? "正在核实已保存的 AI 连接" : "已连接（手机主动 WSS）";
+                    recoveryStatus = multiMode ? RecoveryStatus.VERIFYING_CONNECTION : RecoveryStatus.CONNECTED;
                     lastDiagnostic = "HTTP=101 exception=none cause=none";
                     if(multiMode){
                         multiHello=false;ws.send(MultiAiProtocol.hello().toString());
@@ -567,9 +569,37 @@ public final class PreviewService extends AccessibilityService {
         main.postDelayed(reconnectTask, delay);
     }
 
+    private record NetworkPath(int transports, boolean internet, boolean validated) {
+        boolean available() { return internet && validated; }
+        boolean newlyAvailableAfter(NetworkPath previous) {
+            // A VPN can remain VALIDATED while its Wi-Fi/cellular underlay disappears.
+            // A changed combination with a remaining physical transport is a usable route
+            // switch; losing the last physical transport is not.
+            if (!available()) return false;
+            if (previous == null || !previous.available()) return true;
+            int vpn = 1 << NetworkCapabilities.TRANSPORT_VPN;
+            return transports != previous.transports && (transports & ~vpn) != 0;
+        }
+    }
+
+    private NetworkPath networkPath(NetworkCapabilities capabilities) {
+        if (capabilities == null) return null;
+        int transports = 0;
+        for (int transport : new int[]{NetworkCapabilities.TRANSPORT_CELLULAR, NetworkCapabilities.TRANSPORT_WIFI,
+                NetworkCapabilities.TRANSPORT_BLUETOOTH, NetworkCapabilities.TRANSPORT_ETHERNET,
+                NetworkCapabilities.TRANSPORT_VPN, NetworkCapabilities.TRANSPORT_WIFI_AWARE,
+                NetworkCapabilities.TRANSPORT_LOWPAN, NetworkCapabilities.TRANSPORT_USB}) {
+            if (capabilities.hasTransport(transport)) transports |= 1 << transport;
+        }
+        // Public, stable route hints only; signal strength and other noisy metadata are ignored.
+        return new NetworkPath(transports, capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET),
+                capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED));
+    }
+
     private void observeNetwork(int run) {
         ConnectivityManager manager = getSystemService(ConnectivityManager.class);
         currentNetwork = manager.getActiveNetwork();
+        currentNetworkPath = networkPath(manager.getNetworkCapabilities(currentNetwork));
         PreviewDiagnostics.event(this, PreviewDiagnostics.Event.network_observe);
         networkCallback = new ConnectivityManager.NetworkCallback() {
             @Override public void onAvailable(Network network) {
@@ -578,6 +608,7 @@ public final class PreviewService extends AccessibilityService {
                 main.post(() -> {
                     if (generation != run || !valid() || network.equals(currentNetwork)) return;
                     currentNetwork = network;
+                    currentNetworkPath = null;
                     resetForNetwork(run);
                 });
             }
@@ -587,15 +618,23 @@ public final class PreviewService extends AccessibilityService {
                 main.post(() -> {
                     if (generation != run || !valid() || !network.equals(currentNetwork)) return;
                     currentNetwork = null;
+                    currentNetworkPath = null;
                     resetForNetwork(run);
                 });
             }
             @Override public void onCapabilitiesChanged(Network network, NetworkCapabilities capabilities) {
                 PreviewDiagnostics.event(PreviewService.this, PreviewDiagnostics.Event.network_capabilities,
                         PreviewDiagnostics.Reason.none, 0, run, -1);
-                if (!capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED)) return;
+                NetworkPath path = networkPath(capabilities);
                 main.post(() -> {
-                    if (generation == run && valid() && socket == null && network.equals(currentNetwork)) scheduleConnect(run, 250);
+                    if (generation != run || !valid() || !network.equals(currentNetwork)) return;
+                    NetworkPath previous = currentNetworkPath;
+                    currentNetworkPath = path;
+                    if (!path.newlyAvailableAfter(previous)) return;
+                    // Forget failures on the old route once, not on every capabilities callback.
+                    // An in-flight/healthy socket keeps its lifetime and command fences.
+                    retry = 0;
+                    if (socket == null) scheduleConnect(run, 250);
                 });
             }
         };
@@ -620,6 +659,7 @@ public final class PreviewService extends AccessibilityService {
             previous.cancel();
         }
         state = "系统网络变化，重新建立连接（不重放操作）";
+        recoveryStatus = RecoveryStatus.NETWORK_RECONNECTING;
         scheduleConnect(run, 500);
     }
 
@@ -628,7 +668,8 @@ public final class PreviewService extends AccessibilityService {
             JSONObject message=new JSONObject(text);String type=message.getString("type");
             if("hello_ack".equals(type)){
                 if(multiHello)throw new IllegalArgumentException();MultiAiProtocol.helloAck(message);multiHello=true;
-                if(helloTask!=null)main.removeCallbacks(helloTask);helloTask=null;tasks.connected();return;
+                if(helloTask!=null)main.removeCallbacks(helloTask);helloTask=null;tasks.connected();
+                state="已连接（手机主动 WSS）";recoveryStatus=RecoveryStatus.CONNECTED;return;
             }
             if(!multiHello)throw new IllegalArgumentException();
             if("task_fence".equals(type)){

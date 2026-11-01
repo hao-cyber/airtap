@@ -1,0 +1,121 @@
+{
+  "schema": "airtap-bounded-network-route-review-v1",
+  "recorded_date": "2026-11-02",
+  "status": "passed_maintainer_injected_network_recovery_with_44_second_delay_retained",
+  "client": {
+    "version_name": "0.4.0-beta.20",
+    "version_code": 50,
+    "build_type": "release",
+    "apk_sha256": "430902efb5b9e5ff77dc1340a61613618b26cb0cd8b49ece2e3fb8d474c6fcce"
+  },
+  "device_scope": "One previously paired Android test phone connected to maintenance USB, with two locally stored approved AI grant records and the existing VPN active.",
+  "actor": "Maintainer fault injection and read-only Android diagnostics; no personal-AI business task in this run.",
+  "change_under_test": "Service readiness judgments (isConnected and recoveryStatus) wait for the multi-AI protocol acknowledgement instead of treating an open WebSocket as ready. This does not establish that every owner-page or notification display consumes those judgments; the multi-AI owner page has its own presentation path.",
+  "upgrade": {
+    "method": "Maintainer performed a data-preserving USB install.",
+    "installed_version_verified": true,
+    "data_cleared": false,
+    "new_pairing_created": false,
+    "device_registration_preserved": true,
+    "maintainer_intervention": "The maintainer opened the owner Activity before and after installation for diagnostics, then placed it in the background before the outage.",
+    "limit": "This is a maintained upgrade, not autonomous upgrade acceptance.",
+    "local_approved_record_count_before": 2,
+    "local_approved_record_count_after": 2,
+    "credential_validation_limit": "Equal local record counts do not prove that both original personal-AI credentials remain usable."
+  },
+  "network_test": {
+    "method": "Disable mobile data, disable Wi-Fi, confirm the absence of a default network, then enable Wi-Fi and observe the original connection.",
+    "confirmed_outage_seconds": 25.186,
+    "reconnect_seconds_after_wifi_enable": 44.437,
+    "recovered_condition": "Phone diagnostics reported a connected transport and acknowledged multi-AI protocol handshake; the local approved grant record count remained two. Each original personal-AI credential was not separately queried after recovery.",
+    "settings_restored": true,
+    "vpn_active_before_and_after": true,
+    "measurement_limit": "One measured recovery after Wi-Fi was enabled. The delay includes network and VPN restoration plus reconnection; it is not a latency benchmark or an exclusive measurement of Airtap retry time.",
+    "performance_observation": "The connection recovered, but the 44.437-second delay remains visible as a product issue; this record does not establish prompt recovery."
+  },
+  "stability_follow_up": {
+    "sampling_window_seconds": 61.539,
+    "samples": 13,
+    "all_samples": {
+      "transport_connected": true,
+      "multi_ai_handshake_acknowledged": true,
+      "authorized": true,
+      "owner_activity_foreground": false,
+      "user_stopped": false,
+      "local_approved_record_count": 2
+    },
+    "limit": "Read-only background diagnostic samples over about one minute. This is not continuous capture, long-idle testing or proof that a personal AI can execute a task after recovery."
+  },
+  "local_build_and_core_checks": {
+    "release_build": {
+      "completed": true,
+      "signature_verified": true,
+      "expected_version_verified": true,
+      "lint_errors": 0,
+      "lint_warnings": 11
+    },
+    "initial_install_precheck_failure": {
+      "failure": "The local installation script referenced an absent build-tools/36.0.0/apksigner executable and raised FileNotFoundError before signature verification and before invoking installation.",
+      "phone_install_reached": false,
+      "correction": "The maintained retry used the installed build-tools/36.1.0 and completed the data-preserving install.",
+      "evidence_limit": "Recorded as the maintainer account of the failed command. Its complete stderr was not saved in the retained acceptance attachments; only preflight device records were retained for that attempt."
+    },
+    "retained_core_attempts": [
+      {
+        "attempt": 1,
+        "passed_steps_before_failure": 1,
+        "failure": "Source-package metadata still declared the previous Android version in two manifest fields.",
+        "correction": "Update those fields to beta.20 / code50.",
+        "complete": false,
+        "failure_log_retained": true
+      },
+      {
+        "attempt": 2,
+        "passed_steps_before_failure": 12,
+        "failure": "The approval-scheduling test harness omitted the multiHello field now read by the extracted production recoveryStatus method.",
+        "correction": "Add the missing test field; preserve all assertions and the production handshake requirement.",
+        "complete": false,
+        "failure_log_retained": true
+      },
+      {
+        "attempt": 3,
+        "passed_steps": 37,
+        "failed_steps": 0,
+        "complete": true,
+        "source_files_checked": 328,
+        "source_bytes_unchanged_during_run": true
+      }
+    ],
+    "final_core_counts": {
+      "android_host_groups": 22,
+      "android_host_checks": 831,
+      "connection_closing_checks": 17,
+      "python_source_package_tests": 15,
+      "python_service_tests": 114,
+      "python_site_tests": 33,
+      "local_workerd_protocol_checks": 117,
+      "node_multi_ai_state_tests": 23,
+      "mixed_check_total": 1150
+    },
+    "limit": "Local host and workerd checks support the implementation. They are separate from physical-device, personal-AI, production-capacity and billing acceptance."
+  },
+  "evidence": {
+    "network_summary_sha256": "e7d29e7206b23425af56fd4c701dededceb9f66d1e1de8582932e1f2abcd5ec7",
+    "network_timeline_sha256": "84df065fa8740e0bad84a25a29f0f5f962882d93f893dfe8305d4061d6a40d80",
+    "stability_summary_sha256": "910b8e5212df9680ac81f21ba7090b1df36aa284ae063759777ceb46700fc0e0",
+    "final_core_summary_sha256": "bef569c27f458721ac5e2c9285c331b18fd423a11ebd7e6b5bf992f52e7cdc1d",
+    "raw_materials": "Private; not distributed with source."
+  },
+  "not_verified": [
+    "Separate post-outage status checks with each of the two original personal-AI credentials.",
+    "A personal-AI command using its original credentials after this outage.",
+    "Any cross-App task on code50.",
+    "Two personal AIs handing off or contending for a task on this physical phone.",
+    "Cold start, reboot, unpowered idle, screen unlocking or long-idle recovery.",
+    "Stop or revocation behavior in this physical network run.",
+    "Mobile-data-only operation or operation without the existing VPN.",
+    "Migration of another phone from its existing control chain.",
+    "All later client versions or a complete product acceptance pass."
+  ],
+  "publication_boundary": "Only aggregate versions, counts, timings and failure descriptions are included. No screenshots, note or post content, network addresses, phone or connection identifiers, credentials or private paths are included."
+}

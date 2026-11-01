@@ -35,9 +35,9 @@ service='''package io.airtap.preview;
 import org.json.JSONObject;import android.net.ConnectivityManager;import android.os.SystemClock;import okhttp3.WebSocket;
 final class PreviewService extends android.content.Context {
  static PreviewService instance;final android.os.Handler main=new android.os.Handler();
- boolean authorized,restoring,connected,notificationBlocked,multiMode,grantRefreshInFlight;long activeCommand,nextOwnerRetry;int generation,retry,connects,networkStarts,notificationFailures,multiRestores,taskDisconnects;String state,url,token,sessionFence,restoringFence;
+ boolean authorized,restoring,connected,notificationBlocked,multiMode,multiHello,grantRefreshInFlight;long activeCommand,nextOwnerRetry;int generation,retry,connects,networkStarts,notificationFailures,multiRestores,taskDisconnects;String state,url,token,sessionFence,restoringFence;
  RecoveryStatus recoveryStatus=RecoveryStatus.WAITING_FOR_AI;java.util.concurrent.atomic.AtomicBoolean transportOpen=new java.util.concurrent.atomic.AtomicBoolean(true);
- Object networkCallback,currentNetwork;Runnable reconnectTask,handshakeTask;WebSocket socket;EnrollmentStore.Config config;
+ Object networkCallback,currentNetwork,currentNetworkPath;Runnable reconnectTask,handshakeTask;WebSocket socket;EnrollmentStore.Config config;
  static final class Ui {int clears,cancellations;ScreenPreparation.State screen=ScreenPreparation.State.READY;ScreenPreparation.State screenState(){return screen;}void clear(){clears++;}void cancelGestures(){cancellations++;}}final Ui ui=new Ui();
  static final class Recovery {int cancellations;void cancel(){cancellations++;}}final Recovery recovery=new Recovery();
  PreviewService(){instance=this;}

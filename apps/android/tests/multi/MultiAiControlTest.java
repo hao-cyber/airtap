@@ -18,6 +18,15 @@ public final class MultiAiControlTest{
  static long invitationPosts(){return RelayApi.requests.stream().filter(r->r.path.equals("/v1/device/invitations")&&r.method.equals("POST")).count();}
  static JSONObject invitationReply(JSONObject request){return RelayApi.json("protocol_version",4,"invitation_id",request.getString("invitation_id"),"invitation_sequence",request.getLong("invitation_sequence"),"pairing_expires_at",System.currentTimeMillis()/1000+300,"expires_at",JSONObject.NULL,"cli_sha256","1".repeat(64),"agent_sha256","2".repeat(64));}
  public static void main(String[]args)throws Exception{
+  test("multi socket waits for protocol acknowledgement before presenting ready",()->{
+    service=new PreviewService(config,ws);service.remoteGrants=Set.of(A);
+    // Even a stale transport-ready label must not override the missing protocol ACK.
+    service.recoveryStatus=RecoveryStatus.CONNECTED;
+    check(!service.isConnected()&&service.recoveryStatus()==RecoveryStatus.VERIFYING_CONNECTION);
+    hello();check(service.isConnected()&&service.recoveryStatus()==RecoveryStatus.CONNECTED&&service.state.equals("已连接（手机主动 WSS）"));
+    service.disconnect();check(!service.isConnected()&&service.recoveryStatus()!=RecoveryStatus.CONNECTED);
+  });
+
   test("structured hello and permanent first fence disable the legacy envelope",()->{service.receive(command(A,null,1));check(service.ui.executions==1&&A.equals(service.ui.owner));service.ui.reply.success(new JSONObject());service.receive(fence(1,A));check(ws.last().getBoolean("ok")&&trust.grant(config,A).getBoolean("lease_required"));service.receive(command(A,null,2));check(!ws.last().getBoolean("ok")&&service.ui.executions==1);});
   test("multi refuses raw single commands while unchanged single dispatch remains usable",()->{service.receive(RelayApi.json("id",ID,"action","file_roots","sequence",1));check(ws.close==1008&&service.ui.executions==0);FakeDisk.reset();FakeDisk.config=config;trust=new TrustedGrant(new android.content.Context());String consent=trust.beginApproval(config,A,"single AI");trust.completeApproval(config,consent);service.multiMode=false;service.raw(RelayApi.json("id",ID,"action","file_roots","sequence",1));check(service.ui.executions==1);});
   test("holder identity gates commands and each grant keeps independent replay sequence",()->{addB();service.receive(fence(1,A));service.receive(command(B,1L,1));check(!ws.last().getBoolean("ok")&&service.ui.executions==0);service.receive(command(A,1L,1));check(service.ui.executions==1);service.ui.reply.success(new JSONObject());service.receive(fence(2,B));service.receive(command(B,2L,1));check(service.ui.executions==2&&B.equals(service.ui.owner));check(trust.grant(config,A).getLong("sequence")==1&&trust.grant(config,B).getLong("sequence")==1);});
