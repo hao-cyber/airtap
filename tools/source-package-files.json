@@ -2,7 +2,7 @@
   "allowlist_path": "tools/source-package-files.json",
   "android_version": "0.4.0-beta.18",
   "archive_root": "airtap-source-0.4.0-beta.18-code48",
-  "cli_version": "0.4.0-cli.9",
+  "cli_version": "0.4.0-cli.10",
   "closure_policy": "airtap-source-closure-v1",
   "files": [
     {
@@ -941,6 +941,10 @@
     },
     {
       "kind": "result",
+      "path": "docs/results/cli10-post-action-20261102.json"
+    },
+    {
+      "kind": "result",
       "path": "docs/results/client-recovery-v040-delivery.json"
     },
     {
@@ -1126,6 +1130,10 @@
     {
       "kind": "source",
       "path": "relay/service/tests/test_open_url.py"
+    },
+    {
+      "kind": "source",
+      "path": "relay/service/tests/test_post_action_observation.py"
     },
     {
       "kind": "source",

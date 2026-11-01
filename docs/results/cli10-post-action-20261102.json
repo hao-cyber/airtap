@@ -1,0 +1,36 @@
+{
+  "schema": "airtap-scoped-checks-v1",
+  "recorded_at": "2026-11-02",
+  "artifact": "CLI 0.4.0-cli.10",
+  "status": "local_checks_passed_personal_ai_pending",
+  "cli_sha256": "f5d85e137a0e5600c87cceb201bb41c187e3ea15d1ea9cf2a73ff0ee10ec790f",
+  "change": "Optional post-action image, tree or none; accepted actions retain their result when a following observation fails.",
+  "checks": {
+    "core_steps_passed": 36,
+    "new_python_cases_passed": 19,
+    "existing_task_lease_cases_passed": 33,
+    "companion_workerd_cases_passed": 34,
+    "independent_source_review": "no_blocking_findings"
+  },
+  "verified": [
+    "Default image result and legacy no-observe behavior",
+    "Exactly one explicit action then at most one selected observation",
+    "New foreground package, new UUID and increasing command sequence",
+    "Previous snapshot consumed; new snapshot requires a later explicit action",
+    "Snapshot TTL measured from request start; no implicit pagination or action from screen text",
+    "Action rejection or unknown outcome does not trigger a follow-up or replay",
+    "Post-observation errors and local save failure retain accepted action and clear targets when persistence succeeds",
+    "Cleanup failure explicitly warns that saved targets are not reliable",
+    "Lease renewal and expiration semantics retained; no automatic acquisition",
+    "Volume and lock-screen remain without automatic observation; conflicting parameters rejected before dispatch"
+  ],
+  "limits": [
+    "Python checks use synthetic transport/time with real CLI parsing and persistence.",
+    "Workerd checks use real local CLI/service traffic and a synthetic phone, not an Android device.",
+    "The feature combines CLI orchestration but still requires separate action and observation device requests.",
+    "Real personal-AI A/B latency, task success and human-intervention comparison have not been completed.",
+    "No Android APK, relay deployment or website recommendation was changed by these checks."
+  ],
+  "compatibility_note": "Previously ignored --output with a non-image follow-up now fails explicitly before dispatch.",
+  "privacy": "Synthetic test data only; no raw phone screenshots, chat, pairing data or private deployment paths in this record."
+}

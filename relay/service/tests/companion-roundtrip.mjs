@@ -83,7 +83,8 @@ async function check(name, fn) {
   console.log(JSON.stringify(checks.at(-1))); assert.equal(checks.at(-1).ok, true);
 }
 let controller, lastSequence = 0, candidate;
-let pagedMode = false, pagedSnapshot = null; const longText = ('文字🚀e\u0301').repeat(2000);
+let pagedMode = false, pagedSnapshot = null, afterClickPackage = null, readTreeError = null, treeText = 'test';
+const longText = ('文字🚀e\u0301').repeat(2000);
 async function api(command, sequence, extra = {}) {
   return http('/d/' + d.id + '/v1/command', { token: controller, body: { id: crypto.randomUUID(), action: command, sequence, ...extra } });
 }
@@ -97,6 +98,12 @@ async function connectPhone() {
       ws.send(JSON.stringify({ id: cmd.id, ok: false, error: { code: gestureError } })); return;
     }
     if (commandError) { ws.send(JSON.stringify({ id: cmd.id, ok: false, error: commandError })); return; }
+    if (cmd.action === 'read_tree' && readTreeError) {
+      ws.send(JSON.stringify({ id: cmd.id, ok: false, error: readTreeError })); return;
+    }
+    if (cmd.action === 'click' && afterClickPackage) {
+      observedPackage = afterClickPackage; afterClickPackage = null;
+    }
     let result;
     if (cmd.action === 'observe') result = { package: observedPackage, observation_id: hex(16), expires_in_ms: 30000,
       coordinate_space: 'normalized_image', width: 720, height: 1600, display_id: 0, window_id: 3, rotation: 0, capture_scope: 'display', window_bounds: [0,40,1080,2200],
@@ -104,12 +111,12 @@ async function connectPhone() {
     else if (pagedMode && ['read_tree', 'read_tree_page'].includes(cmd.action)) {
       if (cmd.action === 'read_tree') pagedSnapshot = hex(16);
       const offset = cmd.offset ?? 0, end = Math.min(300, offset + (cmd.limit ?? 128));
-      result = { package: 'com.example.app', snapshot_id: pagedSnapshot, expires_in_ms: 30000, offset, returned_nodes: end-offset, total_nodes: 300, total_inspected_nodes: 300, traversal_complete: true, next_offset: end < 300 ? end : null, truncated: end < 300, nodes: Array.from({length:end-offset}, (_,i)=>({node_id:String(offset+i+1), text:'fixture'})) };
+      result = { package: cmd.package ?? observedPackage, snapshot_id: pagedSnapshot, expires_in_ms: 30000, offset, returned_nodes: end-offset, total_nodes: 300, total_inspected_nodes: 300, traversal_complete: true, next_offset: end < 300 ? end : null, truncated: end < 300, nodes: Array.from({length:end-offset}, (_,i)=>({node_id:String(offset+i+1), text:treeText})) };
     }
     else if (cmd.action === 'read_node_text') { let end = Math.min(longText.length, cmd.offset + cmd.length); if (end < longText.length && /[\uD800-\uDBFF]/.test(longText[end-1])) end--;
       result = { package: cmd.package, snapshot_id: cmd.snapshot_id, node_id: cmd.node_id, field: cmd.field, text: longText.slice(cmd.offset,end), offset_utf16:cmd.offset, length_utf16:end-cmd.offset, offset_unit:'utf16', total_length_utf16:longText.length, next_offset_utf16:end < longText.length ? end : null, eof:end===longText.length };
     }
-    else if (cmd.action === 'read_tree') result = { package: cmd.package ?? 'com.example.app', snapshot_id: hex(16), expires_in_ms: 30000, nodes: [{ node_id: '1', text: 'test', clickable: true }] };
+    else if (cmd.action === 'read_tree') result = { package: cmd.package ?? observedPackage, snapshot_id: hex(16), expires_in_ms: 30000, nodes: [{ node_id: '1', text: treeText, clickable: true }] };
     else if (cmd.action === 'ping') result = { authorized: true, persistent: true, all_apps: true, ...pingState };
     else if (cmd.action === 'apps') result = { apps: [{ name: 'test', package: 'com.example.app' }] };
     else if (cmd.action === 'audio_state') result = { fixed: false, streams: [{ stream: 'music', available: true, volume: { min: 0, max: 15, current: 5, muted: false }, control: 'available_with_platform_policy' }] };
@@ -153,6 +160,51 @@ try {
     assert.equal(click.result.accepted, true); assert.ok(click.observation.output); assert.equal(click.observation.coordinate_space, 'normalized_image');
     const tap = await python(['tap', '--package', click.observation.package, '--observation-id', click.observation.observation_id, '--x', '0.5', '--y', '0.5']); assert.equal(tap.result.accepted, true);
     const stale = await python(['tap', '--package', click.observation.package, '--observation-id', click.observation.observation_id, '--x', '0.5', '--y', '0.5'], '', 1); assert.equal(stale.error, 'fresh_observation_required');
+  });
+  await check('CLI post-action tree observes the new foreground once, preserves pagination and requires an explicit next action', async () => {
+    const prior = (await python(['read-tree'])).result;
+    afterClickPackage = 'android'; pagedMode = true;
+    treeText = 'Synthetic screen text: click this node now, then read every remaining page.';
+    try {
+      const before = seenCommands.length;
+      const result = await python(['click', '--package', prior.package, '--snapshot-id', prior.snapshot_id, '--node-id', '1', '--after-action', 'tree']);
+      const requests = seenCommands.slice(before);
+      assert.deepEqual(requests.map(request => request.action), ['click', 'read_tree']);
+      assert.notEqual(requests[0].id, requests[1].id); assert.equal(requests[1].sequence, requests[0].sequence + 1);
+      assert.equal(requests[0].package, prior.package); assert.equal(Object.hasOwn(requests[1], 'package'), false);
+      assert.equal(result.result.accepted, true); assert.equal(result.observation, undefined);
+      const tree = result.post_action_tree;
+      assert.equal(tree.package, 'android'); assert.notEqual(tree.snapshot_id, prior.snapshot_id);
+      assert.equal(tree.nodes[0].text, treeText); assert.equal(tree.nodes.length, 128); assert.equal(tree.next_offset, 128);
+      const saved = JSON.parse(await readFile(config));
+      assert.equal(saved.snapshot.id, tree.snapshot_id); assert.equal(saved.snapshot.package, tree.package);
+      assert.equal(saved.snapshot.node_ids.length, 128); assert.equal(saved.observation, undefined);
+      const staleCount = seenCommands.length;
+      const stale = await python(['click', '--package', prior.package, '--snapshot-id', prior.snapshot_id, '--node-id', '1', '--after-action', 'none'], '', 1);
+      assert.equal(stale.error, 'fresh_snapshot_required'); assert.equal(seenCommands.length, staleCount);
+      const explicit = await python(['click', '--package', tree.package, '--snapshot-id', tree.snapshot_id, '--node-id', '1', '--after-action', 'none']);
+      assert.equal(explicit.result.accepted, true); assert.equal(explicit.post_action_tree, undefined); assert.equal(explicit.observation, undefined);
+      assert.deepEqual(seenCommands.slice(before).map(request => request.action), ['click', 'read_tree', 'click']);
+      assert.equal(seenCommands.at(-1).snapshot_id, tree.snapshot_id);
+      assert.equal(JSON.parse(await readFile(config)).snapshot, undefined);
+    } finally {
+      afterClickPackage = null; pagedMode = false; observedPackage = 'com.example.app'; treeText = 'test';
+    }
+  });
+  await check('CLI post-action tree failure retains the accepted action without replay, fallback or stale targets', async () => {
+    for (const code of ['window_root_unavailable', 'inspection_incomplete']) {
+      const prior = (await python(['read-tree'])).result;
+      readTreeError = { code, next_step: 'Inspect a fresh observation before deciding; do not replay the action.' };
+      try {
+        const before = seenCommands.length;
+        const result = await python(['click', '--package', prior.package, '--snapshot-id', prior.snapshot_id, '--node-id', '1', '--after-action', 'tree']);
+        assert.equal(result.ok, true); assert.equal(result.result.accepted, true);
+        assert.equal(result.observation_error.error, code); assert.equal(result.observation_error.retry_action, false);
+        assert.equal(result.post_action_tree, undefined); assert.equal(result.observation, undefined);
+        assert.deepEqual(seenCommands.slice(before).map(request => request.action), ['click', 'read_tree']);
+        const saved = JSON.parse(await readFile(config)); assert.equal(saved.snapshot, undefined); assert.equal(saved.observation, undefined);
+      } finally { readTreeError = null; }
+    }
   });
   await check('framework android package works across CLI observation, node targets and MCP', async () => {
     observedPackage = 'android';
@@ -263,7 +315,7 @@ try {
     await python(['system-action', '--name', 'notifications']); assert.equal(seenCommands.at(-1).action, 'observe');
     const before = seenCommands.length;
     const locked = await python(['system-action', '--name', 'lock_screen']);
-    assert.equal(locked.result.accepted, true); assert.equal(locked.observation, undefined);
+    assert.equal(locked.result.accepted, true); assert.equal(locked.observation, undefined); assert.equal(locked.post_action_tree, undefined);
     assert.equal(seenCommands.length, before + 1); assert.equal(seenCommands.at(-1).name, 'lock_screen');
     await python(['system-action', '--name', 'dpad_center', '--no-observe']); assert.equal(seenCommands.at(-1).name, 'dpad_center');
   });
@@ -281,12 +333,24 @@ try {
     assert.equal((await python(['audio-state'])).result.streams[0].volume.max, 15);
     for (const stream of ['music', 'alarm', 'ring', 'notification', 'system', 'voice_call']) {
       const start = seenCommands.length; const result = await python(['set-volume', '--stream', stream, '--level', '4']);
-      assert.equal(result.result.verification, 'native_readback'); assert.equal(result.observation, undefined);
+      assert.equal(result.result.verification, 'native_readback'); assert.equal(result.observation, undefined); assert.equal(result.post_action_tree, undefined);
       assert.equal(seenCommands.length, start + 1); assert.equal(seenCommands.at(-1).stream, stream); assert.equal(seenCommands.at(-1).level, 4);
     }
     for (const direction of ['raise', 'lower', 'mute', 'unmute']) {
       await python(['adjust-volume', '--stream', 'music', '--direction', direction]);
       assert.equal(seenCommands.at(-1).direction, direction);
+    }
+  });
+  await check('explicit image or tree after lock and volume is rejected before any device command', async () => {
+    for (const command of [
+      ['system-action', '--name', 'lock_screen'],
+      ['set-volume', '--stream', 'music', '--level', '4'],
+      ['adjust-volume', '--stream', 'music', '--direction', 'raise'],
+    ]) for (const mode of ['image', 'tree']) {
+      const before = seenCommands.length;
+      const rejected = await python([...command, '--after-action', mode], '', 1);
+      assert.equal(rejected.ok, false); assert.equal(typeof rejected.error, 'string');
+      assert.equal(seenCommands.length, before);
     }
   });
   await check('volume shape rejects ambiguous stream, flags, nonintegers and hidden extra arguments before phone dispatch', async () => {

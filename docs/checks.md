@@ -43,6 +43,10 @@ python3 tools/check.py --suite android
 
 ## 当前覆盖
 
+CLI.10 的本地检查范围与未验证项见[动作后观察检查记录](results/cli10-post-action-20261102.json)。
+
+- CLI.10 的动作后观察选择：默认截图，显式 `--after-action tree` 在动作接受后返回当前前台的新树，`none` 与旧 `--no-observe` 保留单动作路径。检查新旧快照、实际换包、TTL、分页、租约续期/失效、参数冲突和锁屏/音量例外；后观察或本地保存失败保留已接受的动作结果，不重放。Python 检查使用实际参数解析、配置持久化和命令分派，替换传输与时间；本地 workerd 集成检查实际 CLI 和合成手机的请求数及顺序。它们不代表真机性能或个人 AI 验收，树模式仍需独立的动作与观察两次设备请求。
+
 - 分页树与长文本的稳定快照、UTF-16 边界和敏感字段遮蔽，以及 range、动作标签/集合、collection 等已导出元数据变化导致旧页失效的 Java helper 检查。
 - 输入编辑、触摸计划/执行、语义控件、窗口、音量、文件状态机、授权恢复/调度、反馈 UI、邀请反馈和连接关闭处理的 Java helper 检查；文件检查包含旧 SAF 暂存回收、配对/epoch 变化及接收方读取与其他文件操作竞争的反例。
 - 连接生命周期夹具执行生产 `connect`、握手期限、退避、网络替换及停止方法：握手一直不返回时，30 秒后取消该连接并按原退避重试；成功、停止、撤销和网络切换会清理期限，迟到回调不能影响新连接。夹具使用虚拟时钟和传输替身，不证明真实 DNS/TLS 或手机后台恢复表现。
@@ -63,7 +67,7 @@ python3 tools/check.py --suite android
 - [文件分享与回收主机检查](results/file-sharing-cleanup-host-20261027.json)、[真实协议检查](results/file-sharing-cleanup-protocol-20261027.json)和[独立接收 App 模拟器检查](results/file-sharing-cleanup-emulator-20261027.json)。接收夹具源码及人工复核步骤见[shares 测试说明](../apps/android/tests/shares/README.md)；core 中的合成手机不代替 Android ContentProvider、正常分享界面或本地回收操作。
 - [code36 正常首用](results/beta7-code36-clean-install-20261027.json)另外验证正常安装器、权限、核码和公共 CLI 的 Clock → Files → Clock 任务；它是维护者模拟器验收，包含人工网络恢复，且 APK 预先由 ADB 放入下载目录。code37 分页补丁、code38 新改动、实体手机与新版 Muse 任务不能沿用该记录宣称全部通过。
 
-本版为 beta.9/code39 与 CLI.8，[构建与制品校验](results/beta9-code39-build-20261029.json)及[模拟器恢复、停止与撤销](results/beta9-code39-recovery-20261029.json)分别记录范围。该模拟器驱动已显式使用上述非抑制标志；[Muse 真机任务](results/beta9-code39-muse-20261029.json)另行记录第二轮完成与自行恢复、首轮失败及维护者临时充电常亮等条件，不能互相代替。证书专项证据见 [CLI 与事件复核](results/tls-incident-20261027.json)、[Android 主机及模拟器检查](results/android-tls-20261027.json)；code38 的[模拟器升级与恢复](results/beta8-code38-recovery-20261027.json)和 [Muse WPS → 便签短回归](results/beta8-code38-muse-20261027.json)分别记录实际范围，不能由源码、主机或专项探测代替。code37 的 [Muse 补验](results/beta7-code37-muse-followup-20261027.json)确认 WPS 小文本显示、小红书搜索与部分详情、抖音结果列表及便签保存重开，抖音详情仍未完成；结果保持绑定 code37。
+以下为 beta.9/code39 与 CLI.8 的历史验收记录：[构建与制品校验](results/beta9-code39-build-20261029.json)及[模拟器恢复、停止与撤销](results/beta9-code39-recovery-20261029.json)分别记录范围。该模拟器驱动已显式使用上述非抑制标志；[Muse 真机任务](results/beta9-code39-muse-20261029.json)另行记录第二轮完成与自行恢复、首轮失败及维护者临时充电常亮等条件，不能互相代替。证书专项证据见 [CLI 与事件复核](results/tls-incident-20261027.json)、[Android 主机及模拟器检查](results/android-tls-20261027.json)；code38 的[模拟器升级与恢复](results/beta8-code38-recovery-20261027.json)和 [Muse WPS → 便签短回归](results/beta8-code38-muse-20261027.json)分别记录实际范围，不能由源码、主机或专项探测代替。code37 的 [Muse 补验](results/beta7-code37-muse-followup-20261027.json)确认 WPS 小文本显示、小红书搜索与部分详情、抖音结果列表及便签保存重开，抖音详情仍未完成；结果保持绑定 code37。
 
 [证书安全维护补充记录](results/security-maintenance-20261027.json)记录服务器 Tunnel 升级、故障报告维护工具的 TLS 修复和两个旧预览入口的兼容资产更新；旧 APK 与已下载 CLI 不会因此自动升级。
 

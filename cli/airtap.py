@@ -25,7 +25,7 @@ TOKEN = re.compile(r'^[0-9a-f]{64}$')
 TICKET = re.compile(r'^[0-9a-f]{32}$')
 MAX_RESPONSE = 512 * 1024
 MAX_COMMAND = 8192
-VERSION = '0.4.0-cli.9'
+VERSION = '0.4.0-cli.10'
 PACKAGE = re.compile(r'^[A-Za-z_][A-Za-z0-9_]*(?:\.[A-Za-z_][A-Za-z0-9_]*)+$')
 NODE = re.compile(r'^[1-9][0-9]{0,3}$')
 NODE_COMMANDS = {'click', 'long-click', 'set-text', 'scroll', 'node-action', 'focus', 'set-selection', 'select-all', 'copy', 'cut', 'paste', 'insert-text', 'delete-text', 'editor-action'}
@@ -1047,7 +1047,7 @@ def remember_snapshot(args, config, value, package, request_started, continuatio
     nodes = value.get('nodes')
     expiry = value.get('expires_in_ms')
     snapshot = value.get('snapshot_id')
-    if (value.get('package') != package or not isinstance(snapshot, str) or not TICKET.fullmatch(snapshot)
+    if (not valid_package(package) or value.get('package') != package or not isinstance(snapshot, str) or not TICKET.fullmatch(snapshot)
             or type(expiry) is not int or not 0 < expiry <= 30000 or not isinstance(nodes, list) or len(nodes) > 128):
         raise Failure('invalid_snapshot_response')
     ids = [node.get('node_id') if isinstance(node, dict) else None for node in nodes]
@@ -1387,7 +1387,10 @@ def main():
         if command == 'observe' or command in CONTROL_COMMANDS:
             child.add_argument('--output', type=pathlib.Path, help='New JPEG path for observation (private default if omitted)')
         if command in CONTROL_COMMANDS:
-            child.add_argument('--no-observe', action='store_true', help='Do not capture after action; caller must observe separately')
+            after = child.add_mutually_exclusive_group()
+            after.add_argument('--no-observe', action='store_true', help='Do not capture after action; caller must observe separately')
+            after.add_argument('--after-action', choices=('image', 'tree', 'none'),
+                               help='Post-action observation (default: image; volume and lock_screen: none)')
         if command in ('tap', 'long-press', 'swipe', 'drag'):
             child.add_argument('--observation-id', required=True)
             child.add_argument('--x', type=float, required=True); child.add_argument('--y', type=float, required=True)
@@ -1426,6 +1429,13 @@ def main():
     args = parser.parse_args()
     if not 1 <= args.timeout <= 60: raise Failure('invalid_timeout')
     if hasattr(args, 'wait_seconds') and not 1 <= args.wait_seconds <= 300: raise Failure('invalid_wait')
+    if args.command in CONTROL_COMMANDS:
+        no_followup = args.command in VOLUME_COMMANDS or (args.command == 'system-action' and args.name == 'lock_screen')
+        if no_followup and args.after_action in ('image', 'tree'):
+            raise Failure('post_action_observation_unavailable', retry_action=False)
+        after_action = 'none' if args.no_observe or no_followup else args.after_action or 'image'
+        if args.output is not None and after_action != 'image':
+            raise Failure('output_requires_image_observation', retry_action=False)
     lock_config(args.config)
     if args.command == 'pair-start':
         url = origin(args.url, args.allow_local_http)
@@ -1577,13 +1587,37 @@ def main():
         config.pop('snapshot', None); config.pop('observation', None); save_config(args.config, config)
     started = time.time(); result = command_request(args, config, body)
     if args.command in ('read-tree', 'read-tree-page'): remember_snapshot(args, config, result['result'], result['result'].get('package'), started, continuation=args.command == 'read-tree-page')
-    if args.command in CONTROL_COMMANDS and args.command not in VOLUME_COMMANDS and not args.no_observe and not (args.command == 'system-action' and args.name == 'lock_screen'):
-        time.sleep(0.35)
+    if args.command in CONTROL_COMMANDS and after_action != 'none':
         try:
-            result['observation'] = command_request(args, config, {'id': str(uuid.uuid4()), 'action': 'observe'})['result']
+            time.sleep(0.35)
+            observation_started = time.time()
+            followup = command_request(args, config, {'id': str(uuid.uuid4()),
+                                       'action': 'read_tree' if after_action == 'tree' else 'observe'})
+            if after_action == 'tree':
+                value = followup['result']
+                remember_snapshot(args, config, value, value.get('package'), observation_started)
+                result['post_action_tree'] = value
+            else:
+                result['observation'] = followup['result']
         except Failure as failure:
-            result['observation_error'] = failure.result
-            result['instruction'] = 'Action accepted, visual result unconfirmed. Observe before deciding the next action; do not replay.'
+            observation_error = {**failure.result, 'retry_action': False}
+        except (OSError, ValueError, TypeError, KeyError, KeyboardInterrupt):
+            observation_error = {'ok': False, 'error': 'post_action_observation_failed', 'retry_action': False}
+        else:
+            return result
+        # The action is already accepted. Invalid or unsaved follow-up data must
+        # not become a usable target, and cleanup failure must not hide acceptance.
+        clear_task_views(config)
+        try:
+            save_config(args.config, config)
+        except (Failure, OSError, ValueError, TypeError, KeyError, KeyboardInterrupt):
+            observation_error['cache_reset_confirmed'] = False
+        result['observation_error'] = observation_error
+        result['instruction'] = ('Action accepted, visual result unconfirmed. Observe before deciding the next action; do not replay.'
+                                 if after_action == 'image' else
+                                 'Action accepted, post-action tree unconfirmed. Observe or read-tree before deciding the next action; do not replay.')
+        if observation_error.get('cache_reset_confirmed') is False:
+            result['instruction'] += ' Local state could not be reliably saved; do not use saved targets. Resolve local storage before observing again.'
     return result
 
 if __name__ == '__main__':
