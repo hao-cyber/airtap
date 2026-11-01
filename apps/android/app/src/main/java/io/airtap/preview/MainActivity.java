@@ -21,6 +21,47 @@ import org.json.JSONArray;
 
 /** Pair once with an existing personal AI. No technical setup in the normal journey. */
 public final class MainActivity extends Activity {
+    @Override public void dump(String prefix, java.io.FileDescriptor fd, java.io.PrintWriter writer, String[] args) {
+        if (args == null || args.length != 1 || !"--airtap-diagnostics".equals(args[0])) {
+            super.dump(prefix, fd, writer, args);
+            return;
+        }
+        // Do not call the base dump here: it can include view text from the protected owner UI.
+        JSONObject result = RelayApi.json("diagnostics_version", 1, "mode", "unknown",
+                "migration_pending", JSONObject.NULL, "active_grant_present", JSONObject.NULL,
+                "grant_count", JSONObject.NULL, "lease_ready_grant_count", JSONObject.NULL,
+                "owner_stopped", JSONObject.NULL, "device_base_sha256", JSONObject.NULL,
+                "storage_status", "unavailable");
+        EnrollmentStore.Config saved = null;
+        try {
+            saved = new EnrollmentStore(this).readForDiagnostics();
+            if (saved != null && saved.publicService() && saved.enrolled()) {
+                byte[] digest = java.security.MessageDigest.getInstance("SHA-256").digest(
+                        RelayAddress.canonical(saved.url).getBytes(java.nio.charset.StandardCharsets.UTF_8));
+                StringBuilder hash = new StringBuilder(64);
+                for (byte value : digest) hash.append(String.format(java.util.Locale.ROOT, "%02x", value & 255));
+                result.put("device_base_sha256", hash.toString());
+                JSONObject trust = new TrustedGrant(this).diagnostics(saved);
+                for (String key : new String[]{"mode", "migration_pending", "active_grant_present", "grant_count", "lease_ready_grant_count", "owner_stopped"}) result.put(key, trust.get(key));
+                result.put("storage_status", "readable");
+            } else result.put("storage_status", "no_public_enrollment");
+        } catch (Exception unavailable) { /* Fixed status only: no paths, tokens or exception text. */ }
+        try {
+            boolean same = saved != null && config != null && saved.url.equals(config.url) && saved.token.equals(config.token);
+            result.put("activity", RelayApi.json("visible", visible, "busy", busy, "storage_error", storageError, "identity_matches", same));
+            result.put("owner", multiOwner.diagnostics(saved));
+        } catch (Exception unavailable) {
+            try { result.put("owner", RelayApi.json("status", "unavailable")); } catch (Exception ignored) { /* No exception text. */ }
+        }
+        try {
+            PreviewService service = PreviewService.instance;
+            result.put("service", service == null ? RelayApi.json("service_present", false) : service.diagnostics(saved));
+        } catch (Exception unavailable) {
+            try { result.put("service", RelayApi.json("status", "unavailable")); } catch (Exception ignored) { /* Fixed metadata only. */ }
+        }
+        writer.println(prefix + "AIRTAP_DIAGNOSTICS " + result.toString());
+    }
+
     private final Handler main = new Handler(Looper.getMainLooper());
     private final ConnectionFeedback connectionFeedback = new ConnectionFeedback();
     private EnrollmentStore.Config config;

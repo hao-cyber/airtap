@@ -69,7 +69,26 @@ final class EnrollmentStore {
     JSONObject readRecord() throws Exception {
         if (!file.getBaseFile().exists()) return null;
         if (file.getBaseFile().length() > recordLimit()) throw new IllegalStateException();
-        byte[] data = file.readFully();
+        return decryptRecord(file.readFully());
+    }
+
+    Config readForDiagnostics() throws Exception {
+        JSONObject record = readRecordForDiagnostics();
+        return record == null ? null : decode(record);
+    }
+
+    /** Inspect only committed bytes; AtomicFile.openRead may recover/delete sibling files. */
+    JSONObject readRecordForDiagnostics() throws Exception {
+        java.io.File base = file.getBaseFile();
+        if (new java.io.File(base + ".bak").exists() || new java.io.File(base + ".new").exists()) throw new IllegalStateException();
+        if (!base.exists()) return null;
+        if (base.length() > recordLimit()) throw new IllegalStateException();
+        try (java.io.FileInputStream input = new java.io.FileInputStream(base)) {
+            return decryptRecord(input.readNBytes(recordLimit() + 1));
+        }
+    }
+
+    private JSONObject decryptRecord(byte[] data) throws Exception {
         if (data.length < 29 || data.length > recordLimit() || data[0] != 1) throw new IllegalStateException();
         Cipher cipher = Cipher.getInstance("AES/GCM/NoPadding");
         byte[] iv = java.util.Arrays.copyOfRange(data, 1, 13);

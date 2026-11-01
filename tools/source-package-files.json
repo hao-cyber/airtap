@@ -1,7 +1,7 @@
 {
   "allowlist_path": "tools/source-package-files.json",
-  "android_version": "0.4.0-beta.15",
-  "archive_root": "airtap-source-0.4.0-beta.15-code45",
+  "android_version": "0.4.0-beta.16",
+  "archive_root": "airtap-source-0.4.0-beta.16-code46",
   "cli_version": "0.4.0-cli.9",
   "closure_policy": "airtap-source-closure-v1",
   "files": [
@@ -422,6 +422,10 @@
     {
       "kind": "source",
       "path": "apps/android/scripts/test_invitation_feedback.py"
+    },
+    {
+      "kind": "source",
+      "path": "apps/android/scripts/test_maintenance_diagnostics.py"
     },
     {
       "kind": "source",
@@ -1301,6 +1305,6 @@
   "protocol_version": 4,
   "schema": "airtap-source-allowlist-v1",
   "scope": "Reviewed current Android, CLI, relay, site, build, CI and test source closure. No Git history, credentials, private deployment state, APK, or raw phone evidence. Historical acceptance retains its original version and scope; a source ZIP is not public release approval.",
-  "version": "0.4.0-beta.15-code45",
-  "version_code": 45
+  "version": "0.4.0-beta.16-code46",
+  "version_code": 46
 }

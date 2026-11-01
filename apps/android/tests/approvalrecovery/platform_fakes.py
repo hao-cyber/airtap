@@ -29,7 +29,7 @@ public final class FakeDisk {
 'io/airtap/preview/EnrollmentStore.java': '''package io.airtap.preview;import android.content.Context;import org.json.JSONObject;
 final class EnrollmentStore {EnrollmentStore(Context c){}EnrollmentStore(Context c,String purpose){if(!"trusted-ai".equals(purpose))throw new AssertionError("real encrypted purpose required");}
  static final class Config {final String url,token;final boolean registered;Config(String u,String t){url=u;token=t;registered=true;}boolean publicService(){return true;}boolean enrolled(){return registered;}}
- Config read(){return FakeDisk.config;}JSONObject readRecord(){if(FakeDisk.failReadRecord)throw new IllegalStateException("read failed");return FakeDisk.record==null?null:FakeDisk.record.copy();}
+ Config read(){return FakeDisk.config;}Config readForDiagnostics(){return read();}JSONObject readRecordForDiagnostics(){return readRecord();}JSONObject readRecord(){if(FakeDisk.failReadRecord)throw new IllegalStateException("read failed");return FakeDisk.record==null?null:FakeDisk.record.copy();}
  void saveRecord(JSONObject value){FakeDisk.saves++;if(FakeDisk.saves==FakeDisk.crashBeforeSaveAt)throw new FakeDisk.Crash();if(FakeDisk.saves==FakeDisk.failSaveAt)throw new IllegalStateException("disk failed");FakeDisk.record=value.copy();if(FakeDisk.saves==FakeDisk.crashAfterSaveAt)throw new FakeDisk.Crash();}
  void forget(){if(FakeDisk.failForget)throw new IllegalStateException("delete failed");FakeDisk.record=null;}
  static String token(){return java.util.UUID.randomUUID().toString().replace("-","")+java.util.UUID.randomUUID().toString().replace("-","");}}

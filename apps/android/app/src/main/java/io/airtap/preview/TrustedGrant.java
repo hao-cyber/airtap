@@ -114,6 +114,33 @@ final class TrustedGrant {
         catch (RuntimeException unavailable) { /* A later schema-2 read retries after process restart. */ }
     }
     boolean multi(EnrollmentStore.Config config) throws Exception { synchronized (LOCK) { return schema2(record(config)); } }
+    /** Maintenance metadata only. Never repairs markers, changes consent or returns record contents. */
+    JSONObject diagnostics(EnrollmentStore.Config config) throws Exception {
+        synchronized (LOCK) {
+            String key = identity(config);
+            JSONObject value = store.readRecordForDiagnostics();
+            boolean markedMulti = key.equals(state.getString("multi_identity", ""));
+            if (value != null && !key.equals(value.optString("identity"))) throw new IllegalStateException();
+            boolean multi = schema2(value), stopped = state.getBoolean("stopped", true);
+            if (markedMulti && !multi) throw new IllegalStateException();
+            int count = 0, leaseReady = 0;
+            boolean migration = false;
+            if (multi) {
+                validateMulti(value);
+                if (!stopped && currentStop(value)) {
+                    JSONArray grants = value.getJSONArray("grants");
+                    count = grants.length();
+                    for (int i = 0; i < count; i++) if (ServiceProtocol.bool(grants.getJSONObject(i), "lease_ready")) leaseReady++;
+                }
+            } else if (value != null) {
+                validateGrant(value, value.has("phase"));
+                boolean active = !stopped && (!value.has("phase") || "approved".equals(value.optString("phase")) && currentIntent(value, value.optString("approval_id")));
+                if (active) { count = 1; migration = migrationOf(value) != null; }
+            }
+            return RelayApi.json("mode", multi ? "multi" : "single", "migration_pending", migration,
+                    "active_grant_present", count != 0, "grant_count", count, "lease_ready_grant_count", leaseReady, "owner_stopped", stopped);
+        }
+    }
     void enableMulti(EnrollmentStore.Config config) throws Exception {
         synchronized (LOCK) {
             JSONObject old = record(config);

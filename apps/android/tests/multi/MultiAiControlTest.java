@@ -64,10 +64,10 @@ public final class MultiAiControlTest{
     check(trust.grants(config).isEmpty()&&!OwnerRevocations.all&&owner.flushes==0&&owner.message.contains("未能保存服务端解除请求"));
   });
   test("migration preflight is read-only and confirmation preserves commands admitted while checking",()->{
-    OwnerIdentityHarness owner=singleOwner();int saves=FakeDisk.saves;owner.enable(config);check(owner.busy&&RelayApi.requests.size()==1);var request=RelayApi.requests.get(0);
+    OwnerIdentityHarness owner=singleOwner();int saves=FakeDisk.saves;owner.enable(config);check(owner.busy&&RelayApi.requests.size()==1&&owner.lastEnableStage.equals("checking_service"));var request=RelayApi.requests.get(0);
     check(request.url.equals(config.origin())&&request.path.equals("/v1/service")&&request.method.equals("GET")&&request.token==null&&request.body==null);unchanged(owner);check(FakeDisk.saves==saves);
-    owner.enable(config);check(RelayApi.requests.size()==1);request.respond(discovery(),200,null);unchanged(owner);check(!owner.busy&&FakeDisk.saves==saves);
-    trust.consume(config,8);var confirm=android.app.AlertDialog.positive;check(confirm!=null);confirm.click(null,0);
+    owner.enable(config);check(RelayApi.requests.size()==1&&owner.lastEnableStage.equals("guard_blocked"));request.respond(discovery(),200,null);unchanged(owner);check(!owner.busy&&FakeDisk.saves==saves&&owner.lastEnableStage.equals("awaiting_owner_confirmation"));
+    trust.consume(config,8);var confirm=android.app.AlertDialog.positive;check(confirm!=null);confirm.click(null,0);check(owner.lastEnableStage.equals("migration_requested"));
     check(!trust.multi(config)&&trust.migration(config)!=null&&trust.grant(config,A).getLong("sequence")==8&&owner.polls==0&&service.ownerModeChanges==0&&service.restores==1&&FakeDisk.config.token.equals(config.token));confirm.click(null,0);check(owner.polls==0&&service.ownerModeChanges==0&&service.restores==1);
   });
   test("old service network failure and malformed capabilities preserve original single state",()->{
@@ -76,7 +76,7 @@ public final class MultiAiControlTest{
     for(int status:new int[]{0,503}){OwnerIdentityHarness owner=singleOwner();int saves=FakeDisk.saves;owner.enable(config);RelayApi.requests.get(0).respond(null,status,"network");unchanged(owner);check(FakeDisk.saves==saves&&!owner.busy);}
   });
   test("canceling migration preflight invalidates a late supported-service reply",()->{
-    OwnerIdentityHarness owner=singleOwner();owner.enable(config);var request=RelayApi.requests.get(0);android.app.AlertDialog.negative.click(null,0);request.respond(discovery(),200,null);unchanged(owner);check(request.cancelled&&!owner.busy);
+    OwnerIdentityHarness owner=singleOwner();owner.enable(config);var request=RelayApi.requests.get(0);android.app.AlertDialog.negative.click(null,0);request.respond(discovery(),200,null);unchanged(owner);check(request.cancelled&&!owner.busy&&owner.lastEnableStage.equals("canceled"));
   });
   test("Back cancellation also invalidates migration preflight",()->{
     OwnerIdentityHarness owner=singleOwner();owner.enable(config);var request=RelayApi.requests.get(0);android.app.AlertDialog.cancelled.cancel(null);request.respond(discovery(),200,null);unchanged(owner);check(request.cancelled&&!owner.busy);

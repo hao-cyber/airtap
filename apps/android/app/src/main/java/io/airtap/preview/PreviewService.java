@@ -217,6 +217,14 @@ public final class PreviewService extends AccessibilityService {
     }
     boolean isAuthorized() { return authorized; }
     boolean isConnected() { return connected; }
+    /** Called by the Activity dump on the main thread; reads fields only, never restores work. */
+    JSONObject diagnostics(EnrollmentStore.Config expected) {
+        boolean same = expected != null && config != null && expected.url.equals(config.url) && expected.token.equals(config.token);
+        return RelayApi.json("service_present", true, "service_identity_matches", same,
+                "authorized", authorized, "connected", connected, "service_multi_mode", multiMode,
+                "multi_hello_acknowledged", multiHello, "restoring", restoring,
+                "notification_blocked", notificationBlocked);
+    }
     int sessionGeneration() { return generation; }
     String sessionFence() { return sessionFence; }
     long remainingMillis() { return authorized ? TimeUnit.DAYS.toMillis(1) : 0; }

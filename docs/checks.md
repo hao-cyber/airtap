@@ -33,6 +33,8 @@ python3 tools/check.py --suite android
 - 独立测试夹具确需 UiAutomation 时，必须显式使用 `getUiAutomation(UiAutomation.FLAG_DONT_SUPPRESS_ACCESSIBILITY_SERVICES)`，并记录驱动、标志以及点击、权限、网络或进程操作等干预。该标志不代表所有观察开销为零；正在进行的真实 AI 验收中不临时安装或改造测试驱动。
 - 已受观察工具干扰的片段保留失败、时间和人工续接记录，单独标明干扰，再录制新的干净片段。不能把旧片段称为无干扰最终演示，也不能仅据这一机制断言所有断线或卡住都由观察工具引起。
 
+维护候选 code46 增加显式只读诊断入口：`adb shell dumpsys activity io.airtap.preview/.MainActivity --airtap-diagnostics`。它只输出连接模式、迁移阶段、授权数量、服务状态和设备地址摘要，不输出原始地址、凭据、核码、AI 名称或界面内容，也不执行连接、恢复或授权操作。存储读取不确定时返回未知，不修复记录。该入口依赖已授权的 USB 调试和现有 Activity，仅用于维护；日常使用不需要。地址摘要仍可关联同一设备，诊断记录保持私有，对外分享须审核。状态字段和本地按钮阶段不替代个人 AI 的真实任务回执。
+
 ## 当前覆盖
 
 - 分页树与长文本的稳定快照、UTF-16 边界和敏感字段遮蔽，以及 range、动作标签/集合、collection 等已导出元数据变化导致旧页失效的 Java helper 检查。
