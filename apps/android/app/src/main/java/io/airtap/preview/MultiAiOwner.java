@@ -187,7 +187,19 @@ final class MultiAiOwner {
             });
         }catch(Exception unavailable){invitationRead=null;busy=false;call=null;change("暂时无法核实服务状态，原授权和邀请已保留，可稍后重试。");}
     }
-    private Button button(String text,Runnable action){Button b=new Button(owner){@Override public boolean onFilterTouchEventForSecurity(android.view.MotionEvent event){return (event.getFlags()&(android.view.MotionEvent.FLAG_WINDOW_IS_OBSCURED|android.view.MotionEvent.FLAG_WINDOW_IS_PARTIALLY_OBSCURED))==0&&super.onFilterTouchEventForSecurity(event);}};b.setText(text);b.setFilterTouchesWhenObscured(true);b.setEnabled(!busy);AppUi.button(b,AppUi.SECONDARY);b.setOnClickListener(v->action.run());return b;}
+    private Button button(String text,Runnable action){
+        Button b=new Button(owner){
+            @Override public boolean onFilterTouchEventForSecurity(android.view.MotionEvent event){
+                boolean accepted=(event.getFlags()&(android.view.MotionEvent.FLAG_WINDOW_IS_OBSCURED|android.view.MotionEvent.FLAG_WINDOW_IS_PARTIALLY_OBSCURED))==0&&super.onFilterTouchEventForSecurity(event);
+                if(!accepted&&event.getActionMasked()==android.view.MotionEvent.ACTION_DOWN
+                        &&(event.getFlags()&(android.view.MotionEvent.FLAG_WINDOW_IS_OBSCURED|android.view.MotionEvent.FLAG_WINDOW_IS_PARTIALLY_OBSCURED))!=0
+                        &&owner instanceof MainActivity)((MainActivity)owner).showObscuredTouchFeedback();
+                return accepted;
+            }
+        };
+        b.setText(text);b.setFilterTouchesWhenObscured(true);b.setEnabled(!busy);AppUi.button(b,AppUi.SECONDARY);
+        b.setOnClickListener(v->{if(owner instanceof MainActivity)((MainActivity)owner).clearObscuredTouchFeedback();action.run();});return b;
+    }
     private void text(LinearLayout box,String value,int size){box.addView(AppUi.text(owner,value,size));AppUi.space(box,12);}
     void render(LinearLayout box){
         text(box,"我的 AI 连接",28);text(box,"分别授权，同一时间由一位 AI 完成一个任务。手机账号与画面由这些 AI 共同使用。",16);

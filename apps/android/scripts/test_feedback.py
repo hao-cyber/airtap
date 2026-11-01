@@ -24,7 +24,7 @@ def method(name):
 methods = ['onResume','onPause','onDestroy','back','readIdentity','usable','same','unavailableIdentity','begin','current','cancel','loadPage','loadDetail','delete']
 fields = activity[activity.index('    private final FeedbackRequestGate'):activity.index('    @Override public void onCreate')]
 harness = '''package io.airtap.preview;
-import android.app.Activity; import android.widget.LinearLayout; import android.widget.ScrollView;
+import android.app.Activity; import android.widget.LinearLayout; import android.widget.ScrollView; import android.widget.TextView;
 import java.util.*; import okhttp3.Call; import org.json.*;
 public final class FeedbackHarness extends Activity {
 ''' + fields + '\n'.join(method(n) for n in methods) + '''
@@ -37,6 +37,7 @@ sources = {
  'android/app/Activity.java': '''package android.app;public class Activity {boolean destroyed,finishing;public void onResume(){}public void onPause(){}public void onDestroy(){destroyed=true;}public boolean isDestroyed(){return destroyed;}public boolean isFinishing(){return finishing;}public void finish(){finishing=true;}}''',
  'android/widget/LinearLayout.java': '''package android.widget;public class LinearLayout {public int cleared;public void removeAllViews(){cleared++;}}''',
  'android/widget/ScrollView.java': '''package android.widget;public class ScrollView {public void smoothScrollTo(int x,int y){}}''',
+ 'android/widget/TextView.java': '''package android.widget;public class TextView {}''',
  'okhttp3/Call.java': '''package okhttp3;public interface Call {void cancel();}''',
  'io/airtap/preview/EnrollmentStore.java': '''package io.airtap.preview;final class EnrollmentStore {static Config value;static boolean fail;EnrollmentStore(Object c){}Config read(){if(fail)throw new IllegalStateException();return value;}static final class Config {final String url,token;boolean registered=true;Config(String u,String t){url=u;token=t;}boolean enrolled(){return registered;}boolean publicService(){return true;}}}''',
  'io/airtap/preview/FeedbackApi.java': '''package io.airtap.preview;import java.util.*;import org.json.JSONObject;import okhttp3.Call;

@@ -21,9 +21,11 @@ public final class FeedbackActivity extends Activity {
     private EnrollmentStore.Config identity;
     private LinearLayout content;
     private ScrollView scroll;
+    private TextView touchMessageView;
     private Call call;
     private boolean visible, busy, identityChanged, deleteUncertain;
     private String cursor, selectedId, message = "";
+    private String touchMessage = "";
     private List<String> history = new ArrayList<>();
     private FeedbackReport.Page page;
     private FeedbackReport.Detail detail;
@@ -163,6 +165,9 @@ public final class FeedbackActivity extends Activity {
         content.removeAllViews();
         content.addView(text("你的 AI 整理并提交问题。报告私密保存，你可以查看回复或删除；默认保留 30 天。", 14));
         if (!message.isEmpty()) content.addView(text(message, 15));
+        touchMessageView = text(touchMessage, 15);
+        touchMessageView.setVisibility(touchMessage.isEmpty() ? View.GONE : View.VISIBLE);
+        content.addView(touchMessageView);
         if (identityChanged) return;
         if (selectedId == null) renderList(); else renderDetail();
     }
@@ -214,12 +219,33 @@ public final class FeedbackActivity extends Activity {
     private Button button(String name, int style, View.OnClickListener listener) {
         Button button = new Button(this) {
             @Override public boolean onFilterTouchEventForSecurity(android.view.MotionEvent event) {
-                return (event.getFlags() & (android.view.MotionEvent.FLAG_WINDOW_IS_OBSCURED | android.view.MotionEvent.FLAG_WINDOW_IS_PARTIALLY_OBSCURED)) == 0
+                boolean accepted = (event.getFlags() & (android.view.MotionEvent.FLAG_WINDOW_IS_OBSCURED | android.view.MotionEvent.FLAG_WINDOW_IS_PARTIALLY_OBSCURED)) == 0
                         && super.onFilterTouchEventForSecurity(event);
+                if (!accepted && event.getActionMasked() == android.view.MotionEvent.ACTION_DOWN
+                        && (event.getFlags() & (android.view.MotionEvent.FLAG_WINDOW_IS_OBSCURED | android.view.MotionEvent.FLAG_WINDOW_IS_PARTIALLY_OBSCURED)) != 0) showObscuredTouchFeedback();
+                return accepted;
             }
         };
-        button.setText(name); button.setFilterTouchesWhenObscured(true); button.setOnClickListener(listener); AppUi.button(button, style);
+        button.setText(name); button.setFilterTouchesWhenObscured(true);
+        button.setOnClickListener(v -> { clearObscuredTouchFeedback(); listener.onClick(v); });
+        AppUi.button(button, style);
         return button;
+    }
+    private void showObscuredTouchFeedback() {
+        touchMessage = "系统检测到其他窗口遮挡，本次点击未执行。请收起音量面板或悬浮窗后重试。";
+        if (touchMessageView != null) {
+            touchMessageView.setText(touchMessage);
+            touchMessageView.setVisibility(View.VISIBLE);
+            if (scroll != null) scroll.smoothScrollTo(0, 0);
+        }
+    }
+    private void clearObscuredTouchFeedback() {
+        if (touchMessage.isEmpty()) return;
+        touchMessage = "";
+        if (touchMessageView != null) {
+            touchMessageView.setText("");
+            touchMessageView.setVisibility(View.GONE);
+        }
     }
     private void action(LinearLayout parent, String label, int style, View.OnClickListener listener, boolean enabled) {
         Button button = button(label, style, listener); button.setEnabled(enabled); parent.addView(button);

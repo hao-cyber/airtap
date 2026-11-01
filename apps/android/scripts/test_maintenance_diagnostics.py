@@ -27,6 +27,14 @@ dump = method(JAVA / 'MainActivity.java', '    @Override public void dump(')
 service = method(JAVA / 'PreviewService.java', '    JSONObject diagnostics(')
 owner = method(JAVA / 'MultiAiOwner.java', '    JSONObject diagnostics(')
 button = method(JAVA / 'MainActivity.java', '    private Button button(')
+touch_feedback = method(JAVA / 'MainActivity.java', '    void showObscuredTouchFeedback(')
+touch_clear = method(JAVA / 'MainActivity.java', '    void clearObscuredTouchFeedback(')
+touch_render = method(JAVA / 'MainActivity.java', '    private void renderTouchFeedback(')
+owner_button = method(JAVA / 'MultiAiOwner.java', '    private Button button(')
+feedback_button = method(JAVA / 'FeedbackActivity.java', '    private Button button(')
+feedback_message = method(JAVA / 'FeedbackActivity.java', '    private void showObscuredTouchFeedback(')
+feedback_clear = method(JAVA / 'FeedbackActivity.java', '    private void clearObscuredTouchFeedback(')
+feedback_render = method(JAVA / 'FeedbackActivity.java', '    private void render(')
 fixtures['android/app/Activity.java'] = '''package android.app;
 public class Activity extends android.content.Context {public int defaultDumps;
  public void dump(String prefix,java.io.FileDescriptor fd,java.io.PrintWriter writer,String[] args){defaultDumps++;writer.println("DEFAULT_SYSTEM_DUMP");}}
@@ -35,21 +43,36 @@ fixtures['io/airtap/preview/MainActivity.java'] = '''package io.airtap.preview;
 import org.json.JSONObject;import android.view.View;import android.widget.Button;public final class MainActivity extends android.app.Activity {
  EnrollmentStore.Config config;boolean visible,busy,storageError;final MultiAiOwner multiOwner=new MultiAiOwner();
  long buttonTouchEvents,buttonTouchRejected;int buttonTouchLastFlags;
- Button testButton(){return button("synthetic-private-control-name",v->{});}
-''' + dump + '\n' + button + '\n}'
-fixtures['android/view/View.java'] = 'package android.view;public class View {public interface OnClickListener {void onClick(View view);}}'
-fixtures['android/view/MotionEvent.java'] = 'package android.view;public final class MotionEvent {public static final int FLAG_WINDOW_IS_OBSCURED=1,FLAG_WINDOW_IS_PARTIALLY_OBSCURED=2;private final int flags;public MotionEvent(int flags){this.flags=flags;}public int getFlags(){return flags;}}'
+ String message="",touchMessage="";android.widget.TextView feedback=new android.widget.TextView();int actions;
+ Button testButton(){return button("synthetic-private-control-name",v->{if(!touchMessage.isEmpty())throw new AssertionError("warning must clear before action");actions++;});}
+''' + dump + '\n' + button + '\n' + touch_feedback + '\n' + touch_clear + '\n' + touch_render + '\n}'
+fixtures['android/view/View.java'] = 'package android.view;public class View {public static final int VISIBLE=0,GONE=8;public int visibility;public void setVisibility(int value){visibility=value;}public interface OnClickListener {void onClick(View view);}}'
+fixtures['android/view/MotionEvent.java'] = 'package android.view;public final class MotionEvent {public static final int FLAG_WINDOW_IS_OBSCURED=1,FLAG_WINDOW_IS_PARTIALLY_OBSCURED=2,ACTION_DOWN=0,ACTION_UP=1,ACTION_MOVE=2,ACTION_CANCEL=3;private final int flags,action;public MotionEvent(int flags){this(flags,ACTION_DOWN);}public MotionEvent(int flags,int action){this.flags=flags;this.action=action;}public int getFlags(){return flags;}public int getActionMasked(){return action;}}'
 fixtures['android/widget/Button.java'] = '''package android.widget;public class Button extends android.view.View {
  public boolean parentAllows=true,filterWhenObscured;public int parentChecks;public Button(android.content.Context c){}
  public boolean onFilterTouchEventForSecurity(android.view.MotionEvent event){parentChecks++;return parentAllows;}
- public void setText(String text){}public void setFilterTouchesWhenObscured(boolean value){filterWhenObscured=value;}public void setOnClickListener(OnClickListener listener){}
+ private OnClickListener click;public void setText(String text){}public void setFilterTouchesWhenObscured(boolean value){filterWhenObscured=value;}public void setOnClickListener(OnClickListener listener){click=listener;}public void setEnabled(boolean enabled){}
+ public boolean performClick(){if(click==null)return false;click.onClick(this);return true;}
 }'''
+fixtures['android/widget/TextView.java'] = 'package android.widget;public class TextView extends android.view.View {public String text="";public int updates;public void setText(String value){text=value;updates++;}}'
+fixtures['android/widget/LinearLayout.java'] = 'package android.widget;public class LinearLayout {public void removeAllViews(){}public void addView(android.view.View view){}}'
+fixtures['android/widget/ScrollView.java'] = 'package android.widget;public class ScrollView {public int scrolls;public void smoothScrollTo(int x,int y){if(x!=0||y!=0)throw new AssertionError();scrolls++;}}'
 fixtures['io/airtap/preview/AppUi.java'] = 'package io.airtap.preview;final class AppUi {static final int SECONDARY=1;static void button(android.widget.Button button,int style){}}'
 fixtures['android/app/AlertDialog.java'] = 'package android.app;public final class AlertDialog {public boolean showing;public boolean isShowing(){return showing;}}'
 fixtures['io/airtap/preview/MultiAiOwner.java'] = '''package io.airtap.preview;
-import org.json.JSONObject;final class MultiAiOwner {EnrollmentStore.Config identity;boolean visible,busy;
+import org.json.JSONObject;import android.widget.Button;final class MultiAiOwner {EnrollmentStore.Config identity;boolean visible,busy;
+ android.app.Activity owner=new android.app.Activity();int actions;Button testButton(){return button("synthetic-private-control-name",()->{if(owner instanceof MainActivity&&!((MainActivity)owner).touchMessage.isEmpty())throw new AssertionError("warning must clear before action");actions++;});}
  android.app.AlertDialog enableCheck;String lastEnableStage="not_requested";
-''' + owner + '\n}'
+''' + owner + '\n' + owner_button + '\n}'
+fixtures['io/airtap/preview/FeedbackActivity.java'] = '''package io.airtap.preview;
+import android.view.View;import android.widget.Button;import android.widget.TextView;final class FeedbackActivity extends android.app.Activity {
+ boolean visible=true,identityChanged;String selectedId,message="",touchMessage="";TextView touchMessageView;int actions,listRenders,detailRenders;
+ android.widget.LinearLayout content=new android.widget.LinearLayout();
+ android.widget.ScrollView scroll=new android.widget.ScrollView();
+ TextView text(String value,int size){TextView result=new TextView();result.setText(value);return result;}
+ void renderList(){listRenders++;}void renderDetail(){detailRenders++;}void prepare(){render();}
+ Button testButton(){return button("synthetic-private-control-name",1,v->{if(!touchMessage.isEmpty())throw new AssertionError("warning must clear before action");actions++;});}
+''' + feedback_button + '\n' + feedback_message + '\n' + feedback_clear + '\n' + feedback_render + '\n}'
 fixtures['io/airtap/preview/PreviewService.java'] = '''package io.airtap.preview;
 import org.json.JSONObject;final class PreviewService {static PreviewService instance;
  EnrollmentStore.Config config;boolean authorized,connected,multiMode,multiHello,restoring,notificationBlocked;
@@ -156,6 +179,70 @@ public final class MaintenanceDiagnosticsTest {
    check(!b.onFilterTouchEventForSecurity(new android.view.MotionEvent(1))&&b.parentChecks==0);
    check(activity.buttonTouchEvents==Long.MAX_VALUE&&activity.buttonTouchRejected==Long.MAX_VALUE);dump();
   });
+  test("main blocked down gives fixed inline feedback without replay or disclosure",()->{
+   var b=activity.testButton();activity.message="synthetic-private-error";
+   check(!b.onFilterTouchEventForSecurity(new android.view.MotionEvent(2)));
+   check(activity.touchMessage.equals("系统检测到其他窗口遮挡，本次点击未执行。请收起音量面板或悬浮窗后重试。"));
+   check(activity.message.equals("synthetic-private-error")&&activity.feedback.text.equals(activity.message+"\n"+activity.touchMessage));
+   check(activity.feedback.updates==1&&activity.actions==0&&b.parentChecks==0);
+   for(int action:new int[]{1,2})check(!b.onFilterTouchEventForSecurity(new android.view.MotionEvent(2,action)));
+   check(activity.feedback.updates==1);b.parentAllows=false;
+   check(!b.onFilterTouchEventForSecurity(new android.view.MotionEvent(0))&&activity.feedback.updates==1);
+   b.parentAllows=true;check(b.onFilterTouchEventForSecurity(new android.view.MotionEvent(0))&&activity.feedback.updates==1);
+   check(!activity.touchMessage.isEmpty()&&activity.message.equals("synthetic-private-error"));
+   check(activity.actions==0);dump();
+  });
+  test("multi blocked down uses existing owner footer and preserves guard short circuit",()->{
+   var owner=activity.multiOwner;owner.owner=activity;var b=owner.testButton();check(b.filterWhenObscured);
+   for(int flags:new int[]{1,2,3})check(!b.onFilterTouchEventForSecurity(new android.view.MotionEvent(flags)));
+   check(activity.feedback.updates==3&&b.parentChecks==0&&owner.actions==0);
+   for(int action:new int[]{1,2})check(!b.onFilterTouchEventForSecurity(new android.view.MotionEvent(2,action)));
+   b.parentAllows=false;check(!b.onFilterTouchEventForSecurity(new android.view.MotionEvent(0))&&b.parentChecks==1);
+   b.parentAllows=true;check(b.onFilterTouchEventForSecurity(new android.view.MotionEvent(32))&&b.parentChecks==2);
+   check(activity.feedback.updates==3&&!activity.touchMessage.isEmpty()&&owner.actions==0);
+   owner.owner=new android.app.Activity();check(!owner.testButton().onFilterTouchEventForSecurity(new android.view.MotionEvent(2)));
+   check(activity.feedback.updates==3);dump();
+  });
+  test("report blocked down reveals inline notice without re-render or request action",()->{
+   var f=new FeedbackActivity();f.message="synthetic-private-error";f.prepare();check(f.touchMessageView.visibility==android.view.View.GONE);
+   int renders=f.listRenders,updates=f.touchMessageView.updates;var b=f.testButton();check(b.filterWhenObscured);
+   for(int flags:new int[]{1,2,3})check(!b.onFilterTouchEventForSecurity(new android.view.MotionEvent(flags)));
+   check(f.touchMessageView.visibility==android.view.View.VISIBLE&&f.touchMessageView.text.equals("系统检测到其他窗口遮挡，本次点击未执行。请收起音量面板或悬浮窗后重试。"));
+   check(f.touchMessageView.updates==updates+3&&f.listRenders==renders&&f.actions==0&&b.parentChecks==0&&f.scroll.scrolls==3&&f.message.equals("synthetic-private-error"));
+   for(int action:new int[]{1,2})check(!b.onFilterTouchEventForSecurity(new android.view.MotionEvent(2,action)));
+   b.parentAllows=false;check(!b.onFilterTouchEventForSecurity(new android.view.MotionEvent(0))&&b.parentChecks==1);
+   b.parentAllows=true;check(b.onFilterTouchEventForSecurity(new android.view.MotionEvent(32))&&b.parentChecks==2);
+   check(f.touchMessageView.updates==updates+3&&f.touchMessageView.visibility==android.view.View.VISIBLE&&!f.touchMessage.isEmpty());
+   check(f.message.equals("synthetic-private-error")&&f.listRenders==renders&&f.actions==0&&f.scroll.scrolls==3);dump();
+  });
+  test("only the registered click clears touch feedback then calls the original action once",()->{
+   var owner=activity.multiOwner;owner.owner=activity;var f=new FeedbackActivity();f.prepare();
+   activity.message="connection still pending";f.message="delete result unknown";
+   var buttons=new android.widget.Button[]{activity.testButton(),owner.testButton(),f.testButton()};
+   for(var b:buttons){
+    check(!b.onFilterTouchEventForSecurity(new android.view.MotionEvent(2)));
+    check(activity.actions==0&&owner.actions==0&&f.actions==0);
+   }
+   int mainUpdates=activity.feedback.updates,reportUpdates=f.touchMessageView.updates;
+   for(var b:buttons){
+    check(b.onFilterTouchEventForSecurity(new android.view.MotionEvent(0)));
+    check(b.onFilterTouchEventForSecurity(new android.view.MotionEvent(0,android.view.MotionEvent.ACTION_MOVE)));
+    check(b.onFilterTouchEventForSecurity(new android.view.MotionEvent(0,android.view.MotionEvent.ACTION_UP)));
+    check(b.onFilterTouchEventForSecurity(new android.view.MotionEvent(0,android.view.MotionEvent.ACTION_CANCEL)));
+   }
+   check(activity.feedback.updates==mainUpdates&&f.touchMessageView.updates==reportUpdates);
+   check(!activity.touchMessage.isEmpty()&&!f.touchMessage.isEmpty()&&activity.actions==0&&owner.actions==0&&f.actions==0);
+   for(var b:buttons){
+    check(!b.onFilterTouchEventForSecurity(new android.view.MotionEvent(2)));
+    check(b.onFilterTouchEventForSecurity(new android.view.MotionEvent(0)));
+    check(b.onFilterTouchEventForSecurity(new android.view.MotionEvent(0,android.view.MotionEvent.ACTION_UP)));
+    check(b.performClick());
+   }
+   check(activity.actions==1&&owner.actions==1&&f.actions==1);
+   check(activity.touchMessage.isEmpty()&&f.touchMessage.isEmpty()&&f.touchMessageView.visibility==android.view.View.GONE);
+   check(activity.feedback.text.equals("connection still pending")&&activity.message.equals("connection still pending")&&f.message.equals("delete result unknown"));
+   check(FakeDisk.saves==0&&FakeDisk.preferences.calls==0&&RelayApi.requests.isEmpty());dump();
+  });
   System.out.println("TOTAL "+passed);
  }
 }
@@ -199,7 +286,7 @@ if args.output:
     args.output.write_text(json.dumps({
         'status': 'passed', 'passed': len(checks), 'checks': checks,
         'recorded_at': datetime.datetime.now(datetime.timezone.utc).isoformat(),
-        'source_sha256': {str(path.relative_to(ROOT)): hashlib.sha256(path.read_bytes()).hexdigest() for path in [*sources, JAVA/'MainActivity.java', JAVA/'PreviewService.java', JAVA/'MultiAiOwner.java', FAKES, Path(__file__)]},
-        'extracted_sha256': {'MainActivity.dump': hashlib.sha256(dump.encode()).hexdigest(), 'MainActivity.button': hashlib.sha256(button.encode()).hexdigest(), 'PreviewService.diagnostics': hashlib.sha256(service.encode()).hexdigest(), 'MultiAiOwner.diagnostics': hashlib.sha256(owner.encode()).hexdigest()},
-        'scope': 'Production trust logic and verbatim dump/service methods; synthetic Android preferences, encrypted-store adapter and JSON serializer. No phone, Android dumpsys dispatch, actual UI, network or lifecycle validation. Real bounded encrypted diagnostic file reads are checked separately by test_enrollment_record_limits.py.'
+        'source_sha256': {str(path.relative_to(ROOT)): hashlib.sha256(path.read_bytes()).hexdigest() for path in [*sources, JAVA/'MainActivity.java', JAVA/'PreviewService.java', JAVA/'MultiAiOwner.java', JAVA/'FeedbackActivity.java', FAKES, Path(__file__)]},
+        'extracted_sha256': {name:hashlib.sha256(value.encode()).hexdigest() for name,value in {'MainActivity.dump':dump, 'MainActivity.button':button, 'MainActivity.showObscuredTouchFeedback':touch_feedback, 'MainActivity.clearObscuredTouchFeedback':touch_clear, 'MainActivity.renderTouchFeedback':touch_render, 'PreviewService.diagnostics':service, 'MultiAiOwner.diagnostics':owner, 'MultiAiOwner.button':owner_button, 'FeedbackActivity.button':feedback_button, 'FeedbackActivity.showObscuredTouchFeedback':feedback_message, 'FeedbackActivity.clearObscuredTouchFeedback':feedback_clear, 'FeedbackActivity.render':feedback_render}.items()},
+        'scope': 'Production trust logic and verbatim dump/service methods, three ordinary-button security filters and inline-feedback methods; synthetic Android preferences, views, encrypted-store adapter and JSON serializer. No phone, Android dumpsys dispatch, actual UI event dispatch/layout, network or lifecycle validation. Real bounded encrypted diagnostic file reads are checked separately by test_enrollment_record_limits.py.'
     }, indent=2) + '\n')

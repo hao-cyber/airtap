@@ -77,6 +77,7 @@ public final class MainActivity extends Activity {
     private boolean setupPaused, setupExhausted, invitationUncertain;
     private AlertDialog preparationDialog;
     private String ticket, claim, code, candidate, message = "", renderKey = "";
+    private String touchMessage = "";
     private long invitationExpiry;
     private InvitationArtifacts invitationArtifacts;
     private LinearLayout content;
@@ -124,10 +125,26 @@ public final class MainActivity extends Activity {
                 boolean accepted = (event.getFlags() & (android.view.MotionEvent.FLAG_WINDOW_IS_OBSCURED | android.view.MotionEvent.FLAG_WINDOW_IS_PARTIALLY_OBSCURED)) == 0
                         && super.onFilterTouchEventForSecurity(event);
                 if (!accepted && buttonTouchRejected < Long.MAX_VALUE) buttonTouchRejected++;
+                if (!accepted && event.getActionMasked() == android.view.MotionEvent.ACTION_DOWN
+                        && (event.getFlags() & (android.view.MotionEvent.FLAG_WINDOW_IS_OBSCURED | android.view.MotionEvent.FLAG_WINDOW_IS_PARTIALLY_OBSCURED)) != 0) showObscuredTouchFeedback();
                 return accepted;
             }
         };
-        b.setText(name); b.setFilterTouchesWhenObscured(true); b.setOnClickListener(click); AppUi.button(b, AppUi.SECONDARY); return b;
+        b.setText(name); b.setFilterTouchesWhenObscured(true);
+        b.setOnClickListener(v -> { clearObscuredTouchFeedback(); click.onClick(v); });
+        AppUi.button(b, AppUi.SECONDARY); return b;
+    }
+    void showObscuredTouchFeedback() {
+        touchMessage = "系统检测到其他窗口遮挡，本次点击未执行。请收起音量面板或悬浮窗后重试。";
+        renderTouchFeedback();
+    }
+    void clearObscuredTouchFeedback() {
+        if (touchMessage.isEmpty()) return;
+        touchMessage = "";
+        renderTouchFeedback();
+    }
+    private void renderTouchFeedback() {
+        if (feedback != null) feedback.setText(message.isEmpty() ? touchMessage : message + (touchMessage.isEmpty() ? "" : "\n" + touchMessage));
     }
     private void primary(String name, View.OnClickListener click) { Button b = button(name, click); b.setEnabled(!busy && !storageError); AppUi.button(b, AppUi.PRIMARY); content.addView(b); }
     private void heading(String value) { TextView title = AppUi.text(this, value, 28); AppUi.heading(title); content.addView(title); }
@@ -151,7 +168,7 @@ public final class MainActivity extends Activity {
         if (ticket != null && invitationExpiry <= now) { ticket = null; invitationArtifacts = null; claim = null; code = null; message = "邀请已过期，点下面按钮重新生成即可。"; }
         RecoveryStatus recovery = service == null ? RecoveryStatus.WAITING_FOR_AI : service.recoveryStatus();
         String key = recovery + ":" + invitationUncertain + ":" + setupExhausted + ":" + enrolled + ":" + accessibility + ":" + operationConfigured + ":" + notifications + ":" + (trusted != null) + ":" + (pending == null ? "" : pending.optString("approval_id")) + ":" + (ticket != null) + ":" + claim + ":" + busy + ":" + (service != null && service.isConnected()) + ":" + multiOwner.enabled(config) + ":" + multiOwner.migrationPending(config);
-        feedback.setText(message);
+        renderTouchFeedback();
         if (key.equals(renderKey)) return; renderKey = key; content.removeAllViews();
         if (upgrade || !enrolled || (accessibility && notifications)) {
             content.addView(AppUi.deviceIdentity(this)); AppUi.space(content, 24);
