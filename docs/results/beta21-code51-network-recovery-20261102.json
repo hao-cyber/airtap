@@ -1,0 +1,99 @@
+{
+  "schema": "airtap-bounded-network-route-review-v1",
+  "recorded_date": "2026-11-02",
+  "status": "passed_bounded_maintainer_network_recovery_no_personal_ai_task_claim",
+  "client": {
+    "version_name": "0.4.0-beta.21",
+    "version_code": 51,
+    "build_type": "release",
+    "apk_sha256": "5955f98562a949059c099c2fd50ecbd759fcb3c7b43e79e6c60f010e3914008b"
+  },
+  "device_scope": "One previously paired Android test phone connected to maintenance USB, with two locally stored approved AI grant records and its existing VPN active.",
+  "actor": "Maintainer network fault injection and Android diagnostics; not a personal-AI business task.",
+  "change_under_test": "A newly usable default-network path resets stale failure backoff once. Identical capability callbacks keep the current timer; capability changes leave an existing healthy or in-flight socket intact. Remaining usable physical transports can count as a route switch; a transition to VPN-only does not itself accelerate retry.",
+  "upgrade": {
+    "method": "Data-preserving USB install.",
+    "installed_version_verified": true,
+    "data_cleared": false,
+    "new_pairing_created": false,
+    "device_registration_preserved": true,
+    "local_approved_record_count": 2,
+    "maintainer_intervention": "After installing, the maintainer opened the owner Activity to prepare diagnostics, then returned to the launcher. The Activity remained in the background during the network test.",
+    "limit": "This is maintained installation and diagnostic preparation, not autonomous upgrade recovery. A local record count does not validate both original AI credentials."
+  },
+  "network_test": {
+    "method": "Disable mobile data, disable Wi-Fi, confirm no default network, hold the outage for about 25 seconds, then enable Wi-Fi and observe recovery. Restore the captured radio settings.",
+    "confirmed_outage_seconds": 25.137,
+    "reconnect_seconds_after_wifi_enable": 7.301,
+    "recovered_condition": "Phone diagnostics reported connected transport and acknowledged multi-AI handshake, with unchanged local device registration and a local approved grant record count of two.",
+    "settings_restored": true,
+    "vpn_active_before_and_after": true,
+    "business_commands_executed": false,
+    "measurement_limit": "One run. Timing runs from Wi-Fi enable to the first sampled protocol-ready state, not exact ACK arrival. It includes Wi-Fi and VPN restoration, transport establishment and sampling; it is not a latency distribution or service guarantee.",
+    "trace_observations": {
+      "loss_of_underlay_inserted_extra_fast_retry": false,
+      "new_path_schedule_to_attempt_seconds": 0.256,
+      "post_restore_connection_attempt_failed": false,
+      "pre_ack_sample_distinguished_open_transport_from_protocol_acknowledgement": true
+    }
+  },
+  "single_run_comparison": {
+    "procedure": "The same maintainer fault-injection procedure was applied to the same test phone on code50 and code51.",
+    "previous_record": "beta20-code50-network-recovery-20261102.json",
+    "previous_version_code": 50,
+    "previous_confirmed_outage_seconds": 25.186,
+    "previous_reconnect_seconds": 44.437,
+    "this_version_code": 51,
+    "this_confirmed_outage_seconds": 25.137,
+    "this_reconnect_seconds": 7.301,
+    "causal_limit": "The code50 connection attempt after network return failed and waited for another retry; the corresponding code51 attempt succeeded directly. The entire timing difference cannot be attributed to resetting retry backoff.",
+    "coverage_limit": "A failed connection attempt after network return was not triggered in this code51 physical run. The first-tier retry after that failure is covered by synthetic regression tests.",
+    "previous_retry_wait_after_returned_path_failure_seconds": 36.249,
+    "failure_source": "The code50 TLS EOF source is undetermined; it is not attributed to the relay, VPN provider or carrier."
+  },
+  "local_build_and_core_checks": {
+    "release_build": {
+      "completed": true,
+      "signature_verified": true,
+      "expected_version_verified": true,
+      "debuggable": false,
+      "lint_errors": 0,
+      "lint_warnings": 11
+    },
+    "core": {
+      "complete": true,
+      "passed_steps": 37,
+      "failed_steps": 0,
+      "source_files_checked": 330,
+      "source_bytes_unchanged_during_run": true,
+      "android_host_checks": 831,
+      "connection_closing_checks": 25,
+      "python_source_package_tests": 15,
+      "python_service_tests": 114,
+      "python_site_tests": 33,
+      "local_workerd_protocol_checks": 117,
+      "node_multi_ai_state_tests": 23,
+      "mixed_check_total": 1158
+    },
+    "scope": "Local host synthetic checks and workerd. These are separate from physical-device, personal-AI, public-relay capacity and billing acceptance."
+  },
+  "evidence": {
+    "network_summary_sha256": "634e58d5f028bd9baa859844f255f3b342e896c0c7d64ce9ace290dde2e2713e",
+    "network_timeline_sha256": "b8bc89b20c10d7bd2bb4dff13aebb84ee18171df34f080fb89bde41062ea3e19",
+    "final_core_summary_sha256": "c8ca34f5cc52878d7793da0657f07746461ab245d89dec0605cd90a628077f8b",
+    "raw_materials": "Private; not distributed with source.",
+    "network_artifact_review_sha256": "55cdbf08deff904b71c9c5deb7a1c86ea75a0a201ebfef4c92307da74281ad8b",
+    "network_artifact_review": "A separate read-only artifact review checked the test timeline, diagnostics, radio restoration and logs. Its reviewer did not inject the phone fault, but also authored the code fix; this is not an external independent audit."
+  },
+  "not_verified": [
+    "A personal-AI business task on code51; this record covers the maintainer network run only.",
+    "Post-outage status using both original personal-AI credentials on code51.",
+    "Two personal AIs handing off or contending for a live task on this phone.",
+    "Cold start, reboot, unpowered or long idle, screen unlocking, or recovery after user stop/revocation.",
+    "Mobile-data-only operation or operation without the existing VPN.",
+    "Migration of another phone from its existing control chain.",
+    "Repeated recovery trials, other devices or a complete end-to-end product acceptance pass."
+  ],
+  "publication_boundary": "Aggregate versions, timings, counts and failure limits only. No screenshots, user content, credentials, network addresses, device or connection identifiers, or private paths.",
+  "source_commit": "cf336ab3e5b443661852f8cae04c69b9ca27b7ae"
+}

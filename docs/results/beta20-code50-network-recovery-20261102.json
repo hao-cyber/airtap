@@ -107,8 +107,8 @@
     "raw_materials": "Private; not distributed with source."
   },
   "not_verified": [
-    "Separate post-outage status checks with each of the two original personal-AI credentials.",
-    "A personal-AI command using its original credentials after this outage.",
+    "Post-outage status using the other original personal-AI credential.",
+    "A personal-AI phone command using its original credentials after this outage.",
     "Any cross-App task on code50.",
     "Two personal AIs handing off or contending for a task on this physical phone.",
     "Cold start, reboot, unpowered idle, screen unlocking or long-idle recovery.",
@@ -117,5 +117,36 @@
     "Migration of another phone from its existing control chain.",
     "All later client versions or a complete product acceptance pass."
   ],
-  "publication_boundary": "Only aggregate versions, counts, timings and failure descriptions are included. No screenshots, note or post content, network addresses, phone or connection identifiers, credentials or private paths are included."
+  "publication_boundary": "Only aggregate versions, counts, timings and failure descriptions are included. No screenshots, note or post content, network addresses, phone or connection identifiers, credentials or private paths are included.",
+  "later_instinct_read_only_status": {
+    "local_time": "2026-11-02 03:36:28–03:36:29 Asia/Shanghai",
+    "actor": "Instinct using CLI.11; it reports reusing its original configuration.",
+    "operations": [
+      "--version",
+      "pair-status",
+      "status"
+    ],
+    "retained_calls": 3,
+    "exit_zero": 3,
+    "result": {
+      "pairing_state": "approved",
+      "device_connected": true,
+      "mode": "multi",
+      "task_state": "idle",
+      "pending_commands": 0
+    },
+    "original_connection_continuity": "The retained sequence matched the earlier task final state; no pairing or phone operation was requested in this check.",
+    "client_version_independently_observed": false,
+    "maintainer_reported_phone_version_code": 50,
+    "evidence": {
+      "raw_command_record_sha256": "fe2b2f15978906fdb7c3ae0f56156b4ff4869b9fc3ffcf1cc6d9307239435002",
+      "review": "Returned stdout/stderr was parsed and its attachment hash checked; unrelated private configuration was not requested."
+    },
+    "limits": [
+      "These are relay-level state queries, not a phone task, task-lease acquisition, wake or recovery acceptance.",
+      "CLI --version identifies the CLI, not the installed Android client. No ping or other phone command established the phone version.",
+      "The other original personal-AI credential was not checked in this follow-up.",
+      "The agent reports original configuration access; the correspondence between email and its prior chat execution runtime was not independently established."
+    ]
+  }
 }
