@@ -1,0 +1,42 @@
+{
+  "schema": "airtap-scoped-delivery-v1",
+  "recorded_at": "2026-11-02",
+  "status": "public_cli_and_guide_verified",
+  "source_commit": "460370b6f286b0edd4af3e308654e186d7b4364e",
+  "cli_version": "0.4.0-cli.11",
+  "cli_bytes": 99587,
+  "cli_sha256": "4d2cd31f76437d622f11a4c2a9491ba1d4150d661cb4b139f629faf8948bb1c6",
+  "guide_bytes": 87275,
+  "guide_sha256": "1e4b5d5078082452e9206d0427378b1f2fd69f7ddf1caff36648d577c27f6ac4",
+  "artifact_version": "service4-80044f56-4d2cd31f-1e4b5d50",
+  "deployed_changes": [
+    "CLI tool and agent guide assets, plus their digest/version bindings"
+  ],
+  "unchanged": [
+    "Relay production JavaScript",
+    "Service identity and origin",
+    "Durable Object bindings and migrations",
+    "Authentication credentials and permissions",
+    "Registration, control and quota settings"
+  ],
+  "checks": {
+    "deployment_tool_cases": 11,
+    "invitation_artifact_groups": 3,
+    "deployment_exit_code": 0,
+    "public_service_http": 200,
+    "public_cli_http": 200,
+    "public_guide_http": 200,
+    "downloaded_bytes_match_frozen_assets": true,
+    "service_identity_preserved": true,
+    "downloaded_cli_production_tls_public_request": 200,
+    "pending_deployment_cleared": true
+  },
+  "upgrade_policy": "Use current tools. Old invitation downloads can have different bytes after an update; the personal AI must stop on an expected-digest mismatch and obtain a fresh invitation, never substitute the response digest or disable TLS verification. Existing approved pairings are not revoked by this asset deployment.",
+  "limits": [
+    "This is public asset delivery verification, not a new physical-device or personal-AI acceptance run.",
+    "Download verification is performed by the personal AI; the server does not enforce the old invitation digest on a public download request.",
+    "The recommended Android APK remains code39. Candidate code49 installation and its separate acceptance do not follow from this relay deployment.",
+    "The first readback script misread the CLI request return type; the script was corrected without redeploying or changing the product."
+  ],
+  "privacy": "Aggregate checks and public artifact digests only; no credentials, tickets, raw user content or private deployment paths."
+}
