@@ -21,7 +21,7 @@ HOST_SCRIPTS = (
 )
 PROTOCOL_SCRIPTS = (
     'companion-roundtrip', 'file-transfer-roundtrip', 'usage-storage',
-    'pair-recovery', 'feedback-roundtrip', 'invitation-artifacts', 'multi-ai-roundtrip',
+    'pair-recovery', 'feedback-roundtrip', 'invitation-artifacts', 'multi-ai-roundtrip', 'tenant-isolation',
 )
 
 

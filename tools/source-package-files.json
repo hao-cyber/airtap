@@ -1117,6 +1117,10 @@
     },
     {
       "kind": "source",
+      "path": "relay/service/tests/tenant-isolation.mjs"
+    },
+    {
+      "kind": "source",
       "path": "relay/service/tests/test_cli_tls.py"
     },
     {

@@ -19,15 +19,22 @@
     "cli_task_lease_cases_passed": 37,
     "cli_post_action_cases_passed": 19,
     "assembleRelease": "passed",
-    "lintRelease": {"errors": 0, "warnings": 11},
+    "lintRelease": {
+      "errors": 0,
+      "warnings": 11
+    },
     "release_signature_verified": true,
     "release_signer_unchanged": true,
     "apk_version_verified": true,
-    "android_build_inputs_unchanged_during_build": true
+    "android_build_inputs_unchanged_during_build": true,
+    "native_expiry_fixture_cases_passed": 5,
+    "local_workerd_tenant_isolation_groups_passed": 6
   },
   "limits": [
     "Host checks use synthetic state and local services; they are not real personal-AI acceptance.",
     "The core suite preceded the final expiry presentation change, which received the expanded 64-case host check and release build/lint.",
+    "The five native cases use an isolated Android emulator and a differently packaged debug fixture containing the exact production Java. They verify real Activity rendering and ordinary input taps, not the official signed APK binary. Synthetic expired and pending states are seeded; no wall-clock five-minute expiry or successful relay cancellation roundtrip is claimed.",
+    "The first native fixture launch did not bind accessibility; it was retained as a failed attempt. Correcting fixture setup order passed the bounded group without a production change. The fixture package was removed and original accessibility components restored; Android normalized component spelling.",
     "This record does not establish upgrade recovery, background reliability, multi-AI handoff or first-time user success on a real phone.",
     "No public APK recommendation or relay deployment was changed by these checks."
   ],
