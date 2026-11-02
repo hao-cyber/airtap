@@ -37,6 +37,8 @@ python3 relay/service/deploy.py --wrangler "$(pwd)/relay/worker/node_modules/.bi
 
 后续候选包的验收单独记录：[code49 的 Instinct 跨 App 任务](results/beta19-code49-instinct-20261102.json)已核对命令输出与四张结果图。[code51 的 Muse 任务](results/beta21-code51-muse-20261102.json)经恢复完成唤醒、短信 GUI 搜索、Play 搜索和返回桌面；短信结果仅保留 Muse 报告，租约中断原因仍未查明。[code50](results/beta20-code50-network-recovery-20261102.json)与[code51 的真机断网测试](results/beta21-code51-network-recovery-20261102.json)各断网约 25 秒，分别约 44 秒、7 秒恢复；这是单次结果，不能将全部差额归因于退避修复。这些候选验收没有切换官网推荐版本，也不代表双 AI 交接或其他手机迁移已经通过。
 
+[code51 的 Instinct Play 任务](results/beta21-code51-instinct-play-20261102.json)已通过控件的原生提交完成搜索、详情核验和返回桌面，保留此前显式输入动作被拒绝及本地参数错误。实际工具仍为 CLI.11，不能算作 CLI.12 或双 AI 交接验收。
+
 验证当前协议和 CLI：
 
 ```sh

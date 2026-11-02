@@ -72,6 +72,8 @@ node relay/service/tests/multi-ai-roundtrip.mjs --active-lease-window --lease-ou
 
 [CLI.12 修复与交付记录](results/cli12-lease-recovery-delivery-20261102.json)保留旧版时钟偏差复现、续租回执丢失后的恢复回归、最终源码检查和公网结果。允许恢复的只是服务端已确认的同一续租意图，下一条新命令前须重试其原标识；不复活已释放任务，也不重放未知结果的手机操作。
 
+[code51 的 Instinct Play 恢复记录](results/beta21-code51-instinct-play-20261102.json)验证已有的原生提交路线：显式 `search` 因输入连接身份不足被拒绝后，清理搜索词末尾换行，重新观察并用控件提供的 `native_enter` 完成搜索、详情核验和返回桌面。它实际使用 CLI.11，保留先前拒绝和一条本地参数错误；不是 CLI.12、唤醒或双 AI 交接通过。输入文本按 stdin 原样发送；`printf '%s' 'Google Maps'` 不会附加换行。截图命令是 `observe --output <新文件>`，不接受 `--package`。
+
 Android 执行端另有[code51 原生租约与交接检查](results/beta21-native-leases-20261102.json)：在隔离模拟器中运行未改动的生产 Java，验证同 epoch 续租、空闲过期、旧租约拒绝、手势与文件调用结束前的交接限制。它使用显式协议续租与合成机主设置，不代替个人 AI、实体手机或正常首次接入验收。
 
 新增测试文件后应检查本入口是否需要加入；新增 case 若属于现有 suite 则自动随该 suite 执行。不要把固定历史测试总数当作未来版本证明。

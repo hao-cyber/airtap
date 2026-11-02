@@ -1,0 +1,79 @@
+{
+  "schema": "airtap-personal-ai-evidence-review-v1",
+  "recorded_date": "2026-11-02",
+  "status": "bounded_play_search_completed_using_existing_native_editor_action",
+  "client": {
+    "version_name": "0.4.0-beta.21",
+    "version_code": 51
+  },
+  "cli": {
+    "version": "0.4.0-cli.11",
+    "sha256_recorded_by_agent": "4d2cd31f76437d622f11a4c2a9491ba1d4150d661cb4b139f629faf8948bb1c6",
+    "current_cli12_execution": false,
+    "version_limit": "The recovery request asked for the already verified CLI.12, but the returned record explicitly identifies CLI.11. This result is not relabeled as CLI.12 adoption or validation."
+  },
+  "actor": "Instinct actual cloud environment using its existing private profile and approved grant.",
+  "task": {
+    "scope": "Continue the already authorized Google Play search, inspect the Google Maps listing, return HOME and release the task.",
+    "query": "Google Maps",
+    "verified_title": "Google 地图",
+    "verified_developer": "Google LLC",
+    "existing_installed_state": true,
+    "installed_updated_or_launched_maps": false
+  },
+  "calls": {
+    "retained_records": 16,
+    "exit_zero": 15,
+    "exit_two": 1,
+    "task_acquire": 1,
+    "task_release": 1,
+    "native_default_submissions": 1,
+    "completion_timestamp_span_seconds": 88.635322,
+    "timing_limit": "Recorder timestamps mark completion of individual calls, not separately recorded start times or total end-to-end latency."
+  },
+  "prior_failure": {
+    "same_day_local_time_window": "19:45–19:47 Asia/Shanghai",
+    "cli_sha_not_retained_for_that_earlier_round": true,
+    "error": "editor_identity_unavailable",
+    "explicit_editor_action": "search",
+    "dispatch": "not dispatched",
+    "focused_field_view_id_empty": true,
+    "query_had_trailing_newline": true,
+    "node_advertised_native_enter": true,
+    "native_default_not_attempted": true,
+    "other_retained_failure": "An observe invocation included unsupported --package and failed locally, so that earlier attempt had no Play screenshot.",
+    "interpretation": "The explicit IME action could not prove its target. The native node route was already advertised; this evidence does not establish a broken identity guard or a need to weaken it."
+  },
+  "recovery": {
+    "preparation": "Read current state and acquire a new task using the original pairing. Replace the public search text with exact Google Maps, without a newline.",
+    "local_failure": "One set-text invocation omitted --text-stdin and exited locally with code 2. It was corrected; no device dispatch occurred for that local failure.",
+    "fresh_state": "The returned tree showed the exact 11 UTF-16-unit query and an accessibility_node/native_enter default hint.",
+    "action": "One editor-action default used the existing native node action and returned accepted true.",
+    "verification": "Subsequent tree and image observation showed search results; a result was opened and the detail view showed Google 地图 and Google LLC.",
+    "maintainer_role": "Provided targeted recovery guidance and inspected returned evidence; no maintainer business actions completed the task. The maintainer had ended the phone coordination UI before this task."
+  },
+  "final_status": {
+    "home_visually_reviewed": true,
+    "task_release": "released",
+    "task_state": "idle",
+    "pending_commands": 0,
+    "pairing_preserved": true
+  },
+  "evidence": {
+    "command_records_reviewed": 16,
+    "returned_images_visually_reviewed": 3,
+    "image_scope": "Cropped search results, app detail and HOME. Original phone content and account areas are not published.",
+    "binding_limit": "Returned crops were reviewed alongside the invocation record; this does not independently bind each crop to the original full-screen response bytes.",
+    "delivery": "The authenticated email reply and attachment hashes/sizes were checked. Temporary SSH failures delayed record retrieval; the phone task was not resent because of those failures.",
+    "raw_materials": "Private; not included in source."
+  },
+  "not_verified": [
+    "CLI.12 real phone execution or an active-tool switch.",
+    "A new IME identity implementation; no production code or APK changed for this recovery.",
+    "Automatic wake: the phone was already ready.",
+    "Long-duration renewal, network recovery, two personal AIs handing off, or runtime recreation.",
+    "SMS, Notes, another device or replacement of a production phone control chain."
+  ],
+  "release_effect": "Evidence only; the recommended APK and other phone control chains remain unchanged.",
+  "publication_boundary": "Reviewed aggregate results only. No private addresses, account or device identifiers, credentials, configuration, screenshots or unrelated user content."
+}
