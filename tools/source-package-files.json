@@ -973,6 +973,10 @@
     },
     {
       "kind": "result",
+      "path": "docs/results/cli12-lease-recovery-delivery-20261102.json"
+    },
+    {
+      "kind": "result",
       "path": "docs/results/client-recovery-v040-delivery.json"
     },
     {

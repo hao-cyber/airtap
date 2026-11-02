@@ -1,0 +1,119 @@
+{
+  "schema": "airtap-cli-relay-delivery-evidence-v1",
+  "recorded_date": "2026-11-02",
+  "status": "cli12_and_relay_deployed_with_bounded_verification",
+  "production_source_commit": "bc2db71e6e9af522154c99ea29ae2e1302105c55",
+  "fixes": [
+    {
+      "area": "client clock skew",
+      "before": "A real CLI.11 process with its wall clock 180 seconds ahead acquired a task, then status incorrectly expired it locally; the next ping was refused before device dispatch.",
+      "after": "Scoped status includes a relative remaining duration. CLI.12 subtracts HTTP elapsed time instead of the client wall clock from an absolute server deadline. Invalid or missing duration is rejected before saved state changes. Reading status does not extend a known deadline."
+    },
+    {
+      "area": "lost renewal reply",
+      "before": "Independent review found that an early CLI.12 terminal-state guard prevented recovery when a confirmed remote renewal outlived the original local deadline.",
+      "after": "Only an expired same-lease pending renewal with the exact confirmed sequence and unconsumed relative duration may recover. The pending identity is retained and retried before a new command. Closed or releasing tasks are not revived; an uncertain phone action is not replayed.",
+      "retained_regression": "The early candidate failed the positive recovery case. Final unit tests and an independent three-version reproduction pass; the early candidate was not deployed."
+    }
+  ],
+  "local_checks": {
+    "core_steps": 37,
+    "core_passed": true,
+    "input_files_unchanged": 333,
+    "python_task_lease_methods": 47,
+    "relay_state_cases": 24,
+    "tenant_isolation_groups": 6,
+    "default_real_cli_workerd_cases": 26,
+    "independent_targeted_methods": 12,
+    "scope": "Local fixtures and workerd; counts describe different suites and are not added together."
+  },
+  "active_task": {
+    "scope": "local production CLI/relay, synthetic phone ACK; not Android or personal-AI acceptance",
+    "seconds": 205.309,
+    "acquires": 1,
+    "pings": 11,
+    "automatic_renewals": 2,
+    "explicit_renewals": 0,
+    "renewal_times_seconds": [
+      80.224,
+      160.226
+    ],
+    "renewal_http_statuses": [
+      200,
+      200
+    ],
+    "final_cli_lease": "closed",
+    "relay_final_state": "idle",
+    "source_unchanged": true
+  },
+  "deployment": {
+    "revision": 20,
+    "deployed": true,
+    "same_service_identity_settings_secrets_and_bindings": true,
+    "changed_assets": [
+      "relay worker",
+      "CLI",
+      "agent guide"
+    ],
+    "retained_failures": "Two account-discovery API timeouts preceded the successful third resume of the same frozen revision. Selecting the already verified account used by the previous deployment resolved discovery; no identity or credentials were replaced.",
+    "recommended_android_code": 39,
+    "android_apk_changed": false
+  },
+  "public_downloads": {
+    "cli": {
+      "http": 200,
+      "bytes": 101307,
+      "sha256": "a2ea9b60fba1026ac5710612f20fd33c4a0c8c95dfae9c30496aa3f30a375e62",
+      "matches_frozen": true
+    },
+    "agent": {
+      "http": 200,
+      "bytes": 87474,
+      "sha256": "00b8f79cf844c01d3165f7fec5c37234ba74b46b76c1aad57a78d5b05660e24f",
+      "matches_frozen": true
+    }
+  },
+  "downloaded_cli_version": "0.4.0-cli.12",
+  "downloaded_cli_tls_service_http": 200,
+  "public_synthetic": {
+    "scope": "Real public HTTPS/WSS with the production CLI and a synthetic device responder; not Android or personal-AI acceptance.",
+    "clock_offsets_seconds": [
+      180,
+      -180
+    ],
+    "cases_passed": 2,
+    "path": "acquire, scoped relative status, local live-lease check, synthetic ping, release, idle",
+    "phone_command_count": 2,
+    "first_run": "Enrollment succeeded; a later pairing fetch failed before WSS or task calls. Cleanup completed. No underlying cause was recorded for that first transport failure.",
+    "recovery": "After three successful read-only service checks, a second bounded run passed. POST requests were not blindly repeated.",
+    "synthetic_devices_enrolled": 2,
+    "all_test_devices_unenrolled": true,
+    "active_capacity_released": true,
+    "daily_registration_allowance_consumed": 2,
+    "test_credentials_removed": true,
+    "retained_second_run_failure": "After the +180-second task release, the maintainer verifier's read-only status GET hit UND_ERR_CONNECT_TIMEOUT at 10.510 seconds. Its one permitted GET retry returned 200 in 1.750 seconds. This was verifier recovery, not a production CLI or Android reconnect test; no POST or phone action was replayed."
+  },
+  "existing_phone_postdeploy": {
+    "read_only": true,
+    "version_code": 51,
+    "same_device_base": true,
+    "same_app_pid": true,
+    "grant_count": 2,
+    "connected": true,
+    "multi_hello_acknowledged": true,
+    "owner_stopped": false
+  },
+  "personal_ai_preparation": {
+    "instinct": "The authenticated email reply reports matching CLI/guide hashes and sizes, and an isolated local CLI.12 --version with exit 0. Existing profile was left untouched and CLI.11 retained; new files were stored separately. No independent subprocess attachment or active-tool switch was verified.",
+    "muse": "The existing conversation refused the delegated executable-download preparation. It reported no download or execution and kept its prior tools/profile.",
+    "phone_tasks_executed_in_this_delivery_round": false
+  },
+  "limits": [
+    "The clock-skew defect is independently reproduced; this does not establish the cause of the earlier Muse lease interruption.",
+    "The public synthetic test and local continuous task do not verify Android lifecycle, personal-AI task completion or real dual-AI handoff.",
+    "The existing-phone check is read-only connection evidence, not a new business task.",
+    "Current Muse/Instinct full acceptance and production-phone migration remain incomplete.",
+    "Public transport timeouts were observed and retained; a successful bounded rerun is not a network reliability or latency guarantee."
+  ],
+  "publication_boundary": "Aggregate results and reviewed source/artifact hashes only; no private device/account identifiers, messages, screenshots, credentials, deployment paths or private service addresses."
+}
