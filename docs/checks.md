@@ -59,6 +59,15 @@ CLI.10 的本地检查范围与未验证项见[动作后观察检查记录](resu
 
 实际 v4 邀请摘要检查还可单独运行 `node relay/service/tests/invitation-artifacts.mjs`（先准备上述 Node 依赖）。它核对邀请摘要与实际文件字节，并确认缺失或非法摘要配置不会先签发票据；使用合成身份，不操作手机。
 
+持续任务的自动续租可另外运行下列检查，约需 4 分钟，不加入默认 `core` 的等待时间：
+
+```sh
+mkdir -p dist/checks
+node relay/service/tests/multi-ai-roundtrip.mjs --active-lease-window --lease-output dist/checks/active-lease.json
+```
+
+它使用本地 workerd、真实 CLI 独立进程和合成手机响应：只申请一次租约，每 20 秒发一次 `ping`，持续 205 秒后释放；不显式续租、不缩短期限，要求至少两次自动续租及最终空闲状态。输出仅保留请求类别、结果、期限、序列和源码摘要，不保存身份或凭据。这个检查验证正常网络与时钟下的跨进程续租，不替代 Android 真机或个人 AI 实测，也不能追溯此前缺少记录的异常。
+
 新增测试文件后应检查本入口是否需要加入；新增 case 若属于现有 suite 则自动随该 suite 执行。不要把固定历史测试总数当作未来版本证明。
 
 本轮增量的可查证记录：

@@ -2,7 +2,7 @@
 // Real local workerd, production modules, synthetic identities and fake phone.
 // No cloud service, personal AI, private config or physical device is contacted.
 import assert from 'node:assert/strict';
-import { randomBytes } from 'node:crypto';
+import { createHash, randomBytes } from 'node:crypto';
 import { readFile, writeFile, mkdtemp, mkdir, rm, realpath } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -338,6 +338,107 @@ try {
       const saved=JSON.parse(await readFile(profile,'utf8'));assert.equal(saved.controller_token,c.token);assert.equal(saved.command_sequence,2);assert.equal(saved.state,'approved');
       assert.equal(phoneFixture.messages.filter(m=>m.type==='command').length,2);
     }finally{await new Promise(resolve=>edge.close(resolve));}
+  });
+  // Optional real-clock acceptance: keep ordinary core checks fast. No real
+  // device/config, explicit renewal, shortened TTL or background keeper is used.
+  if (process.argv.includes('--active-lease-window')) await check('real CLI processes automatically renew one active task across two TTL windows', async () => {
+    const started = performance.now(), cliPath = join(root, 'cli/airtap.py');
+    const digest = bytes => createHash('sha256').update(bytes).digest('hex');
+    const trace = { ok: false, scope: 'local production CLI/relay, synthetic phone ACK; not Android or personal-AI acceptance',
+      cli_sha256: digest(await readFile(cliPath)), events: [] };
+    const record = values => {
+      const event = { elapsed_ms: Math.round(performance.now() - started), ...values };
+      trace.events.push(event); console.log(JSON.stringify({ active_lease: event }));
+    };
+    const x = await enroll(), c = await single(x);
+    await ok(x.base + '/v1/device/multi/enable', x.token, migration(c.claim));
+    const phoneFixture = await phone(x), profile = join(temp, 'cli-active-lease.json');
+    let original;
+    const sameIdentity = lease => !!original && ['task_id', 'lease_id', 'lease_epoch'].every(key => lease?.[key] === original[key]);
+    const savedState = async () => {
+      const saved = JSON.parse(await readFile(profile, 'utf8')), lease = saved.task_lease ?? {};
+      return { task_state: lease.state ?? null, same_identity: sameIdentity(lease),
+        remaining_ms: Number.isFinite(lease.local_expires_at) ? Math.round(lease.local_expires_at * 1000 - Date.now()) : null,
+        renewal_sequence: lease.renewal_sequence ?? null, pending_renewal: !!lease.pending_renewal,
+        command_sequence: saved.command_sequence, needs_observation: saved.task_needs_observation === true };
+    };
+    const requests = [];
+    const edge = createServer(async (req, res) => {
+      const endpoint = req.url.slice(x.base.length);
+      try {
+        const chunks = []; for await (const bytes of req) chunks.push(bytes);
+        const raw = Buffer.concat(chunks), body = raw.length ? JSON.parse(raw.toString()) : {};
+        const upstream = await mf.dispatchFetch('http://localhost' + req.url, { method: req.method,
+          headers: { ...req.headers, 'cf-connecting-ip': '127.0.0.1' }, ...(raw.length ? { body: raw } : {}) });
+        const bytes = Buffer.from(await upstream.arrayBuffer()), reply = JSON.parse(bytes.toString());
+        const event = { phase: 'http', endpoint, status: upstream.status,
+          ...(body.action ? { action: body.action } : {}),
+          ...(Number.isSafeInteger(body.renewal_sequence) ? { requested_renewal_sequence: body.renewal_sequence } : {}),
+          ...(Number.isSafeInteger(reply.renewal_sequence) ? { confirmed_renewal_sequence: reply.renewal_sequence } : {}),
+          ...(Number.isSafeInteger(reply.expires_in_ms) ? { expires_in_ms: reply.expires_in_ms } : {}),
+          ...(Number.isSafeInteger(reply.expires_at_ms) ? { expires_at_ms: reply.expires_at_ms } : {}),
+          ...(typeof reply.error === 'string' && /^[a-z_]+$/.test(reply.error) ? { error: reply.error } : {}) };
+        requests.push(event); record(event);
+        res.writeHead(upstream.status, { 'content-type': 'application/json', 'content-length': bytes.length }); res.end(bytes);
+      } catch { record({ phase: 'fixture_error', endpoint }); res.writeHead(502); res.end(); }
+    });
+    const invoke = async command => {
+      record({ phase: 'before_cli', command, ...await savedState() });
+      const result = await new Promise((resolve, reject) => {
+        const child = spawn(process.env.PYTHON || 'python3', [cliPath, '--allow-local-http', '--config', profile, command],
+          { stdio: ['ignore', 'pipe', 'pipe'] });
+        let out = '', err = ''; const timer = setTimeout(() => child.kill('SIGKILL'), 60000);
+        child.stdout.on('data', bytes => out += bytes); child.stderr.on('data', bytes => err += bytes);
+        child.on('error', error => { clearTimeout(timer); reject(error); });
+        child.on('close', code => {
+          clearTimeout(timer);
+          try { assert.equal(err, ''); assert.equal(out.includes(c.token), false); resolve({ code, value: JSON.parse(out) }); }
+          catch (error) { reject(error); }
+        });
+      });
+      record({ phase: 'after_cli', command, exit: result.code, ...await savedState(),
+        ...(result.value.error ? { error: result.value.error } : {}) });
+      assert.equal(result.code, 0, result.value.error); return result.value;
+    };
+    try {
+      await new Promise((resolve, reject) => { edge.once('error', reject); edge.listen(0, '127.0.0.1', resolve); });
+      await writeFile(profile, JSON.stringify({ url: 'http://127.0.0.1:' + edge.address().port + x.base,
+        controller_token: c.token, state: 'approved', persistent: true, all_apps: true, allow_control: true,
+        session_expires_at: null, command_sequence: 0 }), { mode: 0o600 });
+      original = await invoke('task-acquire');
+      const activeStart = performance.now();
+      for (let index = 0; index <= 10; index++) {
+        await new Promise(resolve => setTimeout(resolve, Math.max(0, activeStart + index * 20000 - performance.now())));
+        await invoke('ping');
+        const state = await savedState();
+        assert.equal(state.same_identity, true); assert.equal(state.task_state, 'ready');
+        assert.equal(state.pending_renewal, false); assert.equal(state.command_sequence, index + 1);
+      }
+      await new Promise(resolve => setTimeout(resolve, Math.max(0, activeStart + 205000 - performance.now())));
+      assert.equal((await invoke('task-release')).state, 'released');
+      const status = await invoke('status');
+      assert.equal(status.task.state, 'idle'); assert.equal(status.deviceConnected, true); assert.equal(status.pending, 0);
+      const acquires = requests.filter(e => e.endpoint === '/v1/tasks/acquire');
+      const renewals = requests.filter(e => e.endpoint === '/v1/tasks/renew');
+      assert.equal(acquires.length, 1); assert.ok(renewals.length >= 2);
+      let deadline = acquires[0].expires_at_ms;
+      for (const [index, renewal] of renewals.entries()) {
+        assert.equal(renewal.status, 200); assert.equal(renewal.requested_renewal_sequence, index + 1);
+        assert.equal(renewal.confirmed_renewal_sequence, index + 1); assert.ok(renewal.expires_at_ms > deadline);
+        deadline = renewal.expires_at_ms;
+      }
+      assert.equal(requests.filter(e => e.endpoint === '/v1/command').length, 11);
+      assert.equal(requests.filter(e => e.endpoint === '/v1/tasks/release').length, 1);
+      assert.equal(phoneFixture.messages.filter(e => e.type === 'command').length, 11);
+      assert.equal(phoneFixture.messages.filter(e => e.type === 'task_fence' && e.holder && e.renewal_sequence > 0).length, renewals.length);
+      const saved = JSON.parse(await readFile(profile, 'utf8'));
+      assert.equal(saved.controller_token, c.token); assert.equal(saved.state, 'approved'); assert.equal(saved.task_lease.state, 'closed');
+      assert.equal(digest(await readFile(cliPath)), trace.cli_sha256);
+      Object.assign(trace, { ok: true, automatic_renewals: renewals.length, explicit_renewals: 0, commands: 11, task_acquires: 1 });
+    } finally {
+      if (edge.listening) await new Promise(resolve => edge.close(resolve));
+      if (option('--lease-output')) await writeFile(option('--lease-output'), JSON.stringify(trace, null, 2) + '\n', { mode: 0o600 });
+    }
   });
   await check('control pause cannot block cancellation release or independent/full revoke', async () => {
     const x=await enroll(), c=await single(x);await ok(x.base+'/v1/device/multi/enable',x.token,migration(c.claim));await phone(x);
