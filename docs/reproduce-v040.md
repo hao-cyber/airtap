@@ -39,6 +39,8 @@ python3 relay/service/deploy.py --wrangler "$(pwd)/relay/worker/node_modules/.bi
 
 [code51 的 Instinct Play 任务](results/beta21-code51-instinct-play-20261102.json)已通过控件的原生提交完成搜索、详情核验和返回桌面，保留此前显式输入动作被拒绝及本地参数错误。实际工具仍为 CLI.11，不能算作 CLI.12 或双 AI 交接验收。
 
+[code51 的 60 分钟静置观察](results/beta21-code51-idle-20261103.json)已完成：供电且每 30 秒通过 ADB 采样，未检测到醒屏、进程重启、服务解绑或网络变化。它不等于个人 AI 随后自主唤醒、双 AI 交接或其他手机迁移通过。
+
 验证当前协议和 CLI：
 
 ```sh

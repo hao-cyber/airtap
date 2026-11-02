@@ -76,6 +76,8 @@ node relay/service/tests/multi-ai-roundtrip.mjs --active-lease-window --lease-ou
 
 Android 执行端另有[code51 原生租约与交接检查](results/beta21-native-leases-20261102.json)：在隔离模拟器中运行未改动的生产 Java，验证同 epoch 续租、空闲过期、旧租约拒绝、手势与文件调用结束前的交接限制。它使用显式协议续租与合成机主设置，不代替个人 AI、实体手机或正常首次接入验收。
 
+[code51 真机静置观察](results/beta21-code51-idle-20261103.json)完成了供电状态下 60 分钟、121 个采样点的检查，未检测到醒屏、进程重启、服务解绑或网络变化；结束后应用诊断仍报告已连接。维护者在开始前正常息屏，过程中使用每 30 秒的 ADB 系统查询；这不是深度 Doze、断电续航或个人 AI 静置后唤醒验收。
+
 新增测试文件后应检查本入口是否需要加入；新增 case 若属于现有 suite 则自动随该 suite 执行。不要把固定历史测试总数当作未来版本证明。
 
 本轮增量的可查证记录：

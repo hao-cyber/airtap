@@ -1,0 +1,78 @@
+{
+  "schema": "airtap-physical-idle-observation-v1",
+  "recorded_at": "2026-11-03T00:52:20.490505+08:00",
+  "status": "completed_60_minute_read_only_idle_observation",
+  "public_release": false,
+  "scope": "Current code51 on one already prepared physical phone, observed by a maintainer through USB/ADB. Not a personal-AI task.",
+  "artifact": {
+    "apk_sha256": "5955f98562a949059c099c2fd50ecbd759fcb3c7b43e79e6c60f010e3914008b",
+    "installed_apk_hash_verified_after_window": true,
+    "version_code": 51,
+    "version_name": "0.4.0-beta.21"
+  },
+  "device": {
+    "model": "Meizu Note 16",
+    "android_version": 15,
+    "physical_usb_connection_and_power": "Reported by owner; USB ADB available throughout sampling.",
+    "system_plug_type": 1,
+    "system_plug_type_meaning": "AC; do not relabel the OS-reported power source as USB."
+  },
+  "preconditions": [
+    "Existing phone data, background settings and two approved AI connections; not a clean installation.",
+    "The maintainer issued one normal KEYCODE_SLEEP before the first sample. No personal AI performed that preparation.",
+    "Guide-only relay revision21 deployment and public byte verification finished before the window; runtime source and settings were unchanged."
+  ],
+  "observation": {
+    "baseline_started_at": "2026-11-02T23:49:30.890260+08:00",
+    "window_started_after_baseline_at": "2026-11-02T23:49:31.383364+08:00",
+    "final_sample_started_at": "2026-11-03T00:49:31.418751+08:00",
+    "duration_seconds": 3600.00776425004,
+    "samples": 121,
+    "interval_seconds": 30,
+    "maximum_sample_start_gap_seconds": 30.499305000063032,
+    "first_gap_includes_baseline_execution": true,
+    "all_sample_commands_succeeded": true,
+    "same_pid_process_start_ticks_boot_and_package_in_all_samples": true,
+    "bound_service_and_foreground_session_in_all_samples": true,
+    "binding_method": "Flyme Bound services exact label correlated with the exact component in manager state and a live ServiceRecord; not a direct exported component-to-binding map.",
+    "power_wakefulness_counts": {
+      "Dozing": 121
+    },
+    "wake_and_sleep_clocks_unchanged": true,
+    "network_metadata_unchanged": true,
+    "deep_device_idle_in_any_sample": false,
+    "light_device_idle_in_any_sample": false,
+    "detected_interference": [],
+    "test_directed_ui_upgrade_network_or_relay_changes_during_window": false,
+    "additional_readonly_query": "The maintainer queried dumpsys activity help once to verify services versus client-side dump options.",
+    "observer_finished_at": "2026-11-03T00:49:31.877286+08:00",
+    "duration_clock": "Host monotonic time from completed baseline to final sample start; wall-clock timestamps are descriptive and can drift."
+  },
+  "post_window": {
+    "at": "2026-11-03T00:49:50.943021+08:00",
+    "diagnostic_after_sampling_completed": true,
+    "same_device_identity_as_before_window": true,
+    "mode": "multi",
+    "grant_count": 2,
+    "owner_stopped": false,
+    "connected_as_reported_by_app": true,
+    "multi_hello_acknowledged_as_reported_by_app": true,
+    "restoring": false,
+    "power_state_and_wake_sleep_clocks_unchanged_by_diagnostic": true,
+    "personal_ai_command_executed": false
+  },
+  "conclusions": [
+    "The complete powered observation window had no detected interference, missing sample, process restart or service-binding loss.",
+    "Periodic system reads are sequential rather than atomic and can affect the device. There are 30-second blind intervals; transient changes can be missed.",
+    "No application diagnostics were polled during the window. The single post-window app report does not establish continuous relay connectivity or a working personal-AI request throughout the hour.",
+    "Dozing is screen wakefulness here, not deep Android Doze."
+  ],
+  "not_established": [
+    "Muse or Instinct adoption of CLI.12, an actual task or autonomous wake after this window.",
+    "Two personal AIs excluding and handing off actual tasks, or Instinct configuration survival across runtime recreation.",
+    "Unplugged endurance, deep Doze, reboot or new network-loss recovery.",
+    "Another phone, independent newcomer setup or readiness to replace a production control route."
+  ],
+  "recommended_public_apk_code_unchanged": 39,
+  "privacy": "Reviewed aggregate metadata only. No device serial, PID value, network address, account, message, screen, credential or private path is published."
+}
