@@ -1,0 +1,80 @@
+{
+  "schema": "airtap-native-lease-evidence-v1",
+  "recorded_date": "2026-11-02",
+  "status": "bounded_native_renewal_expiry_and_handoff_checks_passed",
+  "production_source_commit": "ad74bd7f8e94993db6db4e6a9b7711ddf2a25e4d",
+  "android_source_version_code": 51,
+  "method": "Isolated Android emulator with unchanged production Java, real local TLS/WSS and workerd; explicit protocol calls from a synthetic controller.",
+  "production_java_files": 74,
+  "production_java_unchanged": true,
+  "fixture_differences": [
+    "Distinct debug package and synthetic CA",
+    "Synthetic owner driver for setup and grants",
+    "Read-only native lease metadata reflection",
+    "Android permissions provisioned by the test harness"
+  ],
+  "renewal": {
+    "seconds": 140.301,
+    "explicit_renewals": 2,
+    "same_epoch_and_identity": true,
+    "renewal_sequences": [
+      1,
+      2
+    ],
+    "renewal_times_seconds": [
+      70.253,
+      140.216
+    ],
+    "exact_retries_did_not_extend_deadline": true,
+    "ping_after_original_ttl_passed": true,
+    "release_cleared_native_authority": true,
+    "old_lease_command_http_status": 410
+  },
+  "idle": {
+    "seconds": 121.938,
+    "native_authority_expired_before_status": true,
+    "no_command_sequence_consumed": true,
+    "late_command_http_status": 410,
+    "late_renewal_http_status": 410,
+    "connection_changed": true,
+    "autonomous_clear_fence_observed": false,
+    "new_explicit_task_with_original_pairing_passed": true
+  },
+  "full_native_suite": {
+    "cases": 12,
+    "all_passed": true,
+    "covered": [
+      "real TLS/WS single approval and command sequence 7",
+      "explicit local single-to-multi migration preserves identity and sequence",
+      "real task fence permanently requires lease",
+      "independent B approval retains A and refuses busy task",
+      "real renewal exact retry is idempotent",
+      "handoff invalidates A lease and admits B independently",
+      "network reconnect preserves grants but rejects old task",
+      "real Accessibility gesture drain before task handoff",
+      "actual Binder provider remains in flight after HTTP response timeout",
+      "single grant revoke preserves other task and controller",
+      "native durable full stop clears local and remote grants",
+      "old full-stop retry cannot revoke later approved grant"
+    ]
+  },
+  "retained_failure": {
+    "first_run_complete": false,
+    "passed_checks_before_failure": 4,
+    "reason": "The first assertion required a ready null-holder state after every expiry. A connection retirement can instead leave a retained epoch with no live authority. The corrected test checks expired native authority before querying status, rejects late commands/renewals, and verifies an explicitly acquired later task.",
+    "clear_fence_path_not_claimed": true
+  },
+  "cleanup_completed": true,
+  "test_fixture_sha256": {
+    "apps/android/tests/multi/native/run.py": "d4de1e5bd1da967e209dbc100852515c369372299d5f76f3991b6766f5686752",
+    "apps/android/tests/multi/native/README.md": "16fcbce438616dd09a601b3b1fc64d20620928f7751e5c7843b08fbbacc0c31b",
+    "apps/android/tests/multi/native/client/io/airtap/preview/NativeBridge.java": "16670372113c2bb3b4a4aa8edc0b84e6641eb61cf4bd7c2691c64c365e62c294"
+  },
+  "limitations": [
+    "No physical phone, OEM lifecycle, personal-AI runtime or normal-user setup acceptance.",
+    "Explicit renewals isolate the Android fence; this is not CLI automatic-renewal evidence.",
+    "Relay sources were frozen before the separate CLI.12 relative-status-TTL change; this record does not validate that entire newer stack.",
+    "No attribution of the earlier Muse lease interruption and no approval to replace another phone control chain."
+  ],
+  "publication_boundary": "Synthetic aggregate results and source hashes only; no raw phone content, real device or account identifiers, credentials or private paths."
+}

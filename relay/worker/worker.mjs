@@ -606,8 +606,9 @@ export class MultiPairingRelay extends PairingRelay {
   multiStatus(g) {
     const connected = this.connected(), a = connected ? attachment(this.device) : null, t = this.state.task;
     const task = { state: t ? t.claimId === g.id ? t.state === 'ready' ? 'ready' : 'fencing' : 'busy' : 'idle',
-      task_id: null, lease_id: null, lease_epoch: null, expires_at_ms: null, renewal_sequence: null };
+      task_id: null, lease_id: null, lease_epoch: null, expires_at_ms: null, expires_in_ms: null, renewal_sequence: null };
     if (t?.claimId === g.id) Object.assign(task, { task_id: t.taskId, lease_epoch: t.epoch, expires_at_ms: t.expiresAtMs,
+      expires_in_ms: Math.max(0, Math.min(TASK_TTL, t.expiresAtMs - Date.now())),
       renewal_sequence: t.renewalSequence, ...(t.state === 'ready' ? { lease_id: t.leaseId } : {}) });
     return { mode: 'multi', claim_id: g.id, deviceConnected: connected, pending: this.pending?.claimId === g.id ? 1 : 0,
       session_expires_at: null, allow_tap: g.scope.allowTap, ...scope(g.scope), command_sequence: g.sequence,

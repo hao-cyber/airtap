@@ -1,5 +1,6 @@
 """CLI lease intents, lost responses and process locking. Synthetic records only."""
 import base64
+import copy
 import importlib.util
 import io
 import json
@@ -94,7 +95,7 @@ class TaskTest(unittest.TestCase):
 
     def test_acquire_status_recovers_own_ready_without_another_post(self):
         self.config['task_lease'] = {'state': 'acquiring', 'task_id': TASK}
-        state = {k: v for k, v in self.ready()['data'].items() if k in ('state', 'task_id', 'lease_id', 'lease_epoch', 'expires_at_ms')}
+        state = {k: v for k, v in self.ready()['data'].items() if k in ('state', 'task_id', 'lease_id', 'lease_epoch', 'expires_at_ms', 'expires_in_ms')}
         with patch.object(cli, 'request', return_value=self.status(state)) as request:
             self.assertEqual(cli.acquire_task(self.args, self.config)['task_id'], TASK)
         self.assertEqual(request.call_count, 1)
@@ -123,7 +124,7 @@ class TaskTest(unittest.TestCase):
                 request.assert_not_called()
 
     def test_recovered_status_renewal_sequence_is_used_without_guessing(self):
-        state = {k: v for k, v in self.ready()['data'].items() if k in ('state', 'task_id', 'lease_id', 'lease_epoch', 'expires_at_ms')}
+        state = {k: v for k, v in self.ready()['data'].items() if k in ('state', 'task_id', 'lease_id', 'lease_epoch', 'expires_at_ms', 'expires_in_ms')}
         state['renewal_sequence'] = 9
         cli.reconcile_task(self.args, self.config, state)
         response = self.ready(); response['data']['renewal_sequence'] = 10
@@ -133,7 +134,7 @@ class TaskTest(unittest.TestCase):
         self.assertEqual(self.saved()['task_lease']['renewal_sequence'], 10)
 
     def test_recovered_status_without_renewal_sequence_never_guesses_zero(self):
-        state = {k: v for k, v in self.ready()['data'].items() if k in ('state', 'task_id', 'lease_id', 'lease_epoch', 'expires_at_ms')}
+        state = {k: v for k, v in self.ready()['data'].items() if k in ('state', 'task_id', 'lease_id', 'lease_epoch', 'expires_at_ms', 'expires_in_ms')}
         cli.reconcile_task(self.args, self.config, state)
         with patch.object(cli, 'request') as request:
             self.failure('renewal_sequence_unknown', lambda: cli.renew_task(self.args, self.config))
@@ -163,9 +164,11 @@ class TaskTest(unittest.TestCase):
                      'expires_at_ms': None, 'renewal_sequence': None}
             self.assertEqual(cli.safe_task_status(value)['state'], state)
             self.failure('invalid_task_status', lambda: cli.safe_task_status({**value, 'renewal_sequence': 3}))
+            self.failure('invalid_task_status', lambda: cli.safe_task_status({**value, 'expires_in_ms': 1000}))
         value = {'state': 'fencing', 'task_id': TASK, 'lease_id': None, 'lease_epoch': 2,
-                 'expires_at_ms': 1120000, 'renewal_sequence': 7}
+                 'expires_at_ms': 1120000, 'expires_in_ms': 120000, 'renewal_sequence': 7}
         self.assertEqual(cli.safe_task_status(value)['renewal_sequence'], 7)
+        self.assertEqual(cli.safe_task_status(value)['expires_in_ms'], 120000)
         self.failure('invalid_task_status', lambda: cli.safe_task_status({**value, 'renewal_sequence': True}))
 
     def test_acquire_does_not_enable_old_single_mode(self):
@@ -230,7 +233,7 @@ class TaskTest(unittest.TestCase):
         pending = {'renewal_id': '4' * 32, 'renewal_sequence': 1}
         self.config['task_lease'].update(state='uncertain', pending_renewal=pending)
         cli.save_config(self.path, self.config)
-        state = {k: v for k, v in self.ready()['data'].items() if k in ('state', 'task_id', 'lease_id', 'lease_epoch', 'expires_at_ms')}
+        state = {k: v for k, v in self.ready()['data'].items() if k in ('state', 'task_id', 'lease_id', 'lease_epoch', 'expires_at_ms', 'expires_in_ms')}
         with patch.object(cli, 'request', side_effect=[self.status(state), self.ready()]) as request:
             cli.renew_task(self.args, self.saved())
         self.assertEqual([call.args[1] for call in request.call_args_list], ['/v1/status', '/v1/tasks/renew'])
@@ -249,7 +252,7 @@ class TaskTest(unittest.TestCase):
                 task = {'state': state, 'task_id': None, 'lease_id': None, 'lease_epoch': None, 'expires_at_ms': None}
                 if state == 'expired':
                     task = {'state': 'ready', 'task_id': TASK, 'lease_id': LEASE, 'lease_epoch': 2,
-                            'expires_at_ms': int(self.now * 1000) - 1}
+                            'expires_at_ms': int(self.now * 1000) - 1, 'expires_in_ms': 0}
                 with patch.object(cli, 'request', side_effect=[self.status(task), self.ready()]) as request:
                     failure = self.failure('task_acquire_required', lambda: cli.renew_task(self.args, self.saved()))
                 self.assertIs(failure.get('retry_action'), False)
@@ -331,7 +334,7 @@ class TaskTest(unittest.TestCase):
     def test_connection_change_requires_new_observation_even_same_lease_metadata(self):
         self.give_lease(); self.config['connection_id'] = 'e' * 32
         self.config['task_needs_observation'] = False
-        state = {k: v for k, v in self.ready()['data'].items() if k in ('state', 'task_id', 'lease_id', 'lease_epoch', 'expires_at_ms')}
+        state = {k: v for k, v in self.ready()['data'].items() if k in ('state', 'task_id', 'lease_id', 'lease_epoch', 'expires_at_ms', 'expires_in_ms')}
         with patch.object(cli, 'request', return_value=self.status(state)):
             cli.status_request(self.args, self.config)
         self.assertTrue(self.saved()['task_needs_observation'])
@@ -374,7 +377,7 @@ class TaskTest(unittest.TestCase):
 
     def test_status_does_not_undo_pending_release_or_extend_known_expiry(self):
         self.give_lease()
-        state = {k: v for k, v in self.ready()['data'].items() if k in ('state', 'task_id', 'lease_id', 'lease_epoch', 'expires_at_ms')}
+        state = {k: v for k, v in self.ready()['data'].items() if k in ('state', 'task_id', 'lease_id', 'lease_epoch', 'expires_at_ms', 'expires_in_ms')}
         deadline = self.config['task_lease']['local_expires_at']
         self.now += 5
         state['expires_at_ms'] += 60000
@@ -384,9 +387,201 @@ class TaskTest(unittest.TestCase):
         cli.reconcile_task(self.args, self.config, state)
         self.assertEqual(self.config['task_lease']['state'], 'releasing')
 
+    def test_status_recovers_relative_deadline_with_client_clock_ahead_or_behind(self):
+        for offset in (-180, 180):
+            with self.subTest(server_clock_offset=offset):
+                self.config.pop('task_lease', None)
+                state = {**self.ready(ttl=30000)['data'],
+                         'expires_at_ms': int((self.now + offset + 30) * 1000)}
+                response = self.status(state); response['elapsed_ms'] = 250
+                with patch.object(cli, 'request', return_value=response):
+                    cli.status_request(self.args, self.config)
+                lease = self.saved()['task_lease']
+                self.assertEqual(lease['state'], 'ready')
+                self.assertAlmostEqual(lease['local_expires_at'], self.now + 29.75)
+
+    def test_status_after_successful_renew_preserves_relative_deadline_across_clock_skew(self):
+        for offset in (-180, 180):
+            with self.subTest(server_clock_offset=offset):
+                self.give_lease(ttl=10000)
+                renewed = self.ready()
+                renewed['data'].update(expires_at_ms=int((self.now + offset + 120) * 1000),
+                                       renewal_sequence=1)
+                with patch.object(cli, 'request', return_value=renewed):
+                    cli.renew_task(self.args, self.config)
+                response = self.status(renewed['data']); response['elapsed_ms'] = 30
+                with patch.object(cli, 'request', return_value=response):
+                    cli.status_request(self.args, self.config)
+                lease = self.saved()['task_lease']
+                self.assertEqual(lease['state'], 'ready')
+                self.assertEqual(lease['renewal_sequence'], 1)
+                self.assertAlmostEqual(lease['local_expires_at'], self.now + 119.97)
+
+    def test_status_rejects_missing_or_invalid_relative_ttl_and_elapsed(self):
+        self.give_lease()
+        before = copy.deepcopy(self.config)
+        saved_before = self.path.read_bytes()
+        for ttl in (None, True, 1.5, -1, 120001):
+            with self.subTest(ttl=ttl):
+                state = self.ready()['data'].copy()
+                if ttl is None: state.pop('expires_in_ms')
+                else: state['expires_in_ms'] = ttl
+                with patch.object(cli, 'request', return_value=self.status(state)):
+                    self.failure('invalid_task_status', lambda: cli.status_request(self.args, self.config))
+                self.assertEqual(self.config, before)
+                self.assertEqual(self.path.read_bytes(), saved_before)
+        for elapsed in (None, True, -1, float('nan'), float('inf')):
+            with self.subTest(elapsed=elapsed):
+                response = self.status(self.ready()['data']); response['elapsed_ms'] = elapsed
+                with patch.object(cli, 'request', return_value=response):
+                    self.failure('invalid_task_status', lambda: cli.status_request(self.args, self.config))
+                self.assertEqual(self.config, before)
+                self.assertEqual(self.path.read_bytes(), saved_before)
+
+    def test_status_preserves_terminal_state_even_across_intervening_idle_status(self):
+        for terminal in ('closed', 'expired'):
+            for pending in (False, True):
+                with self.subTest(state=terminal, pending=pending):
+                    self.give_lease()
+                    self.config['task_lease']['state'] = terminal
+                    if pending:
+                        self.config['task_lease']['pending_renewal'] = {'renewal_id': '4' * 32, 'renewal_sequence': 1}
+                    original = copy.deepcopy(self.config['task_lease'])
+                    for response in (self.status(self.ready()['data']), self.status(), self.status(self.ready()['data'])):
+                        with patch.object(cli, 'request', return_value=response):
+                            cli.status_request(self.args, self.config)
+                        self.assertEqual(self.saved()['task_lease'], original)
+
+    def test_status_elapsed_consumes_ttl_and_never_revives_same_expired_task(self):
+        self.give_lease()
+        response = self.status(self.ready(ttl=1000)['data']); response['elapsed_ms'] = 1001
+        with patch.object(cli, 'request', return_value=response):
+            cli.status_request(self.args, self.config)
+        self.assertEqual(self.saved()['task_lease']['state'], 'expired')
+        self.assertLessEqual(self.saved()['task_lease']['local_expires_at'], self.now)
+        response = self.status(self.ready()['data'])
+        with patch.object(cli, 'request', return_value=response):
+            cli.status_request(self.args, self.config)
+        self.assertEqual(self.saved()['task_lease']['state'], 'expired')
+        with patch.object(cli, 'request') as request:
+            self.failure('task_acquire_required', lambda: cli.command_request(
+                self.args, self.config, {'id': 'id', 'action': 'ping'}))
+            request.assert_not_called()
+
+    def test_status_clock_regression_does_not_revalidate_local_ready_task(self):
+        self.give_lease()
+        self.now -= 1
+        with patch.object(cli, 'request', return_value=self.status(self.ready()['data'])):
+            cli.status_request(self.args, self.config)
+        self.assertEqual(self.saved()['task_lease']['state'], 'expired')
+
+    def test_pending_renew_status_uses_relative_ttl_and_retains_original_intent(self):
+        self.give_lease(ttl=1000)
+        pending = {'renewal_id': '4' * 32, 'renewal_sequence': 1}
+        self.config['task_lease'].update(state='uncertain', pending_renewal=pending)
+        self.now += 2
+        state = {**self.ready(ttl=100000)['data'], 'expires_at_ms': int((self.now - 180 + 100) * 1000),
+                 'renewal_sequence': 1}
+        response = self.status(state); response['elapsed_ms'] = 50
+        renewed = {'data': state, 'elapsed_ms': 10}
+        with patch.object(cli, 'request', side_effect=[response, renewed]) as request:
+            cli.renew_task(self.args, self.config)
+        self.assertEqual([call.args[1] for call in request.call_args_list], ['/v1/status', '/v1/tasks/renew'])
+        self.assertEqual(request.call_args.kwargs['body'], {'task_id': TASK, 'lease_id': LEASE,
+                                                          'lease_epoch': 2, **pending})
+        lease = self.saved()['task_lease']
+        self.assertEqual(lease['state'], 'ready')
+        self.assertEqual(lease['renewal_sequence'], 1)
+        self.assertNotIn('pending_renewal', lease)
+
+    def test_expired_pending_renew_recovers_only_confirmed_intent_before_new_command(self):
+        self.give_lease(ttl=1000)
+        with patch.object(cli, 'request', side_effect=cli.Failure('network_failure', outcome='unknown')):
+            self.failure('network_failure', lambda: cli.renew_task(self.args, self.config))
+        pending = copy.deepcopy(self.saved()['task_lease']['pending_renewal'])
+        self.now += 2
+        with patch.object(cli, 'request') as request:
+            self.failure('task_acquire_required', lambda: cli.command_request(
+                self.args, self.config, {'id': 'rejected-before-status', 'action': 'ping'}))
+            request.assert_not_called()
+        self.assertEqual(self.saved()['task_lease']['state'], 'expired')
+        self.config = self.saved()
+        ready = self.ready(ttl=100000)
+        ready['data'].update(renewal_sequence=pending['renewal_sequence'],
+                             expires_at_ms=int((self.now - 180 + 100) * 1000))
+        with patch.object(cli, 'request', return_value=self.status(ready['data'])) as request:
+            cli.status_request(self.args, self.config)
+        self.assertEqual([call.args[1] for call in request.call_args_list], ['/v1/status'])
+        self.assertEqual(self.saved()['task_lease']['state'], 'ready')
+        self.assertEqual(self.saved()['task_lease']['pending_renewal'], pending)
+        self.assertTrue(self.saved()['task_needs_observation'])
+        self.config = self.saved()
+        def send(url, path, token=None, body=None, **kwargs):
+            if path == '/v1/tasks/renew':
+                self.assertEqual(body, {'task_id': TASK, 'lease_id': LEASE, 'lease_epoch': 2, **pending})
+                self.assertEqual(self.saved()['task_lease']['pending_renewal'], pending)
+                return ready
+            self.assertEqual(path, '/v1/command')
+            self.assertEqual(body['id'], 'new-observation-ping')
+            self.assertNotIn('pending_renewal', self.saved()['task_lease'])
+            return {'data': {'id': body['id'], 'ok': True, 'result': {}}, 'elapsed_ms': 1}
+        with patch.object(cli, 'request', side_effect=send) as request:
+            cli.command_request(self.args, self.config, {'id': 'new-observation-ping', 'action': 'ping'})
+        self.assertEqual([call.args[1] for call in request.call_args_list], ['/v1/tasks/renew', '/v1/command'])
+        self.assertEqual(self.saved()['task_lease']['task_id'], TASK)
+        self.assertNotIn('pending_renewal', self.saved()['task_lease'])
+
+    def test_expired_pending_renew_needs_valid_intent_confirmed_watermark_and_remaining_time(self):
+        pending = {'renewal_id': '4' * 32, 'renewal_sequence': 1}
+        cases = [('missing_intent', None, 1, 100000, 5),
+                 ('not_object', True, 1, 100000, 5),
+                 ('bad_id', {**pending, 'renewal_id': 'invalid'}, 1, 100000, 5),
+                 ('extra_field', {**pending, 'unexpected': True}, 1, 100000, 5),
+                 ('bool_sequence', {**pending, 'renewal_sequence': True}, 1, 100000, 5),
+                 ('zero_sequence', {**pending, 'renewal_sequence': 0}, 0, 100000, 5),
+                 ('missing_watermark', pending, None, 100000, 5),
+                 ('unconfirmed_watermark', pending, 0, 100000, 5),
+                 ('different_watermark', pending, 2, 100000, 5),
+                 ('missing_ttl', pending, 1, None, 5),
+                 ('zero_ttl', pending, 1, 0, 0),
+                 ('consumed_ttl', pending, 1, 1000, 1000)]
+        for name, intent, sequence, ttl, elapsed in cases:
+            with self.subTest(case=name):
+                self.give_lease(ttl=1000)
+                self.config['task_lease']['state'] = 'expired'
+                if intent is not None: self.config['task_lease']['pending_renewal'] = copy.deepcopy(intent)
+                original = copy.deepcopy(self.config['task_lease'])
+                cli.save_config(self.path, self.config)
+                state = self.ready(ttl=ttl if ttl is not None else 100000)['data']
+                if ttl is None: state.pop('expires_in_ms')
+                if sequence is not None: state['renewal_sequence'] = sequence
+                response = self.status(state); response['elapsed_ms'] = elapsed
+                with patch.object(cli, 'request', return_value=response) as request:
+                    if ttl is None:
+                        self.failure('invalid_task_status', lambda: cli.status_request(self.args, self.config))
+                    else:
+                        cli.status_request(self.args, self.config)
+                self.assertEqual([call.args[1] for call in request.call_args_list], ['/v1/status'])
+                self.assertEqual(self.saved()['task_lease'], original)
+                with patch.object(cli, 'request') as request:
+                    self.failure('task_acquire_required', lambda: cli.renew_task(self.args, self.config))
+                    request.assert_not_called()
+
+    def test_confirmed_pending_renew_never_reopens_closed_or_releasing(self):
+        for terminal in ('closed', 'releasing'):
+            with self.subTest(state=terminal):
+                self.give_lease()
+                self.config['task_lease'].update(state=terminal,
+                    pending_renewal={'renewal_id': '4' * 32, 'renewal_sequence': 1})
+                original = copy.deepcopy(self.config['task_lease'])
+                state = {**self.ready()['data'], 'renewal_sequence': 1}
+                with patch.object(cli, 'request', return_value=self.status(state)):
+                    cli.status_request(self.args, self.config)
+                self.assertEqual(self.saved()['task_lease'], original)
+
     def test_status_changed_lease_invalidates_both_visual_caches(self):
         self.give_lease()
-        state = {k: v for k, v in self.ready(lease='f' * 32, epoch=3)['data'].items() if k in ('state', 'task_id', 'lease_id', 'lease_epoch', 'expires_at_ms')}
+        state = {k: v for k, v in self.ready(lease='f' * 32, epoch=3)['data'].items() if k in ('state', 'task_id', 'lease_id', 'lease_epoch', 'expires_at_ms', 'expires_in_ms')}
         cli.reconcile_task(self.args, self.config, state)
         self.assertNotIn('snapshot', self.config); self.assertNotIn('observation', self.config)
         self.assertTrue(self.config['task_needs_observation'])
@@ -475,7 +670,7 @@ class ProcessRoundtripTest(unittest.TestCase):
                 path = Path(directory).resolve() / 'phone.json'
                 now = time.time()
                 task = {'state': 'ready', 'task_id': TASK, 'lease_id': LEASE, 'lease_epoch': 2,
-                        'expires_at_ms': int((now + 120) * 1000), 'renewal_sequence': 0}
+                        'expires_at_ms': int((now + 120) * 1000), 'expires_in_ms': 120000, 'renewal_sequence': 0}
                 state = {'requests': [], 'lose_renew': pending, 'lose_release': True, 'released': False,
                          'persisted_intents': []}
                 class Handler(http.server.BaseHTTPRequestHandler):
@@ -573,7 +768,7 @@ class ProcessRoundtripTest(unittest.TestCase):
                 task = state['task']
                 if task is None:
                     return {'state': 'idle', 'task_id': None, 'lease_id': None, 'lease_epoch': None, 'expires_at_ms': None}
-                return {key: task[key] for key in ('state', 'task_id', 'lease_id', 'lease_epoch', 'expires_at_ms')}
+                return {key: task[key] for key in ('state', 'task_id', 'lease_id', 'lease_epoch', 'expires_at_ms', 'expires_in_ms')}
             class Handler(http.server.BaseHTTPRequestHandler):
                 def log_message(self, *args): pass
                 def do_GET(self):
@@ -591,7 +786,7 @@ class ProcessRoundtripTest(unittest.TestCase):
                         saved = json.loads(path.read_text())
                         state['intent_saved_before_send'] = saved['task_lease']['task_id'] == body['task_id']
                         state['task'] = {'state': 'ready', 'task_id': body['task_id'], 'lease_id': LEASE,
-                                         'lease_epoch': 1, 'expires_at_ms': int(time.time() * 1000) + 120000}
+                                         'lease_epoch': 1, 'expires_at_ms': int(time.time() * 1000) + 120000, 'expires_in_ms': 120000}
                         state['lost'] = True
                         self.connection.shutdown(socket.SHUT_RDWR); self.connection.close(); return
                     if self.path == '/v1/command':

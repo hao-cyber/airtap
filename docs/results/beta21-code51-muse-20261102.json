@@ -1,0 +1,100 @@
+{
+  "schema": "airtap-personal-ai-evidence-review-v1",
+  "recorded_date": "2026-11-02",
+  "status": "bounded_task_completed_with_recovery_and_unresolved_lease_interruption",
+  "client": {
+    "version_name": "0.4.0-beta.21",
+    "version_code": 51,
+    "build_type": "release"
+  },
+  "cli": {
+    "version": "0.4.0-cli.11",
+    "sha256": "4d2cd31f76437d622f11a4c2a9491ba1d4150d661cb4b139f629faf8948bb1c6"
+  },
+  "device_scope": "One previously paired Android test phone in multi-AI mode.",
+  "actor": "Muse actual cloud environment using its existing approved connection, after the owner directly authorized this round in Muse.",
+  "task": {
+    "steps": [
+      "Check the installed version and prepare the screen through normal Airtap commands.",
+      "Use the SMS App search interface to check the sender and date of an existing welcome message.",
+      "Search Google Play for Google Maps.",
+      "Return to the launcher and release the task lease."
+    ],
+    "play_results_visual_check": true,
+    "final_home_visual_check": true,
+    "sms_metadata_independently_checked_by_maintainer": false,
+    "sms_limit": "Muse reported the sender/date only in the owner's original conversation. Returned command metadata supports the SMS GUI path, but no SMS screenshots or trees were retained in the exported evidence. This review does not independently verify the sender/date values."
+  },
+  "calls": {
+    "retained_metadata_records": 61,
+    "exit_zero": 54,
+    "exit_nonzero": 7,
+    "task_acquire": 2,
+    "explicit_task_renew": 3,
+    "task_release": 1,
+    "count_limit": "Counts come from the retained invocation log. A later narrative describes 59 runner calls without reconciling that scope with the 61 archived records. Internal HTTP renew requests are not separate top-level CLI calls."
+  },
+  "wake": {
+    "initial_reported_screen_state": "screen_off",
+    "initial_connection_ready": true,
+    "initial_screen_ready": false,
+    "automatic_screen_preparation_advertised": true,
+    "needs_system_authentication_reported": false,
+    "first_observation_failed": true,
+    "first_error_reported_by_agent": "window_changed",
+    "next_observation_succeeded": true,
+    "supporting_maintainer_evidence": "Early read-only power samples changed from asleep to awake, and Android recorded an Airtap wake lock. The maintainer had opened Muse before the task to inspect the conversation; the phone remained asleep at that point.",
+    "limits": "The wake images were not exported. Host and phone clocks were not precisely synchronized. A later local monitoring gap of about five hours prevents a claim of continuous observation or a completed long-idle test. The evidence supports this bounded wake attempt, not cold-start or unattended upgrade recovery."
+  },
+  "failures_and_recovery": [
+    {
+      "area": "screen observation",
+      "record": "The first observe call failed; a subsequent observation succeeded during screen preparation."
+    },
+    {
+      "area": "CLI invocation",
+      "record": "One read-tree invocation used an unsupported --output argument and exited with code 2 before command execution."
+    },
+    {
+      "area": "task lease",
+      "record": "The initial task was interrupted. Muse reports lease_expired and task_acquire_required responses, then explicitly acquired a new task and continued. All three explicit renew commands succeeded.",
+      "root_cause": "unresolved",
+      "correction": "CLI.11 already contains automatic renewal before active commands when the locally live lease has less than 45 seconds remaining. Muse subsequently confirmed that the same CLI path and hash contained this code. The initial receipt's claim that CLI.11 lacked automatic renewal was incorrect.",
+      "evidence_limit": "No per-call configuration snapshots, internal renewal events or relay history were retained. The record cannot establish whether an automatic renewal was attempted, succeeded and later lost, or was never entered. Source-code HTTP mappings are not observed HTTP responses."
+    },
+    {
+      "area": "Google Play",
+      "record": "The home view was initially blank, then showed a connection timeout. An in-App retry still timed out. Muse continued through the Search tab and obtained the requested installed-app listing; no app was installed or launched."
+    }
+  ],
+  "final_status": {
+    "pairing_state": "approved",
+    "device_connected": true,
+    "mode": "multi",
+    "task_state": "idle",
+    "pending_commands": 0,
+    "release_completed": true
+  },
+  "evidence": {
+    "retained_material": "Invocation metadata, selected ping/status JSON extracts, agent narrative and five Play/launcher images.",
+    "images_visually_reviewed_by_maintainer": 5,
+    "image_binding_limit": "The returned images were visually inspected, but the selected response extracts do not independently bind each image to a complete original per-call response digest.",
+    "full_per_call_stdout_stderr_received": false,
+    "per_error_attribution_limit": "The archive does not support independently mapping all seven nonzero calls to complete original response payloads.",
+    "raw_materials": "Private; not distributed with source."
+  },
+  "maintainer_intervention": {
+    "before_task": "The maintainer installed the candidate and inspected the existing Muse conversation. The owner directly authorized the business task in Muse.",
+    "during_task": "No maintainer phone business actions were used to complete the task. The local observation gap limits independent verification of the full interval.",
+    "after_task": "The maintainer requested a technical explanation. Muse inspected its existing local records without exporting raw configuration or SMS content. A later new phone retest request was refused and executed no CLI calls."
+  },
+  "not_verified": [
+    "Root cause or resolution of the historical lease interruption.",
+    "A successful new real-phone automatic-renewal retest.",
+    "Current-version Instinct business operation or two personal AIs handing off a live task.",
+    "Continuous long-idle recovery, cold start or unattended upgrade recovery.",
+    "Independent first-time use, another device or migration of an existing production phone."
+  ],
+  "release_effect": "Evidence only; this record does not change the recommended APK or approve replacing another phone's control chain.",
+  "publication_boundary": "No SMS values or body, screenshots, account names, phone numbers, user/connection identifiers, credentials, private paths or private service addresses are included."
+}

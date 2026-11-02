@@ -12,6 +12,14 @@ The harness retains failures. A successful result must have `complete: true` and
 
 After collecting evidence, uninstall only the two packages created by this harness, remove its reverse-port mapping, return HOME, stop the newly created AVD, and delete only that AVD registration. Preserve private failure evidence and source hashes. The runner currently leaves the disposable environment available for failure diagnosis; cleanup is an explicit final owner step.
 
+## Focused real-time lease checks
+
+`run.py --suite leases` uses the same isolated full production Android client and local workerd. It performs two same-epoch renewals about 70 seconds apart, checks the actual Android lease watermark and remaining monotonic time, retries each renewal without extending its deadline, and sends a real phone ping after the original 120-second deadline. Release must clear the native lease and reject its old identity. A separate task then idles for the full normal TTL without commands or renewals; native authority must expire before the next status request, late commands/renewals must fail, and pairing must permit a later explicit task with a higher fence after UI/file execution is quiescent.
+
+The suite takes about five minutes. It uses explicit protocol renewals to isolate the Android fence from CLI scheduling; the optional `--active-lease-window` service test separately covers automatic CLI renewal. `NativeBridge` reads lease metadata through reflection but never modifies the production lease, clock or effects. The runner verifies production Java and APK hashes against the private build manifest, and relay inputs against that build's commit. It does not use UiAutomation, screenshots or personal content, and does not claim physical-device lifecycle or personal-AI acceptance.
+
+`--suite lease-idle` runs the idle-expiry and later-task checks after normal setup, without repeating the long renewal case. It reads Android's expired authority before requesting relay status, so status cannot mask a live native lease. It separately records a clear fence versus a connection change: a relay cold restore may retire an expired connection, leaving `TaskLease.idle()` false until the next fence despite no live authority. This suite does not require or prove one particular autonomous alarm path. `--source-root` can select the exact frozen checkout recorded by the build when other work continues in the main checkout.
+
 ## Focused migration Owner UI checks
 
 `run_owner.py` is a separate opt-in suite for the migration and STOP/retry changes. Build with `prepare.py --source-root <frozen-checkout> --expected-commit <commit>`; run with `run_owner.py --source-root <same-checkout>` and the other runner arguments. It checks copied production Java hashes again and compares real workerd inputs to the recorded build commit. It does not rerun or reattribute the earlier gesture/file-IO suite.

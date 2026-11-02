@@ -72,6 +72,59 @@ async function phone(d, multi = true) {
 }
 const command = (n, t) => ({ id: crypto.randomUUID(), action: 'ping', sequence: n, ...(t ? { lease_id: t.lease_id, lease_epoch: t.lease_epoch } : {}) });
 const leaseBody = t => ({ task_id: t.task_id, lease_id: t.lease_id, lease_epoch: t.lease_epoch });
+async function cliLoopback(device, controller, { profileName, clockOffsetSeconds = 0, drop = null }) {
+  const profile = join(temp, profileName), cliPath = join(root, 'cli/airtap.py'), requests = [];
+  const edge = createServer(async (req, res) => {
+    try {
+      const chunks = []; for await (const bytes of req) chunks.push(bytes);
+      const raw = Buffer.concat(chunks), endpoint = req.url.slice(device.base.length);
+      const upstream = await mf.dispatchFetch('http://localhost' + req.url, { method: req.method,
+        headers: { ...req.headers, 'cf-connecting-ip': '127.0.0.1' }, ...(raw.length ? { body: raw } : {}) });
+      const bytes = Buffer.from(await upstream.arrayBuffer());
+      requests.push({ endpoint, status: upstream.status, body: raw.length ? JSON.parse(raw.toString()) : null });
+      if (drop && endpoint === '/v1/tasks/' + drop) { drop = null; req.socket.destroy(); return; }
+      res.writeHead(upstream.status, { 'content-type': 'application/json', 'content-length': bytes.length }); res.end(bytes);
+    } catch { res.writeHead(502); res.end(); }
+  });
+  const close = async () => { if (edge.listening) await new Promise(resolve => edge.close(resolve)); };
+  try {
+    await new Promise((resolve, reject) => { edge.once('error', reject); edge.listen(0, '127.0.0.1', resolve); });
+    await writeFile(profile, JSON.stringify({ url: 'http://127.0.0.1:' + edge.address().port + device.base,
+      controller_token: controller.token, state: 'approved', persistent: true, all_apps: true, allow_control: true,
+      session_expires_at: null, command_sequence: 0 }), { mode: 0o600 });
+  } catch (error) { await close(); throw error; }
+  // Only this independent Python process sees the shifted wall clock. The
+  // production CLI, HTTP child, relay and system clock are otherwise unchanged.
+  const clockShim = `import runpy,sys,time
+offset=float(sys.argv.pop(1)); cli=sys.argv.pop(1); mode=sys.argv.pop(1)
+real_time=time.time; time.time=lambda:real_time()+offset
+sys.argv[0]=cli
+if mode == 'invoke':
+    runpy.run_path(cli,run_name='__main__')
+else:
+    import json
+    namespace=runpy.run_path(cli,run_name='airtap_clock_probe')
+    with open(sys.argv[1],encoding='utf8') as stream: config=json.load(stream)
+    lease=config.get('task_lease',{})
+    print(json.dumps({'live':namespace['task_live'](lease),'state':lease.get('state'),
+        'remaining_ms':round((lease.get('local_expires_at',time.time())-time.time())*1000)}))
+`;
+  const run = (mode, args) => new Promise((resolve, reject) => {
+    const child = spawn(process.env.PYTHON || 'python3', ['-c', clockShim, String(clockOffsetSeconds), cliPath, mode, ...args],
+      { stdio: ['ignore', 'pipe', 'pipe'] });
+    let out = '', err = ''; const timer = setTimeout(() => child.kill('SIGKILL'), 25000);
+    child.stdout.on('data', bytes => out += bytes); child.stderr.on('data', bytes => err += bytes);
+    child.on('error', error => { clearTimeout(timer); reject(error); });
+    child.on('close', code => {
+      clearTimeout(timer);
+      try { assert.equal(err, ''); assert.equal(out.includes(controller.token), false); resolve({ code, value: JSON.parse(out) }); }
+      catch (error) { reject(error); }
+    });
+  });
+  return { requests, close, setDrop: operation => { drop = operation; },
+    invoke: command => run('invoke', ['--allow-local-http', '--config', profile, command]),
+    probe: () => run('probe', [profile]), saved: async () => JSON.parse(await readFile(profile, 'utf8')) };
+}
 let d, a, b, p, tA, tB, invite;
 try {
   await check('old single wire and sequence remain unchanged', async () => {
@@ -317,27 +370,71 @@ try {
   });
   await check('real CLI processes recover lost acquire and renewal over production relay without re-pairing', async () => {
     const x=await enroll(), c=await single(x);await ok(x.base+'/v1/device/multi/enable',x.token,migration(c.claim));const phoneFixture=await phone(x);
-    let drop='acquire', acquiredPosts=0;const renewalBodies=[];
-    const edge=createServer(async(req,res)=>{try{
-      const chunks=[];for await(const bytes of req) chunks.push(bytes);const raw=Buffer.concat(chunks);
-      if(req.url.endsWith('/tasks/acquire'))acquiredPosts++;
-      if(req.url.endsWith('/tasks/renew'))renewalBodies.push(JSON.parse(raw.toString()));
-      const upstream=await mf.dispatchFetch('http://localhost'+req.url,{method:req.method,headers:{...req.headers,'cf-connecting-ip':'127.0.0.1'},...(raw.length?{body:raw}:{})});
-      const bytes=Buffer.from(await upstream.arrayBuffer());
-      if(drop&&req.url.endsWith('/tasks/'+drop)){drop=null;req.socket.destroy();return;}
-      res.writeHead(upstream.status,{'content-type':'application/json','content-length':bytes.length});res.end(bytes);
-    }catch{res.writeHead(502);res.end();}});
-    await new Promise(resolve=>edge.listen(0,'127.0.0.1',resolve));const profile=join(temp,'cli-private.json');
-    await writeFile(profile,JSON.stringify({url:'http://127.0.0.1:'+edge.address().port+x.base,controller_token:c.token,state:'approved',persistent:true,all_apps:true,allow_control:true,session_expires_at:null,command_sequence:0}),{mode:0o600});
-    const invoke=command=>new Promise((resolve,reject)=>{const child=spawn(process.env.PYTHON||'python3',[join(root,'cli/airtap.py'),'--allow-local-http','--config',profile,command],{stdio:['ignore','pipe','pipe']});let out='',err='';const timer=setTimeout(()=>child.kill('SIGKILL'),25000);child.stdout.on('data',b=>out+=b);child.stderr.on('data',b=>err+=b);child.on('error',reject);child.on('close',code=>{clearTimeout(timer);try{assert.equal(err,'');assert.equal(out.includes(c.token),false);resolve({code,value:JSON.parse(out)});}catch(e){reject(e);}});});
+    const fixture=await cliLoopback(x,c,{profileName:'cli-private.json',drop:'acquire'}), {invoke}=fixture;
     try {
-      assert.equal((await invoke('task-acquire')).code,1);const ready=await invoke('task-acquire');assert.equal(ready.code,0,JSON.stringify(ready.value));assert.equal(acquiredPosts,1);
-      assert.equal((await invoke('ping')).code,0);drop='renew';assert.equal((await invoke('task-renew')).code,1);assert.equal((await invoke('task-renew')).code,0);
+      assert.equal((await invoke('task-acquire')).code,1);const ready=await invoke('task-acquire');assert.equal(ready.code,0,JSON.stringify(ready.value));
+      assert.equal(fixture.requests.filter(r=>r.endpoint==='/v1/tasks/acquire').length,1);
+      assert.equal((await invoke('ping')).code,0);fixture.setDrop('renew');assert.equal((await invoke('task-renew')).code,1);assert.equal((await invoke('task-renew')).code,0);
+      const renewalBodies=fixture.requests.filter(r=>r.endpoint==='/v1/tasks/renew').map(r=>r.body);
       assert.deepEqual(renewalBodies[0],renewalBodies[1]);assert.equal(renewalBodies[0].renewal_sequence,1);
       assert.equal((await invoke('ping')).code,0);assert.equal((await invoke('task-release')).value.state,'released');
-      const saved=JSON.parse(await readFile(profile,'utf8'));assert.equal(saved.controller_token,c.token);assert.equal(saved.command_sequence,2);assert.equal(saved.state,'approved');
+      const saved=await fixture.saved();assert.equal(saved.controller_token,c.token);assert.equal(saved.command_sequence,2);assert.equal(saved.state,'approved');
       assert.equal(phoneFixture.messages.filter(m=>m.type==='command').length,2);
-    }finally{await new Promise(resolve=>edge.close(resolve));}
+    }finally{await fixture.close();}
+  });
+  await check('real CLI processes keep status-reconciled leases live with clocks 180 seconds ahead and behind', async () => {
+    const trace={ok:false,scope:'local production CLI/workerd with synthetic phone; no system clock change or personal AI',cases:[]}, failures=[];
+    const privateTask=task=>Object.entries(task).every(([key,value])=>key==='state'||value===null);
+    try {
+      for (const offset of [-180,180]) {
+        const result={clock_offset_seconds:offset,ok:false};trace.cases.push(result);
+        let fixture;
+        try {
+          const x=await enroll(), c=await single(x);
+          await ok(x.base+'/v1/device/multi/enable',x.token,migration(c.claim));const phoneFixture=await phone(x);
+          const idle=await ok(x.base+'/v1/status',c.token);
+          fixture=await cliLoopback(x,c,{profileName:'cli-clock-'+offset+'.json',clockOffsetSeconds:offset});
+          const acquired=await fixture.invoke('task-acquire'), before=await fixture.saved(), beforeProbe=await fixture.probe();
+          const invitation={invitation_id:hex(16),invitation_sequence:1,ticket:hex(16)},other={token:hex(32),name:'Synthetic observer'};
+          await ok(x.base+'/v1/device/invitations',x.token,invitation);
+          other.claim=(await ok(x.base+'/v1/pair',null,{ticket:invitation.ticket,controller_token:other.token,name:other.name,capabilities:['task_lease_v1']})).claim_id;
+          await ok(x.base+'/v1/device/grants/approve',x.token,approval(other.claim));
+          const busy=await ok(x.base+'/v1/status',other.token);
+          const status=await fixture.invoke('status'), after=await fixture.saved(), afterProbe=await fixture.probe();
+          const ping=await fixture.invoke('ping'), released=await fixture.invoke('task-release'), saved=await fixture.saved();
+          const final=await ok(x.base+'/v1/status',c.token);
+          Object.assign(result,{acquire_exit:acquired.code,status_exit:status.code,
+            before_status:beforeProbe.value,after_status:afterProbe.value,
+            status_relative_ttl_ms:status.value.task?.expires_in_ms??null,
+            ping_exit:ping.code,ping_error:ping.value.error??null,release_exit:released.code,
+            release_state:released.value.state,final_task_state:final.task.state,
+            idle_metadata_private:privateTask(idle.task),other_ai_busy_metadata_private:privateTask(busy.task),
+            final_idle_metadata_private:privateTask(final.task),
+            local_deadline_not_extended:after.task_lease.local_expires_at<=before.task_lease.local_expires_at,
+            task_identity_preserved:['task_id','lease_id','lease_epoch'].every(key=>after.task_lease[key]===before.task_lease[key]),
+            acquire_posts:fixture.requests.filter(r=>r.endpoint==='/v1/tasks/acquire').length,
+            renewal_posts:fixture.requests.filter(r=>r.endpoint==='/v1/tasks/renew').length,
+            phone_commands:phoneFixture.messages.filter(m=>m.type==='command').length,
+            final_command_sequence:saved.command_sequence,local_task_state:saved.task_lease.state});
+          assert.equal(acquired.code,0);assert.equal(status.code,0);assert.equal(beforeProbe.code,0);assert.equal(afterProbe.code,0);
+          assert.equal(beforeProbe.value.live,true);assert.equal(afterProbe.value.live,true,'status must not expire a fresh lease under clock skew');
+          assert.ok(afterProbe.value.remaining_ms>0&&afterProbe.value.remaining_ms<=120000);
+          assert.equal(ping.code,0,JSON.stringify(ping.value));assert.equal(released.code,0);assert.equal(released.value.state,'released');
+          assert.equal(result.local_deadline_not_extended,true);assert.equal(result.task_identity_preserved,true);
+          assert.ok(Number.isSafeInteger(status.value.task.expires_in_ms));assert.ok(status.value.task.expires_in_ms>0&&status.value.task.expires_in_ms<=120000);
+          assert.equal(idle.task.state,'idle');assert.equal(busy.task.state,'busy');assert.equal(final.task.state,'idle');
+          for(const task of [idle.task,busy.task,final.task]){assert.equal(task.expires_in_ms,null);assert.equal(privateTask(task),true);}
+          assert.equal(result.acquire_posts,1);assert.equal(result.renewal_posts,0);assert.equal(result.phone_commands,1);
+          assert.equal(saved.controller_token,c.token);assert.equal(saved.state,'approved');assert.equal(saved.command_sequence,1);assert.equal(saved.task_lease.state,'closed');
+          result.ok=true;
+        } catch(error) { result.failure=error.message;failures.push({clock_offset_seconds:offset,error:error.message}); }
+        finally { if(fixture) await fixture.close(); }
+      }
+      trace.ok=failures.length===0;
+    } finally {
+      if(option('--clock-skew-output')) await writeFile(option('--clock-skew-output'),JSON.stringify(trace,null,2)+'\n',{mode:0o600});
+    }
+    assert.deepEqual(failures,[],'clock-skew cases failed; inspect --clock-skew-output for both offsets');
   });
   // Optional real-clock acceptance: keep ordinary core checks fast. No real
   // device/config, explicit renewal, shortened TTL or background keeper is used.

@@ -6,9 +6,17 @@ HERE=Path(__file__).resolve().parent;ROOT=HERE.parents[4]
 CLIENT='io.airtap.fixture.multi';TARGET='io.airtap.fixture.multitarget'
 
 def main():
-    p=argparse.ArgumentParser(description=__doc__);p.add_argument('--serial',required=True);p.add_argument('--build',type=Path,required=True);p.add_argument('--output',type=Path,required=True);p.add_argument('--sdk',type=Path,required=True);p.add_argument('--reset-created',action='store_true');a=p.parse_args()
+    p=argparse.ArgumentParser(description=__doc__);p.add_argument('--serial',required=True);p.add_argument('--build',type=Path,required=True);p.add_argument('--output',type=Path,required=True);p.add_argument('--sdk',type=Path,required=True);p.add_argument('--reset-created',action='store_true');p.add_argument('--suite',choices=['full','leases','lease-idle'],default='full');p.add_argument('--source-root',type=Path,default=ROOT);a=p.parse_args()
     if not a.serial.startswith('emulator-'):p.error('Only disposable emulator targets are accepted')
     out=a.output.resolve();out.mkdir(mode=0o700,parents=True,exist_ok=False);base=a.build.resolve()
+    metadata=json.loads((base/'build-metadata.private.json').read_text());production=a.source_root.resolve()
+    for relative,sha in metadata['production_java_sha256'].items():
+        if hashlib.sha256((production/'apps/android'/relative).read_bytes()).hexdigest()!=sha:raise RuntimeError('production_java_changed_since_build')
+    for name in ['client','target']:
+        if hashlib.sha256((base/(name+'.apk')).read_bytes()).hexdigest()!=metadata[name+'_sha256']:raise RuntimeError('built_apk_changed')
+    for relative in ['relay/service/service.mjs','relay/service/feedback.mjs','relay/worker/worker.mjs']:
+        frozen=subprocess.check_output(['git','show',metadata['production_commit']+':'+relative],cwd=production)
+        if (production/relative).read_bytes()!=frozen:raise RuntimeError('relay_changed_since_frozen_commit')
     adb=[str(a.sdk/'platform-tools/adb'),'-s',a.serial]
     def device(*v,check=True):
         r=subprocess.run(adb+list(map(str,v)),text=True,capture_output=True,timeout=60)
@@ -34,7 +42,7 @@ def main():
     device('shell','settings','put','secure','accessibility_enabled','1')
     device('shell','am','start','-n',TARGET+'/test.multi.TargetActivity')
     log=(out/'relay-stderr.log').open('w')
-    relay=subprocess.Popen(['node',str(HERE/'relay.mjs'),'--root',str(ROOT),'--key',str(base/'tls/key.pem'),'--cert',str(base/'tls/cert.pem'),'--port','8443','--state-dir',str(out/'relay-state')],stdin=subprocess.PIPE,stdout=subprocess.PIPE,stderr=log,text=True,bufsize=1)
+    relay=subprocess.Popen(['node',str(HERE/'relay.mjs'),'--root',str(production),'--key',str(base/'tls/key.pem'),'--cert',str(base/'tls/cert.pem'),'--port','8443','--state-dir',str(out/'relay-state')],stdin=subprocess.PIPE,stdout=subprocess.PIPE,stderr=log,text=True,bufsize=1)
     messages={};lock=threading.Lock();write_lock=threading.Lock();ready=threading.Event()
     def reader():
         for line in relay.stdout:
@@ -114,6 +122,72 @@ def main():
         def required():
             code,r=cmd(A);assert code==409 and r['error']=='lease_required';good(A,lease=tA);assert bridge('inspect')['grants'][0]['lease_required'];return {'unleased_rejected':True}
         check('real task fence permanently requires lease',required)
+        if a.suite in ('leases','lease-idle'):
+            # Real elapsed time and real Android TaskLease, not a shortened TTL
+            # or fake phone. Admin calls exercise the production relay protocol;
+            # automatic CLI renewal has its own separate cross-process suite.
+            def native_lease():
+                current=bridge('inspect')
+                return {k:current[k] for k in ('task_epoch','task_live','task_idle','task_remaining_ms','task_renewal_sequence')}
+            def sustained():
+                started=time.monotonic();initial=native_lease();events=[];renewed=tA
+                assert initial['task_live'] and initial['task_epoch']==tA['lease_epoch'] and initial['task_renewal_sequence']==0,initial
+                previous_deadline=tA['expires_at_ms']
+                for sequence in (1,2):
+                    target=started+sequence*70
+                    while time.monotonic()<target:time.sleep(max(0,min(10,target-time.monotonic())))
+                    before=native_lease();assert before['task_live'] and before['task_epoch']==tA['lease_epoch'],before
+                    body={k:tA[k] for k in ('task_id','lease_id','lease_epoch')};body.update(renewal_id=secrets.token_hex(16),renewal_sequence=sequence)
+                    renewed=ok(d['base']+'/v1/tasks/renew',A['token'],body)
+                    assert all(renewed[k]==tA[k] for k in ('task_id','lease_id','lease_epoch')),renewed
+                    assert renewed['renewal_sequence']==sequence and renewed['expires_at_ms']>previous_deadline
+                    after=native_lease();assert after['task_live'] and after['task_epoch']==tA['lease_epoch'] and after['task_renewal_sequence']==sequence and after['task_remaining_ms']>110000,after
+                    retry=ok(d['base']+'/v1/tasks/renew',A['token'],body);after_retry=native_lease()
+                    assert retry['expires_at_ms']==renewed['expires_at_ms'] and after_retry['task_remaining_ms']<=after['task_remaining_ms'],(retry,after_retry)
+                    good(A,lease=tA)
+                    events.append({'elapsed_seconds':round(time.monotonic()-started,3),'sequence':sequence,'before':before,'after':after,'retry':after_retry,'same_identity':True})
+                    previous_deadline=renewed['expires_at_ms'];print(json.dumps({'lease_progress':events[-1]}),flush=True)
+                assert time.time()*1000>tA['expires_at_ms'],'must operate beyond original deadline'
+                good(A,lease=tA);release(A,tA);closed=native_lease()
+                assert not closed['task_live'] and closed['task_idle'] and closed['task_epoch']>tA['lease_epoch'],closed
+                code,result=cmd(A,lease=tA);assert code==410 and result['error']=='lease_expired' and result.get('admitted') is False,(code,result)
+                return {'actual_seconds':round(time.monotonic()-started,3),'renewals':events,'released_native':closed,'old_lease_command_status':code}
+            if a.suite=='leases':
+                check('real Android same-epoch renewals survive the original TTL and release rejects the old lease',sustained)
+                idle=acquire(A)
+            else:idle=tA
+            def idle_expiry():
+                first=native_lease();before=status(A);before_sequence=before['command_sequence'];assert first['task_live'],first
+                # Status/bridge inspection is not a device command and does not
+                # renew. No command or renewal is sent during this idle window.
+                deadline=time.monotonic()+max(0,idle['expires_at_ms']/1000-time.time())+2
+                started=time.monotonic()
+                while time.monotonic()<deadline:time.sleep(max(0,min(10,deadline-time.monotonic())))
+                # A status request also runs relay expiration. First prove the
+                # native authority is expired without allowing status to repair
+                # it. A clear fence and a retired connection are both valid;
+                # idle() specifically means ready/null-holder, not all expiry.
+                def native_expired():
+                    value=native_lease()
+                    return value if not value['task_live'] and value['task_remaining_ms']==0 else None
+                local=wait(native_expired,10);remote=status(A)
+                assert remote['task']['state']=='idle' and remote['command_sequence']==before_sequence,remote
+                code,result=cmd(A,lease=idle);assert code==410 and result['error']=='lease_expired' and result.get('admitted') is False,(code,result)
+                body={k:idle[k] for k in ('task_id','lease_id','lease_epoch')};body.update(renewal_id=secrets.token_hex(16),renewal_sequence=1)
+                renewed,refusal=request(d['base']+'/v1/tasks/renew',A['token'],body);assert renewed==410 and refusal['error']=='lease_expired',(renewed,refusal)
+                final=status(A);assert final['command_sequence']==before_sequence and final['task']['state']=='idle',final
+                return {'idle_seconds':round(time.monotonic()-started,3),'native_before_status':local,'native_authority_expired_before_status':True,
+                        'clear_fence_observed':local['task_idle'] and local['task_epoch']>idle['lease_epoch'],
+                        'connection_changed':remote.get('connection_id')!=before.get('connection_id'),'no_command_consumed':True,'command_status':code,'renew_status':renewed}
+            check('real Android idle expires native authority before status and rejects late commands or renewals',idle_expiry)
+            local_before=bridge('inspect');assert local_before['ui_quiescent'] and local_before['file_quiescent'],local_before
+            fresh=acquire(A);assert fresh['lease_epoch']>idle['lease_epoch'];good(A,lease=fresh);release(A,fresh)
+            def later_task():
+                remote=status(A);local=native_lease()
+                assert remote['task']['state']=='idle' and local['task_idle'] and not local['task_live'],(remote,local)
+                return {'remote':'idle','local_idle':True,'original_pairing_retained':True}
+            check('explicit later task still works with the original approved pairing',later_task)
+            return
         def independent():
             invite(B);code,r=request(d['base']+'/v1/tasks/acquire',B['token'],{'task_id':secrets.token_hex(16)})
             assert code==429 and r['error']=='device_busy';assert status(A)['task']['lease_id']==tA['lease_id']
@@ -179,9 +253,12 @@ def main():
         try:admin('shutdown')
         except Exception:relay.terminate()
         relay.wait(timeout=15);log.close();pool.shutdown(wait=False)
-        report={'complete':failure is None,'checks':checks,'failure':failure,'serial':a.serial,'physical_phone':False,'personal_ai':False,'production_java_unchanged':True,'owner_actions':'Synthetic driver invokes production owner persistence/restore methods; does not validate human-facing confirmation UI. Real OS accessibility and notification grants were configured by ADB in this new disposable emulator.','limits':['No normal-user first-run or real personal AI acceptance','No OEM/physical lifecycle claim','Test-only package ID, CA and owner bridge; no control/permission BooleanSupplier substitution']}
+        unchanged=all(hashlib.sha256((production/'apps/android'/relative).read_bytes()).hexdigest()==sha for relative,sha in metadata['production_java_sha256'].items())
+        if not unchanged and failure is None:failure={'type':'source_changed','detail':'Production Java changed during run'}
+        report={'complete':failure is None,'suite':a.suite,'checks':checks,'failure':failure,'serial':a.serial,'physical_phone':False,'personal_ai':False,'production_java_unchanged':unchanged,'owner_actions':'Synthetic driver invokes production owner persistence/restore methods; does not validate human-facing confirmation UI. Real OS accessibility and notification grants were configured by ADB in this new disposable emulator.','limits':['No normal-user first-run or real personal AI acceptance','No OEM/physical lifecycle claim','Test-only package ID, CA and owner bridge; no control/permission BooleanSupplier substitution']}
         (out/'result.private.json').write_text(json.dumps(report,ensure_ascii=False,indent=2)+'\n')
         for path in out.rglob('*'):
             if path.is_file():path.chmod(0o600)
+        if failure:raise SystemExit(1)
     if failure:raise SystemExit(1)
 if __name__=='__main__':main()

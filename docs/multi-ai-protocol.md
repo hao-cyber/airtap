@@ -106,10 +106,12 @@ lease_required: boolean
 lease_ready: boolean
 task: {state:"idle"|"busy"|"fencing"|"ready", task_id:H32|null,
        lease_id:H32|null, lease_epoch:I0|null, expires_at_ms:I|null,
-       renewal_sequence:I0|null}
+       expires_in_ms:I0|null, renewal_sequence:I0|null}
 ```
 
 其他 AI 持有任务时只返回 `state:"busy"`，其余 task 字段为 null，不泄露该 AI 的姓名、任务名或标识。ready/fencing 返回本人的续租水位（从 0 开始）；恢复客户端必须读取服务端水位，不能猜 0。本人任务还在 fencing 时不返回可控制的 lease_id，HTTP 状态不能冒充设备确认。
+
+`expires_in_ms` 是服务生成响应时的剩余毫秒数，范围为 0–120000；idle/busy 为 null。客户端用这个相对期限扣除本次请求耗时，不能用本机时钟减服务端 `expires_at_ms` 判断是否到期；后者保留作服务端期限记录。读取同一任务状态不得延长本地已知期限，也不得复活已关闭的任务或撤销尚未确认的释放意图。缺少或无效的相对期限须明确拒绝，不退回跨主机绝对时钟换算。
 
 `POST /v1/revoke` 无正文，仅撤销调用者自己；已被删除的 token 返回 `401 unauthorized`，不得重配或重新申请来“恢复”。撤销响应丢失时，通过原 token status 被拒绝确认其不再可控，不自动重放手机任务。设备机主接口才有全停权。
 

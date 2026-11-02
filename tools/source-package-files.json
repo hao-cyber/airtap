@@ -2,7 +2,7 @@
   "allowlist_path": "tools/source-package-files.json",
   "android_version": "0.4.0-beta.21",
   "archive_root": "airtap-source-0.4.0-beta.21-code51",
-  "cli_version": "0.4.0-cli.11",
+  "cli_version": "0.4.0-cli.12",
   "closure_policy": "airtap-source-closure-v1",
   "files": [
     {
@@ -853,7 +853,15 @@
     },
     {
       "kind": "result",
+      "path": "docs/results/beta21-code51-muse-20261102.json"
+    },
+    {
+      "kind": "result",
       "path": "docs/results/beta21-code51-network-recovery-20261102.json"
+    },
+    {
+      "kind": "result",
+      "path": "docs/results/beta21-native-leases-20261102.json"
     },
     {
       "kind": "result",

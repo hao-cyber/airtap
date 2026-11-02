@@ -44,6 +44,27 @@ test('hibernation restores only exact ready lease/sequence on the same socket', 
   assert.equal(saved().grants[claim].sequence, 41); assert.equal(saved().invitationSequence, 75);
   await error(await r.taskRequest('renew', {...body(), renewal_id:h('f'), renewal_sequence:6}, claim), 'stale_renewal');
 });
+test('status exposes bounded relative TTL only to the holder and never renews it', async t => {
+  let now = Date.now(); t.mock.method(Date, 'now', () => now);
+  const s = state(), ws = socket(s), {r, saved} = await instance(s, ws);
+  const deadline = r.state.task.expiresAtMs, persisted = saved();
+  assert.equal(r.multiStatus(grant()).task.expires_in_ms, 100000);
+  now += 750;
+  assert.equal(r.multiStatus(grant()).task.expires_in_ms, 99250);
+  assert.equal(r.state.task.expiresAtMs, deadline);
+  assert.deepEqual(saved(), persisted);
+  const other = r.multiStatus({...grant(), id: h('9')}).task;
+  assert.equal(other.state, 'busy');
+  for (const key of ['task_id', 'lease_id', 'lease_epoch', 'expires_at_ms', 'expires_in_ms', 'renewal_sequence']) assert.equal(other[key], null);
+  r.state.task.state = 'fencing';
+  const fencing = r.multiStatus(grant()).task;
+  assert.equal(fencing.state, 'fencing'); assert.equal(fencing.lease_id, null); assert.equal(fencing.expires_in_ms, 99250);
+  now = deadline + 1; assert.equal(r.multiStatus(grant()).task.expires_in_ms, 0);
+  now = deadline - 180000; assert.equal(r.multiStatus(grant()).task.expires_in_ms, 120000);
+  r.state.task = null;
+  assert.equal(r.multiStatus(grant()).task.state, 'idle');
+  assert.equal(r.multiStatus(grant()).task.expires_in_ms, null);
+});
 for (const mutation of ['pending', 'missing', 'deadline', 'operation', 'renewal', 'fencing', 'expired']) test('uncertain restore retires transport: ' + mutation, async () => {
   const s = state(), ws = socket(s), a = ws.deserializeAttachment();
   if (mutation === 'pending') a.pendingCommand = true;

@@ -197,7 +197,7 @@ try {
     const claim = (await ok(a.base + '/v1/pair', null, { ticket: invite.ticket, controller_token: a2, name: 'Synthetic A2', capabilities: ['task_lease_v1'] })).claim_id;
     await ok(a.base + '/v1/device/grants/approve', a.token, approval(claim));
     const status = await ok(a.base + '/v1/status', a2); assert.equal(status.task.state, 'busy');
-    for (const key of ['task_id', 'lease_id', 'lease_epoch', 'expires_at_ms', 'renewal_sequence']) assert.equal(status.task[key], null);
+    for (const key of ['task_id', 'lease_id', 'lease_epoch', 'expires_at_ms', 'expires_in_ms', 'renewal_sequence']) assert.equal(status.task[key], null);
     const count = pa.commands.length, expected = dispatchCounts(), phoneIndex = phones.indexOf(pa);
     await denied(a.base + '/v1/command', a2, command('observe', 1, ta), 409, 'lease_mismatch');
     assert.equal(pa.commands.length, count); assert.equal((await ok(a.base + '/v1/status', a2)).command_sequence, 0);

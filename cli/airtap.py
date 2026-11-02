@@ -25,7 +25,7 @@ TOKEN = re.compile(r'^[0-9a-f]{64}$')
 TICKET = re.compile(r'^[0-9a-f]{32}$')
 MAX_RESPONSE = 512 * 1024
 MAX_COMMAND = 8192
-VERSION = '0.4.0-cli.11'
+VERSION = '0.4.0-cli.12'
 PACKAGE = re.compile(r'^[A-Za-z_][A-Za-z0-9_]*(?:\.[A-Za-z_][A-Za-z0-9_]*)+$')
 NODE = re.compile(r'^[1-9][0-9]{0,3}$')
 NODE_COMMANDS = {'click', 'long-click', 'set-text', 'scroll', 'node-action', 'focus', 'set-selection', 'select-all', 'copy', 'cut', 'paste', 'insert-text', 'delete-text', 'editor-action'}
@@ -621,12 +621,15 @@ def status_request(args, config, timeout=None):
     status = safe_pair_status({**data, 'state': 'approved'})
     for key in ('deviceConnected', 'pending', 'connection_id', 'command_budget_remaining'):
         status[key] = data.get(key)
+    if data.get('mode') == 'multi':
+        # Validate the task response before changing any saved connection state.
+        task = safe_task_status(data.get('task'), result.get('elapsed_ms'))
     if config.get('connection_id') != status['connection_id']:
         config.pop('snapshot', None); config.pop('observation', None)
         if config.get('task_lease'): clear_task_views(config)
     config['connection_id'] = status['connection_id']
     if data.get('mode') == 'multi':
-        status['task'] = reconcile_task(args, config, data.get('task'))
+        status['task'] = reconcile_task(args, config, task, result.get('elapsed_ms'))
     remember_approval(args, config, status)
     return {'ok': True, **status, 'elapsed_ms': result['elapsed_ms']}
 
@@ -661,20 +664,25 @@ def task_live(lease):
             and lease['recorded_at'] <= now < lease['local_expires_at'])
 
 
-def safe_task_status(value):
+def safe_task_status(value, elapsed_ms=0):
     if not isinstance(value, dict) or value.get('state') not in ('idle', 'busy', 'fencing', 'ready'):
         raise Failure('invalid_task_status')
-    result = {key: value.get(key) for key in ('state', 'task_id', 'lease_id', 'lease_epoch', 'expires_at_ms')}
+    if type(elapsed_ms) not in (int, float) or not math.isfinite(elapsed_ms) or elapsed_ms < 0:
+        raise Failure('invalid_task_status')
+    result = {key: value.get(key) for key in ('state', 'task_id', 'lease_id', 'lease_epoch', 'expires_at_ms', 'expires_in_ms')}
     if result['state'] in ('idle', 'busy'):
         if any(result[key] is not None for key in result if key != 'state'):
             raise Failure('invalid_task_status')
     elif result['state'] == 'ready':
         if (not task_hex(result['task_id']) or not task_hex(result['lease_id'])
-                or not task_integer(result['lease_epoch']) or not task_integer(result['expires_at_ms'])):
+                or not task_integer(result['lease_epoch']) or not task_integer(result['expires_at_ms'])
+                or not task_integer(result['expires_in_ms'], 0) or result['expires_in_ms'] > 120000):
             raise Failure('invalid_task_status')
     elif (result['lease_id'] is not None or (result['task_id'] is not None and not task_hex(result['task_id']))
           or (result['lease_epoch'] is not None and not task_integer(result['lease_epoch']))
-          or (result['expires_at_ms'] is not None and not task_integer(result['expires_at_ms']))):
+          or (result['expires_at_ms'] is not None and not task_integer(result['expires_at_ms']))
+          or (result['expires_in_ms'] is not None and
+              (not task_integer(result['expires_in_ms'], 0) or result['expires_in_ms'] > 120000))):
         raise Failure('invalid_task_status')
     if 'renewal_sequence' in value:
         if result['state'] in ('idle', 'busy'):
@@ -684,19 +692,33 @@ def safe_task_status(value):
     return result
 
 
-def reconcile_task(args, config, value):
-    result = safe_task_status(value)
+def reconcile_task(args, config, value, elapsed_ms=0):
+    result = safe_task_status(value, elapsed_ms)
     previous = config.get('task_lease', {})
     if result['state'] == 'ready':
         # Status is scoped to the authenticated controller; never adopt busy metadata.
-        if previous.get('state') in ('releasing', 'closed') and same_lease(previous, result):
-            return result  # An uncertain release must be resolved, never undone by status.
+        if previous.get('state') in ('releasing', 'closed', 'expired') and same_lease(previous, result):
+            pending = previous.get('pending_renewal')
+            confirmed_pending = (previous.get('state') == 'expired' and isinstance(pending, dict)
+                and set(pending) == {'renewal_id', 'renewal_sequence'}
+                and task_hex(pending.get('renewal_id')) and task_integer(pending.get('renewal_sequence'))
+                and result.get('renewal_sequence') == pending['renewal_sequence']
+                and result['expires_in_ms'] > elapsed_ms)
+            if not confirmed_pending:
+                return result  # Status cannot undo release or revive a terminal lease.
+            # Only recover a remotely confirmed, previously unresolved renewal.
+            # Keep its intent: ensure_task must retry that exact renewal before
+            # any new phone command. Never replay the refused phone command.
         changed = not same_lease(previous, result)
         now = time.time()
-        remaining = min(120, result['expires_at_ms'] / 1000 - now)
+        # Server and client wall clocks need not agree. Subtract the whole HTTP
+        # round trip conservatively; the absolute server expiry is metadata only.
+        remaining = (result['expires_in_ms'] - elapsed_ms) / 1000
         if not changed and not previous.get('pending_renewal') and previous.get('local_expires_at') is not None:
             # A status read must not extend a locally known lease deadline.
             remaining = min(remaining, previous['local_expires_at'] - now)
+            if now < previous.get('recorded_at', now):
+                remaining = 0  # Do not reset the clock-regression guard via status.
         lease = {**result, 'recorded_at': now, 'local_expires_at': now + max(0, remaining)}
         if 'renewal_sequence' not in lease:
             lease['renewal_sequence'] = previous.get('renewal_sequence') if not changed else None
@@ -715,7 +737,7 @@ def reconcile_task(args, config, value):
         if previous.get('state') == 'releasing' and result['state'] in ('idle', 'busy'):
             invalidate_task(config, 'closed')
         # Otherwise keep the acquire/release intent for explicit recovery.
-        elif previous.get('state') not in ('acquiring', 'releasing', 'closed'):
+        elif previous.get('state') not in ('acquiring', 'releasing', 'closed', 'expired'):
             invalidate_task(config, 'lost')
         clear_task_views(config)
     save_config(args.config, config)

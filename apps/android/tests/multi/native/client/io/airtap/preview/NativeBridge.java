@@ -78,6 +78,16 @@ public final class NativeBridge extends BroadcastReceiver {
                 reply.put("status",service.statusText());
                 java.lang.reflect.Field field=PreviewService.class.getDeclaredField("ui");field.setAccessible(true);
                 reply.put("ui_quiescent",((CompanionUi)field.get(service)).quiescent());
+                // Read-only lease metadata for this isolated package. Do not
+                // alter clocks, identities, fences or production decisions.
+                java.lang.reflect.Field taskField=PreviewService.class.getDeclaredField("tasks");taskField.setAccessible(true);
+                TaskLease task=(TaskLease)taskField.get(service);
+                java.lang.reflect.Field deadlineField=TaskLease.class.getDeclaredField("deadline");deadlineField.setAccessible(true);
+                java.lang.reflect.Field latestField=TaskLease.class.getDeclaredField("latest");latestField.setAccessible(true);
+                TaskLease.Fence latest=(TaskLease.Fence)latestField.get(task);
+                reply.put("task_epoch",task.epoch()).put("task_live",task.claim()!=null).put("task_idle",task.idle())
+                        .put("task_remaining_ms",Math.max(0,deadlineField.getLong(task)-android.os.SystemClock.elapsedRealtime()))
+                        .put("task_renewal_sequence",latest==null?JSONObject.NULL:latest.renewalSequence());
             }
             reply.put("all_stop_pending",config!=null&&OwnerRevocations.allPending(c,config));
             reply.put("ok",true);
