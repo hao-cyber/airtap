@@ -1,0 +1,77 @@
+{
+  "schema": "airtap-agent-guide-delivery-v1",
+  "recorded_date": "2026-11-03",
+  "status": "deployed_with_bounded_public_verification",
+  "source_guide_commit": "9736c62",
+  "preparation_record": "guide-sms-network-preparation-20261103.json",
+  "deployment": {
+    "revision": 22,
+    "deployed": true,
+    "deployment_id": "1c57d5b3-2a6c-4f64-ae92-3622891f3082",
+    "version_id": "841d9434-630f-4131-aa47-16d51237b59a",
+    "traffic_percent": 100,
+    "created_at_utc": "2026-11-03T11:29:23.291448Z",
+    "artifact_version": "service4-1de6018d-a2ea9b60-0aeae8f0",
+    "runtime_source_sha256": "1de6018da8bc9b20e279da6f0a8e0d8024c67a0b7bea48cf84f9066d3f271d27",
+    "frozen_state_valid": true,
+    "same_identity_settings": true,
+    "same_credentials": true,
+    "same_bindings_and_migrations": true,
+    "only_changed_manifest_files": [
+      "assets/agent.md"
+    ],
+    "latest_current_matches": true,
+    "pending_cleared": true
+  },
+  "attempts": [
+    {
+      "attempt": 1,
+      "returncode": 1,
+      "started_at": "2026-11-03T11:26:48.078481+00:00",
+      "finished_at": "2026-11-03T11:26:59.211148+00:00",
+      "outcome": "Cloudflare account-discovery API request timed out; frozen revision remained pending."
+    },
+    {
+      "attempt": 2,
+      "returncode": 0,
+      "started_at": "2026-11-03T11:29:10.355695+00:00",
+      "finished_at": "2026-11-03T11:29:25.842250+00:00",
+      "outcome": "Resumed the same frozen revision without changing identity, credentials, account selection, settings or runtime; deployment succeeded."
+    }
+  ],
+  "public_checks": {
+    "service": {
+      "http": 200,
+      "service_identity_matches": true,
+      "registration_open": true,
+      "control_open": true
+    },
+    "guide": {
+      "http": 200,
+      "bytes": 92864,
+      "sha256": "0aeae8f0792d8f82ed844a285bf441816558bff4db9f78644e77d8e893f3653c",
+      "matches_frozen": true
+    },
+    "cli": {
+      "http": 200,
+      "bytes": 101307,
+      "sha256": "a2ea9b60fba1026ac5710612f20fd33c4a0c8c95dfae9c30496aa3f30a375e62",
+      "matches_frozen": true
+    },
+    "downloaded_cli_version": "0.4.0-cli.12",
+    "downloaded_cli_version_exit": 0,
+    "retained_download_failure": "The first read-only CLI GET hit curl connection timeout after 10 seconds. One bounded read-only retry returned HTTP 200 and the unchanged frozen CLI hash. No phone action or registration request was replayed."
+  },
+  "unchanged": {
+    "cli": true,
+    "apk": true,
+    "runtime_source": true,
+    "service_settings_credentials_and_bindings": true
+  },
+  "limits": [
+    "This deploys agent guidance only; it adds no SMS receiver, notification queue, webhook or network routing feature.",
+    "No phone action, new pairing, personal-AI task or actual SMS wait was performed in this deployment check.",
+    "Public HTTP success and byte identity verify the published artifact, not long-term network reliability or all VPN/app configurations."
+  ],
+  "publication_boundary": "Reviewed aggregate results, build digests and deployment/version IDs only; no service addresses, device or account identities, credentials, private paths, messages or screenshots."
+}
