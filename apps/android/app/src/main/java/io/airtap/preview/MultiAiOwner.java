@@ -181,7 +181,12 @@ final class MultiAiOwner {
                 try{
                     MultiAiProtocol.claims(body);
                     if(createAfterRead&&!context.equals(invitationContext(config))){change("连接状态已变化，请重新选择是否添加自己的 AI。");return;}
-                    remote=body;restoreInvitation();
+                    remote=body;
+                    // Clear only the old migration notice after both sides confirm multi mode.
+                    if(("正在核实多 AI 连接，确认服务端完成后再切换。原授权已保留。".equals(message)
+                            ||"正在继续核实多 AI 连接，原授权已保留。".equals(message))
+                            &&new TrustedGrant(owner).multi(config))message="";
+                    restoreInvitation();
                     if(createAfterRead&&!busy)create(false);else changed.run();
                 }catch(Exception malformed){change("服务返回的连接状态无法核实，请检查版本或稍后重试。");}
             });

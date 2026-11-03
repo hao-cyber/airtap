@@ -79,6 +79,27 @@ public final class MultiAiControlTest{
     trust.consume(config,8);var confirm=android.app.AlertDialog.positive;check(confirm!=null);confirm.click(null,0);check(owner.lastEnableStage.equals("migration_requested"));
     check(!trust.multi(config)&&trust.migration(config)!=null&&trust.grant(config,A).getLong("sequence")==8&&owner.polls==0&&service.ownerModeChanges==0&&service.restores==1&&FakeDisk.config.token.equals(config.token));confirm.click(null,0);check(owner.polls==0&&service.ownerModeChanges==0&&service.restores==1);
   });
+  test("confirmed migration removes its waiting notice without changing the grant",()->{
+    for(boolean resumed:new boolean[]{false,true}){
+      OwnerIdentityHarness owner=singleOwner();owner.enable(config);RelayApi.requests.get(0).respond(discovery(),200,null);android.app.AlertDialog.positive.click(null,0);
+      if(resumed)owner.enable(config);
+      String waiting=owner.message;check(waiting.contains("核实")&&trust.migration(config)!=null);
+      owner.backgroundPoll();RelayApi.requests.get(RelayApi.requests.size()-1).respond(multiState(A),200,null);
+      check(owner.message.equals(waiting)&&!trust.multi(config));
+      String migration=trust.migration(config).getString("id");check(trust.completeMigration(config,migration,Set.of(A)));trust.requireLease(config,A);
+      String fence=trust.grantFence(config,A);int saves=FakeDisk.saves;owner.backgroundPoll();RelayApi.requests.get(RelayApi.requests.size()-1).respond(multiState(A),200,null);
+      var box=new android.widget.LinearLayout();owner.render(box);
+      check(!box.hasText(waiting)&&box.hasText("我的 AI 连接")&&box.hasText("已授权 · 按任务轮流使用")&&box.hasButton("添加另一位自己的 AI"));
+      check(fence.equals(trust.grantFence(config,A))&&trust.grant(config,A).getLong("sequence")==7&&FakeDisk.saves==saves&&invitationPosts()==0);
+    }
+  });
+  test("successful multi refresh preserves errors and pending revocation notice",()->{
+    OwnerIdentityHarness owner=invitationOwner();owner.backgroundPoll();RelayApi.requests.get(0).respond(null,503,"offline");String error=owner.message;
+    owner.backgroundPoll();RelayApi.requests.get(1).respond(multiState(A),200,null);check(owner.message.equals(error)&&!error.isEmpty());
+    OwnerRevocations.queue(owner.owner,config,A);owner.retryRevocations(config);String pending=owner.message;
+    owner.backgroundPoll();RelayApi.requests.get(2).respond(multiState(A),200,null);var box=new android.widget.LinearLayout();owner.render(box);
+    check(owner.message.equals(pending)&&box.hasText("服务端解除还在确认")&&OwnerRevocations.revoked.equals(Set.of(A))&&trust.grant(config,A)!=null);
+  });
   test("old service network failure and malformed capabilities preserve original single state",()->{
     List<JSONObject> invalid=new ArrayList<>();invalid.add(null);invalid.add(discovery().put("capabilities",new JSONArray().put("companion_v1")));invalid.add(discovery().put("capabilities",new JSONArray().put("multi_ai_v1")));invalid.add(discovery().put("capabilities",new JSONArray().put("task_lease_v1")));invalid.add(discovery().put("capabilities",new JSONArray().put("multi_ai_v1").put(1).put("task_lease_v1")));invalid.add(discovery().put("capabilities","multi_ai_v1 task_lease_v1"));invalid.add(discovery().put("protocol_version",3));invalid.add(discovery().put("capabilities",null));invalid.add(discovery().put("enrollment_expires_at",null));invalid.add(discovery().put("capabilities",new JSONArray().put("multi_ai_v1").put("task_lease_v1").put("multi_ai_v1")));
     for(JSONObject response:invalid){OwnerIdentityHarness owner=singleOwner();int saves=FakeDisk.saves;owner.enable(config);RelayApi.requests.get(0).respond(response,response==null?404:200,response==null?"not_found":null);unchanged(owner);check(!owner.busy&&FakeDisk.saves==saves&&android.app.AlertDialog.positive==null);}
