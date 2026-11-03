@@ -1,0 +1,397 @@
+{
+  "schema": "airtap-relay-capacity-review-v1",
+  "recorded_date": "2026-11-03",
+  "source_commit": "22e3a77",
+  "scope": "Local production HTTP/WS and SQLite-backed workerd with synthetic phones; not public-cloud, physical-phone, personal-AI or billing acceptance.",
+  "production_code_changed": false,
+  "deployed": false,
+  "runs": [
+    {
+      "schema": "airtap-local-relay-scale-v1",
+      "started_at": "2026-11-03T10:52:52.340Z",
+      "parameters": {
+        "devices": 1000,
+        "concurrency": 50,
+        "ping_rounds": 5,
+        "idle_ms": 5000
+      },
+      "environment": {
+        "node": "v25.8.1",
+        "miniflare": "5.20261006.1-alpha",
+        "workerd": "1.20261006.1",
+        "platform": "darwin",
+        "architecture": "arm64",
+        "logical_cpus": 14,
+        "memory_bytes": 51539607552
+      },
+      "harness_sha256": "3fbd116f4647392fa0d63456ab61d5e6785b8eb0233966bdcb513f6cbcad61cc",
+      "fixture_sha256": "7988aae50881463ee10ab864768038ab697c6d87449aacf391ed512b0fe15821",
+      "production_sha256": {
+        "relay/service/service.mjs": "df691b6f984af14195bfeeb90839b1acf24832e1187d49052b492fc57a2bba83",
+        "relay/worker/worker.mjs": "63f7e7fce25929fa32839be9847424031f10d1561d661e3aeea303f99e8bdcde",
+        "relay/service/feedback.mjs": "36f17098e3652a9aa7eba61985b59087346bc1dbe60a3351dec8ce5098506538"
+      },
+      "phases": [
+        {
+          "name": "registered",
+          "completed": 1000,
+          "elapsed_ms": 2535.313,
+          "operations_per_second": 394.429,
+          "http_requests": 1000,
+          "latency_ms": {
+            "p50": 121.235,
+            "p95": 203.031,
+            "p99": 273.648,
+            "max": 322.711
+          }
+        },
+        {
+          "name": "paired_multi",
+          "completed": 1000,
+          "elapsed_ms": 2797.591,
+          "operations_per_second": 357.45,
+          "http_requests": 4000,
+          "latency_ms": {
+            "p50": 128.868,
+            "p95": 173.831,
+            "p99": 300.22,
+            "max": 302.129
+          }
+        },
+        {
+          "name": "connected",
+          "completed": 1000,
+          "elapsed_ms": 597.418,
+          "operations_per_second": 1673.871,
+          "http_requests": 0,
+          "latency_ms": {
+            "p50": 28.2,
+            "p95": 40.732,
+            "p99": 50.435,
+            "max": 56.369
+          }
+        },
+        {
+          "name": "online_status",
+          "completed": 1000,
+          "elapsed_ms": 536.411,
+          "operations_per_second": 1864.241,
+          "http_requests": 1000,
+          "latency_ms": {
+            "p50": 22.681,
+            "p95": 42.803,
+            "p99": 49.498,
+            "max": 56.967
+          }
+        },
+        {
+          "name": "active_tasks",
+          "completed": 1000,
+          "elapsed_ms": 7120.406,
+          "operations_per_second": 140.441,
+          "http_requests": 7000,
+          "latency_ms": {
+            "p50": 329.436,
+            "p95": 503.215,
+            "p99": 523.607,
+            "max": 713.423
+          }
+        },
+        {
+          "name": "final_idle",
+          "completed": 1000,
+          "elapsed_ms": 518.866,
+          "operations_per_second": 1927.279,
+          "http_requests": 1000,
+          "latency_ms": {
+            "p50": 22.992,
+            "p95": 38.83,
+            "p99": 50.146,
+            "max": 55.478
+          }
+        }
+      ],
+      "storage": {
+        "after_registration": {
+          "directoryWrites": 2000,
+          "directoryBytesWritten": 284751456,
+          "directoryBytes": 278076,
+          "usageWrites": 0,
+          "registered": 1000,
+          "reserved": 0,
+          "retired": 0
+        },
+        "before_commands": {
+          "directoryWrites": 2000,
+          "directoryBytesWritten": 284751456,
+          "directoryBytes": 278076,
+          "usageWrites": 6000,
+          "registered": 1000,
+          "reserved": 0,
+          "retired": 0
+        },
+        "after_commands": {
+          "directoryWrites": 2000,
+          "directoryBytesWritten": 284751456,
+          "directoryBytes": 278076,
+          "usageWrites": 17000,
+          "registered": 1000,
+          "reserved": 0,
+          "retired": 0
+        }
+      },
+      "guards": {
+        "registration_capacity_rejected_without_write": true,
+        "foreign_controller_rejected_without_charge": true,
+        "stopped_controller_rejected": true,
+        "rejected_operations_dispatched": 0
+      },
+      "limits": [
+        "Local single workerd process; synthetic in-process WebSockets and immediate phone acknowledgements. No WAN, Android, screenshot payload, personal AI or Cloudflare capacity/billing claim.",
+        "One controller per device migrates through the production multi-AI protocol. Measured concurrency is across distinct devices, not multiple simultaneous commands on one phone.",
+        "Storage counters measure successful application writes and JSON bytes, not Cloudflare billed rows, SQLite disk IO or durable-object memory. Runtime eviction may reset the in-memory fixture counters.",
+        "No external target option, cloud credentials, deployment, physical phone or existing configuration is used."
+      ],
+      "ping_commands": {
+        "completed": 5000,
+        "latency_ms": {
+          "p50": 40.021,
+          "p95": 91.615,
+          "p99": 229.745,
+          "max": 285.226
+        },
+        "commands_per_second_including_acquire_and_release": 702.207
+      },
+      "status": "passed_local_synthetic",
+      "local_persisted_files_before_cleanup": {
+        "bytes": 240268744,
+        "files": 3018
+      },
+      "finished_at": "2026-11-03T10:53:11.772Z",
+      "totals": {
+        "requests": 14012,
+        "response_bytes": 3420485,
+        "dispatched_synthetic_pings": 5000,
+        "unexpected_http_errors": 0,
+        "peak_websockets": 1000,
+        "peak_client_observed_ready_tasks": 50,
+        "peak_outstanding_command_requests": 50
+      },
+      "cleanup": {
+        "local_workerd_disposed": true,
+        "temporary_sqlite_removed": true,
+        "socket_close_requested": 1000
+      }
+    },
+    {
+      "schema": "airtap-local-relay-scale-v1",
+      "started_at": "2026-11-03T10:54:08.185Z",
+      "parameters": {
+        "devices": 1000,
+        "concurrency": 1000,
+        "ping_rounds": 2,
+        "idle_ms": 1000
+      },
+      "environment": {
+        "node": "v25.8.1",
+        "miniflare": "5.20261006.1-alpha",
+        "workerd": "1.20261006.1",
+        "platform": "darwin",
+        "architecture": "arm64",
+        "logical_cpus": 14,
+        "memory_bytes": 51539607552
+      },
+      "harness_sha256": "3fbd116f4647392fa0d63456ab61d5e6785b8eb0233966bdcb513f6cbcad61cc",
+      "fixture_sha256": "7988aae50881463ee10ab864768038ab697c6d87449aacf391ed512b0fe15821",
+      "production_sha256": {
+        "relay/service/service.mjs": "df691b6f984af14195bfeeb90839b1acf24832e1187d49052b492fc57a2bba83",
+        "relay/worker/worker.mjs": "63f7e7fce25929fa32839be9847424031f10d1561d661e3aeea303f99e8bdcde",
+        "relay/service/feedback.mjs": "36f17098e3652a9aa7eba61985b59087346bc1dbe60a3351dec8ce5098506538"
+      },
+      "phases": [
+        {
+          "name": "registered",
+          "completed": 1000,
+          "elapsed_ms": 2942.9,
+          "operations_per_second": 339.801,
+          "http_requests": 1000,
+          "latency_ms": {
+            "p50": 1717.036,
+            "p95": 2878.473,
+            "p99": 2931.451,
+            "max": 2941.11
+          }
+        },
+        {
+          "name": "paired_multi",
+          "completed": 1000,
+          "elapsed_ms": 2979.856,
+          "operations_per_second": 335.587,
+          "http_requests": 4000,
+          "latency_ms": {
+            "p50": 2665.063,
+            "p95": 2964.745,
+            "p99": 2975.783,
+            "max": 2979.229
+          }
+        },
+        {
+          "name": "connected",
+          "completed": 1000,
+          "elapsed_ms": 811.295,
+          "operations_per_second": 1232.597,
+          "http_requests": 0,
+          "latency_ms": {
+            "p50": 774.666,
+            "p95": 809.475,
+            "p99": 810.299,
+            "max": 810.511
+          }
+        },
+        {
+          "name": "online_status",
+          "completed": 1000,
+          "elapsed_ms": 596.086,
+          "operations_per_second": 1677.61,
+          "http_requests": 1000,
+          "latency_ms": {
+            "p50": 374.121,
+            "p95": 584.641,
+            "p99": 594.017,
+            "max": 594.524
+          }
+        },
+        {
+          "name": "active_tasks",
+          "completed": 1000,
+          "elapsed_ms": 4315.525,
+          "operations_per_second": 231.721,
+          "http_requests": 4000,
+          "latency_ms": {
+            "p50": 4206.827,
+            "p95": 4313.528,
+            "p99": 4314.71,
+            "max": 4314.767
+          }
+        },
+        {
+          "name": "final_idle",
+          "completed": 1000,
+          "elapsed_ms": 584.717,
+          "operations_per_second": 1710.23,
+          "http_requests": 1000,
+          "latency_ms": {
+            "p50": 496.452,
+            "p95": 575.922,
+            "p99": 583.084,
+            "max": 584.346
+          }
+        }
+      ],
+      "storage": {
+        "after_registration": {
+          "directoryWrites": 2000,
+          "directoryBytesWritten": 341227404,
+          "directoryBytes": 278076,
+          "usageWrites": 0,
+          "registered": 1000,
+          "reserved": 0,
+          "retired": 0
+        },
+        "before_commands": {
+          "directoryWrites": 2000,
+          "directoryBytesWritten": 341227404,
+          "directoryBytes": 278076,
+          "usageWrites": 6000,
+          "registered": 1000,
+          "reserved": 0,
+          "retired": 0
+        },
+        "after_commands": {
+          "directoryWrites": 2000,
+          "directoryBytesWritten": 341227404,
+          "directoryBytes": 278076,
+          "usageWrites": 11000,
+          "registered": 1000,
+          "reserved": 0,
+          "retired": 0
+        }
+      },
+      "guards": {
+        "registration_capacity_rejected_without_write": true,
+        "foreign_controller_rejected_without_charge": true,
+        "stopped_controller_rejected": true,
+        "rejected_operations_dispatched": 0
+      },
+      "limits": [
+        "Local single workerd process; synthetic in-process WebSockets and immediate phone acknowledgements. No WAN, Android, screenshot payload, personal AI or Cloudflare capacity/billing claim.",
+        "One controller per device migrates through the production multi-AI protocol. Measured concurrency is across distinct devices, not multiple simultaneous commands on one phone.",
+        "Storage counters measure successful application writes and JSON bytes, not Cloudflare billed rows, SQLite disk IO or durable-object memory. Runtime eviction may reset the in-memory fixture counters.",
+        "No external target option, cloud credentials, deployment, physical phone or existing configuration is used."
+      ],
+      "ping_commands": {
+        "completed": 2000,
+        "latency_ms": {
+          "p50": 932.549,
+          "p95": 1022.749,
+          "p99": 1299.093,
+          "max": 1301.34
+        },
+        "commands_per_second_including_acquire_and_release": 463.443
+      },
+      "status": "passed_local_synthetic",
+      "local_persisted_files_before_cleanup": {
+        "bytes": 190890256,
+        "files": 3018
+      },
+      "finished_at": "2026-11-03T10:54:21.776Z",
+      "totals": {
+        "requests": 11012,
+        "response_bytes": 2985485,
+        "dispatched_synthetic_pings": 2000,
+        "unexpected_http_errors": 0,
+        "peak_websockets": 1000,
+        "peak_client_observed_ready_tasks": 1000,
+        "peak_outstanding_command_requests": 1000
+      },
+      "cleanup": {
+        "local_workerd_disposed": true,
+        "temporary_sqlite_removed": true,
+        "socket_close_requested": 1000
+      }
+    }
+  ],
+  "remaining": [
+    "Isolated cloud latency, quotas and actual billing measurement",
+    "Safe future enrollment expiry policy and never-approved device reclamation",
+    "Directory write amplification and hotspot sharding before raising capacity beyond1000"
+  ],
+  "validation": {
+    "invalid_cli_rejected_before_initialization": [
+      "external_target",
+      "devices_over1000",
+      "rounds_over10",
+      "concurrency_over1000",
+      "unknown_flag"
+    ],
+    "default_protocol_suite_hook_present": true,
+    "performance_limit": "Single samples on a shared developer computer; throughput and latency are not a stable limit or a cloud SLO.",
+    "default_24_device_run": {
+      "status": "passed_local_synthetic",
+      "harness_sha256": "3fbd116f4647392fa0d63456ab61d5e6785b8eb0233966bdcb513f6cbcad61cc",
+      "guards": {
+        "registration_capacity_rejected_without_write": true,
+        "foreign_controller_rejected_without_charge": true,
+        "stopped_controller_rejected": true,
+        "rejected_operations_dispatched": 0
+      },
+      "cleanup": {
+        "local_workerd_disposed": true,
+        "temporary_sqlite_removed": true,
+        "socket_close_requested": 24
+      }
+    },
+    "existing_usage_storage_cases_passed": 10,
+    "existing_tenant_isolation_cases_passed": 6
+  }
+}

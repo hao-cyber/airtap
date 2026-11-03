@@ -809,6 +809,10 @@
     },
     {
       "kind": "document",
+      "path": "docs/relay-scale.md"
+    },
+    {
+      "kind": "document",
       "path": "docs/relay-usage-storage.md"
     },
     {
@@ -1061,6 +1065,10 @@
     },
     {
       "kind": "result",
+      "path": "docs/results/relay-scale-local-20261103.json"
+    },
+    {
+      "kind": "result",
       "path": "docs/results/release-experience-20261026.json"
     },
     {
@@ -1166,6 +1174,10 @@
     {
       "kind": "source",
       "path": "relay/service/tests/pair-recovery.mjs"
+    },
+    {
+      "kind": "source",
+      "path": "relay/service/tests/relay-scale.mjs"
     },
     {
       "kind": "source",

@@ -20,7 +20,7 @@ HOST_SCRIPTS = (
     'test_enrollment_record_limits', 'test_maintenance_diagnostics', 'test_owner_revocations', 'test_setup_recovery', 'test_tls_policy', 'test_feedback', 'test_invitation_feedback',
 )
 PROTOCOL_SCRIPTS = (
-    'companion-roundtrip', 'file-transfer-roundtrip', 'usage-storage',
+    'companion-roundtrip', 'file-transfer-roundtrip', 'usage-storage', 'relay-scale',
     'pair-recovery', 'feedback-roundtrip', 'invitation-artifacts', 'multi-ai-roundtrip', 'tenant-isolation',
 )
 

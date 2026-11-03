@@ -71,6 +71,8 @@ node relay/service/tests/multi-ai-roundtrip.mjs --active-lease-window --lease-ou
 
 同一中继套件的默认短测还覆盖客户端时钟快／慢 180 秒的真实 CLI 子进程：申请租约后查询状态，核对本地剩余期限，再执行 `ping` 和释放。CLI.12 用服务端相对期限扣除请求耗时，避免跨主机绝对时钟相减；状态查询不延长已知租约，其他 AI 的忙碌状态不暴露期限。
 
+`relay-scale` 默认以 24 个合成终端检查登记、正常配对、多 AI 模式、WebSocket、命令与释放，并验证容量边界、跨设备凭据拒绝及停止后的拒绝。它仅启动本地 workerd，不接受外部服务地址。[1000 台分层负载入口与结果](relay-scale.md)另行记录登记数、在线数、同时活跃任务、命令延迟和存储写入；不将本地结果当成公共中继容量承诺。
+
 [CLI.12 修复与交付记录](results/cli12-lease-recovery-delivery-20261102.json)保留旧版时钟偏差复现、续租回执丢失后的恢复回归、最终源码检查和公网结果。允许恢复的只是服务端已确认的同一续租意图，下一条新命令前须重试其原标识；不复活已释放任务，也不重放未知结果的手机操作。
 
 [code51 的 Instinct Play 恢复记录](results/beta21-code51-instinct-play-20261102.json)验证已有的原生提交路线：显式 `search` 因输入连接身份不足被拒绝后，清理搜索词末尾换行，重新观察并用控件提供的 `native_enter` 完成搜索、详情核验和返回桌面。它实际使用 CLI.11，保留先前拒绝和一条本地参数错误；不是 CLI.12、唤醒或双 AI 交接通过。输入文本按 stdin 原样发送；`printf '%s' 'Google Maps'` 不会附加换行。截图命令是 `observe --output <新文件>`，不接受 `--package`。
