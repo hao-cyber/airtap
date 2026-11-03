@@ -42,7 +42,7 @@ AI 可以组合这些动作完成跨 App 任务，不限于计算器等演示应
 
 ## 当前支持情况
 
-本轮发布版本为 **0.4.0-beta.21（code51）**。它支持多个自己的 AI 轮流使用手机，改进息屏准备与连接恢复；覆盖更新保留有效连接。[版本与更新说明](release/android/51.json) · [制品核验与发布准备](docs/results/beta21-code51-release-preparation-20261103.json)。实际推荐包以安装页为准。
+官网当前提供 **0.4.0-beta.21（code51）**。它支持多个自己的 AI 轮流使用手机，改进息屏准备与连接恢复；近期版本可覆盖更新并保留有效连接，极早预览版按 App 提示迁移。[版本与更新说明](release/android/51.json) · [发布与公网核验](docs/results/beta21-code51-publication-20261103.json)。
 
 真机测试主要使用魅族 Note 16、Android 15。Muse 与 Instinct 已分别完成息屏后的任务；两者还完成了[持租时拒绝另一 AI、释放后接管的交接](docs/results/beta21-code51-two-ai-handoff-20261103.json)。这些结果保留失败恢复、维护者准备与取证限制。更多机型、纯移动网络完整任务、多日后台和独立新用户完整安装仍待验证。目前没有 iOS 客户端。
 

@@ -1,0 +1,127 @@
+{
+  "schema": "airtap-release-publication-v1",
+  "recorded_at": "2026-11-03T11:02:52.923315+00:00",
+  "status": "published_with_bounded_acceptance",
+  "publication_performed": true,
+  "release": {
+    "application_id": "io.airtap.preview",
+    "version_name": "0.4.0-beta.21",
+    "version_code": 51,
+    "apk_sha256": "5955f98562a949059c099c2fd50ecbd759fcb3c7b43e79e6c60f010e3914008b",
+    "apk_bytes": 599501,
+    "signer_sha256": "a2aa0c1b6fdaf1baa37aa20817387524a1318b5dab82bf7c185663141daba60f",
+    "min_sdk": 34,
+    "target_sdk": 36,
+    "debuggable": false,
+    "channel": "beta",
+    "published_at": "2026-11-03",
+    "download_path": "/download/android"
+  },
+  "source_binding": {
+    "website_metadata_commit": "db7e5b545c0e800f3db774ac412c551a2cd4dece",
+    "same_previously_verified_signed_apk_reused": true,
+    "apk_rebuilt_or_resigned_for_publication": false,
+    "build_and_source_limits_reference": "beta21-code51-release-preparation-20261103.json"
+  },
+  "website": {
+    "origin": "https://airtap.memtrix.dev",
+    "deployment_kind": "android_update",
+    "previous_recommended_version_code": 39,
+    "recommended_version_code": 51,
+    "deployment_finished_at": "2026-11-03T10:54:52.766308+00:00",
+    "version_id": "994c6e6c-ed54-4b6b-94a3-47f8cda6d577",
+    "frozen_build_manifest_sha256": "0a13eac0142de53bede5fb6362c53e7a5a92ea3831aa2b26a438ba7c30699a5b",
+    "local_files_verified": 24,
+    "public_checks_passed": 45,
+    "final_run_http_attempts": 46,
+    "final_run_transport_errors": 1,
+    "fixed_download_selects_exact_immutable_apk": true,
+    "verified_scope": [
+      "home/install/help/privacy/release notes and static assets",
+      "recommended update JSON and redirect",
+      "exact current and retained previous APK bytes",
+      "retired APK GET/HEAD return410 and no-cache behavior",
+      "both videos full bytes, HEAD length and206 range responses"
+    ],
+    "public_bytes_match_frozen_except_reviewed_transformations": true,
+    "reviewed_public_transformations": [
+      {
+        "path": "/robots.txt",
+        "kind": "reviewed_managed_robots_prefix",
+        "prefix_bytes": 2676,
+        "prefix_sha256": "3073d1e371afb3271c7666148766fedc5145f7d8440f7114062db79b7bd58add",
+        "source_sha256": "d58c84797c04e430e32b11fffbcb73b63a0afd82b00b5f2134574a52c414306e",
+        "public_sha256": "542678d4397ddd6bf8c14d764a94e7f08d46e73aeb4a3c6751844c3dbb13920f"
+      }
+    ],
+    "retry_policy": "retry only network transport failures; same size/hash/status checks unchanged",
+    "failures_retained": [
+      {
+        "run": 1,
+        "route": "/downloads/3f280b39b134934246ebe2fd89abd1a9bd4fd615431b359c70258686d8b1fbe7.apk",
+        "method": "GET",
+        "error": "URLError",
+        "full_run_completed": false,
+        "underlying_cause_not_captured": true
+      },
+      {
+        "run": 2,
+        "route": "/privacy",
+        "method": "GET",
+        "error": "URLError",
+        "full_run_completed": false,
+        "underlying_cause_not_captured": true
+      },
+      {
+        "run": 3,
+        "route": "/help",
+        "method": "GET",
+        "error": "URLError",
+        "elapsed_seconds": 30.012,
+        "next_attempt_status": 200,
+        "single_retry_passed": true
+      }
+    ],
+    "network_limit": "One maintainer network vantage point. Final verification passed after a transport retry; prior failures remain recorded. No certificate or expected-content checks were relaxed."
+  },
+  "media": {
+    "existing_70_second_installation_guide": {
+      "reference_version_code": 39,
+      "recorded_version_codes": [
+        39,
+        40
+      ],
+      "sha256": "7d5fe76f511bb95784c546663bef83070ecb3f5d280db87741f4eda4841bc8ad",
+      "new_version_first_installation_recording": false
+    },
+    "existing_90_second_usage_video": {
+      "reference_version_code": 39,
+      "sha256": "ffa11c4e893f22c7ba96ebb12bf72a390574134bb57e02cf5a434d7ea80c3fd0",
+      "new_code51_task_recording": false
+    },
+    "original_media_bytes_reused": true,
+    "version_and_preparation_disclosures_retained": true,
+    "both_without_audio_tracks": true
+  },
+  "acceptance_references": [
+    "beta21-code51-muse-cli12-wake-20261103.json",
+    "beta21-code51-instinct-cli12-wake-20261103.json",
+    "beta21-code51-two-ai-handoff-20261103.json",
+    "beta21-code51-network-recovery-20261102.json",
+    "beta21-code51-idle-20261103.json",
+    "beta21-native-leases-20261102.json"
+  ],
+  "acceptance_boundary": "Publication verifies the recommended download and its website delivery. The linked physical phone and personal-AI results retain their individual tasks, errors, interventions and evidence limits; publication does not extend those claims.",
+  "not_verified_by_this_publication": [
+    "Complete normal-reboot recovery of the phone, VPN and all daily workflows",
+    "Full replacement and retirement of another phone's previous control route",
+    "Independent newcomer installation and full first use",
+    "Genuine personal-AI runtime recreation unless separately recorded",
+    "More phone models, pure mobile-network full tasks and multi-day unattended endurance"
+  ],
+  "github_release": {
+    "publication_in_this_operation": false,
+    "scope": "Website recommendation is published. Git tag/release publication is a separate operation; no new tag or GitHub Release is claimed here."
+  },
+  "privacy_scope": "Aggregate public artifact and verification metadata only; no private paths, account details, messages, screenshots, device identifiers, pairing data or credentials."
+}

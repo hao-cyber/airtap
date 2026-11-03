@@ -18,7 +18,7 @@
 
 当前为公开测试渠道，使用长期 RSA 3072 发布密钥，Android `debuggable=false`，最低 Android 14。包名继续使用 `io.airtap.preview`，以保留已安装用户的数据；包名不作为用户界面名称。正式发布签名不代表产品已通过全部机型或普通用户验证。
 
-本轮准备发布 Android `0.4.0-beta.21`（code51），复用已经签名、安装与实测的同一 APK 字节。[版本元数据](android/51.json)和[制品与发布准备记录](../docs/results/beta21-code51-release-preparation-20261103.json)固定其身份；[Muse](../docs/results/beta21-code51-muse-cli12-wake-20261103.json)、[Instinct](../docs/results/beta21-code51-instinct-cli12-wake-20261103.json)及[双 AI 交接](../docs/results/beta21-code51-two-ai-handoff-20261103.json)分别记录限定实测范围。准备构建不代表已经发布；推荐切换和公网验证须按下列流程完成。原 code39 [版本资料](android/39.json)与验收记录保留，不重写历史。
+官网已发布 Android `0.4.0-beta.21`（code51），复用已经签名、安装与实测的同一 APK 字节。[版本元数据](android/51.json)和[制品与发布准备记录](../docs/results/beta21-code51-release-preparation-20261103.json)固定其身份；[Muse](../docs/results/beta21-code51-muse-cli12-wake-20261103.json)、[Instinct](../docs/results/beta21-code51-instinct-cli12-wake-20261103.json)及[双 AI 交接](../docs/results/beta21-code51-two-ai-handoff-20261103.json)分别记录限定实测范围。[正式发布记录](../docs/results/beta21-code51-publication-20261103.json)记录官网推荐从 code39 切换至 code51，以及 45 项公网检查通过；保留前两次传输失败和最终一项重试。它不代替后续设备迁移或重启完整验收；GitHub tag／Release 发布另行记录。原 code39 [版本资料](android/39.json)与验收记录保留，不重写历史。
 
 从极早的协议预览版升级时，安装保留应用数据不等于旧临时授权可以继续使用。若 App 显示“开始新版连接”，按前台流程为该手机建立新邀请并核码；不要复制另一部手机的配对，也不要卸载或清除其他 App 账号。原发布证书的签名轮换仅覆盖匹配的已安装包，具体设备须核对实际签名及升级结果。
 

@@ -47,7 +47,7 @@
 - 品牌、产品定位与核心接入体验保持统一；中继、邀请及个人 AI 接入协议尽量共用，手机执行能力和系统授权按平台实际能力实现。
 - 已有 Android 手机验收不能用作 iOS、平板、电视或其他设备支持的证据；方案评估不代表已经支持。
 - 独立的 `0.4.1-device-preview` 曾记录 Android 平板和 TV 模拟器适配、方向键和维护者 CLI 验收；该历史实验及其发行制品不随本次 Android 手机源码公开。没有实体平板／电视或个人 AI 的新平台验收，不能由此宣称全设备支持。它不属于本手机发布目录的同一 APK。
-- 本轮准备发布 Android `0.4.0-beta.21`（code51），身份固定在[版本资料](../release/android/51.json)和[制品与发布准备记录](results/beta21-code51-release-preparation-20261103.json)。[Muse 息屏任务](results/beta21-code51-muse-cli12-wake-20261103.json)、[Instinct 息屏任务](results/beta21-code51-instinct-cli12-wake-20261103.json)及[双 AI 交接](results/beta21-code51-two-ai-handoff-20261103.json)已分别完成限定验收；[短时断网](results/beta21-code51-network-recovery-20261102.json)与[供电静置观察](results/beta21-code51-idle-20261103.json)保持各自范围。旧版录屏、历史验收不能替代新版完整验收；真正新运行环境中的配置保留、独立新用户首用、更多机型和多日后台仍按实际证据记录。发布准备不等于官网已切换，推荐版本须以冻结站部署与公网核验为准。
+- 官网已发布 Android `0.4.0-beta.21`（code51），实际部署及下载核验见[发布记录](results/beta21-code51-publication-20261103.json)，身份固定在[版本资料](../release/android/51.json)和[制品与发布准备记录](results/beta21-code51-release-preparation-20261103.json)。[Muse 息屏任务](results/beta21-code51-muse-cli12-wake-20261103.json)、[Instinct 息屏任务](results/beta21-code51-instinct-cli12-wake-20261103.json)及[双 AI 交接](results/beta21-code51-two-ai-handoff-20261103.json)已分别完成限定验收；[短时断网](results/beta21-code51-network-recovery-20261102.json)与[供电静置观察](results/beta21-code51-idle-20261103.json)保持各自范围。旧版录屏、历史验收不能替代新版完整验收；真正新运行环境中的配置保留、独立新用户首用、更多机型和多日后台仍按实际证据记录。本次已完成冻结站部署与公网核验；发布不代表重启后的全部日常用途、其他设备迁移或上述待验范围已经通过。
 
 ## 设备扩展原则
 
