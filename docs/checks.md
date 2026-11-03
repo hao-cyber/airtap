@@ -75,6 +75,8 @@ node relay/service/tests/multi-ai-roundtrip.mjs --active-lease-window --lease-ou
 
 [CLI.12 修复与交付记录](results/cli12-lease-recovery-delivery-20261102.json)保留旧版时钟偏差复现、续租回执丢失后的恢复回归、最终源码检查和公网结果。允许恢复的只是服务端已确认的同一续租意图，下一条新命令前须重试其原标识；不复活已释放任务，也不重放未知结果的手机操作。
 
+[短信与业务 App 网络指引准备](results/guide-sms-network-preparation-20261103.json)补充短信 GUI 覆盖核对、有限等待与租约衔接，以及沿用已授权 VPN 配置排查业务 App 连接超时。47 项 CLI 租约、11 项冻结部署和 3 组真实 workerd 邀请摘要检查通过，本地部署构建通过；仅准备下一服务 revision，未部署，也不是短信实机验收。CLI.12、APK 和服务运行时代码未改。
+
 [code51 的 Instinct Play 恢复记录](results/beta21-code51-instinct-play-20261102.json)验证已有的原生提交路线：显式 `search` 因输入连接身份不足被拒绝后，清理搜索词末尾换行，重新观察并用控件提供的 `native_enter` 完成搜索、详情核验和返回桌面。它实际使用 CLI.11，保留先前拒绝和一条本地参数错误；不是 CLI.12、唤醒或双 AI 交接通过。输入文本按 stdin 原样发送；`printf '%s' 'Google Maps'` 不会附加换行。截图命令是 `observe --output <新文件>`，不接受 `--package`。
 
 [CLI.12 的 Instinct 真机记录](results/beta21-code51-instinct-cli12-wake-20261103.json)另行验证 code51 从息屏经正常观察请求自主唤醒，完成 Play 搜索、详情核验、返回桌面并释放。18 条调用历时约 132 秒，保留首次观察的窗口变化错误、启动后的观察不完整及恢复。它使用原配对，未由维护者代做任务；该记录不覆盖 Muse、双 AI 交接或真正新运行环境中的配置保留，也不是此前一小时静置的直接续接。

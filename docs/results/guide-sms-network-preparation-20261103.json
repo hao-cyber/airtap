@@ -1,0 +1,55 @@
+{
+  "schema": "airtap-agent-guide-preparation-v1",
+  "recorded_date": "2026-11-03",
+  "status": "prepared_not_deployed",
+  "source_base_commit": "db7e5b5",
+  "guide": {
+    "bytes": 92864,
+    "sha256": "0aeae8f0792d8f82ed844a285bf441816558bff4db9f78644e77d8e893f3653c"
+  },
+  "cli": {
+    "version": "0.4.0-cli.12",
+    "bytes": 101307,
+    "sha256": "a2ea9b60fba1026ac5710612f20fd33c4a0c8c95dfae9c30496aa3f30a375e62",
+    "unchanged": true
+  },
+  "changes": [
+    "SMS absence checks use the actual conversation and relevant time range; notification snippets and read status are not full delivery evidence.",
+    "Default waiting is bounded by 60 seconds after initial inspection, displayed expiry and cancellation, with fresh GUI checks at least 10 seconds apart.",
+    "Status and sleep do not renew a lease; normal CLI automatic renewal, explicit renewal before a long pause, or confirmed release and new acquisition remain required.",
+    "Application connectivity is checked independently from Airtap; preserve the authorized VPN profile and existing direct-routing exceptions, without re-pairing or clearing app data."
+  ],
+  "prepared_service": {
+    "previous_revision": 21,
+    "revision": 22,
+    "attempted": false,
+    "deployed": false,
+    "changed_files": [
+      "assets/agent.md"
+    ],
+    "runtime_source_sha256": "1de6018da8bc9b20e279da6f0a8e0d8024c67a0b7bea48cf84f9066d3f271d27",
+    "artifact_version": "service4-1de6018d-a2ea9b60-0aeae8f0",
+    "same_identity_settings_credentials_and_bindings": true,
+    "apk_changed": false
+  },
+  "checks": {
+    "cli_task_lease_tests": 47,
+    "deployment_freeze_tests": 11,
+    "invitation_artifact_workerd_groups": 3,
+    "wrangler_dry_run_exit": 0,
+    "compiled_worker_bytes": 140694,
+    "compiled_worker_sha256": "5a8a779580a5f068cfccdaf86e3a122f387e848e92a1489f6367ae0b785c4c5c",
+    "frozen_asset_hashes_match_config": true,
+    "runtime_source_files_equal_previous_revision": true
+  },
+  "reference": {
+    "android_15_notification_privacy": "https://developer.android.com/about/versions/15/behavior-changes-all#otp-redaction",
+    "checked_date": "2026-11-03"
+  },
+  "limits": [
+    "Guidance only: no SMS receiver, notification queue or delivery webhook added.",
+    "No phone, personal-AI execution, new pairing or real SMS wait was performed by this preparation.",
+    "No production deployment, APK change, CLI change or protocol change.",
+    "Actual client behavior, carrier delivery and app-network recovery require their own task evidence."
+  ]
+}
