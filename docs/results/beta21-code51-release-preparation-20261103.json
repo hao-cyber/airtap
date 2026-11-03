@@ -1,0 +1,83 @@
+{
+  "schema": "airtap-release-preparation-v1",
+  "recorded_date": "2026-11-03",
+  "status": "prepared_not_deployed",
+  "publication_performed": false,
+  "artifact": {
+    "schema": "airtap-android-update-v1",
+    "application_id": "io.airtap.preview",
+    "version_name": "0.4.0-beta.21",
+    "version_code": 51,
+    "apk_sha256": "5955f98562a949059c099c2fd50ecbd759fcb3c7b43e79e6c60f010e3914008b",
+    "apk_bytes": 599501,
+    "signer_sha256": "a2aa0c1b6fdaf1baa37aa20817387524a1318b5dab82bf7c185663141daba60f",
+    "min_sdk": 34,
+    "target_sdk": 36,
+    "debuggable": false,
+    "channel": "beta",
+    "published_at": "2026-11-03",
+    "download_path": "/download/android",
+    "notes": [
+      "可以连接多个自己的 AI，各自保留连接，轮流操作同一部手机；已有单 AI 连接可在手机上开启多 AI 模式并保留原连接。",
+      "手机息屏时，正常读屏和操作请求会尝试自动亮屏，再继续任务。系统要求密码或生物识别时仍需本人验证，不会绕过。",
+      "改进后台连接恢复：收到中继确认后才显示已连接；断网或长时间无响应后会重试原连接，不自动重放结果未知的手机操作。",
+      "近期版本可直接覆盖更新，保留数据和有效配对，不要先卸载或清除数据。极早预览版若显示“开始新版连接”，按提示为这台手机重新邀请和核码；主动停止或解除连接后不会自动恢复。",
+      "Muse 与 Instinct 已在魅族 Note 16 上分别完成息屏任务，并完成有限范围的双 AI 互斥交接；失败、恢复及证据限制另有记录。更多机型、独立新用户首用和多日无人值守仍待验证。"
+    ]
+  },
+  "apk_preparation": {
+    "existing_signed_bytes_reused": true,
+    "rebuilt_or_resigned": false,
+    "native_signature_and_manifest_checked": true,
+    "signature_check": "apksigner verify with expected long-term release certificate",
+    "manifest_check": [
+      "application ID",
+      "version name and code",
+      "minimum and target SDK",
+      "non-debuggable"
+    ],
+    "original_build_preserved_inputs": true,
+    "current_android_production_build_inputs_match_original": 89,
+    "production_inputs_changed": 0,
+    "production_input_set_sha256": "872c7d64df6025b3ca303a6118c63f8f1103f01ced1dbd94062eca9f814e3e10",
+    "source_limit": "The original build froze file hashes while version metadata was uncommitted. Current production Android inputs match those frozen bytes; this does not claim the full original worktree was a clean Git commit or that a rebuild is bit-for-bit reproducible."
+  },
+  "acceptance_references": [
+    "beta21-code51-muse-cli12-wake-20261103.json",
+    "beta21-code51-instinct-cli12-wake-20261103.json",
+    "beta21-code51-two-ai-handoff-20261103.json",
+    "beta21-code51-network-recovery-20261102.json",
+    "beta21-code51-idle-20261103.json",
+    "beta21-native-leases-20261102.json"
+  ],
+  "media": {
+    "installation": {
+      "duration_seconds": 70,
+      "reference_version_code": 39,
+      "recorded_version_codes": [
+        39,
+        40
+      ],
+      "sha256": "7d5fe76f511bb95784c546663bef83070ecb3f5d280db87741f4eda4841bc8ad",
+      "scope": "Existing prepared phone and old UI; first installation, first permission approval, invitation sending and code confirmation were not fully recorded."
+    },
+    "usage": {
+      "duration_seconds": 90,
+      "reference_version_code": 39,
+      "sha256": "ffa11c4e893f22c7ba96ebb12bf72a390574134bb57e02cf5a434d7ea80c3fd0",
+      "scope": "Historical Muse route-to-notes task; USB coordination/recording, temporary charging keep-awake and edited waits remain disclosed."
+    },
+    "both_existing_video_bytes_reused": true,
+    "both_without_audio_tracks": true,
+    "not_code51_task_or_newcomer_acceptance_videos": true
+  },
+  "rollout_scope": "Candidate metadata and one frozen website build are prepared for review. Actual recommendation switching and public HTTP verification are separate operations; this record alone does not announce publication.",
+  "not_verified": [
+    "Independent newcomer installation and full first use",
+    "Genuine independent-runtime recreation unless separately recorded",
+    "More phone models, pure mobile-network full tasks and multi-day unattended endurance",
+    "Another phone migration or retirement of its previous control route"
+  ],
+  "privacy_scope": "Public metadata and aggregate results only. No signing secrets, configuration, pairing data, raw phone screenshots, private chats, private deployment paths or addresses.",
+  "upgrade_boundary": "Existing protocol4 connections should be retained by normal same-signature upgrade. Much earlier protocol preview installations may require the explicit in-app new-connection flow and normal approval; application data preservation is not preservation of an obsolete transient control grant. No uninstall or cross-device profile copy is instructed."
+}

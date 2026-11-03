@@ -1,0 +1,22 @@
+{
+  "schema": "airtap-android-update-v1",
+  "application_id": "io.airtap.preview",
+  "version_name": "0.4.0-beta.21",
+  "version_code": 51,
+  "apk_sha256": "5955f98562a949059c099c2fd50ecbd759fcb3c7b43e79e6c60f010e3914008b",
+  "apk_bytes": 599501,
+  "signer_sha256": "a2aa0c1b6fdaf1baa37aa20817387524a1318b5dab82bf7c185663141daba60f",
+  "min_sdk": 34,
+  "target_sdk": 36,
+  "debuggable": false,
+  "channel": "beta",
+  "published_at": "2026-11-03",
+  "download_path": "/download/android",
+  "notes": [
+    "可以连接多个自己的 AI，各自保留连接，轮流操作同一部手机；已有单 AI 连接可在手机上开启多 AI 模式并保留原连接。",
+    "手机息屏时，正常读屏和操作请求会尝试自动亮屏，再继续任务。系统要求密码或生物识别时仍需本人验证，不会绕过。",
+    "改进后台连接恢复：收到中继确认后才显示已连接；断网或长时间无响应后会重试原连接，不自动重放结果未知的手机操作。",
+    "近期版本可直接覆盖更新，保留数据和有效配对，不要先卸载或清除数据。极早预览版若显示“开始新版连接”，按提示为这台手机重新邀请和核码；主动停止或解除连接后不会自动恢复。",
+    "Muse 与 Instinct 已在魅族 Note 16 上分别完成息屏任务，并完成有限范围的双 AI 互斥交接；失败、恢复及证据限制另有记录。更多机型、独立新用户首用和多日无人值守仍待验证。"
+  ]
+}

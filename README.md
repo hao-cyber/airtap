@@ -14,13 +14,13 @@ Android 14+ · 公开测试版 · 需要能调用工具的个人 AI
 
 [观看 90 秒真机使用演示](https://airtap.memtrix.dev/#demo)：Muse 对话 → 手机执行 → 返回结果。
 
-这轮演示中，Muse 在小红书读取两条徒步路线，整理到新便签里，保存后重新打开核对，再回到对话汇报。设备是魅族 Note 16 / Android 15，Airtap 为 beta.9（code39），任务由 Muse 通过自己的云端工具执行。[查看这轮结果](docs/results/beta9-code39-muse-20261029.json)
+这段旧版演示中，Muse 在小红书读取两条徒步路线，整理到新便签里，保存后重新打开核对，再回到对话汇报。设备是魅族 Note 16 / Android 15，录制版本为 beta.9（code39），任务由 Muse 通过自己的云端工具执行。[查看这轮结果](docs/results/beta9-code39-muse-20261029.json)
 
 查资料、编辑文字、跨 App 整理内容，都由你原有的 AI 规划；Airtap 提供操作手机的能力。它不要求每个 App 单独提供 API，也不需要你先搭好固定工作流。具体任务仍取决于 AI、App 和手机系统。
 
 ## 开始使用
 
-[观看 70 秒安装与接入指南](https://airtap.memtrix.dev/install#start)。真机演示官网下载和系统设置，邀请与核码配合步骤说明。示例手机已接入，并非首次安装全程实录。
+[观看 70 秒安装与接入指南](https://airtap.memtrix.dev/install#start)。真机演示官网下载和系统设置，邀请与核码配合步骤说明。视频使用 beta.9／beta.10 的旧版界面；示例手机已接入，并非首次安装全程实录。
 
 1. 在 Android 14 或更新的手机上安装 Airtap。
 2. 打开 App，按引导完成操作权限、通知和后台运行设置。
@@ -42,14 +42,14 @@ AI 可以组合这些动作完成跨 App 任务，不限于计算器等演示应
 
 ## 当前支持情况
 
-当前 Android 版本为 **0.4.0-beta.9（code39）**。本版修复建立连接时长时间卡住的问题，等待超时后会自动重试，并保留有效配对。已完成[构建与安装包校验](docs/results/beta9-code39-build-20261029.json)及[模拟器连接恢复、停止和撤销检查](docs/results/beta9-code39-recovery-20261029.json)。
+本轮发布版本为 **0.4.0-beta.21（code51）**。它支持多个自己的 AI 轮流使用手机，改进息屏准备与连接恢复；覆盖更新保留有效连接。[版本与更新说明](release/android/51.json) · [制品核验与发布准备](docs/results/beta21-code51-release-preparation-20261103.json)。实际推荐包以安装页为准。
 
-真机测试主要使用魅族 Note 16、Android 15。本版 Muse 已完成下述跨 App 任务；录制采用维护者临时充电常亮，不代表自主唤醒。更多机型、纯移动网络完整任务、长期后台运行和独立新用户完整安装仍待验证。目前没有 iOS 客户端。
+真机测试主要使用魅族 Note 16、Android 15。Muse 与 Instinct 已分别完成息屏后的任务；两者还完成了[持租时拒绝另一 AI、释放后接管的交接](docs/results/beta21-code51-two-ai-handoff-20261103.json)。这些结果保留失败恢复、维护者准备与取证限制。更多机型、纯移动网络完整任务、多日后台和独立新用户完整安装仍待验证。目前没有 iOS 客户端。
 
 | 个人 AI | 已有测试 |
 | --- | --- |
-| Muse | beta.9（code39）完成小红书查路线 → 写便签 → 保存重开核对 → 返回 Muse。第二轮短暂出错后自行检查恢复并继续；首轮失败和人工准备保留在[本版记录](docs/results/beta9-code39-muse-20261029.json)。[code38 历史记录](docs/results/beta8-code38-muse-20261029.json)仍保留原范围。 |
-| Instinct | 较早版本完成接入、跨 App 任务、断网恢复与撤销；尚未完成当前版本回归。[记录](docs/personal-ai-acceptance-v040.md) |
+| Muse | code51／CLI.12 从息屏恢复，计算 `36×23=828`、看图核对、回桌面并释放；一次窗口变化错误后重新观察恢复。本轮有三次显式续租，不作为纯自动续租证明。[记录](docs/results/beta21-code51-muse-cli12-wake-20261103.json) |
+| Instinct | code51／CLI.12 从息屏恢复，在 Google Play 搜索并核对 Google Maps，再回桌面并释放。首次观察和启动后的观察曾失败，之后自行恢复。[记录](docs/results/beta21-code51-instinct-cli12-wake-20261103.json) |
 
 其他 AI 尚未确认兼容。它至少需要能执行网络工具调用；用截图定位和操作时，还需要实际读取图片的能力。普通聊天入口不一定具备这些能力。[AI 接入说明](docs/agent.md)
 
@@ -59,7 +59,7 @@ AI 可以组合这些动作完成跨 App 任务，不限于计算器等演示应
 
 有效配对会保留，正常断网后会尝试自动重连；建立连接长时间没有响应时也会自动重试。恢复后让 AI 先查看手机状态，再继续任务，避免重复操作。你可以在手机上随时停止或撤销控制。系统要求密码或生物识别时，Airtap 不能绕过；系统强制停止 App 或关闭权限后，可能需要你重新开启。
 
-同日后续排查还发现：特定网络路径下会持续连接超时。维护者调整手机原有 VPN 分流后，Muse 沿用原配对完成短回归；这不代表直连问题或长期后台稳定性已经解决。[网络排查记录](docs/results/beta9-code39-network-route-20261029.json)
+code51 已完成一次[短时断网恢复](docs/results/beta21-code51-network-recovery-20261102.json)和[供电状态下 60 分钟静置观察](docs/results/beta21-code51-idle-20261103.json)，不代表所有网络或多日后台均已通过。旧版曾因手机原有 VPN 分流影响连接，保留[历史排查记录](docs/results/beta9-code39-network-route-20261029.json)。
 
 连接使用 HTTPS，**目前不是端到端加密，中继能够接触经过它的画面与操作内容**。默认不保存截图和操作正文，会保存配对及必要连接信息。请只把邀请交给自己的 AI。[权限与隐私说明](SECURITY.md)
 

@@ -18,7 +18,9 @@
 
 当前为公开测试渠道，使用长期 RSA 3072 发布密钥，Android `debuggable=false`，最低 Android 14。包名继续使用 `io.airtap.preview`，以保留已安装用户的数据；包名不作为用户界面名称。正式发布签名不代表产品已通过全部机型或普通用户验证。
 
-本版 Android 为 `0.4.0-beta.9`（code39），[版本元数据](android/39.json)、[精确源码与 APK 校验](../docs/results/beta9-code39-build-20261029.json)、[合成恢复验收](../docs/results/beta9-code39-recovery-20261029.json)及 [Muse 真机任务](../docs/results/beta9-code39-muse-20261029.json)分别记录身份与范围。官网推荐切换和公网验证须按下列流程完成，不能以这些本地记录替代。
+本轮准备发布 Android `0.4.0-beta.21`（code51），复用已经签名、安装与实测的同一 APK 字节。[版本元数据](android/51.json)和[制品与发布准备记录](../docs/results/beta21-code51-release-preparation-20261103.json)固定其身份；[Muse](../docs/results/beta21-code51-muse-cli12-wake-20261103.json)、[Instinct](../docs/results/beta21-code51-instinct-cli12-wake-20261103.json)及[双 AI 交接](../docs/results/beta21-code51-two-ai-handoff-20261103.json)分别记录限定实测范围。准备构建不代表已经发布；推荐切换和公网验证须按下列流程完成。原 code39 [版本资料](android/39.json)与验收记录保留，不重写历史。
+
+从极早的协议预览版升级时，安装保留应用数据不等于旧临时授权可以继续使用。若 App 显示“开始新版连接”，按前台流程为该手机建立新邀请并核码；不要复制另一部手机的配对，也不要卸载或清除其他 App 账号。原发布证书的签名轮换仅覆盖匹配的已安装包，具体设备须核对实际签名及升级结果。
 
 发布证书 SHA256：`a2aa0c1b6fdaf1baa37aa20817387524a1318b5dab82bf7c185663141daba60f`。
 
