@@ -30,7 +30,7 @@ const { Miniflare, convertV4MiniflareOptions } = await import(miniflareURL.href)
 const miniflareVersion = JSON.parse(await readFile(new URL('../../package.json', miniflareURL), 'utf8')).version;
 const workerdVersion = JSON.parse(await readFile(createRequire(miniflareURL).resolve('workerd/package.json'), 'utf8')).version;
 const hex = bytes => randomBytes(bytes).toString('hex'), digest = data => createHash('sha256').update(data).digest('hex');
-const temp = await mkdtemp(join(tmpdir(), 'airtap-scale-'));
+let temp, mf;
 const fixture = `import handler, {AdmissionRegistry, ServiceDeviceRelay} from './service/service.mjs';
 export class MeasuredRegistry extends AdmissionRegistry {
  async save(next) { const bytes=new TextEncoder().encode(JSON.stringify(next)).length; await super.save(next); this.directoryWrites=(this.directoryWrites??0)+1; this.directoryBytesWritten=(this.directoryBytesWritten??0)+bytes; }
@@ -40,14 +40,19 @@ export class MeasuredRegistry extends AdmissionRegistry {
 export {ServiceDeviceRelay};
 export default {async fetch(r,e) { if(new URL(r.url).pathname==='/__fixture_metrics')return Response.json(await e.ADMISSION.get(e.ADMISSION.idFromName('service')).measure()); return handler.fetch(r,e); }};`;
 const paths = ['relay/service/service.mjs', 'relay/worker/worker.mjs', 'relay/service/feedback.mjs'];
-const modules = await Promise.all(paths.map(async p => ({ type: 'ESModule', path: join(root, p), contents: await readFile(join(root, p), 'utf8') })));
-const settings = { host: '127.0.0.1', port: 0, cf: false, durableObjectsPersist: join(temp, 'do'), resourcePersistencePath: join(temp, 'state'), workers: [{
-  name: 'local-relay-scale', modulesRoot: join(root, 'relay'), modules: [{ type: 'ESModule', path: join(root, 'relay/scale-fixture.mjs'), contents: fixture }, ...modules],
-  compatibilityDate: '2026-10-01', durableObjects: { ADMISSION: { className: 'MeasuredRegistry', useSQLite: true }, DEVICES: { className: 'ServiceDeviceRelay', useSQLite: true } },
-  ratelimits: { INGRESS: { namespace_id: '2603', simple: { limit: 10000, period: 60 } } },
-  bindings: { SERVICE_ID: hex(16), SERVICE_LABEL: 'Local synthetic capacity test', IP_HASH_SALT: hex(32), REGISTRATION_OPEN: 'true', CONTROL_OPEN: 'true', MAX_DEVICES: String(count), DAILY_REGISTRATIONS: '1000', IP_DAILY_REGISTRATIONS: '20', CLI_SHA256: 'a'.repeat(64), AGENT_SHA256: 'b'.repeat(64) },
-}] };
-const mf = new Miniflare(convertV4MiniflareOptions ? { ...convertV4MiniflareOptions(settings), telemetry: { enabled: false } } : settings);
+let modules = [];
+async function initialize() {
+  modules = await Promise.all(paths.map(async p => ({ type: 'ESModule', path: join(root, p), contents: await readFile(join(root, p), 'utf8') })));
+  report.production_sha256 = Object.fromEntries(modules.map((m, i) => [paths[i], digest(m.contents)]));
+  temp = await mkdtemp(join(tmpdir(), 'airtap-scale-'));
+  const settings = { host: '127.0.0.1', port: 0, cf: false, durableObjectsPersist: join(temp, 'do'), resourcePersistencePath: join(temp, 'state'), workers: [{
+    name: 'local-relay-scale', modulesRoot: join(root, 'relay'), modules: [{ type: 'ESModule', path: join(root, 'relay/scale-fixture.mjs'), contents: fixture }, ...modules],
+    compatibilityDate: '2026-10-01', durableObjects: { ADMISSION: { className: 'MeasuredRegistry', useSQLite: true }, DEVICES: { className: 'ServiceDeviceRelay', useSQLite: true } },
+    ratelimits: { INGRESS: { namespace_id: '2603', simple: { limit: 10000, period: 60 } } },
+    bindings: { SERVICE_ID: hex(16), SERVICE_LABEL: 'Local synthetic capacity test', IP_HASH_SALT: hex(32), REGISTRATION_OPEN: 'true', CONTROL_OPEN: 'true', MAX_DEVICES: String(count), DAILY_REGISTRATIONS: '1000', IP_DAILY_REGISTRATIONS: '20', CLI_SHA256: 'a'.repeat(64), AGENT_SHA256: 'b'.repeat(64) },
+  }] };
+  mf = new Miniflare(convertV4MiniflareOptions ? { ...convertV4MiniflareOptions(settings), telemetry: { enabled: false } } : settings);
+}
 const sockets = [], devices = Array.from({ length: count }, (_, i) => ({ id: hex(16), token: hex(32), controller: hex(32), ip: '2001:db8::' + (i + 1).toString(16), sequence: 0 }));
 const report = { schema: 'airtap-local-relay-scale-v1', started_at: new Date().toISOString(), parameters: { devices: count, concurrency, ping_rounds: rounds, idle_ms: idleMs },
   environment: { node: process.version, miniflare: miniflareVersion, workerd: workerdVersion, platform: platform(), architecture: arch(), logical_cpus: cpus().length, memory_bytes: totalmem() },
@@ -57,8 +62,10 @@ const report = { schema: 'airtap-local-relay-scale-v1', started_at: new Date().t
 let responseBytes = 0, requests = 0, phoneCommands = 0, errors = 0, peakSockets = 0, currentPhase;
 let activeTasks = 0, peakActiveTasks = 0, activeCommands = 0, peakActiveCommands = 0;
 const pingLatencies = [];
-const deadline = setTimeout(() => { report.deadline_exceeded = true; void mf.dispose(); }, 180000);
+let deadline;
+const helloTimers = new Set();
 async function request(path, d, token, body, method) {
+  if (report.deadline_exceeded) throw new Error('local_experiment_deadline_exceeded');
   requests++;
   const response = await mf.dispatchFetch('http://localhost' + path, { method: method ?? (body === undefined ? 'GET' : 'POST'), headers: { 'cf-connecting-ip': d?.ip ?? '2001:db8::ffff', ...(token ? { Authorization: 'Bearer ' + token } : {}), ...(body === undefined ? {} : { 'Content-Type': 'application/json' }) }, ...(body === undefined ? {} : { body: JSON.stringify(body) }) });
   const raw = await response.text(); responseBytes += Buffer.byteLength(raw); return { status: response.status, data: JSON.parse(raw) };
@@ -86,7 +93,7 @@ async function phase(name, items, fn) {
 }
 async function metrics() { return (await request('/__fixture_metrics')).data; }
 const caps = ['multi_ai_v1', 'task_lease_v1'];
-try {
+async function runExperiment() {
   await mf.ready;
   await phase('registered', devices, d => ok('/v1/enroll', d, null, { device_id: d.id, device_token: d.token }));
   report.storage.after_registration = await metrics();
@@ -106,8 +113,9 @@ try {
     assert.equal(r.status, 101); const ws = r.webSocket; ws.accept(); sockets.push(ws); d.socket = ws; peakSockets = sockets.length;
     let resolveHello, rejectHello; const hello = new Promise((resolve, reject) => { resolveHello = resolve; rejectHello = reject; });
     const timer = setTimeout(() => rejectHello(new Error('synthetic_hello_timeout')), 10000);
+    helloTimers.add(timer);
     ws.addEventListener('message', e => { const b = JSON.parse(e.data);
-      if (b.type === 'hello_ack') { clearTimeout(timer); resolveHello(); return; }
+      if (b.type === 'hello_ack') { clearTimeout(timer); helloTimers.delete(timer); resolveHello(); return; }
       if (b.type === 'task_fence') { ws.send(JSON.stringify({ type: 'task_fence_ack', operation_id: b.operation_id, lease_epoch: b.lease_epoch, ok: true })); return; }
       phoneCommands++; ws.send(JSON.stringify({ id: b.command?.id ?? b.id, ok: true, result: { synthetic: true, authorized: true, screen_state: 'ready' } }));
     });
@@ -144,13 +152,35 @@ try {
   assert.equal(phoneCommands, beforeGuards);
   Object.assign(report.guards, { foreign_controller_rejected_without_charge: true, stopped_controller_rejected: true, rejected_operations_dispatched: 0 });
   assert.equal(phoneCommands, count * rounds);
+  if (report.deadline_exceeded) throw new Error('local_experiment_deadline_exceeded');
   report.status = 'passed_local_synthetic';
+}
+try {
+  currentPhase = 'initialization';
+  await initialize();
+  await Promise.race([runExperiment(), new Promise((_, reject) => {
+    deadline = setTimeout(() => { report.deadline_exceeded = true; reject(new Error('local_experiment_deadline_exceeded')); }, 180000);
+  })]);
 } catch (error) {
   report.status = 'failed'; report.failure = { phase: currentPhase, name: error.name, message: error.message.slice(0, 240) }; process.exitCode = 1;
 } finally {
   clearTimeout(deadline);
-  for (const ws of sockets) try { ws.close(1000, 'local experiment complete'); } catch {}
-  await mf.dispose();
+  for (const timer of helloTimers) clearTimeout(timer);
+  const cleanup = { local_workerd_disposed: !mf, temporary_sqlite_removed: !temp, socket_close_requested: 0, errors: [] };
+  const cleanupError = (step, error) => {
+    cleanup.errors.push({ step, name: error.name, message: error.message.slice(0, 240) });
+    if (report.status !== 'failed') report.failure = { phase: 'cleanup', name: error.name, message: step + '_failed' };
+    report.status = 'failed'; process.exitCode = 1;
+  };
+  for (const ws of sockets) try { ws.close(1000, 'local experiment complete'); cleanup.socket_close_requested++; } catch (error) { cleanupError('socket_close', error); }
+  if (mf) {
+    let timer;
+    try {
+      await Promise.race([mf.dispose(), new Promise((_, reject) => { timer = setTimeout(() => reject(new Error('local_dispose_timeout')), 10000); })]);
+      cleanup.local_workerd_disposed = true;
+    } catch (error) { cleanupError('dispose', error); }
+    finally { clearTimeout(timer); }
+  }
   async function storedFiles(path) {
     let bytes = 0, files = 0;
     for (const entry of await readdir(path, { withFileTypes: true })) {
@@ -160,10 +190,19 @@ try {
     }
     return { bytes, files };
   }
-  report.local_persisted_files_before_cleanup = await storedFiles(temp);
-  await rm(temp, { recursive: true, force: true });
+  if (temp && cleanup.local_workerd_disposed) {
+    try { report.local_persisted_files_before_cleanup = await storedFiles(temp); }
+    catch (error) { cleanupError('storage_measurement', error); }
+    try { await rm(temp, { recursive: true, force: true }); cleanup.temporary_sqlite_removed = true; }
+    catch (error) { cleanupError('storage_removal', error); }
+  }
+  // Do not remove a live runtime's SQLite files if disposal is unconfirmed.
+  cleanup.temporary_directory_retained = Boolean(temp && !cleanup.temporary_sqlite_removed);
   report.finished_at = new Date().toISOString(); report.totals = { requests, response_bytes: responseBytes, dispatched_synthetic_pings: phoneCommands, unexpected_http_errors: errors, peak_websockets: peakSockets, peak_client_observed_ready_tasks: peakActiveTasks, peak_outstanding_command_requests: peakActiveCommands };
-  report.cleanup = { local_workerd_disposed: true, temporary_sqlite_removed: true, socket_close_requested: sockets.length };
-  if (options.has('--output')) { await mkdir(dirname(options.get('--output')), { recursive: true }); await writeFile(options.get('--output'), JSON.stringify(report, null, 2) + '\n'); }
+  report.cleanup = cleanup;
+  if (options.has('--output')) {
+    try { await mkdir(dirname(options.get('--output')), { recursive: true }); await writeFile(options.get('--output'), JSON.stringify(report, null, 2) + '\n'); }
+    catch (error) { cleanupError('report_write', error); }
+  }
   console.log(JSON.stringify(report));
 }
