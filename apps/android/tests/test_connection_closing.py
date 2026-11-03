@@ -9,6 +9,7 @@ import hashlib
 import json
 import os
 from pathlib import Path
+import re
 import subprocess
 import tempfile
 
@@ -410,6 +411,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument('--output', type=Path)
 args = parser.parse_args()
 jdk = Path(os.environ['JAVA_HOME']) / 'bin'
+screen_test = ROOT / 'tests/ScreenPreparationTest.java'
 with tempfile.TemporaryDirectory(prefix='airtap-connection-close-') as directory:
     path = Path(directory)
     (path / 'PreviewService.java').write_text(probe)
@@ -417,15 +419,28 @@ with tempfile.TemporaryDirectory(prefix='airtap-connection-close-') as directory
     errno.parent.mkdir(parents=True)
     errno.write_text('package android.system; public class ErrnoException extends Exception { public int errno = 104; }')
     subprocess.run([str(jdk / 'javac'), '--release', '17', '-d', directory, str(path / 'PreviewService.java'),
-                    str(SOURCE / 'ScreenPreparation.java'), str(SOURCE / 'RecoveryStatus.java'), str(errno)], check=True)
+                    str(SOURCE / 'ScreenPreparation.java'), str(SOURCE / 'RecoveryStatus.java'), str(errno), str(screen_test)], check=True)
     result = subprocess.run([str(jdk / 'java'), '-cp', directory, 'io.airtap.preview.PreviewService'],
                             capture_output=True, text=True, check=True)
+    screen_result = subprocess.run([str(jdk / 'java'), '-cp', directory, 'io.airtap.preview.ScreenPreparationTest'],
+                                   capture_output=True, text=True, timeout=30)
 print(result.stdout, end='')
+print(screen_result.stdout, end='')
+if screen_result.returncode:
+    print(screen_result.stderr, end='')
+screen_result.check_returncode()
 checks = [line[5:] for line in result.stdout.splitlines() if line.startswith('PASS ')]
 assert len(checks) == 25
+screen_summary = re.fullmatch(r'ScreenPreparation: ([1-9][0-9]*) scenarios passed\s*', screen_result.stdout)
+assert screen_summary, 'Missing ScreenPreparation scenario result'
+screen_scenarios = int(screen_summary.group(1))
 if args.output:
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(json.dumps({'passed': len(checks), 'total': len(checks), 'checks': checks,
         'scope': 'Host JVM. Exact production connect/callback/deadline/current/disconnected/backoff/stop/suspend/network-observer/path/reset methods, real ScreenPreparation; fake transport can withhold handshake callbacks and delay main-thread delivery. Public capability edges exercise VPN underlay loss/return, duplicate callbacks, validation/internet return, pending/healthy socket preservation, and stop/notification/generation gates. Single-mode lifecycle plus multi-mode onOpen presentation before hello acknowledgement; multi command/ACK handling is covered separately. Not device or real-network validation.',
+        'screen_preparation': {'passed': screen_scenarios, 'total': screen_scenarios,
+            'scope': 'Existing production ScreenPreparation state-machine scenarios with deterministic time and platform fakes; separate from the connection scenarios above. No Android window or screenshot callback validation.',
+            'source_sha256': {'ScreenPreparation.java': hashlib.sha256((SOURCE / 'ScreenPreparation.java').read_bytes()).hexdigest(),
+                              'ScreenPreparationTest.java': hashlib.sha256(screen_test.read_bytes()).hexdigest()}},
         'source_sha256': {name: hashlib.sha256((SOURCE / name).read_bytes()).hexdigest()
                           for name in ('PreviewService.java', 'ScreenPreparation.java')}}, indent=2) + '\n')
