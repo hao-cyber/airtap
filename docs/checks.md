@@ -75,9 +75,11 @@ node relay/service/tests/multi-ai-roundtrip.mjs --active-lease-window --lease-ou
 
 [code51 的 Instinct Play 恢复记录](results/beta21-code51-instinct-play-20261102.json)验证已有的原生提交路线：显式 `search` 因输入连接身份不足被拒绝后，清理搜索词末尾换行，重新观察并用控件提供的 `native_enter` 完成搜索、详情核验和返回桌面。它实际使用 CLI.11，保留先前拒绝和一条本地参数错误；不是 CLI.12、唤醒或双 AI 交接通过。输入文本按 stdin 原样发送；`printf '%s' 'Google Maps'` 不会附加换行。截图命令是 `observe --output <新文件>`，不接受 `--package`。
 
-[CLI.12 的 Instinct 真机记录](results/beta21-code51-instinct-cli12-wake-20261103.json)另行验证 code51 从息屏经正常观察请求自主唤醒，完成 Play 搜索、详情核验、返回桌面并释放。18 条调用历时约 132 秒，保留首次观察的窗口变化错误、启动后的观察不完整及恢复。它使用原配对，未由维护者代做任务；Muse、双 AI 交接与真正新运行环境中的配置保留仍未验证，也不是此前一小时静置的直接续接。
+[CLI.12 的 Instinct 真机记录](results/beta21-code51-instinct-cli12-wake-20261103.json)另行验证 code51 从息屏经正常观察请求自主唤醒，完成 Play 搜索、详情核验、返回桌面并释放。18 条调用历时约 132 秒，保留首次观察的窗口变化错误、启动后的观察不完整及恢复。它使用原配对，未由维护者代做任务；该记录不覆盖 Muse、双 AI 交接或真正新运行环境中的配置保留，也不是此前一小时静置的直接续接。
 
-[随后取回的 Muse CLI.12 真机记录](results/beta21-code51-muse-cli12-wake-20261103.json)补充 code51 从息屏恢复、计算 `36×23=828`、返回桌面与释放租约。29 条调用历时约 206 秒，首次 `window_changed` 后查询状态并重新观察恢复；三张完整截图均与返回摘要一致，并已实际审阅。CLI.12 执行入口由 Muse 的技术记录报告，未独立跟踪云端进程；本轮用了三次显式续租，不作为纯自动续租证据。真实双 AI 交接与新运行环境中的配置保留仍待验证。
+[随后取回的 Muse CLI.12 真机记录](results/beta21-code51-muse-cli12-wake-20261103.json)补充 code51 从息屏恢复、计算 `36×23=828`、返回桌面与释放租约。29 条调用历时约 206 秒，首次 `window_changed` 后查询状态并重新观察恢复；三张完整截图均与返回摘要一致，并已实际审阅。CLI.12 执行入口由 Muse 的技术记录报告，未独立跟踪云端进程；本轮用了三次显式续租，不作为纯自动续租证据。
+
+[双 AI 交接记录](results/beta21-code51-two-ai-handoff-20261103.json)限定通过 Muse 持租、Instinct 的真实 `device_busy`／HTTP 429 拒绝、释放后接管、新画面操作及最终空闲状态。双方共 69 条顶层 CLI 调用，唯一非零退出为预期的忙碌拒绝。原配置下重试的申请 ID 未保留完整对比证据；Instinct 的看图时间与内容来自其补充报告，未取回原图或视觉工具调用，且最终桌面看图晚于释放。记录保留这些限制，不据此宣称所有恢复路径、真正新运行环境中的配置保留或其他手机迁移已验证。
 
 Android 执行端另有[code51 原生租约与交接检查](results/beta21-native-leases-20261102.json)：在隔离模拟器中运行未改动的生产 Java，验证同 epoch 续租、空闲过期、旧租约拒绝、手势与文件调用结束前的交接限制。它使用显式协议续租与合成机主设置，不代替个人 AI、实体手机或正常首次接入验收。
 

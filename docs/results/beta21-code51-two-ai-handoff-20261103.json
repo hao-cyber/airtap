@@ -1,0 +1,194 @@
+{
+  "schema": "airtap-personal-ai-evidence-review-v1",
+  "recorded_date": "2026-11-03",
+  "status": "passed_scope_limited",
+  "combined_acceptance_finalized": true,
+  "client": {
+    "version_name": "0.4.0-beta.21",
+    "version_code": 51,
+    "build_type": "release",
+    "version_source": "Actual ping responses returned to both personal AIs."
+  },
+  "cli": {
+    "requested_version": "0.4.0-cli.12",
+    "requested_sha256": "a2ea9b60fba1026ac5710612f20fd33c4a0c8c95dfae9c30496aa3f30a375e62",
+    "muse_summary_reports_verified_runner": true,
+    "instinct_previously_verified_tool_context_retained": true,
+    "instinct_call_attachment_repeats_cli_version_or_hash": false,
+    "evidence_limit": "Tool identity rests on the preceding verified preparation and agent reports, not independent cloud-process instrumentation. The current Instinct call export does not repeat version/hash output."
+  },
+  "device_scope": "One previously prepared Meizu Note 16 running Android 15, with two existing approved connections in multi-AI mode. USB remained physically connected; this is not an unplugged test.",
+  "actors": {
+    "A": "Muse actual cloud environment",
+    "B": "Instinct actual cloud environment",
+    "profile_scope": "Each agent reports retaining its own original private profile. No credentials were exchanged, new pairing performed or other phone operated. Redacted identity fields alone cannot independently prove original-profile equality."
+  },
+  "task_scope": "A acquires a lease, takes a fresh observation, holds briefly, returns HOME and releases. B observes busy, attempts acquire once and is refused, waits for idle, retries acquire with its original configuration, then freshly observes the launcher, opens Google Play, returns HOME and releases. B reports reuse of the saved acquire intent; its exact identity equality is limited as recorded below.",
+  "counts": {
+    "muse_cli_calls": 10,
+    "muse_exit_zero": 10,
+    "muse_span_seconds": 76,
+    "instinct_cli_calls": 59,
+    "instinct_status_calls": 51,
+    "instinct_acquire_calls": 2,
+    "instinct_exit_zero": 58,
+    "instinct_exit_one": 1,
+    "instinct_span_seconds": 339.478581,
+    "total_retained_cli_calls": 69,
+    "count_limit": "Top-level CLI invocations, not all internal HTTP requests. Agent-recorded spans include waiting and gaps between calls but exclude earlier coordination and later evidence collection."
+  },
+  "timeline": [
+    {
+      "actor": "B",
+      "event": "Initial status completed: approved, connected, multi, idle, pending 0",
+      "at": "2026-11-03T09:42:56.823635+00:00"
+    },
+    {
+      "actor": "A",
+      "event": "Acquire returned ready",
+      "started_at": "2026-11-03T09:46:40+00:00",
+      "completed_at": "2026-11-03T09:46:43+00:00"
+    },
+    {
+      "actor": "B",
+      "event": "Acquire refused after observing busy",
+      "started_at": "2026-11-03T09:46:44.002866+00:00",
+      "completed_at": "2026-11-03T09:46:45.118126+00:00"
+    },
+    {
+      "actor": "A",
+      "event": "Reported 20-second hold without phone commands",
+      "started_at": "2026-11-03T09:47:08+00:00",
+      "completed_at": "2026-11-03T09:47:28+00:00"
+    },
+    {
+      "actor": "A",
+      "event": "Release returned released",
+      "started_at": "2026-11-03T09:47:45+00:00",
+      "completed_at": "2026-11-03T09:47:46+00:00"
+    },
+    {
+      "actor": "B",
+      "event": "First idle status after the busy period",
+      "started_at": "2026-11-03T09:47:49.144361+00:00",
+      "completed_at": "2026-11-03T09:47:49.704606+00:00"
+    },
+    {
+      "actor": "B",
+      "event": "Acquire retry returned ready",
+      "started_at": "2026-11-03T09:47:49.704863+00:00",
+      "completed_at": "2026-11-03T09:47:51.359151+00:00"
+    },
+    {
+      "actor": "B",
+      "event": "Release returned released",
+      "started_at": "2026-11-03T09:48:32.974048+00:00",
+      "completed_at": "2026-11-03T09:48:34.154166+00:00"
+    },
+    {
+      "actor": "B",
+      "event": "Final idle status completed; pair-status then confirmed approval",
+      "at": "2026-11-03T09:48:35.355823+00:00"
+    }
+  ],
+  "mutual_exclusion": {
+    "B_observed_busy_before_acquire": true,
+    "B_busy_acquire_call": 41,
+    "B_busy_acquire_exit_code": 1,
+    "actual_error": {
+      "ok": false,
+      "error": "device_busy",
+      "status": 429,
+      "outcome": "unknown",
+      "retry_action": false,
+      "retry_after_ms": 1000
+    },
+    "B_phone_commands_before_own_ready": 0,
+    "B_busy_rejection_within_A_recorded_lease_window": true,
+    "B_retry_after_A_recorded_release": true,
+    "error_interpretation": "This was a refused lease-control acquire, not a phone action. The CLI's outcome=unknown is retained; it is not rewritten as not_dispatched, and the response does not contain admitted:false.",
+    "timing_limit": "B's busy acquire occurred during A's lease, before the separately reported 20-second hold. A timestamps have one-second precision; B's clock is separate. Their correlated records support overlap and ordering, not exact cross-host latency. Busy responses intentionally do not disclose the other AI's identity."
+  },
+  "same_intent_recovery": {
+    "idle_status_before_retry": true,
+    "original_config_and_no_new_task_id_argument_reported": true,
+    "same_saved_acquiring_intent_reported": true,
+    "independent_digest_comparison_reviewed": false,
+    "review_state": "Reviewed; direct identity comparison unavailable from retained records.",
+    "evidence_limit": "The failed acquire retained command arguments and its error response, but not the generated HTTP request body; the error contains no task identifier. Only the successful acquire identifier was retained. Same-intent recovery is reported from continuous use of the original configuration, no new task-id argument and the CLI recovery logic, not independently proven by comparing both original requests. No new run was performed to replace this missing evidence.",
+    "existing_record_supplement_reviewed": true
+  },
+  "phone_results": {
+    "A_fresh_launcher_and_final_home_independently_viewed": true,
+    "B_first_phone_work_after_ready": "wait-ready, then a fresh launcher observation",
+    "B_play_launch_accepted_with_new_capture": true,
+    "B_home_accepted_with_new_launcher_capture": true,
+    "B_new_maps_search_performed": false,
+    "B_image_viewing_reported": true,
+    "B_visual_tool_and_observations_supplement_reviewed": true,
+    "B_image_files_received": false,
+    "B_image_independent_review_limit": "The export contains three image-response hashes and sizes, but no original image files. The supplement reports opening the images and describes the launcher, Play branding/navigation and final HOME. It does not include the image-tool name or original tool invocation records; independent reviewer viewing and response-hash binding remain unverified. Final HOME visual review was reported after release, so this round does not establish lease retention until every visual check was finished.",
+    "B_visual_tool_call_records_received": false,
+    "B_reported_image_view_times": [
+      {
+        "role": "Fresh launcher after takeover",
+        "at": "2026-11-03T09:48:05+00:00"
+      },
+      {
+        "role": "Fresh Google Play page",
+        "at": "2026-11-03T09:48:25+00:00"
+      },
+      {
+        "role": "Final HOME",
+        "at": "2026-11-03T09:48:38+00:00"
+      },
+      {
+        "role": "Crop derived from the existing Play image; no new capture",
+        "at": "2026-11-03T09:49:24+00:00"
+      }
+    ],
+    "B_final_home_visual_review_after_release_reported": true
+  },
+  "final_status": {
+    "A_released": true,
+    "A_approved_connected_multi_idle_pending_zero_at_own_closeout": true,
+    "B_released": true,
+    "B_approved_connected_multi_idle_pending_zero_at_own_closeout": true,
+    "B_final_pair_status_approved_persistent_all_apps_allow_control": true,
+    "timing_limit": "A's final status precedes B's takeover. B's final status is after its own release; these are separate observations, not simultaneous final queries from both AIs."
+  },
+  "renewal": {
+    "A_explicit_renew_calls": 1,
+    "B_explicit_renew_calls": 0,
+    "B_automatic_renewal_triggered_reported": false,
+    "automatic_only_renewal_verified_by_this_round": false
+  },
+  "evidence": {
+    "A_archive_transfer_hash_verified": true,
+    "A_two_full_jpegs_independently_viewed": true,
+    "A_image_hashes_match_agent_summary": true,
+    "A_image_sizes_match_observation_responses": true,
+    "A_original_response_hash_binding_limit": "The delivered observation JSON redacts image SHA256 values. The received JPEGs match hashes in the technical summary and sizes in the responses; original-response hash equality cannot independently be checked from this package.",
+    "B_scoped_reply_and_attachment_integrity_verified": true,
+    "B_delivery_limit": "Recorded ingress authentication and stored archive/attachment integrity were checked, not independent DKIM signature verification or cloud-process instrumentation.",
+    "hold_limit": "A reports a 20-second hold. Its command log has a 25-second interval from the renew return to the next HOME call with no retained CLI invocation; the exact sleep interval is not independently instrumented.",
+    "raw_materials": "Private; not included in source."
+  },
+  "maintainer_intervention": {
+    "before_A_acquire": "Coordinated the bounded steps, returned the phone HOME and removed a private draft-entry helper before A's first recorded call. The Airtap process was unchanged.",
+    "last_phone_home_at": "2026-11-03T09:44:20.105+00:00",
+    "helper_removal_completed_at": "2026-11-03T09:44:20.694+00:00",
+    "during_active_phone_tasks": "No maintainer phone input or business action. Conversation progress was observed on the computer.",
+    "collection_failures": "Two scoped receipt queries timed out over SSH; later queries recovered. These were evidence-collection failures, not phone-task failures or grounds to resend the task."
+  },
+  "not_verified": [
+    "Independent equality of both original acquire request identifiers; the busy request body was not retained.",
+    "Independent review of B image files or original visual-tool calls, and holding B lease through its final reported HOME visual review.",
+    "Original-profile survival across genuine independent runtime recreation.",
+    "Automatic-only renewal, a new screen-off recovery test or long-term unattended endurance in this round.",
+    "Another phone onboarding or migration, independent newcomer installation or whole-product completion."
+  ],
+  "release_effect": "Evidence only. The recommended public APK remains code39. No website, release package or other phone control route is changed.",
+  "publication_boundary": "Aggregate results only; no private paths, raw chats, screenshots, account details, service addresses, device/connection/task identifiers or credentials.",
+  "acceptance_scope": "Recorded A ready → B actual busy acquire rejection → A release → B ready and fresh app observations → final released/approved/idle states. This is not whole-product acceptance or complete independent instrumentation of acquire recovery."
+}

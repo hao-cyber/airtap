@@ -41,6 +41,8 @@ python3 relay/service/deploy.py --wrangler "$(pwd)/relay/worker/node_modules/.bi
 
 [code51 的 60 分钟静置观察](results/beta21-code51-idle-20261103.json)已完成：供电且每 30 秒通过 ADB 采样，未检测到醒屏、进程重启、服务解绑或网络变化。它不等于个人 AI 随后自主唤醒、双 AI 交接或其他手机迁移通过。
 
+[CLI.12 的 Instinct 息屏任务](results/beta21-code51-instinct-cli12-wake-20261103.json)与 [Muse 息屏任务](results/beta21-code51-muse-cli12-wake-20261103.json)随后分别完成了唤醒、结果核验和释放，保留各自失败恢复与证据范围。[双 AI 交接](results/beta21-code51-two-ai-handoff-20261103.json)已限定验证持租时拒绝另一 AI、释放后接管和最终空闲；原申请意图的直接 ID 比对、Instinct 原图与视觉工具调用仍缺独立证据，最终桌面看图也发生在释放后。真正新运行环境中的配置保留、其他手机迁移及普通新用户首用仍未验证。以上候选结果不切换当前推荐 APK。
+
 验证当前协议和 CLI：
 
 ```sh
