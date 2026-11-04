@@ -47,6 +47,11 @@ final class ScreenRecovery implements ScreenPreparation.Platform {
     @Override public void later(Runnable callback, long delayMillis) { main.postDelayed(callback, delayMillis); }
     @Override public void remove(Runnable callback) { main.removeCallbacks(callback); }
     @Override public void clearObservations() { ui.clear(); }
+    @Override public void diagnostic(ScreenPreparation.Diagnostic branch) {
+        // Fixed local metadata only; never include a token, system message or screen content.
+        try { android.util.Log.i("AirtapPreview", "event=screen_recovery branch=" + branch); }
+        catch (RuntimeException ignored) { /* Diagnostics cannot affect recovery. */ }
+    }
     @Override public void launch(String token) {
         service.startActivity(new Intent(service, ScreenRecoveryActivity.class).putExtra("request", token)
                 .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_MULTIPLE_TASK

@@ -9,6 +9,8 @@ final class ScreenPreparation {
     static final long POLL_MS = 100;
     static final long SETTLE_MS = 250;
 
+    enum Diagnostic { window_not_ready, dismiss_requested, api_error, api_cancelled, api_exception, timeout }
+
     enum State {
         READY("ready"), SCREEN_OFF("screen_off"), DISMISSIBLE_KEYGUARD("dismissible_keyguard"),
         AUTHENTICATION_REQUIRED("authentication_required"), UNAVAILABLE("unavailable");
@@ -40,6 +42,7 @@ final class ScreenPreparation {
         void close(String token);
         boolean recoveryWindowGone(String token);
         void clearObservations();
+        default void diagnostic(Diagnostic branch) { }
     }
     interface Completion { void ready(boolean recovered); void error(String code); }
     private final Platform platform;
@@ -123,6 +126,7 @@ final class ScreenPreparation {
     }
 
     private void expire(Attempt attempt) {
+        platform.diagnostic(Diagnostic.timeout);
         String error = platform.state().error();
         finish(attempt, error == null ? "device_wake_failed" : error);
     }

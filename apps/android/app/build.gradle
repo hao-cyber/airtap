@@ -29,8 +29,8 @@ android {
         applicationId 'io.airtap.preview'
         minSdk 34
         targetSdk 36
-        versionCode 52
-        versionName '0.4.0-beta.22'
+        versionCode 53
+        versionName '0.4.0-beta.23'
         buildConfigField 'String', 'PUBLIC_RELAY_ORIGIN', '"' + publicRelayOrigin + '"'
     }
     buildFeatures { buildConfig true }

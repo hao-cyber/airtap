@@ -473,6 +473,10 @@
     },
     {
       "kind": "source",
+      "path": "apps/android/scripts/test_screen_recovery_activity.py"
+    },
+    {
+      "kind": "source",
       "path": "apps/android/scripts/test_setup_recovery.py"
     },
     {
