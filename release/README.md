@@ -18,9 +18,11 @@
 
 当前为公开测试渠道，使用长期 RSA 3072 发布密钥，Android `debuggable=false`，最低 Android 14。包名继续使用 `io.airtap.preview`，以保留已安装用户的数据；包名不作为用户界面名称。正式发布签名不代表产品已通过全部机型或普通用户验证。
 
-官网已发布 Android `0.4.0-beta.21`（code51），复用已经签名、安装与实测的同一 APK 字节。[版本元数据](android/51.json)和[制品与发布准备记录](../docs/results/beta21-code51-release-preparation-20261103.json)固定其身份；[Muse](../docs/results/beta21-code51-muse-cli12-wake-20261103.json)、[Instinct](../docs/results/beta21-code51-instinct-cli12-wake-20261103.json)及[双 AI 交接](../docs/results/beta21-code51-two-ai-handoff-20261103.json)分别记录限定实测范围。[正式发布记录](../docs/results/beta21-code51-publication-20261103.json)记录官网推荐从 code39 切换至 code51，以及 45 项公网检查通过；保留前两次传输失败和最终一项重试。它不代替后续设备迁移或重启完整验收；GitHub tag／Release 发布另行记录。原 code39 [版本资料](android/39.json)与验收记录保留，不重写历史。
+官网已发布 Android `0.4.0-beta.22`（code52），使用已签名与验收的同一 APK 字节。[版本元数据](android/52.json)固定制品身份，[发布记录](../docs/results/beta22-code52-publication-20261104.json)记录官网由 code51 切换至 code52、首次完整公网核验 46 项通过，以及三份旧 APK、六项退役记录和两条旧视频的保留。此次只更新下载站与推荐安装包，中继及已发布 CLI.12 未变。GitHub 的 [beta.22 预发布](https://github.com/hao-cyber/airtap/releases/tag/v0.4.0-beta.22)也已完成，标签提交和下载 APK 原字节已分别核对。
 
-候选 Android `0.4.0-beta.22`（code52）已完成签名构建与限定验收，尚未部署到官网；[候选元数据](android/52.json)固定 APK 身份，[恢复检查与 Muse 实测](../docs/results/beta22-code52-recovery-20261104.json)保留两次失败及恢复、USB 供电与取证限制。Muse 用原连接正常重启后，约 72 秒首次观察到在线，再唤醒并核对 `49×17=833`。这是轮询观察，不是恢复时限保证。Instinct 的 code52 任务、其他设备迁移、真正新云端环境中的配置保留和多日后台尚未完成。候选冻结站、源码提交与实际上线分开记录；只有部署和公网核验完成后，才更新“已发布”状态并添加对应发布记录。
+[恢复检查与 Muse 实测](../docs/results/beta22-code52-recovery-20261104.json)保留两次失败及恢复、USB 供电与取证限制。Muse 用原连接正常重启后，约 72 秒首次观察到在线，再唤醒并核对 `49×17=833`。这是轮询观察，不是恢复时限保证。Instinct 的 code52 任务、其他设备迁移、真正新云端环境中的配置保留和多日后台尚未完成。
+
+历史 code51 的[制品准备](../docs/results/beta21-code51-release-preparation-20261103.json)、[发布](../docs/results/beta21-code51-publication-20261103.json)、[Muse](../docs/results/beta21-code51-muse-cli12-wake-20261103.json)、[Instinct](../docs/results/beta21-code51-instinct-cli12-wake-20261103.json)及[双 AI 交接](../docs/results/beta21-code51-two-ai-handoff-20261103.json)记录保持原范围；原 code39 [版本资料](android/39.json)与验收也保留，不重写历史。
 
 从极早的协议预览版升级时，安装保留应用数据不等于旧临时授权可以继续使用。若 App 显示“开始新版连接”，按前台流程为该手机建立新邀请并核码；不要复制另一部手机的配对，也不要卸载或清除其他 App 账号。原发布证书的签名轮换仅覆盖匹配的已安装包，具体设备须核对实际签名及升级结果。
 

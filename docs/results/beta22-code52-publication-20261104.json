@@ -1,0 +1,115 @@
+{
+  "schema": "airtap-release-publication-v1",
+  "recorded_at": "2026-11-04T12:51:23.489181+00:00",
+  "status": "published_with_bounded_acceptance",
+  "publication_performed": true,
+  "release": {
+    "application_id": "io.airtap.preview",
+    "version_name": "0.4.0-beta.22",
+    "version_code": 52,
+    "apk_sha256": "1bfa7af9e7ea853b4bce24422ef8f2bdf4010405f6bfa1d9f2cc9923749621d0",
+    "apk_bytes": 603597,
+    "signer_sha256": "a2aa0c1b6fdaf1baa37aa20817387524a1318b5dab82bf7c185663141daba60f",
+    "min_sdk": 34,
+    "target_sdk": 36,
+    "debuggable": false,
+    "channel": "beta",
+    "published_at": "2026-11-04",
+    "download_path": "/download/android"
+  },
+  "source_binding": {
+    "website_metadata_commit": "e53861ad48828431863310e9caa48ef14140da80",
+    "same_previously_verified_signed_apk_reused": true,
+    "apk_rebuilt_or_resigned_for_publication": false,
+    "build_and_device_acceptance_reference": "beta22-code52-recovery-20261104.json"
+  },
+  "website": {
+    "origin": "https://airtap.memtrix.dev",
+    "deployment_kind": "android_update",
+    "previous_recommended_version_code": 51,
+    "recommended_version_code": 52,
+    "version_id": "74e9f4a8-8117-4e15-b5c5-ba2037ff4dc7",
+    "frozen_build_manifest_sha256": "3698b7bc7421fadc965740fd18ffaa426052488c0734d9ee33a8d08092b569b9",
+    "local_files_verified": 25,
+    "public_checks_passed": 46,
+    "first_full_verification_run_passed": true,
+    "failures_observed_in_this_verification": [],
+    "fixed_download_selects_exact_immutable_apk": true,
+    "retained_previous_apk_count": 3,
+    "total_served_apk_count": 4,
+    "retired_apk_digest_count": 6,
+    "verified_scope": [
+      "home/install/help/privacy/release notes and static assets",
+      "recommended update JSON and redirect to the exact immutable code52 APK",
+      "exact code52 and three retained previous APK bytes",
+      "six retired APK addresses reject GET and HEAD with 410 and no-cache behavior",
+      "both existing videos full bytes, HEAD length and 206 range responses"
+    ],
+    "public_bytes_match_frozen_except_reviewed_transformations": true,
+    "reviewed_public_transformations": [
+      {
+        "path": "/robots.txt",
+        "kind": "reviewed_managed_robots_prefix",
+        "prefix_bytes": 2676,
+        "prefix_sha256": "3073d1e371afb3271c7666148766fedc5145f7d8440f7114062db79b7bd58add",
+        "source_sha256": "d58c84797c04e430e32b11fffbcb73b63a0afd82b00b5f2134574a52c414306e",
+        "public_sha256": "542678d4397ddd6bf8c14d764a94e7f08d46e73aeb4a3c6751844c3dbb13920f"
+      }
+    ],
+    "network_limit": "One maintainer network vantage point and one completed verification run. No long-term availability, route performance or all-region claim."
+  },
+  "media": {
+    "original_media_bytes_reused": true,
+    "original_posters_and_metadata_reused": true,
+    "version_and_preparation_disclosures_retained": true,
+    "existing_70_second_installation_guide": {
+      "reference_version_code": 39,
+      "recorded_version_codes": [
+        39,
+        40
+      ],
+      "sha256": "7d5fe76f511bb95784c546663bef83070ecb3f5d280db87741f4eda4841bc8ad",
+      "new_code52_first_installation_recording": false
+    },
+    "existing_90_second_usage_video": {
+      "reference_version_code": 39,
+      "sha256": "ffa11c4e893f22c7ba96ebb12bf72a390574134bb57e02cf5a434d7ea80c3fd0",
+      "new_code52_task_recording": false
+    }
+  },
+  "unchanged_services": {
+    "phone_relay_deployment_changed": false,
+    "published_cli_version": "0.4.0-cli.12",
+    "published_cli_bytes_changed": false,
+    "scope": "This operation deployed the download website and Android recommendation only; it did not redeploy the phone relay or publish a new CLI artifact."
+  },
+  "acceptance_references": [
+    "beta22-code52-recovery-20261104.json"
+  ],
+  "historical_references": [
+    "beta21-code51-instinct-cli12-wake-20261103.json",
+    "beta21-code51-two-ai-handoff-20261103.json",
+    "beta21-code51-publication-20261103.json"
+  ],
+  "acceptance_boundary": "Website publication does not expand the linked candidate acceptance. The Muse report retains its one-phone, USB-power, timing, failure/recovery and unexported-trace limits. Earlier Instinct and handoff evidence remains bound to code51.",
+  "not_verified_by_this_publication": [
+    "An Instinct phone task or two-AI handoff on code52",
+    "Complete migration and retirement of another device control route",
+    "Independent newcomer installation and full first use",
+    "Configuration survival across a genuine new cloud runtime",
+    "Unplugged endurance, multiple-day background operation, all networks or other phones"
+  ],
+  "github_release": {
+    "publication_in_this_operation": true,
+    "url": "https://github.com/hao-cyber/airtap/releases/tag/v0.4.0-beta.22",
+    "tag": "v0.4.0-beta.22",
+    "target_commit": "e53861ad48828431863310e9caa48ef14140da80",
+    "asset_downloaded_and_matches_frozen_apk": true,
+    "verified_at": "2026-11-04T12:55:14.856189+00:00",
+    "retained_failure": "Initial create using an abbreviated target returned VALIDATION_ERROR; no tag or release existed afterwards. A single retry with the full reviewed commit succeeded.",
+    "scope": "GitHub asset bytes and tag verified; this is not additional phone acceptance.",
+    "prerelease": true,
+    "draft": false
+  },
+  "privacy_scope": "Aggregate public artifact and verification metadata only; no private paths, accounts, phone contents, screenshots, device/connection/task identifiers, pairing data or credentials."
+}
