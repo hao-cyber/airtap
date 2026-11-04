@@ -1,0 +1,22 @@
+{
+  "schema": "airtap-android-update-v1",
+  "application_id": "io.airtap.preview",
+  "version_name": "0.4.0-beta.22",
+  "version_code": 52,
+  "apk_sha256": "1bfa7af9e7ea853b4bce24422ef8f2bdf4010405f6bfa1d9f2cc9923749621d0",
+  "apk_bytes": 603597,
+  "signer_sha256": "a2aa0c1b6fdaf1baa37aa20817387524a1318b5dab82bf7c185663141daba60f",
+  "min_sdk": 34,
+  "target_sdk": 36,
+  "debuggable": false,
+  "channel": "beta",
+  "published_at": "2026-11-04",
+  "download_path": "/download/android",
+  "notes": [
+    "修复部分网络拒绝或异常响应被误判为授权失效的问题：先暂停控制、保留原连接记录，再向中继核实。用户主动停止、撤销连接或服务端明确撤销后仍不会自动恢复。",
+    "多 AI 模式成功开启并完成核实后，清除遗留的“正在核实”提示；真实错误和待处理提示继续保留。",
+    "补充魅族手机的自启动、关联启动、后台运行与电池优化指引。设置开启不等于后台稳定，仍需按实际设备验证。",
+    "Muse 已在一台魅族 Note 16 上保留原连接完成本版覆盖升级后的任务、正常重启、重新连接与计算器核验，最后回桌面并释放控制。任务保留重启后的观察超时、窗口变化及恢复记录。",
+    "本版 Instinct 实测、其他设备迁移、拔线续航和多日无人值守尚未验证。旧版演示视频保留原版本说明，不作为本版验收证据。"
+  ]
+}

@@ -42,14 +42,18 @@ AI 可以组合这些动作完成跨 App 任务，不限于计算器等演示应
 
 ## 当前支持情况
 
-官网当前提供 **0.4.0-beta.21（code51）**。它支持多个自己的 AI 轮流使用手机，改进息屏准备与连接恢复；近期版本可覆盖更新并保留有效连接，极早预览版按 App 提示迁移。[版本与更新说明](release/android/51.json) · [发布与公网核验](docs/results/beta21-code51-publication-20261103.json)。
+官网当前提供 **0.4.0-beta.21（code51）**，支持多个自己的 AI 轮流使用手机。[当前版本](release/android/51.json) · [发布与公网核验](docs/results/beta21-code51-publication-20261103.json)。
+
+**0.4.0-beta.22（code52）正在准备发布，尚未切换官网推荐。** 它修复了异常网络响应可能误删原配对的问题：先暂停控制，再核实原连接；明确停止或撤销后仍不会自动恢复。[候选更新说明](release/android/52.json) · [检查与真机记录](docs/results/beta22-code52-recovery-20261104.json)。
 
 真机测试主要使用魅族 Note 16、Android 15。Muse 与 Instinct 已分别完成息屏后的任务；两者还完成了[持租时拒绝另一 AI、释放后接管的交接](docs/results/beta21-code51-two-ai-handoff-20261103.json)。这些结果保留失败恢复、维护者准备与取证限制。更多机型、纯移动网络完整任务、多日后台和独立新用户完整安装仍待验证。目前没有 iOS 客户端。
 
 | 个人 AI | 已有测试 |
 | --- | --- |
-| Muse | code51／CLI.12 从息屏恢复，计算 `36×23=828`、看图核对、回桌面并释放；一次窗口变化错误后重新观察恢复。本轮有三次显式续租，不作为纯自动续租证明。[记录](docs/results/beta21-code51-muse-cli12-wake-20261103.json) |
+| Muse | code52／CLI.12 保留原连接完成正常重启、恢复后唤醒，核对 `49×17=833`、回桌面并释放。首次重连在重启接受后约 72 秒被观察到；观察超时和窗口变化各一次，随后恢复。次数与视觉结果来自 Muse 回执，未导出完整工具轨迹。[记录](docs/results/beta22-code52-recovery-20261104.json) |
 | Instinct | code51／CLI.12 从息屏恢复，在 Google Play 搜索并核对 Google Maps，再回桌面并释放。首次观察和启动后的观察曾失败，之后自行恢复。[记录](docs/results/beta21-code51-instinct-cli12-wake-20261103.json) |
+
+Instinct 的 code52 任务与双 AI 交接尚未验证；原连接配置在真正更换云端运行环境后的保留也未完成验收。上表的 code51 结果不能替代这些检查。
 
 其他 AI 尚未确认兼容。它至少需要能执行网络工具调用；用截图定位和操作时，还需要实际读取图片的能力。普通聊天入口不一定具备这些能力。[AI 接入说明](docs/agent.md)
 

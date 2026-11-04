@@ -1,0 +1,106 @@
+{
+  "schema": "airtap-recovery-acceptance-v1",
+  "recorded_date": "2026-11-04",
+  "status": "passed_scope_limited",
+  "client": {
+    "version_name": "0.4.0-beta.22",
+    "version_code": 52,
+    "build_type": "release",
+    "apk_sha256": "1bfa7af9e7ea853b4bce24422ef8f2bdf4010405f6bfa1d9f2cc9923749621d0"
+  },
+  "change_under_test": {
+    "reproduced_defect": "Production-method host fixtures showed that an unrecognized HTTP 403 could erase locally approved connections during single or multi restore, multi grant refresh, or WebSocket failure handling. HTTP 503 controls retained the original approval.",
+    "fix": "An HTTP error can end an approved connection only when a bounded, strictly shaped v4 JSON error has a matching content type and endpoint-specific meaning. Existing-connection recovery preserves records on unknown refusals, stops or withholds execution, and performs read-only reconciliation with a 20-second total HTTP request deadline and a 10-second retry interval after an unknown result. An unverified WebSocket refusal first waits 2 seconds before reconciliation. These limits do not impose a total retry-count cap. Pending approval and migration retain their original intent when the outcome is unknown. Malformed successful responses do not imply revocation. Stale lifecycle, consent and connection responses cannot affect a replacement connection.",
+    "stop_boundary": "Explicit local stop, durable revocation, verified device retirement and verified removal of a grant remain effective. Recovery never replays a phone action or creates a new pairing.",
+    "setup_guidance": "The Flyme background prompt now lists self-start, associated-start and background-running switches separately from Android battery-optimization exemption.",
+    "causal_limit": "The HTTP defect was reproduced with synthetic responses, not injected into the physical phone. It has not been established as the cause of an earlier phone's reboot outage. The reboot result below does not isolate the effect of this fix from previously prepared network and background settings."
+  },
+  "local_checks": {
+    "targeted_host_scenarios": {
+      "approval_recovery": 142,
+      "approval_scheduling": 64,
+      "migration_recovery": 23,
+      "multi_ai_control": 67,
+      "connection_lifecycle": 25,
+      "screen_preparation": 12,
+      "passed_total": 333,
+      "failed_total": 0,
+      "independent_reviewer_rerun_passed": true
+    },
+    "core": {
+      "completed": true,
+      "passed_steps": 38,
+      "failed_steps": 0
+    },
+    "android": {
+      "compilation_passed": true,
+      "release_build_and_signature_verification_passed": true,
+      "signer_matches_previous_version": true,
+      "debuggable": false,
+      "lint_errors": 0,
+      "lint_nonfatal_issues": 11,
+      "source_inputs_unchanged_during_checks_and_build": true
+    },
+    "retained_failures": [
+      "The new unknown-403 approval-preservation regression failed before the fix and passed afterwards.",
+      "The first development compile did not reach Java compilation because the Android SDK location was not set; the rerun with the existing SDK path passed."
+    ],
+    "counting_limit": "The 333 scenarios are targeted host tests, also covered by the broader check run; they are not additional physical-device, public-network or personal-AI trials. The 38 core steps use a different counting unit and are not added to that total."
+  },
+  "muse_device_task": {
+    "actor": "Muse using its existing approved connection from its cloud environment.",
+    "device_scope": "One previously prepared Android test phone, physically connected by USB and receiving power.",
+    "cli_version_reported": "0.4.0-cli.12",
+    "duration_seconds_reported": 341,
+    "calls_reported": 50,
+    "successful_calls_reported": 48,
+    "failed_calls_reported": 2,
+    "normal_reboot": {
+      "method_reported": "Airtap power dialog followed by the freshly observed system Restart button.",
+      "accepted_reported": true,
+      "offline_then_online_observed_reported": true,
+      "seconds_from_restart_acceptance_to_first_online_status_reported": 72,
+      "online_confirmations_reported": 4,
+      "timing_limit": "Polling observations from one run, not an exact boot or reconnect latency measurement."
+    },
+    "after_recovery_reported": {
+      "fresh_ping_version_code": 52,
+      "original_pairing_retained": true,
+      "new_pairing_created": false,
+      "screen_initially_off": true,
+      "system_authentication_required": false,
+      "normal_automatic_wake_and_fresh_image_viewed": true,
+      "flclash_running_observed": true,
+      "calculator_expression": "49 × 17",
+      "calculator_result_viewed": "833",
+      "final_home_image_viewed": true,
+      "task_released": true,
+      "task_state": "idle",
+      "pending_commands": 0
+    },
+    "failures_and_recovery_reported": [
+      {
+        "error": "observe HTTP 504 after restart acceptance",
+        "recovery": "No action replay. Read-only status checks established disconnection and subsequent recovery."
+      },
+      {
+        "error": "window_changed during normal wake",
+        "recovery": "Waited for the transition, then obtained a fresh observation."
+      }
+    ],
+    "maintainer_intervention": {
+      "before_task": "Normal signed in-place USB upgrade from code51 to code52, without uninstalling or clearing app data. The phone's network and background permissions had already been prepared.",
+      "during_task": "No maintainer phone UI input, reboot or unlock completed any task step.",
+      "after_task": "Opened the coordination app to read the actual task receipt."
+    },
+    "evidence_limit": "The maintainer read Muse's report in the existing authenticated conversation. Counts, timings, original-pair preservation and visual outcomes above are agent-reported. The full cloud tool trace and original observation images were not exported, so individual calls and image-to-response hashes were not independently verified. FlClash's visible running state does not establish every app's route or ongoing VPN reliability."
+  },
+  "not_verified": [
+    "An Instinct device task or a Muse/Instinct handoff on code52; earlier code51 results retain their original scope.",
+    "Completion of another phone's migration and retirement of its previous control route.",
+    "Unplugged endurance, multi-day background operation, all networks or other devices.",
+    "Independent newcomer setup, protected credential unlock or profile survival across a genuine new cloud runtime."
+  ],
+  "release_effect": "Acceptance evidence for the candidate only. This record does not publish a release, change the recommended download or establish complete product acceptance.",
+  "publication_boundary": "Aggregate technical results only. No raw screenshots or conversations, SMS content, credentials, private addresses or paths, or device, connection and task identifiers are included."
+}
