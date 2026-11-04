@@ -13,7 +13,7 @@ final class RelayApi{interface Reply{void done(JSONObject b,int s,String e);}sta
 static List<Request> requests=new ArrayList<>();static void requestStatus(String url,String path,String method,String token,JSONObject body,Reply reply){if(!((path.equals("/v1/device/pairing")&&method.equals("GET")&&body==null)||(path.equals("/v1/device/multi/enable")&&method.equals("POST"))))throw new AssertionError();requests.add(new Request(path,method,token,body,reply));}
 static JSONObject json(Object...args){JSONObject r=new JSONObject();for(int i=0;i<args.length;i+=2)r.put((String)args[i],args[i+1]);return r;}}
 '''
-sources=[JAVA/(n+'.java') for n in ['TrustedGrant','MigrationRecovery','MultiAiProtocol','ServiceProtocol','TaskLease','OwnerRevocations']]
+sources=[JAVA/(n+'.java') for n in ['TrustedGrant','MigrationRecovery','MultiAiProtocol','ServiceProtocol','RelayFailure','TaskLease','OwnerRevocations']]
 test=ROOT/'tests/multi/MigrationRecoveryTest.java';jdk=Path(os.environ['JAVA_HOME'])/'bin'
 with tempfile.TemporaryDirectory(prefix='airtap-migration-') as directory:
  temp=Path(directory);generated=[]

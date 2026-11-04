@@ -35,6 +35,34 @@ public final class ApprovalRecoveryTest {
     private static void explicitNull(JSONObject value,String key) throws Exception {check(value.has(key)&&value.get(key)==JSONObject.NULL);}
 
     public static void main(String[] args) throws Exception {
+        test("failure envelopes require JSON MIME and exact bounded v4 error shape",()->{
+            String valid="{\"error\":\"unauthorized\",\"protocol_version\":4}";
+            check(RelayFailure.deviceTerminal(401,RelayFailure.errorBody("application/json",valid)));
+            check(RelayFailure.deviceTerminal(410,RelayFailure.errorBody("Application/JSON; charset=\"UTF-8\""," { \"protocol_version\" : 4, \"error\" : \"device_unenrolled\" }\n")));
+            for(String mime:new String[]{"text/html","text/plain","application/jsonp","application/json; charset=latin1",""})check(RelayFailure.errorBody(mime,valid)==null);
+            check(RelayFailure.errorBody(null,valid)==null);
+            for(String body:new String[]{"", "<html>blocked</html>", "null", "[]", valid+" garbage", "/*x*/"+valid,
+                    "{'error':'unauthorized','protocol_version':4}",valid.replace(":4",":\"4\""),valid.replace(":4",":4.0"),valid.replace(":4",":5"),
+                    valid.replace("4}","4,\"error\":\"unauthorized\"}"),valid.replace("4}","4,\"detail\":\"unknown\"}")," ".repeat(8193)+valid})
+                check(RelayFailure.errorBody("application/json",body)==null);
+            check(!RelayFailure.deviceTerminal(403,RelayFailure.errorBody("application/json",valid)));
+            check(!RelayFailure.deviceTerminal(410,RelayApi.json("protocol_version",4,"error","pairing_expired")));
+            check(!RelayFailure.approvalRejected(409,RelayApi.json("protocol_version",4,"error","unknown"),true));
+            check(!RelayFailure.migrationRejected(409,RelayApi.json("protocol_version",4,"error","approval_scope_conflict")));
+        });
+        for(int status:new int[]{400,401,403,409,410}){
+            test("unknown HTTP "+status+" retains pending approval and never creates authority",()->{
+                String id=begin();final ApprovalRecovery.Outcome[] result={null};ApprovalRecovery.resume(context,config,x->result[0]=x);
+                request(0).respond(null,status,"unknown body");closed();check(id.equals(trust().pending(config).getString("approval_id"))&&result[0]==ApprovalRecovery.Outcome.RETRY);
+                check(!ApprovalRecovery.resume(context,config,null));SystemClock.now+=5000;
+                check(ApprovalRecovery.resume(context,config,null));accept(1);check(trust().read(config)!=null);
+            });
+        }
+        test("wrong protocol error cannot cancel pending owner approval",()->{
+            String id=begin();ApprovalRecovery.resume(context,config,null);
+            request(0).respond(RelayApi.json("protocol_version","4","error","unauthorized"),401,"invalid response");
+            closed();check(id.equals(trust().pending(config).getString("approval_id")));
+        });
         test("JSONObject host fixture matches Android removal versus explicit JSON null",()->{
             JSONObject value=new JSONObject().put("empty",JSONObject.NULL).put("old","value");
             explicitNull(value,"empty");value.put("old",null);check(!value.has("old")&&value.isNull("old"));
@@ -166,11 +194,11 @@ public final class ApprovalRecoveryTest {
         test("pending duplicate owner confirmation reuses same intent",()->{
             String id=begin();check(id.equals(begin()));check(FakeDisk.saves==1);
         });
-        for(int status:new int[]{400,401,403,409,410}) {
+        for(int status:new int[]{400,401,409,410}) {
             final int s=status;
-            test("terminal HTTP "+s+" cancels consent and stops retries",()->{
+            test("verified terminal protocol HTTP "+s+" cancels consent and stops retries",()->{
                 begin();final ApprovalRecovery.Outcome[] result={null};ApprovalRecovery.resume(context,config,x->result[0]=x);
-                request(0).respond(null,s,"denied");closed();check(trust().pending(config)==null);check(result[0]==ApprovalRecovery.Outcome.STOPPED);
+                request(0).respond(RelayApi.json("protocol_version",4,"error",s==400?"invalid_approval":s==401?"unauthorized":s==409?"stale_claim":"device_unenrolled"),s,"denied");closed();check(trust().pending(config)==null);check(result[0]==ApprovalRecovery.Outcome.STOPPED);
                 reboot();check(!ApprovalRecovery.resume(context,config,null));
             });
         }
@@ -702,7 +730,7 @@ public final class ApprovalRecoveryTest {
         });
         test("B terminal HTTP refusal cancels only B and late approval cannot revive it",()->{
             String id=begin();trust().completeApproval(config,id);trust().enableMulti(config);String b=trust().beginApproval(config,CLAIM_B,"B");
-            final ApprovalRecovery.Outcome[] result={null};ApprovalRecovery.resume(context,config,v->result[0]=v);request(0).respond(null,410,"expired");
+            final ApprovalRecovery.Outcome[] result={null};ApprovalRecovery.resume(context,config,v->result[0]=v);request(0).respond(RelayApi.json("protocol_version",4,"error","stale_claim"),409,"expired");
             check(result[0]==ApprovalRecovery.Outcome.STOPPED&&trust().grant(config,CLAIM_A)!=null&&trust().pending(config)==null);
             check(!trust().completeApproval(config,b));request(0).respond(accepted().put("claim_id",CLAIM_B),200,null);check(trust().grant(config,CLAIM_B)==null);
         });

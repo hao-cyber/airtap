@@ -131,14 +131,20 @@ public final class PreviewService extends AccessibilityService {
     }
     private void refreshMultiGrants() {
         if(config==null||!multiMode||grantRefreshInFlight)return;int run=generation;String expected=sessionFence;
+        WebSocket transport=socket;int connection=connections;
         final java.util.Map<String,String> snapshot;
         try{snapshot=grantSnapshot();}catch(Exception unreadable){storageUnavailable();return;}
         grantRefreshInFlight=true;nextGrantRefresh=SystemClock.elapsedRealtime()+10000;
         RelayApi.requestStatus(config.url,"/v1/device/grants","GET",config.token,null,(body,status,error)->{
             if(instance!=this||generation!=run)return;grantRefreshInFlight=false;
-            if(error!=null){if(status==401||status==403||status==410)stop("连接已解除，请重新邀请自己的 AI");return;}
+            if(socket!=transport||connections!=connection)return;
             try{
-                TrustedGrant trust=new TrustedGrant(this);if(expected!=null&&!trust.isCurrent(config,expected))return;
+                TrustedGrant trust=new TrustedGrant(this);if(expected==null||!trust.isCurrent(config,expected))return;
+                if(error!=null){
+                    if(RelayFailure.deviceTerminal(status,body))stopRestoring(expected,"连接已解除，请重新邀请自己的 AI");
+                    else{suspend("正在重新核实原 AI 连接，尚不能操作手机");recoveryStatus=RecoveryStatus.NETWORK_RECONNECTING;scheduleRestore(generation,10000);}
+                    return;
+                }
                 remoteGrants=MultiAiProtocol.claims(body);retainRemote(remoteGrants,snapshot);
                 String holder=tasks.claim();if(holder!=null&&trust.grant(config,holder)==null)tasks.disconnect();
                 if(trust.grants(config).isEmpty()){suspend("等待连接自己的 AI");SessionService.end(this);}
@@ -164,7 +170,7 @@ public final class PreviewService extends AccessibilityService {
             if(instance!=this||generation!=run)return;restoring=false;
             try{
                 if(!trust.isCurrent(config,expected))return;
-                if(error!=null){if(status==401||status==403||status==410)stopRestoring(expected,"连接已解除，请重新邀请自己的 AI");else{recoveryStatus=RecoveryStatus.NETWORK_RECONNECTING;scheduleRestore(run,10000);}return;}
+                if(error!=null){if(RelayFailure.deviceTerminal(status,body))stopRestoring(expected,"连接已解除，请重新邀请自己的 AI");else{recoveryStatus=RecoveryStatus.NETWORK_RECONNECTING;scheduleRestore(run,10000);}return;}
                 remoteGrants=MultiAiProtocol.claims(body);retainRemote(remoteGrants,snapshot);
                 if(trust.grants(config).isEmpty()){SessionService.end(this);return;}
                 if(!trust.isCurrent(config,expected))return;
@@ -299,7 +305,7 @@ public final class PreviewService extends AccessibilityService {
                     if (!latest.isCurrent(config, expectedFence)) return;
                 } catch (Exception unreadable) { storageUnavailable(); return; }
                 if (error != null) {
-                    if (status == 401 || status == 403 || status == 410) stopRestoring(expectedFence, "连接已解除，请重新邀请自己的 AI");
+                    if (RelayFailure.deviceTerminal(status, body)) stopRestoring(expectedFence, "连接已解除，请重新邀请自己的 AI");
                     else {
                         boolean secureFailure = TlsPolicy.USER_MESSAGE.equals(error);
                         state = secureFailure ? TlsPolicy.USER_MESSAGE : "等待网络恢复，配对已保留";
@@ -309,10 +315,7 @@ public final class PreviewService extends AccessibilityService {
                     return;
                 }
                 try {
-                    ServiceProtocol.version(body);
-                    if (!"approved".equals(body.getString("state")) || !body.getBoolean("persistent") || !body.getBoolean("all_apps")
-                            || !body.getBoolean("allow_control") || !body.isNull("session_expires_at")
-                            || !trust.getString("claim").equals(body.getJSONObject("candidate").getString("claim_id"))) {
+                    if (!RelayFailure.singleApproved(body, trust.getString("claim"))) {
                         stopRestoring(expectedFence, "连接授权已变化，请重新邀请自己的 AI"); return;
                     }
                     // Re-read after network: an owner stop must fence a delayed successful response.
@@ -331,7 +334,11 @@ public final class PreviewService extends AccessibilityService {
                     // No socket or device command until the visible foreground notice exists.
                     // Its asynchronous callback is generation-fenced just like relay approval.
                     SessionService.begin(this);
-                } catch (Exception failure) { stopRestoring(expectedFence, "服务版本或授权不匹配，请检查更新"); }
+                } catch (Exception failure) {
+                    state = "中继响应尚未核实，原连接记录已保留";
+                    recoveryStatus = RecoveryStatus.VERIFYING_CONNECTION;
+                    scheduleRestore(run, 10000);
+                }
             });
         } catch (Exception failure) { storageUnavailable(); }
     }
@@ -550,8 +557,9 @@ public final class PreviewService extends AccessibilityService {
             }
         }catch(Exception unreadable){storageUnavailable();return;}
         if (!valid()) { stop("会话授权到期，请重新配对"); return; }
-        if(multiMode&&status==1008){suspend("连接需要重新核实，原授权已保留");scheduleRestore(generation,2000);return;}
-        if (status == 401 || status == 403 || status == 410 || status == 1008) { stop("中继拒绝授权，请重新配对"); return; }
+        // HTTP upgrade refusals have no verified protocol body here. Reconcile the original
+        // identity read-only before deciding it was revoked; a proxy refusal is not owner STOP.
+        if(status==401||status==403||status==410||status==1008){suspend("连接需要重新核实，原授权已保留");scheduleRestore(generation,2000);return;}
         long delay = Math.min(30000, 1000L << Math.min(retry++, 5));
         delay = (long) (delay * (0.75 + jitter.nextDouble() * 0.5));
         state = "连接中断，等待重连（不重放操作）";

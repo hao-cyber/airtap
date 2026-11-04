@@ -55,11 +55,13 @@ final class RelayApi {
                 try (Response closed = response) {
                     if (response.code() != 200) {
                         int code = response.code();
-                        String reason = "";
-                        try { reason = readJson(response).optString("error", ""); }
+                        JSONObject verified = null;
+                        try { verified = RelayFailure.errorBody(response.header("Content-Type"), readText(response)); }
                         catch (Exception ignored) { /* Only a fixed local fallback is displayed. */ }
+                        final JSONObject failureBody = verified;
+                        String reason = verified == null ? "" : verified.optString("error", "");
                         String error = RelayErrors.message(code, reason);
-                        MAIN.post(() -> callback.complete(null, code, error, null));
+                        MAIN.post(() -> callback.complete(failureBody, code, error, null));
                         return;
                     }
                     JSONObject json = readJson(response);
@@ -75,6 +77,10 @@ final class RelayApi {
     }
 
     private static JSONObject readJson(Response response) throws Exception {
+        return new JSONObject(readText(response));
+    }
+
+    private static String readText(Response response) throws Exception {
         if (response.body() == null) throw new java.io.IOException();
         java.io.ByteArrayOutputStream output = new java.io.ByteArrayOutputStream();
         java.io.InputStream stream = response.body().byteStream();
@@ -84,7 +90,7 @@ final class RelayApi {
             output.write(chunk, 0, count);
             if (output.size() > 8192) throw new java.io.IOException();
         }
-        return new JSONObject(new String(output.toByteArray(), java.nio.charset.StandardCharsets.UTF_8));
+        return new String(output.toByteArray(), java.nio.charset.StandardCharsets.UTF_8);
     }
 
     static JSONObject json(Object... values) {

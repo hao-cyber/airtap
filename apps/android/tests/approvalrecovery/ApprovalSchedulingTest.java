@@ -40,7 +40,62 @@ public final class ApprovalSchedulingTest {
     static final class TrackedSocket implements okhttp3.WebSocket {int cancellations;public void cancel(){cancellations++;}}
     static TrackedSocket attachSocket(){TrackedSocket socket=new TrackedSocket();service.socket=socket;service.connected=true;return socket;}
     static void migrationPost(int readIndex){connectedReply(readIndex,A);require("POST".equals(request(readIndex+1).method)&&"/v1/device/multi/enable".equals(request(readIndex+1).path));}
+    static void multiActive()throws Exception{seedSingle();trust().enableMulti(config);service.realMultiRecovery=true;service.restore();request(0).respond(multi(A),200,null);require(service.authorized);}
     public static void main(String[] args)throws Exception{
+        test("unknown HTTP403 during restore preserves consent and schedules verification",()->{
+            seedSingle();service.restore();request(0).respond(null,403,"unrecognized edge response");
+            require(trust().read(config)!=null&&!service.authorized&&service.main.pending()==1);
+            service.main.advance(10000);connectedReply(1,A);ready();
+        });
+        test("malformed single success retains original approval but cannot execute",()->{
+            seedSingle();service.restore();request(0).respond(pairing(A).put("all_apps","true"),200,null);
+            require(trust().read(config)!=null&&!service.authorized&&service.main.pending()==1);
+            service.main.advance(10000);request(1).respond(pairing(A).put("protocol_version",5),200,null);
+            require(trust().read(config)!=null&&!service.authorized&&service.main.pending()==1);
+            service.main.advance(10000);connectedReply(2,A);ready();
+        });
+        test("verified single scope reduction and revoke remain terminal",()->{
+            for(JSONObject body:java.util.List.of(pairing(A).put("all_apps",false),pairing(B),RelayApi.json("protocol_version",4,"state","revoked"))){
+                reset();seedSingle();service.restore();request(0).respond(body,200,null);closed();require(service.main.pending()==0);
+            }
+        });
+        test("unknown multi restore refusal preserves grant until fresh protocol validation",()->{
+            seedSingle();trust().enableMulti(config);service.realMultiRecovery=true;service.restore();request(0).respond(null,403,"unknown body");
+            require(trust().grant(config,A)!=null&&!service.authorized&&service.main.pending()==1);
+            service.main.advance(10000);request(1).respond(multi(A),200,null);require(service.authorized&&trust().grant(config,A)!=null);
+        });
+        test("unknown live multi refresh suspends socket and tasks without deleting consent",()->{
+            multiActive();TrackedSocket socket=attachSocket();service.activeCommand=123;service.restore();request(1).respond(null,403,"unknown body");
+            require(trust().grant(config,A)!=null&&!service.authorized&&!service.connected&&service.activeCommand==0&&socket.cancellations==1&&service.taskDisconnects==1&&service.main.pending()==1);
+            service.main.advance(10000);request(2).respond(multi(A),200,null);require(service.authorized&&trust().grant(config,A)!=null);
+        });
+        test("multi refresh explicit device retirement clears current original consent",()->{
+            multiActive();service.restore();request(1).respond(RelayApi.json("protocol_version",4,"error","device_unenrolled"),410,"retired");
+            require(trust().grants(config).isEmpty()&&!service.authorized&&service.main.pending()==0);
+        });
+        test("old multi refresh refusal cannot delete a newer carrier consent",()->{
+            multiActive();service.restore();trust().stop();String id=trust().beginApproval(config,B,"new consent");trust().completeApproval(config,id);String fence=trust().sessionFence(config);
+            request(1).respond(RelayApi.json("protocol_version",4,"error","device_unenrolled"),410,"old refusal");
+            require(fence.equals(trust().sessionFence(config))&&trust().grant(config,B)!=null);
+        });
+        test("old multi refresh cannot stop a replacement socket in the same consent generation",()->{
+            multiActive();TrackedSocket old=attachSocket();service.restore();TrackedSocket current=attachSocket();
+            request(1).respond(RelayApi.json("protocol_version",4,"error","device_unenrolled"),410,"old connection refusal");
+            require(service.authorized&&service.socket==current&&current.cancellations==0&&trust().grant(config,A)!=null&&!service.grantRefreshInFlight);
+            service.socket=null;service.nextGrantRefresh=0;service.restore();service.connections++;
+            request(2).respond(RelayApi.json("protocol_version",4,"error","device_unenrolled"),410,"old disconnected interval");
+            require(service.authorized&&trust().grant(config,A)!=null);
+            service.nextGrantRefresh=0;service.restore();request(3).respond(RelayApi.json("protocol_version",4,"error","device_unenrolled"),410,"fresh verified retirement");
+            require(!service.authorized&&trust().grants(config).isEmpty());
+        });
+        test("owner stop cancels pending multi verification after unknown refusal",()->{
+            multiActive();service.restore();request(1).respond(null,403,"unknown body");service.stop("owner stop");service.main.advance(120000);
+            require(trust().grants(config).isEmpty()&&!service.authorized&&RelayApi.requests.size()==2&&service.main.pending()==0);
+        });
+        test("verified multi grant removal remains effective and late new local grant is retained",()->{
+            multiActive();service.restore();String id=trust().beginApproval(config,B,"new B");trust().completeApproval(config,id);
+            request(1).respond(multi(),200,null);require(trust().grant(config,A)==null&&trust().grant(config,B)!=null);
+        });
         test("approve immediately hands pending intent to service before Activity Back",()->{
             activity.pressApprove();require(service.restoring&&RelayApi.requests.size()==1);require(trust().pending(config)!=null);
             int uiChanges=activity.changes;activity.onDestroy();approvedReply(0);
@@ -84,7 +139,7 @@ public final class ApprovalSchedulingTest {
             approvedReply(1);connectedReply(2,B);ready();require(B.equals(trust().read(config).getString("claim")));
         });
         test("relay revoke refusal after Back clears intent without periodic polling",()->{
-            leaveImmediately();request(0).respond(null,409,"claim expired or revoked");service.main.advance(120000);
+            leaveImmediately();request(0).respond(RelayApi.json("protocol_version",4,"error","stale_claim"),409,"claim expired or revoked");service.main.advance(120000);
             closed();require(trust().pending(config)==null&&service.main.pending()==0&&RelayApi.requests.size()==1);
         });
         test("pairing verification network failure after Back resumes without Activity",()->{
@@ -153,7 +208,7 @@ public final class ApprovalSchedulingTest {
             require(!service.executable()&&trust().read(config)==null&&service.main.pending()==0);
         });
         test("notification retry after server410 forgets revoked approval",()->{
-            active();service.notificationUnavailable(service.generation,true);service.main.advance(5000);request(1).respond(null,410,"revoked");
+            active();service.notificationUnavailable(service.generation,true);service.main.advance(5000);request(1).respond(RelayApi.json("protocol_version",4,"error","device_unenrolled"),410,"revoked");
             require(trust().read(config)==null&&!service.executable()&&service.main.pending()==0);
         });
         test("repeated network failures after notification loss use one recovery timer",()->{
@@ -186,7 +241,7 @@ public final class ApprovalSchedulingTest {
         test("old revoke reply cannot stop replacement consent without a generation change",()->{
             String id=trust().beginApproval(config,A,"synthetic");trust().completeApproval(config,id);service.restore();
             trust().stop();id=trust().beginApproval(config,A,"synthetic new consent");trust().completeApproval(config,id);String next=trust().sessionFence(config);
-            request(0).respond(null,410,"revoked");require(next.equals(trust().sessionFence(config))&&!service.authorized);service.restore();connectedReply(1,A);ready();
+            request(0).respond(RelayApi.json("protocol_version",4,"error","device_unenrolled"),410,"revoked");require(next.equals(trust().sessionFence(config))&&!service.authorized);service.restore();connectedReply(1,A);ready();
         });
         test("carrier loss closes commands but retains trust and revalidates",()->{
             active();String fence=trust().sessionFence(config);service.activeCommand=9;service.sessionCarrierUnavailable();
@@ -220,7 +275,7 @@ public final class ApprovalSchedulingTest {
         });
         test("first definitive migration rejection keeps the live single carrier without reconnecting",()->{
             active();TrackedSocket socket=attachSocket();String fence=service.sessionFence;migration();int generation=service.generation;
-            service.restore();migrationPost(1);request(2).respond(null,404,"unsupported");require(RelayApi.requests.size()==4);
+            service.restore();migrationPost(1);request(2).respond(RelayApi.json("protocol_version",4,"error","not_found"),404,"unsupported");require(RelayApi.requests.size()==4);
             connectedReply(3,A);require(!trust().multi(config)&&trust().migration(config)==null&&trust().isCurrent(config,fence));
             require(service.executable()&&service.connected&&service.socket==socket&&socket.cancellations==0&&service.generation==generation);
             require(service.connects==1&&SessionService.begun==1&&service.multiRestores==0&&WorkspaceShares.revocations==0);
@@ -243,14 +298,14 @@ public final class ApprovalSchedulingTest {
             require(activity.isDestroyed()&&SessionService.begun==0&&trust().grant(config,A).getLong("sequence")==87);
         });
         test("cold first rejection returns to ordinary single verification only after reconciliation",()->{
-            seedSingle();migration();activity.onDestroy();service.restore();migrationPost(0);request(1).respond(null,409,"rejected");
+            seedSingle();migration();activity.onDestroy();service.restore();migrationPost(0);request(1).respond(RelayApi.json("protocol_version",4,"error","unsupported_state_schema"),409,"rejected");
             require(RelayApi.requests.size()==3&&trust().migration(config)!=null&&!service.authorized);
             connectedReply(2,A);require(trust().migration(config)==null&&RelayApi.requests.size()==4&&!service.authorized&&service.multiRestores==0);
             connectedReply(3,A);ready();require(service.executable()&&!service.multiMode&&!trust().multi(config));
         });
         test("old single pairing refusal cannot stop a newly pending migration",()->{
             seedSingle();service.restore();String fence=trust().sessionFence(config);migration();service.restore();require(RelayApi.requests.size()==2);
-            request(0).respond(null,410,"stale single refusal");
+            request(0).respond(RelayApi.json("protocol_version",4,"error","device_unenrolled"),410,"stale single refusal");
             require(trust().isCurrent(config,fence)&&trust().migration(config)!=null&&RelayApi.requests.size()==2&&!service.authorized);
             request(1).respond(multi(A),200,null);require(trust().multi(config)&&service.multiRestores==1&&SessionService.ended==0);
         });
@@ -355,7 +410,7 @@ public final class ApprovalSchedulingTest {
             request(0).respond(RelayApi.json("protocol_version",4,"ok",true),200,null);
             require(OwnerRevocations.claimsPending(new Context(),config).isEmpty()&&trust().read(config)!=null&&!service.executable());
             service.restore();require(RelayApi.requests.size()==2&&"/v1/device/pairing".equals(request(1).path)&&!service.authorized&&service.connects==0);
-            request(1).respond(null,410,"revoked");require(trust().read(config)==null&&!service.executable()&&SessionService.begun==0&&service.connects==0);
+            request(1).respond(RelayApi.json("protocol_version",4,"error","device_unenrolled"),410,"revoked");require(trust().read(config)==null&&!service.executable()&&SessionService.begun==0&&service.connects==0);
         });
         test("another claim or enrollment revoke cannot block the original single grant",()->{
             seedSingle();OwnerRevocations.queue(new Context(),config,B);

@@ -57,14 +57,14 @@ final class PreviewService {
   private final Ui ui = new Ui();
   private final Host host = new Host();
   private final ScreenPreparation recovery = new ScreenPreparation(host);
-  Object config;boolean pendingMigration,multiRecord;int stopped, reconnects, executed,migrationRestores;
+  Object config;boolean pendingMigration,multiRecord;int stopped, reconnects, executed,migrationRestores,verificationRequests;
   ''' + marker + '\n' + deadline + '\n' + methods + '''
   <T>T getSystemService(Class<T> type){return type.cast(network);}
   private void restore(){if(!pendingMigration&&!multiRecord)throw new AssertionError("unexpected migration restore in single fixture");migrationRestores++;}
   private void storageUnavailable(){throw new AssertionError("unexpected storage failure in single fixture");}
   // Single-mode fixture: multi dispatch must never silently become a no-op.
   private void multiMessage(WebSocket ws,int run,String text){throw new AssertionError("unexpected multi dispatch in single fixture");}
-  private void scheduleRestore(int run,long delay){throw new AssertionError("unexpected multi restore in single fixture");}
+  private void scheduleRestore(int run,long delay){main.postDelayed(()->{if(run==generation)verificationRequests++;},delay);}
   private void disconnectTask(){if(multiMode)throw new AssertionError("unexpected multi task in single fixture");}
   private void command(WebSocket ws,int run,String text){executed++;}
   // Existing closure cases begin with a transport that has completed its actual onOpen callback.
@@ -188,9 +188,9 @@ final class PreviewService {
     revoked.host.screen = ScreenPreparation.State.READY; revoked.host.advance(10000);
     check(revoked.executed == 0, "recovery may not execute while close handshake is pending");
     revoked.main.drain();
-    check(revoked.stopped == 1 && !revoked.authorized && revoked.reconnects == 0, "1008 must stop without reconnecting");
+    check(revoked.stopped == 0 && !revoked.authorized && revoked.reconnects == 0, "1008 must block control while original consent is reconciled");
     closeA.onClosed(a, 1008, "revoked"); revoked.main.drain();
-    check(revoked.stopped == 1 && revoked.executed == 0, "late onClosed may not execute or stop twice");
+    check(revoked.stopped == 0 && revoked.executed == 0, "late onClosed may not execute or revoke original consent");
     System.out.println("PASS revoke_close_fences_delayed_activity_and_completion");
 
     for(boolean committed:new boolean[]{false,true}) {
@@ -225,7 +225,7 @@ final class PreviewService {
     closeLatest.onClosing(latest, 1008, "revoked"); closeOld.onClosing(old, 1000, "late again");
     check(!replacement.current(latest, 2) && !replacement.recovery.permit(latestToken), "late old listener cannot reopen closed replacement");
     replacement.host.screen = ScreenPreparation.State.READY; replacement.host.advance(10000); replacement.main.drain();
-    check(replacement.stopped == 1 && replacement.executed == 0, "replacement stays revoked");
+    check(replacement.stopped == 0 && !replacement.authorized && replacement.executed == 0, "replacement stays non-executable pending verification");
     System.out.println("PASS stale_socket_callbacks_do_not_change_replacement_gate");
 
     PreviewService abrupt = new PreviewService(); WebSocket c = new WebSocket();
@@ -233,7 +233,7 @@ final class PreviewService {
     closeC.onClosed(c, 1008, "revoked");
     check(!abrupt.current(c, 1) && !abrupt.recovery.permit(tokenC), "onClosed without prior onClosing immediately fences Activity");
     abrupt.host.screen = ScreenPreparation.State.READY; abrupt.host.advance(10000); abrupt.main.drain();
-    check(abrupt.executed == 0 && abrupt.stopped == 1, "direct terminal close cannot resume pending operation");
+    check(abrupt.executed == 0 && abrupt.stopped == 0 && !abrupt.authorized, "direct policy close cannot resume pending operation");
     System.out.println("PASS direct_onClosed_fences_pending_recovery_before_main_delivery");
 
     PreviewService failed = new PreviewService(); WebSocket d = new WebSocket();
@@ -254,7 +254,7 @@ final class PreviewService {
     oldFailure.onClosed(e, 1000, "old");
     check(!replaced.current(f, 2) && !replaced.recovery.permit(tokenF), "current failure remains closed despite stale listener completion");
     replaced.host.screen = ScreenPreparation.State.READY; replaced.host.advance(10000); replaced.main.drain();
-    check(replaced.executed == 0 && replaced.stopped == 1 && replaced.reconnects == 0, "terminal failure stops exactly the current grant");
+    check(replaced.executed == 0 && replaced.stopped == 0 && !replaced.authorized && replaced.reconnects == 0, "HTTP refusal blocks current execution without deleting consent");
     System.out.println("PASS stale_onFailure_cannot_close_or_reopen_replacement");
 
     PreviewService stalled=new PreviewService();stalled.connect(1);WebSocket stalledSocket=stalled.socket;
@@ -306,10 +306,10 @@ final class PreviewService {
       if(deniedStatus==1008)deniedSocket.listener.onClosing(deniedSocket,deniedStatus,"revoked");
       else deniedSocket.listener.onFailure(deniedSocket,new java.io.IOException("denied"),new Response(deniedStatus));
       denied.main.drain();deniedDeadline.run();deniedSocket.listener.onOpen(deniedSocket,new Response(101));denied.main.advance(120000);
-      check(!denied.authorized&&denied.stopped==1&&denied.reconnects==0&&denied.socket==null&&deniedSocket.sends==0,
-          "terminal authorization failure cannot become timeout retry: "+deniedStatus);
+      check(!denied.authorized&&denied.stopped==0&&denied.reconnects==0&&denied.socket==null&&deniedSocket.sends==0&&denied.verificationRequests==1,
+          "unverified refusal must perform one read-only reconciliation without transport replay: "+deniedStatus);
     }
-    System.out.println("PASS revoke_and_authentication_failures_cancel_handshake_without_retry");
+    System.out.println("PASS policy_close_and_http_refusals_cancel_handshake_and_reconcile_once");
 
     PreviewService changed=new PreviewService();changed.connect(1);WebSocket oldNetworkSocket=changed.socket;Runnable oldNetworkDeadline=changed.handshakeTask;
     changed.resetForNetwork(1);check(changed.handshakeTask==null&&oldNetworkSocket.cancels==1,"network reset cancels deadline and transport");

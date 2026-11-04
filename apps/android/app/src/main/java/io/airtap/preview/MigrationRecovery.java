@@ -39,17 +39,7 @@ final class MigrationRecovery {
         if(callback!=null)callback.complete(outcome);
     }
     private static boolean single(JSONObject body,String claim) throws Exception {
-        ServiceProtocol.version(body);
-        if(body.has("mode"))throw new IllegalArgumentException();
-        String state=body.getString("state");
-        if(!"approved".equals(state)){
-            if(java.util.Set.of("idle","waiting","pending","revoked").contains(state))return false;
-            throw new IllegalArgumentException();
-        }
-        if(!body.has("session_expires_at")||!body.isNull("session_expires_at")||!ServiceProtocol.bool(body,"persistent")
-                ||!ServiceProtocol.bool(body,"all_apps")||!ServiceProtocol.bool(body,"allow_control")
-                ||ServiceProtocol.bool(body,"allow_tap")||body.getJSONArray("allowed_packages").length()!=0)throw new IllegalArgumentException();
-        return claim.equals(MultiAiProtocol.hex(body.getJSONObject("candidate"),"claim_id"));
+        return RelayFailure.singleApproved(body,claim);
     }
     /** Returns a final result only for a verified multi state, otherwise the caller handles single. */
     private static Outcome multi(Context app,EnrollmentStore.Config config,Attempt run,JSONObject body) throws Exception {
@@ -66,7 +56,7 @@ final class MigrationRecovery {
                     TrustedGrant trust=new TrustedGrant(app);
                     if(error!=null||status!=200){
                         Outcome outcome=Outcome.RETRY;
-                        if(status==401||status==403||status==410)outcome=trust.stopIfCurrent(config,run.fence)?Outcome.STOPPED:Outcome.SUPERSEDED;
+                        if(RelayFailure.deviceTerminal(status,body))outcome=trust.stopIfCurrent(config,run.fence)?Outcome.STOPPED:Outcome.SUPERSEDED;
                         finish(run,outcome,callback);return;
                     }
                     Outcome result=multi(app,config,run,body);
@@ -96,7 +86,7 @@ final class MigrationRecovery {
                     }
                     // Only a definitive first rejection can return to single, after a fresh read.
                     // A retry's rejection cannot disprove an earlier, still unknown POST.
-                    if(first&&(status==404||status==409)){reconcile(app,config,run,true,callback);return;}
+                    if(first&&RelayFailure.migrationRejected(status,body)){reconcile(app,config,run,true,callback);return;}
                     finish(run,Outcome.RETRY,callback);
                 }catch(Exception unknown){finish(run,Outcome.RETRY,callback);}
             });

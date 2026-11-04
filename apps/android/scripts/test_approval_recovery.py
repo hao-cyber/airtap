@@ -4,7 +4,7 @@ import argparse, datetime, hashlib, importlib.util, json, os, subprocess, tempfi
 from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 PRODUCTION = ROOT/'app/src/main/java/io/airtap/preview'
-SOURCES = [PRODUCTION/(name+'.java') for name in ('TrustedGrant', 'ApprovalRecovery', 'ConnectionFeedback', 'ServiceProtocol')]
+SOURCES = [PRODUCTION/(name+'.java') for name in ('TrustedGrant', 'ApprovalRecovery', 'ConnectionFeedback', 'ServiceProtocol', 'RelayFailure')]
 TEST = ROOT/'tests/approvalrecovery/ApprovalRecoveryTest.java'
 FAKES = ROOT/'tests/approvalrecovery/platform_fakes.py'
 p = argparse.ArgumentParser()
@@ -15,7 +15,9 @@ fakes = importlib.util.module_from_spec(spec); spec.loader.exec_module(fakes)
 jdk = Path(os.environ.get('JAVA_HOME', '/Applications/Android Studio.app/Contents/jbr/Contents/Home'))/'bin'
 with tempfile.TemporaryDirectory(prefix='airtap-approval-recovery-') as temp:
     temp = Path(temp); generated=[]
-    for name, value in fakes.SOURCES.items():
+    fixtures = dict(fakes.SOURCES)
+    fixtures['org/json/JSONArray.java'] = fixtures['org/json/JSONArray.java'].replace('public JSONObject getJSONObject(int i)', 'public Object get(int i){return v.get(i);}public JSONObject getJSONObject(int i)')
+    for name, value in fixtures.items():
         file = temp/name; file.parent.mkdir(parents=True, exist_ok=True); file.write_text(value); generated.append(file)
     subprocess.run([str(jdk/'javac'), '--release', '17', '-d', str(temp), *map(str,SOURCES),str(TEST),*map(str,generated)],check=True,timeout=30)
     run = subprocess.run([str(jdk/'java'), '-cp', str(temp),'io.airtap.preview.ApprovalRecoveryTest'],text=True,capture_output=True,timeout=30)

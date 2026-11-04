@@ -60,7 +60,7 @@ final class ApprovalRecovery {
                         // A completed duplicate may report success, but must never rewrite its sequence.
                         outcome = active != null && id.equals(active.optString("approval_id")) ? Outcome.APPROVED : Outcome.SUPERSEDED;
                     } else if (error != null) {
-                        if (status == 400 || status == 401 || status == 403 || status == 409 || status == 410) {
+                        if (RelayFailure.approvalRejected(status, body, multi)) {
                             trust.cancelApproval(config, id); outcome = Outcome.STOPPED;
                         }
                     } else {
