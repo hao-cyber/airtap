@@ -35,6 +35,10 @@ final class PreviewDiagnostics {
         device_disconnected_outcome_unknown, expired_or_revoked, duplicate_hello,
         unsolicited_response, response_too_large, invalid_json_response,
         invalid_response, invalid_image, device_error,
+        task_recovery_required, connection_replaced_outcome_unknown, multi_protocol_enabled,
+        task_release_storage_failure_outcome_unknown, stale_task_response, invalid_fence_ack,
+        device_disconnected, inactive_session, no_approved_grants, epoch_exhausted,
+        device_upgrade_required, device_unenrolled,
         request_too_large, text_requests_only, invalid_id, invalid_request
     }
 
@@ -140,6 +144,18 @@ final class PreviewDiagnostics {
             case "invalid_response": return Reason.invalid_response;
             case "invalid_image": return Reason.invalid_image;
             case "device_error": return Reason.device_error;
+            case "task_recovery_required": return Reason.task_recovery_required;
+            case "connection_replaced_outcome_unknown": return Reason.connection_replaced_outcome_unknown;
+            case "multi_protocol_enabled": return Reason.multi_protocol_enabled;
+            case "task_release_storage_failure_outcome_unknown": return Reason.task_release_storage_failure_outcome_unknown;
+            case "stale_task_response": return Reason.stale_task_response;
+            case "invalid_fence_ack": return Reason.invalid_fence_ack;
+            case "device_disconnected": return Reason.device_disconnected;
+            case "inactive_session": return Reason.inactive_session;
+            case "no_approved_grants": return Reason.no_approved_grants;
+            case "epoch_exhausted": return Reason.epoch_exhausted;
+            case "device_upgrade_required": return Reason.device_upgrade_required;
+            case "device_unenrolled": return Reason.device_unenrolled;
             default: return Reason.other;
         }
     }

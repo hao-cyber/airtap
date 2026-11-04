@@ -37,8 +37,28 @@ feedback_clear = method(JAVA / 'FeedbackActivity.java', '    private void clearO
 feedback_render = method(JAVA / 'FeedbackActivity.java', '    private void render(')
 fixtures['android/app/Activity.java'] = '''package android.app;
 public class Activity extends android.content.Context {public int defaultDumps;
+ public boolean isFinishing(){return false;}public boolean isChangingConfigurations(){return false;}
  public void dump(String prefix,java.io.FileDescriptor fd,java.io.PrintWriter writer,String[] args){defaultDumps++;writer.println("DEFAULT_SYSTEM_DUMP");}}
 '''
+# Compile the real PreviewDiagnostics log formatter; only Android/service state is synthetic.
+fixtures['android/content/Context.java'] = fixtures['android/content/Context.java'].replace(
+    'public Context getApplicationContext()', 'public String getPackageName(){return "io.airtap.synthetic";}public Context getApplicationContext()')
+fixtures['android/app/ActivityManager.java'] = '''package android.app;public class ActivityManager {
+ public static class RunningAppProcessInfo {public static final int IMPORTANCE_FOREGROUND=100;public int importance=100;}
+ public static void getMyMemoryState(RunningAppProcessInfo info){}public boolean isBackgroundRestricted(){return false;}}'''
+fixtures['android/os/PowerManager.java'] = '''package android.os;public class PowerManager {
+ public boolean isInteractive(){return true;}public boolean isPowerSaveMode(){return false;}
+ public boolean isDeviceIdleMode(){return false;}public boolean isIgnoringBatteryOptimizations(String name){return true;}}'''
+fixtures['android/net/Network.java'] = 'package android.net;public class Network {}'
+fixtures['android/net/NetworkCapabilities.java'] = '''package android.net;public class NetworkCapabilities {
+ public static final int NET_CAPABILITY_VALIDATED=1,NET_CAPABILITY_INTERNET=2,TRANSPORT_VPN=3,TRANSPORT_WIFI=4,TRANSPORT_CELLULAR=5,TRANSPORT_ETHERNET=6;
+ public boolean hasCapability(int value){return true;}public boolean hasTransport(int value){return value==TRANSPORT_WIFI;}}'''
+fixtures['android/net/ConnectivityManager.java'] = '''package android.net;public class ConnectivityManager {
+ public Network getActiveNetwork(){return new Network();}public NetworkCapabilities getNetworkCapabilities(Network network){return new NetworkCapabilities();}}'''
+fixtures['android/system/ErrnoException.java'] = 'package android.system;public class ErrnoException extends Exception {public int errno;}'
+fixtures['android/util/Log.java'] = '''package android.util;public class Log {public static String last;
+ public static int i(String tag,String message){if(!"AirtapPreview".equals(tag))throw new AssertionError();last=message;return 0;}}'''
+fixtures['io/airtap/preview/TestActivity.java'] = 'package io.airtap.preview;final class TestActivity {static boolean resumed;}'
 fixtures['io/airtap/preview/MainActivity.java'] = '''package io.airtap.preview;
 import org.json.JSONObject;import android.view.View;import android.widget.Button;public final class MainActivity extends android.app.Activity {
  EnrollmentStore.Config config;boolean visible,busy,storageError;final MultiAiOwner multiOwner=new MultiAiOwner();
@@ -76,6 +96,7 @@ import android.view.View;import android.widget.Button;import android.widget.Text
 fixtures['io/airtap/preview/PreviewService.java'] = '''package io.airtap.preview;
 import org.json.JSONObject;final class PreviewService {static PreviewService instance;
  EnrollmentStore.Config config;boolean authorized,connected,multiMode,multiHello,restoring,notificationBlocked;
+ String diagnosticFields(){return "authorized=true connected=true";}
 ''' + service + '\n}'
 # The fake serializer emits JSON bytes so the Python side can parse the actual dump output.
 # Parsing encrypted records / Android JSON is not claimed by this host test.
@@ -117,6 +138,35 @@ public final class MaintenanceDiagnosticsTest {
   System.out.print(result);return result;
  }
  public static void main(String[] args)throws Exception{
+  test("socket close diagnostics preserve fixed reasons and exclude arbitrary private strings",()->{
+   String[] known={"expired","new_pairing","revoked","connection_replaced","expired_outcome_unknown","timeout",
+    "device_disconnected_outcome_unknown","expired_or_revoked","duplicate_hello","unsolicited_response","response_too_large",
+    "invalid_json_response","invalid_response","invalid_image","device_error","task_recovery_required",
+    "connection_replaced_outcome_unknown","multi_protocol_enabled","task_release_storage_failure_outcome_unknown",
+    "stale_task_response","invalid_fence_ack","device_disconnected","inactive_session","no_approved_grants",
+    "epoch_exhausted","device_upgrade_required","device_unenrolled"};
+   Set<String> allowed=new HashSet<>(Arrays.asList(known));check(allowed.size()==27);
+   for(String reason:known){
+    PreviewDiagnostics.Reason mapped=PreviewDiagnostics.closeReason(reason);check(mapped.name().equals(reason));
+    android.util.Log.last=null;
+    PreviewDiagnostics.event(activity,PreviewDiagnostics.Event.socket_closed,mapped,1012,7,1);
+    check(android.util.Log.last!=null&&android.util.Log.last.contains(" reason="+reason+" code=1012 "));
+   }
+   for(PreviewDiagnostics.Reason reason:PreviewDiagnostics.Reason.values())if(!allowed.contains(reason.name()))
+    check(PreviewDiagnostics.closeReason(reason.name())==PreviewDiagnostics.Reason.other);
+   String[] unknown={SECRET,CONFIG.url,"task_recovery_required?token="+SECRET,"device_disconnected\n"+SECRET,
+    "device_timeout","expired_request_consumed","TASK_RECOVERY_REQUIRED","revoked ","私密合成原因"};
+   String canonical=null;
+   for(String reason:unknown){
+    PreviewDiagnostics.Reason mapped=PreviewDiagnostics.closeReason(reason);check(mapped==PreviewDiagnostics.Reason.other);
+    android.util.Log.last=null;
+    PreviewDiagnostics.event(activity,PreviewDiagnostics.Event.socket_closed,mapped,1008,7,1);
+    String line=android.util.Log.last;check(line!=null&&line.contains(" reason=other code=1008 "));
+    check(!line.contains(reason)&&!line.contains(SECRET)&&!line.contains(CONFIG.url));
+    if(canonical==null)canonical=line;else check(canonical.equals(line));
+   }
+   for(String empty:new String[]{null,""})check(PreviewDiagnostics.closeReason(empty)==PreviewDiagnostics.Reason.empty);
+  });
   test("default, unknown and mixed dump arguments leave diagnostic storage unread",()->{
    activity.buttonTouchEvents=9;activity.buttonTouchRejected=3;activity.buttonTouchLastFlags=2;
    for(String[] flags:new String[][]{null,new String[0],new String[]{"other"},new String[]{"--airtap-diagnostics","extra"}}){
@@ -251,7 +301,7 @@ public final class MaintenanceDiagnosticsTest {
 p = argparse.ArgumentParser()
 p.add_argument('--output', type=Path)
 args = p.parse_args()
-sources = [JAVA / (name + '.java') for name in ['TrustedGrant', 'ServiceProtocol', 'RelayAddress']]
+sources = [JAVA / (name + '.java') for name in ['TrustedGrant', 'ServiceProtocol', 'RelayAddress', 'PreviewDiagnostics']]
 jdk = Path(os.environ.get('JAVA_HOME', '/Applications/Android Studio.app/Contents/jbr/Contents/Home')) / 'bin'
 with tempfile.TemporaryDirectory(prefix='airtap-diagnostic-') as directory:
     temp = Path(directory)
@@ -288,5 +338,5 @@ if args.output:
         'recorded_at': datetime.datetime.now(datetime.timezone.utc).isoformat(),
         'source_sha256': {str(path.relative_to(ROOT)): hashlib.sha256(path.read_bytes()).hexdigest() for path in [*sources, JAVA/'MainActivity.java', JAVA/'PreviewService.java', JAVA/'MultiAiOwner.java', JAVA/'FeedbackActivity.java', FAKES, Path(__file__)]},
         'extracted_sha256': {name:hashlib.sha256(value.encode()).hexdigest() for name,value in {'MainActivity.dump':dump, 'MainActivity.button':button, 'MainActivity.showObscuredTouchFeedback':touch_feedback, 'MainActivity.clearObscuredTouchFeedback':touch_clear, 'MainActivity.renderTouchFeedback':touch_render, 'PreviewService.diagnostics':service, 'MultiAiOwner.diagnostics':owner, 'MultiAiOwner.button':owner_button, 'FeedbackActivity.button':feedback_button, 'FeedbackActivity.showObscuredTouchFeedback':feedback_message, 'FeedbackActivity.clearObscuredTouchFeedback':feedback_clear, 'FeedbackActivity.render':feedback_render}.items()},
-        'scope': 'Production trust logic and verbatim dump/service methods, three ordinary-button security filters and inline-feedback methods; synthetic Android preferences, views, encrypted-store adapter and JSON serializer. No phone, Android dumpsys dispatch, actual UI event dispatch/layout, network or lifecycle validation. Real bounded encrypted diagnostic file reads are checked separately by test_enrollment_record_limits.py.'
+        'scope': 'Production trust logic, full PreviewDiagnostics close-reason mapping/log formatting, verbatim dump/service methods, three ordinary-button security filters and inline-feedback methods; synthetic Android platform, preferences, views, encrypted-store adapter and JSON serializer. No phone, Android dumpsys/logcat dispatch, actual UI event dispatch/layout, network or lifecycle validation. Real bounded encrypted diagnostic file reads are checked separately by test_enrollment_record_limits.py.'
     }, indent=2) + '\n')
