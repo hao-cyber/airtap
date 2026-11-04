@@ -142,6 +142,8 @@ def load_config(path, local_test=False):
         return value
     except Failure:
         raise
+    except FileNotFoundError:
+        raise Failure('config_missing', outcome='not_dispatched')
     except (OSError, ValueError, KeyError, TypeError):
         raise Failure('config_unavailable_or_invalid')
 

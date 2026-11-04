@@ -609,6 +609,99 @@ class TaskTest(unittest.TestCase):
             self.assertFalse(error['retry_action'])
 
 
+class ConfigStorageTest(unittest.TestCase):
+    """Local filesystem boundaries only; not cloud workspace persistence."""
+    def test_missing_config_fails_before_request_without_creating_identity(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory).resolve()
+            for path in (root / 'phone.json', root / 'missing-parent' / 'phone.json'):
+                with self.subTest(parent_exists=path.parent.exists()), \
+                     patch.object(sys, 'argv', ['airtap', '--config', str(path), 'status']), \
+                     patch.object(cli, 'request') as request:
+                    previous_lock = cli._config_lock
+                    try:
+                        with self.assertRaises(cli.Failure) as caught:
+                            cli.main()
+                        self.assertEqual(caught.exception.result,
+                                         {'ok': False, 'error': 'config_missing', 'outcome': 'not_dispatched'})
+                        request.assert_not_called()
+                        self.assertFalse(path.exists())
+                    finally:
+                        if cli._config_lock is not previous_lock:
+                            os.close(cli._config_lock)
+                            cli._config_lock = previous_lock
+
+    def test_existing_unsafe_or_invalid_config_is_not_reported_as_missing(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory).resolve() / 'phone.json'
+            cli.save_config(path, {'url': 'https://relay.example', 'controller_token': TOKEN})
+            path.chmod(0o644)
+            with self.assertRaises(cli.Failure) as caught: cli.load_config(path)
+            self.assertEqual(caught.exception.result['error'], 'config_must_be_owned_regular_file_mode_0600')
+            path.chmod(0o600)
+            link = path.with_name('link.json'); link.symlink_to(path)
+            with self.assertRaises(cli.Failure) as caught: cli.load_config(link)
+            self.assertEqual(caught.exception.result['error'], 'symlink_config_not_allowed')
+            with patch.object(cli.os, 'open', side_effect=PermissionError()):
+                with self.assertRaises(cli.Failure) as caught: cli.load_config(path)
+            self.assertEqual(caught.exception.result, {'ok': False, 'error': 'config_unavailable_or_invalid'})
+            for data in ('{invalid', '{}', json.dumps({'url': 'https://relay.example', 'controller_token': 'invalid'})):
+                path.write_text(data)
+                with self.assertRaises(cli.Failure) as caught: cli.load_config(path)
+                self.assertEqual(caught.exception.result, {'ok': False, 'error': 'config_unavailable_or_invalid'})
+                self.assertEqual(path.read_text(), data)
+
+    def test_absolute_config_survives_cwd_and_home_change_on_same_filesystem(self):
+        import http.server
+        import threading
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory).resolve()
+            first, second = root / 'first', root / 'second'
+            first.mkdir(); second.mkdir()
+            path, requests = first / 'phone.json', []
+            response = {'protocol_version': 4, 'persistent': True, 'all_apps': True, 'allow_control': True,
+                        'session_expires_at': None, 'command_sequence': 12, 'deviceConnected': True,
+                        'pending': 0, 'connection_id': 'd' * 32}
+            class Handler(http.server.BaseHTTPRequestHandler):
+                def log_message(self, *args): pass
+                def do_GET(self):
+                    requests.append((self.command, self.path, self.headers.get('Authorization')))
+                    raw = json.dumps(response).encode()
+                    self.send_response(200); self.send_header('Content-Type', 'application/json')
+                    self.send_header('Content-Length', str(len(raw))); self.end_headers(); self.wfile.write(raw)
+                def do_POST(self):
+                    requests.append((self.command, self.path, self.headers.get('Authorization')))
+                    self.send_error(405)
+            server = http.server.ThreadingHTTPServer(('127.0.0.1', 0), Handler)
+            thread = threading.Thread(target=server.serve_forever, daemon=True); thread.start()
+            try:
+                cli.save_config(path, {'url': 'http://127.0.0.1:' + str(server.server_port),
+                                      'controller_token': TOKEN, 'state': 'approved', 'command_sequence': 7})
+                original = path.read_bytes()
+                def invoke(config, cwd, expected_exit):
+                    environment = {key: value for key, value in os.environ.items() if not key.lower().endswith('_proxy')}
+                    environment['HOME'] = str(cwd)
+                    run = subprocess.run([sys.executable, str(ROOT / 'cli/airtap.py'), '--allow-local-http',
+                                          '--config', str(config), 'status'], cwd=cwd, env=environment,
+                                         capture_output=True, text=True, timeout=10)
+                    self.assertEqual(run.returncode, expected_exit, run.stdout + run.stderr)
+                    self.assertNotIn(TOKEN, run.stdout + run.stderr)
+                    return json.loads(run.stdout)
+                missing = invoke('phone.json', second, 1)
+                self.assertEqual(missing, {'ok': False, 'error': 'config_missing', 'outcome': 'not_dispatched'})
+                self.assertEqual(requests, [])
+                self.assertFalse((second / 'phone.json').exists())
+                self.assertEqual(path.read_bytes(), original)
+                for cwd in (first, second):
+                    self.assertTrue(invoke(path, cwd, 0)['ok'])
+                self.assertEqual(requests, [('GET', '/v1/status', 'Bearer ' + TOKEN)] * 2)
+                saved = cli.load_config(path, True)
+                self.assertEqual(saved['controller_token'], TOKEN)
+                self.assertEqual(saved['command_sequence'], 12)
+            finally:
+                server.shutdown(); server.server_close(); thread.join(5)
+
+
 class PairAndLockTest(unittest.TestCase):
     def invoke_pair(self, path, request, task_lease=False):
         argv = ['airtap', '--config', str(path), 'pair-start', '--url', 'https://relay.example',
