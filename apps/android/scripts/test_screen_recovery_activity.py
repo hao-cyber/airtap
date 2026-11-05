@@ -76,7 +76,7 @@ public final class ScreenRecoveryActivityTest {
   void resume(){activity=new ScreenRecoveryActivity();activity.intent=Context.launched;activity.onCreate(null);activity.onStart();activity.onResume();}
   void draw(){activity.window.decor.attached=true;activity.window.decor.getViewTreeObserver().draw();Handler.advance(0);}
   void newWindow(){activity.onWindowFocusChanged(false);activity.onWindowFocusChanged(true);draw();}
-  void success(){keyguard.callbacks.get(keyguard.callbacks.size()-1).onDismissSucceeded();keyguard.locked=false;Handler.advance(600);}
+  void success(){keyguard.callbacks.get(keyguard.callbacks.size()-1).onDismissSucceeded();keyguard.locked=false;Handler.advance(1000);}
  }
  interface Scenario {void run();}static void test(String name,Scenario scenario){scenario.run();passed++;System.out.println("PASS "+name);}
  public static void main(String[] args){
@@ -127,13 +127,46 @@ public final class ScreenRecoveryActivityTest {
   test("success callback alone and visible recovery overlay are not ready",()->{
    Host h=new Host();h.begin();h.resume();h.draw();h.keyguard.callbacks.get(0).onDismissSucceeded();Handler.advance(500);
    check(h.reply.ready==0,"callback alone cannot unlock");h.keyguard.locked=false;h.ui.windowPresent=true;Handler.advance(600);
-   check(h.reply.ready==0,"overlay must disappear");h.ui.windowPresent=false;Handler.advance(100);check(h.reply.ready==1,"actual state and window removal verified");
+   check(h.reply.ready==0,"overlay must disappear");h.ui.windowPresent=false;Handler.advance(100);check(h.reply.ready==0,"window disappearance must settle");
+   Handler.advance(300);check(h.reply.ready==1,"actual state and window removal verified");
   });
   test("platform exception is final and diagnostics contain only fixed branches",()->{
    Host h=new Host();h.begin();h.resume();h.keyguard.throwsOnRequest=true;h.draw();h.newWindow();
    check(h.keyguard.calls==1&&h.reply.errors==1,"exception is not permission to repeat API");
-   for(String line:android.util.Log.lines)check(line.matches("AirtapPreview event=screen_recovery branch=(window_not_ready|dismiss_requested|api_error|api_cancelled|api_exception|timeout)"),"only fixed metadata");
+   for(String line:android.util.Log.lines)check(line.matches("AirtapPreview event=screen_recovery branch=(window_not_ready|dismiss_requested|api_success|api_error|api_cancelled|api_exception|timeout)"),"only fixed metadata");
    check(!android.util.Log.lines.isEmpty(),"diagnostic branch was recorded");
+  });
+  test("first drawn unlocked sample followed by relock progresses without another frame",()->{
+   Host h=new Host();h.begin();h.resume();h.keyguard.locked=false;h.draw();check(h.keyguard.calls==0,"unlocked sample needs no API");
+   Handler.advance(10);h.keyguard.locked=true;Handler.advance(190);
+   check(h.keyguard.calls==1,"coordinator tick uses still-visible window without a new draw");h.success();check(h.reply.ready==1,"recovered");
+  });
+  test("relock during pre-close settling keeps the same activity and shared request budget",()->{
+   Host h=new Host();h.begin();h.resume();h.draw();var old=h.keyguard.callbacks.get(0);old.onDismissSucceeded();h.keyguard.locked=false;
+   Handler.advance(100);check(!h.activity.finishing,"first ready sample must not close");
+   Handler.advance(50);h.keyguard.locked=true;Handler.advance(150);
+   check(h.keyguard.calls==2&&!h.activity.finishing,"relock may dismiss once more in same attempt");
+   old.onDismissError();check(h.reply.errors==0,"old outcome cannot affect new dismissal");h.success();check(h.reply.ready==1,"stable recovered result");
+  });
+  test("relock after close reopens once with the original deadline and global API cap",()->{
+   Host h=new Host();h.begin();h.resume();h.draw();h.keyguard.callbacks.get(0).onDismissSucceeded();h.keyguard.locked=false;Handler.advance(400);
+   var previous=h.activity;check(previous.destroyed,"old window closed after stable ready");
+   Handler.advance(50);h.keyguard.locked=true;Handler.advance(50);h.resume();h.draw();check(h.keyguard.calls==2,"second Activity uses final shared request");
+   previous.onWindowFocusChanged(true);previous.window.decor.getViewTreeObserver().draw();check(h.keyguard.calls==2,"old instance cannot dispatch");
+   Handler.advance(6000-Handler.now);check(h.reply.errors==1&&h.keyguard.calls==2,"same original six second deadline");
+  });
+  test("authentication or owner stop while settling prevents another dismissal",()->{
+   for(boolean auth:new boolean[]{true,false}){
+    Host h=new Host();h.begin();h.resume();h.draw();h.keyguard.locked=false;Handler.advance(100);
+    h.keyguard.locked=true;if(auth)h.keyguard.deviceLocked=true;else h.current=false;Handler.advance(1000);
+    check(h.keyguard.calls==1&&h.reply.ready==0,"no retry across authentication or stop");
+    check(auth?"device_authentication_required".equals(h.reply.error):h.reply.errors==0,"accurate terminal result");
+   }
+  });
+  test("recreated Activity cannot reset the two-call budget",()->{
+   Host h=new Host();h.begin();h.resume();h.draw();h.keyguard.callbacks.get(0).onDismissError();h.newWindow();check(h.keyguard.calls==2,"budget spent");
+   h.activity.closeRecovery();Handler.advance(0);h.resume();h.draw();
+   check(h.keyguard.calls==2&&h.reply.errors==1,"third request refused across recreation");
   });
   System.out.println("TOTAL "+passed);
  }
@@ -166,4 +199,4 @@ print(run.stdout, end='')
 if run.returncode:
     print(run.stderr, end='')
     raise SystemExit(run.returncode)
-assert len(checks) == 12
+assert len(checks) == 17

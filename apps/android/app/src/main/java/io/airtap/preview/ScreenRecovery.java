@@ -33,11 +33,17 @@ final class ScreenRecovery implements ScreenPreparation.Platform {
     boolean attach(String token, ScreenRecoveryActivity candidate) {
         if (!preparation.permit(token)) return false;
         ScreenRecoveryActivity previous = activities.get(token);
-        if (previous != null && previous != candidate) return false;
+        if (previous != null && previous != candidate && !previous.isFinishing() && !previous.isDestroyed()) return false;
         activities.put(token, candidate);
         return true;
     }
     boolean permit(String token) { return preparation.permit(token); }
+    boolean permit(String token, ScreenRecoveryActivity candidate) {
+        return activities.get(token) == candidate && preparation.permit(token);
+    }
+    int reserveDismiss(String token, ScreenRecoveryActivity candidate) {
+        return activities.get(token) == candidate ? preparation.reserveDismiss(token) : 0;
+    }
     void failed(String token, String code) { preparation.failed(token, code); }
     void detached(String token, ScreenRecoveryActivity candidate) {
         activities.remove(token, candidate);
@@ -47,6 +53,14 @@ final class ScreenRecovery implements ScreenPreparation.Platform {
     @Override public void later(Runnable callback, long delayMillis) { main.postDelayed(callback, delayMillis); }
     @Override public void remove(Runnable callback) { main.removeCallbacks(callback); }
     @Override public void clearObservations() { ui.clear(); }
+    @Override public void progress(String token) {
+        ScreenRecoveryActivity activity = activities.get(token);
+        if (activity != null) activity.progress();
+    }
+    @Override public void relocked(String token) {
+        ScreenRecoveryActivity activity = activities.get(token);
+        if (activity != null) activity.relocked();
+    }
     @Override public void diagnostic(ScreenPreparation.Diagnostic branch) {
         // Fixed local metadata only; never include a token, system message or screen content.
         try { android.util.Log.i("AirtapPreview", "event=screen_recovery branch=" + branch); }

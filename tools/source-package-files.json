@@ -1,7 +1,7 @@
 {
   "allowlist_path": "tools/source-package-files.json",
-  "android_version": "0.4.0-beta.23",
-  "archive_root": "airtap-source-0.4.0-beta.23-code53",
+  "android_version": "0.4.0-beta.24",
+  "archive_root": "airtap-source-0.4.0-beta.24-code54",
   "cli_version": "0.4.0-cli.12",
   "closure_policy": "airtap-source-closure-v1",
   "files": [
@@ -1425,6 +1425,6 @@
   "protocol_version": 4,
   "schema": "airtap-source-allowlist-v1",
   "scope": "Reviewed current Android, CLI, relay, site, build, CI and test source closure. No Git history, credentials, private deployment state, APK, or raw phone evidence. Historical acceptance retains its original version and scope; a source ZIP is not public release approval.",
-  "version": "0.4.0-beta.23-code53",
-  "version_code": 53
+  "version": "0.4.0-beta.24-code54",
+  "version_code": 54
 }

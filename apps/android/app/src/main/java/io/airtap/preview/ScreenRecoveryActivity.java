@@ -13,6 +13,7 @@ public final class ScreenRecoveryActivity extends Activity {
     private String token;
     private boolean requested, visible, resumed, drawn, windowReady, focused, posted, waitingLogged;
     private int readyGeneration, failedGeneration = -1, requests;
+    private int callbackGeneration;
     private View decor;
     private final Runnable dismiss = () -> { posted = false; dismissIfReady(); };
     private final ViewTreeObserver.OnPreDrawListener beforeDraw = () -> {
@@ -27,7 +28,7 @@ public final class ScreenRecoveryActivity extends Activity {
         PreviewService service = PreviewService.instance;
         if (token == null || service == null) { closeRecovery(); return; }
         recovery = service.screenRecovery();
-        if (!recovery.attach(token, this) || !recovery.permit(token)) { closeRecovery(); return; }
+        if (!recovery.attach(token, this) || !recovery.permit(token, this)) { closeRecovery(); return; }
         setTitle(WINDOW_TITLE);
         // Do not move these flags to AndroidManifest: a queued, cancelled start must not wake a device.
         setShowWhenLocked(true);
@@ -39,7 +40,7 @@ public final class ScreenRecoveryActivity extends Activity {
     @Override protected void onResume() {
         super.onResume();
         resumed = true;
-        if (recovery == null || !recovery.permit(token)) { closeRecovery(); return; }
+        if (recovery == null || !recovery.permit(token, this)) { closeRecovery(); return; }
         windowSignal();
     }
     @Override public void onWindowFocusChanged(boolean hasFocus) {
@@ -51,6 +52,16 @@ public final class ScreenRecoveryActivity extends Activity {
     private boolean visibleWindow() {
         return resumed && visible && drawn && decor != null && decor.isAttachedToWindow()
                 && decor.isShown() && decor.getWindowVisibility() == View.VISIBLE;
+    }
+    void progress() {
+        if (!isFinishing() && !isDestroyed() && recovery.permit(token, this)) windowSignal();
+    }
+    void relocked() {
+        if (!isFinishing() && !isDestroyed() && recovery.permit(token, this)) {
+            callbackGeneration++;
+            requested = false;
+            failedGeneration = -1;
+        }
     }
     private void windowSignal() {
         if (isFinishing() || isDestroyed() || recovery == null) return;
@@ -74,23 +85,26 @@ public final class ScreenRecoveryActivity extends Activity {
         if (isFinishing() || isDestroyed()) return;
         if (!visibleWindow()) { windowReady = false; return; }
         if (requested || requests >= 2 || (requests > 0 && readyGeneration <= failedGeneration)) return;
-        if (!recovery.permit(token)) { closeRecovery(); return; }
+        if (!recovery.permit(token, this)) { closeRecovery(); return; }
         KeyguardManager keyguard = getSystemService(KeyguardManager.class);
         if (keyguard == null) { recovery.failed(token, "device_state_unavailable"); return; }
         // A transient unlocked sample must not spend the one real dismissal opportunity.
         if (!keyguard.isKeyguardLocked()) return;
         // isDeviceLocked(), checked again by permit(), distinguishes authentication from a swipe screen.
-        if (!recovery.permit(token)) { closeRecovery(); return; }
+        if (!recovery.permit(token, this)) { closeRecovery(); return; }
+        int reservation = recovery.reserveDismiss(token, this);
+        if (reservation == 0) return;
         requested = true;
-        final int request = ++requests;
+        requests = reservation;
+        final int request = ++callbackGeneration;
         recovery.diagnostic(ScreenPreparation.Diagnostic.dismiss_requested);
         try {
             keyguard.requestDismissKeyguard(this, new KeyguardManager.KeyguardDismissCallback() {
                 private boolean complete;
                 private boolean accept() {
-                    if (complete || request != requests || isFinishing() || isDestroyed()) return false;
+                    if (complete || request != callbackGeneration || isFinishing() || isDestroyed()) return false;
                     complete = true;
-                    return recovery.permit(token);
+                    return recovery.permit(token, ScreenRecoveryActivity.this);
                 }
                 @Override public void onDismissError() {
                     if (!accept()) return;
@@ -105,7 +119,9 @@ public final class ScreenRecoveryActivity extends Activity {
                     recovery.diagnostic(ScreenPreparation.Diagnostic.api_cancelled);
                     recovery.failed(token, "device_keyguard_dismiss_failed");
                 }
-                @Override public void onDismissSucceeded() { accept(); }
+                @Override public void onDismissSucceeded() {
+                    if (accept()) recovery.diagnostic(ScreenPreparation.Diagnostic.api_success);
+                }
                 // Success is verified by state polling, never inferred from the callback alone.
             });
         } catch (RuntimeException failure) {

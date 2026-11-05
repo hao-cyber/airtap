@@ -24,15 +24,19 @@ public final class ScreenPreparationTest {
         int cleared, launches;
         String token;
         boolean windowGone = true;
+        long windowQueryDelay;
+        Runnable onRelock = () -> { };
         final List<String> closed = new ArrayList<>();
         final List<Scheduled> queue = new ArrayList<>();
-        public ScreenPreparation.State state() { return screen; }
+        final List<ScreenPreparation.State> stateSamples = new ArrayList<>();
+        public ScreenPreparation.State state() { return stateSamples.isEmpty() ? screen : stateSamples.remove(0); }
         public long now() { return time; }
         public void later(Runnable callback, long delayMillis) { queue.add(new Scheduled(time + delayMillis, callback)); }
         public void remove(Runnable callback) { queue.removeIf(item -> item.callback == callback); }
         public void launch(String token) { this.token = token; launches++; }
         public void close(String token) { closed.add(token); }
-        public boolean recoveryWindowGone(String token) { return windowGone; }
+        public boolean recoveryWindowGone(String token) { time += windowQueryDelay; return windowGone; }
+        public void relocked(String token) { onRelock.run(); }
         public void clearObservations() { cleared++; }
         void advance(long millis) {
             long end = time + millis;
@@ -41,7 +45,7 @@ public final class ScreenPreparationTest {
                 if (queue.isEmpty() || queue.get(0).at > end) break;
                 Scheduled next = queue.remove(0); time = next.at; next.callback.run();
             }
-            time = end;
+            time = Math.max(time, end);
         }
     }
 
@@ -74,6 +78,8 @@ public final class ScreenPreparationTest {
         check(reply.ready == 0 && host.closed.contains(host.token), "do not execute through our temporary overlay");
         check(!preparation.permit(host.token), "closing activity cannot request another wake");
         host.windowGone = true; host.advance(100);
+        check(reply.ready == 0, "window disappearance must settle after it is actually observed");
+        host.advance(300);
         check(reply.ready == 1 && reply.recovered && host.cleared == 2 && host.queue.isEmpty(), "finish once after window removal and clear old observations");
         scenarios++;
     }
@@ -102,7 +108,7 @@ public final class ScreenPreparationTest {
         check(!old.equals(current), "tokens are unique across command lifetimes");
         oldTick.run(); preparation.failed(old, "device_keyguard_dismiss_failed");
         check(preparation.permit(current) && newReply.errors == 0 && newReply.ready == 0, "old callback cannot release or fail new busy command");
-        host.screen = ScreenPreparation.State.READY; host.advance(500);
+        host.screen = ScreenPreparation.State.READY; host.advance(1000);
         check(oldReply.ready == 0 && oldReply.errors == 0 && newReply.ready == 1, "only the current command resumes");
         scenarios++;
     }
@@ -144,12 +150,66 @@ public final class ScreenPreparationTest {
         check("device_state_unavailable".equals(reply.code) && host.launches == 0, "missing system state is reported accurately");
         scenarios++;
     }
+    private static void readyAfterDeadlineCannotComplete() {
+        Host host = new Host(); ScreenPreparation preparation = new ScreenPreparation(host); Reply reply = new Reply();
+        preparation.prepare(() -> true, reply); Runnable tick = host.queue.get(0).callback;
+        host.time = ScreenPreparation.TIMEOUT_MS; host.screen = ScreenPreparation.State.READY; tick.run();
+        check(reply.ready == 0 && reply.errors == 1 && "device_wake_failed".equals(reply.code),
+                "a delayed ready tick cannot complete after the original deadline");
+        check(host.queue.isEmpty() && !preparation.permit(host.token), "late ready does not extend the attempt");
+        scenarios++;
+    }
+    private static void slowWindowQueryCannotCompletePastDeadline() {
+        Host host = new Host(); ScreenPreparation preparation = new ScreenPreparation(host); Reply reply = new Reply();
+        preparation.prepare(() -> true, reply); host.advance(5200); host.screen = ScreenPreparation.State.READY;
+        host.advance(600); host.windowQueryDelay = 150; host.advance(100);
+        check(host.time >= ScreenPreparation.TIMEOUT_MS && reply.ready == 0 && reply.errors == 1,
+                "a final window query crossing the deadline cannot report success");
+        check("device_wake_failed".equals(reply.code) && host.queue.isEmpty(), "late platform query is a bounded failure");
+        scenarios++;
+    }
+    private static void relockCallbackCannotResumeInvalidatedAttempt() {
+        Host host = new Host(); ScreenPreparation preparation = new ScreenPreparation(host); Reply reply = new Reply();
+        boolean[] current = {true}; preparation.prepare(() -> current[0], reply);
+        host.screen = ScreenPreparation.State.READY; host.advance(100);
+        host.onRelock = () -> current[0] = false; host.screen = ScreenPreparation.State.DISMISSIBLE_KEYGUARD; host.advance(1000);
+        check(host.launches == 1 && reply.ready == 0 && reply.errors == 0 && host.queue.isEmpty(),
+                "stop during the platform relock callback cannot restart or complete the old command");
+        scenarios++;
+    }
+    private static void transientReadyAtLaunchStillCreatesRecoveryWindow() {
+        Host host = new Host(); host.screen = ScreenPreparation.State.DISMISSIBLE_KEYGUARD;
+        host.stateSamples.add(ScreenPreparation.State.DISMISSIBLE_KEYGUARD);
+        host.stateSamples.add(ScreenPreparation.State.READY);
+        ScreenPreparation preparation = new ScreenPreparation(host); Reply reply = new Reply();
+        preparation.prepare(() -> true, reply);
+        check(host.launches == 1 && reply.ready == 0, "one transient ready sample cannot skip the recovery window");
+        host.advance(100); host.screen = ScreenPreparation.State.READY; host.advance(1000);
+        check(reply.ready == 1 && reply.errors == 0, "created window still finishes through stable readiness");
+        scenarios++;
+    }
+    private static void launchLimitCannotCompleteOnTransientReady() {
+        Host host = new Host(); ScreenPreparation preparation = new ScreenPreparation(host); Reply reply = new Reply();
+        preparation.prepare(() -> true, reply);
+        host.screen = ScreenPreparation.State.READY; host.advance(400);
+        host.screen = ScreenPreparation.State.DISMISSIBLE_KEYGUARD; host.advance(100);
+        check(host.launches == 2, "one bounded reopen");
+        host.screen = ScreenPreparation.State.READY; host.advance(400);
+        host.stateSamples.add(ScreenPreparation.State.DISMISSIBLE_KEYGUARD);
+        host.stateSamples.add(ScreenPreparation.State.READY);
+        host.advance(100);
+        check(host.launches == 2 && reply.ready == 0 && reply.errors == 1 && "device_wake_failed".equals(reply.code),
+                "a transient ready sample at the launch cap cannot skip settling or report success");
+        scenarios++;
+    }
     public static void main(String[] args) {
         classifications(); readyDoesNotLaunchOrClear(); authenticationDoesNotLaunch();
         waitsForActivityAndWindowToDisappear(); cancelledDelayedActivityAndCallbacksCannotResume();
         invalidatedCommandDoesNotNeedAnotherPollToFenceActivity(); oldFailureAndTimerCannotCompleteNextCommand();
         finiteTimeoutAndLateActivity(); expiredPermitEvenIfTimerWasDelayed(); authenticationTransitionCancelsRecovery();
-        keyguardTimeoutIsDistinct(); unavailableAndInvalidCommandsDoNotWake();
+        keyguardTimeoutIsDistinct(); unavailableAndInvalidCommandsDoNotWake(); readyAfterDeadlineCannotComplete();
+        slowWindowQueryCannotCompletePastDeadline(); relockCallbackCannotResumeInvalidatedAttempt();
+        transientReadyAtLaunchStillCreatesRecoveryWindow(); launchLimitCannotCompleteOnTransientReady();
         System.out.println("ScreenPreparation: " + scenarios + " scenarios passed");
     }
 }
