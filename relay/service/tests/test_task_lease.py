@@ -609,6 +609,270 @@ class TaskTest(unittest.TestCase):
             self.assertFalse(error['retry_action'])
 
 
+class CredentialRestoreTest(unittest.TestCase):
+    """Synthetic credentials only; this does not test a vendor's Vault persistence."""
+    setUp = TaskTest.setUp
+    tearDown = TaskTest.tearDown
+    saved = TaskTest.saved
+    status = TaskTest.status
+    ready = TaskTest.ready
+    failure = TaskTest.failure
+
+    def credential(self):
+        return {'website': 'https://relay.example/d/' + 'd' * 32, 'username': CLAIM, 'password': TOKEN}
+
+    def paired(self):
+        # The real pair-status endpoint does not include mode; status supplies it.
+        data = {key: self.config[key] for key in ('persistent', 'all_apps', 'allow_control', 'claim_id')}
+        return {'data': {**data, 'protocol_version': 4, 'state': 'approved',
+                         'session_expires_at': None, 'command_sequence': 40}, 'elapsed_ms': 5}
+
+    def restore(self, *, pair=None, status=None, raw=None):
+        self.args.config = self.path.with_name('restored.json')
+        with patch.object(sys, 'stdin', io.StringIO(raw if raw is not None else json.dumps(self.credential()))), \
+             patch.object(cli, 'request', side_effect=[pair or self.paired(), status or self.status()]) as request:
+            result = cli.restore_identity(self.args)
+        return result, request
+
+    def barrier(self):
+        self.config.update(credential_claim_id=CLAIM, restore_fresh_task_required=True)
+        cli.save_config(self.path, self.config)
+        return self.config
+
+    def test_restore_reads_only_and_saves_identity_without_task_views(self):
+        for task in (None, {k: v for k, v in self.ready()['data'].items()
+                           if k not in ('ok', 'protocol_version')}):
+            with self.subTest(existing_task=task is not None):
+                result, request = self.restore(status=self.status(task))
+                self.assertTrue(result['identity_restored'])
+                self.assertTrue(result['restore_fresh_task_required'])
+                self.assertNotIn(TOKEN, json.dumps(result))
+                self.assertEqual([call.args[1] for call in request.call_args_list], ['/v1/pair/status', '/v1/status'])
+                for call in request.call_args_list:
+                    self.assertEqual(call.kwargs.get('method', 'GET'), 'GET')
+                saved = cli.load_config(self.args.config)
+                self.assertEqual(saved['controller_token'], TOKEN)
+                self.assertEqual(saved['url'], self.credential()['website'])
+                self.assertEqual(saved['credential_claim_id'], CLAIM)
+                self.assertEqual(saved['command_sequence'], 40)
+                self.assertTrue(saved['restore_fresh_task_required'])
+                for key in ('task_lease', 'snapshot', 'observation', 'last_file_upload', 'connection_id'):
+                    self.assertNotIn(key, saved)
+                self.assertEqual(self.args.config.stat().st_mode & 0o777, 0o600)
+                self.args.config.unlink()
+
+    def test_restore_offline_is_approved_not_phone_ready(self):
+        status = self.status(); status['data']['deviceConnected'] = False
+        result, _ = self.restore(status=status)
+        self.assertFalse(result['deviceConnected'])
+        self.assertTrue(result['restore_fresh_task_required'])
+        self.assertNotIn('ready', result)
+
+    def test_bad_credential_input_never_sends_or_writes(self):
+        credential = self.credential()
+        values = ['invalid', '[]', json.dumps({**credential, 'extra': 'value'}),
+                  json.dumps({**credential, 'username': 'not-a-claim'}),
+                  json.dumps({**credential, 'password': 'not-a-token'}),
+                  json.dumps(credential)[:-1] + ',"password":"' + TOKEN + '"}', ' ' * 8193]
+        for value in values:
+            with self.subTest(input_kind=values.index(value)), patch.object(cli, 'request') as request:
+                self.args.config = self.path.with_name('invalid.json')
+                with patch.object(sys, 'stdin', io.StringIO(value)):
+                    error = self.failure('invalid_restore_credential', lambda: cli.restore_identity(self.args))
+                self.assertNotIn(TOKEN, json.dumps(error))
+                request.assert_not_called()
+                self.assertFalse(self.args.config.exists())
+
+    def test_restore_identity_response_rejections_do_not_write(self):
+        for field, value, code in [('claim_id', '4' * 32, 'credential_identity_mismatch'),
+                                   ('command_sequence', None, 'invalid_sequence'),
+                                   ('protocol_version', 3, 'protocol_v4_required'),
+                                   ('state', 'pending', 'approval_required'),
+                                   ('state', 'revoked', 'approval_required'),
+                                   ('all_apps', False, 'complete_phone_approval_required')]:
+            with self.subTest(field=field, value=value):
+                pair = self.paired(); pair['data'][field] = value
+                self.failure(code, lambda: self.restore(pair=pair))
+                self.assertFalse(self.args.config.exists())
+
+    def test_restore_single_mode_and_invalid_status_do_not_write(self):
+        for field, value, code in [('mode', None, 'restore_mode_unsupported'),
+                                   ('claim_id', '4' * 32, 'credential_identity_mismatch'),
+                                   ('protocol_version', 3, 'invalid_status_response'),
+                                   ('pending', True, 'invalid_status_response'),
+                                   ('command_sequence', 39, 'identity_sequence_regressed'),
+                                   ('command_sequence', None, 'invalid_sequence'),
+                                   ('lease_required', None, 'invalid_pairing_response'),
+                                   ('task', {}, 'invalid_task_status')]:
+            with self.subTest(field=field):
+                status = self.status(); status['data'][field] = value
+                self.failure(code, lambda: self.restore(status=status))
+                self.assertFalse(self.args.config.exists())
+
+    def test_restore_http_tls_and_malformed_failures_preserve_no_config(self):
+        self.args.config = self.path.with_name('transport.json')
+        for code in ('http_error', 'tls_certificate_verification_failed', 'total_deadline_exceeded', 'invalid_json_response'):
+            with self.subTest(error=code), patch.object(sys, 'stdin', io.StringIO(json.dumps(self.credential()))), \
+                 patch.object(cli, 'request', side_effect=cli.Failure(code, retry_action=False)):
+                self.failure(code, lambda: cli.restore_identity(self.args))
+                self.assertFalse(self.args.config.exists())
+
+    def test_restore_cannot_overwrite_or_follow_existing_target(self):
+        before = self.path.read_bytes()
+        for path in (self.path, self.path.with_name('link.json')):
+            if path != self.path: path.symlink_to(self.path)
+            self.args.config = path
+            with patch.object(cli, 'request') as request:
+                self.failure('config_exists_reuse_connection_or_choose_new_path', lambda: cli.restore_identity(self.args))
+                request.assert_not_called()
+            self.assertEqual(self.path.read_bytes(), before)
+
+    def test_restore_permission_denial_is_not_missing(self):
+        self.args.config = self.path.with_name('denied.json')
+        with patch.object(Path, 'lstat', side_effect=PermissionError()), patch.object(cli, 'request') as request:
+            with self.assertRaises(PermissionError): cli.restore_identity(self.args)
+            request.assert_not_called()
+
+    def test_restore_unsafe_parent_and_relative_path_fail_before_network(self):
+        self.args.config = Path('relative.json')
+        with patch.object(cli, 'request') as request:
+            self.failure('absolute_config_path_required', lambda: cli.restore_identity(self.args))
+            request.assert_not_called()
+        directory = self.path.parent / 'shared'; directory.mkdir(mode=0o755); directory.chmod(0o755)
+        self.args.config = directory / 'phone.json'
+        with patch.object(cli, 'request') as request:
+            self.failure('restore_parent_must_be_private_0700', lambda: cli.restore_identity(self.args))
+            request.assert_not_called()
+
+    def test_restore_symlink_parent_is_rejected_by_cli_before_credentials(self):
+        directory = self.path.parent / 'alias'; directory.symlink_to(self.path.parent, target_is_directory=True)
+        with patch.object(sys, 'argv', ['airtap', '--config', str(directory / 'new.json'), 'restore', '--credential-stdin']), \
+             patch.object(cli, 'request') as request, patch.object(sys, 'stdin') as stdin:
+            self.failure('symlink_directory_not_allowed', cli.main)
+            request.assert_not_called(); stdin.read.assert_not_called()
+
+    def test_restore_atomic_creation_refuses_target_appearing_after_get(self):
+        target = self.path.with_name('restored.json')
+        original_save = cli.save_config
+        def raced_save(path, value, **kwargs):
+            path.write_text('another identity')
+            return original_save(path, value, **kwargs)
+        with patch.object(cli, 'save_config', side_effect=raced_save):
+            self.failure('file_already_exists', self.restore)
+        self.assertEqual(target.read_text(), 'another identity')
+
+    def test_status_idle_then_old_ready_never_clears_barrier_or_adopts(self):
+        self.barrier()
+        old = {k: v for k, v in self.ready()['data'].items() if k not in ('ok', 'protocol_version')}
+        for status in (self.status(), self.status(old), self.status(old)):
+            with patch.object(cli, 'request', return_value=status):
+                result = cli.status_request(self.args, self.saved())
+            self.assertTrue(result['restore_fresh_task_required'])
+            self.assertTrue(self.saved()['restore_fresh_task_required'])
+            self.assertNotIn('task_lease', self.saved())
+        self.args.wait = False
+        with patch.object(cli, 'request', return_value=self.paired()):
+            cli.poll_pair(self.args, self.saved())
+        self.assertTrue(self.saved()['restore_fresh_task_required'])
+
+    def test_barrier_blocks_commands_renew_and_release_before_network(self):
+        self.barrier()
+        with patch.object(cli, 'request') as request:
+            for action in ('ping', 'home', 'read_tree', 'file_roots'):
+                self.failure('restored_identity_requires_fresh_task', lambda: cli.command_request(
+                    self.args, self.saved(), {'id': 'id', 'action': action}))
+            self.failure('restored_identity_requires_fresh_task', lambda: cli.renew_task(self.args, self.saved()))
+            self.failure('restored_identity_requires_fresh_task', lambda: cli.release_task(self.args, self.saved()))
+            request.assert_not_called()
+
+    def test_first_acquire_id_is_generated_and_busy_preserves_own_intent(self):
+        self.barrier()
+        old = {k: v for k, v in self.ready()['data'].items() if k not in ('ok', 'protocol_version')}
+        def send(*unused, body=None, **kwargs):
+            if body is None: return self.status(old)
+            self.assertNotEqual(body['task_id'], TASK)
+            self.assertEqual(self.saved()['task_lease']['task_id'], body['task_id'])
+            raise cli.Failure('device_busy', outcome='not_dispatched')
+        with patch.object(cli, 'request', side_effect=send) as request:
+            self.failure('device_busy', lambda: cli.acquire_task(self.args, self.saved()))
+        self.assertTrue(self.saved()['restore_fresh_task_required'])
+        self.assertEqual(self.saved()['task_lease']['state'], 'acquiring')
+        self.assertEqual([call.args[1] for call in request.call_args_list], ['/v1/status', '/v1/tasks/acquire'])
+
+    def test_restore_cannot_select_a_historical_task_id(self):
+        self.barrier(); self.args.task_id = TASK
+        with patch.object(cli, 'request', return_value=self.status()) as request:
+            self.failure('restore_requires_generated_task_id', lambda: cli.acquire_task(self.args, self.saved()))
+        self.assertEqual(request.call_count, 1)
+        self.assertNotIn('task_lease', self.saved())
+
+    def test_unknown_acquire_status_does_not_unblock_but_same_acquire_retry_does(self):
+        self.barrier()
+        with patch.object(cli, 'request', side_effect=[self.status(), cli.Failure('network_failure', outcome='unknown')]):
+            self.failure('network_failure', lambda: cli.acquire_task(self.args, self.saved()))
+        intent = self.saved()['task_lease']['task_id']
+        live = {k: v for k, v in self.ready(task=intent)['data'].items() if k not in ('ok', 'protocol_version')}
+        with patch.object(cli, 'request', return_value=self.status(live)):
+            cli.status_request(self.args, self.saved())
+        self.assertTrue(self.saved()['restore_fresh_task_required'])
+        self.assertEqual(self.saved()['task_lease'], {'state': 'acquiring', 'task_id': intent})
+        with patch.object(cli, 'request', side_effect=[self.status(live), self.ready(task=intent)]) as request:
+            result = cli.acquire_task(self.args, self.saved())
+        self.assertEqual(request.call_args_list[1].kwargs['body'], {'task_id': intent})
+        self.assertEqual(result['task_id'], intent)
+        self.assertNotIn('restore_fresh_task_required', self.saved())
+        self.assertEqual(self.saved()['credential_claim_id'], CLAIM)
+        self.assertTrue(self.saved()['task_needs_observation'])
+        for key in ('snapshot', 'observation'): self.assertNotIn(key, self.saved())
+
+    def test_wrong_or_expired_acquire_response_cannot_clear_barrier(self):
+        for wrong in (True, False):
+            with self.subTest(wrong_id=wrong):
+                self.config.pop('task_lease', None); self.barrier()
+                def send(*unused, body=None, **kwargs):
+                    if body is None: return self.status()
+                    return self.ready(task=TASK if wrong else body['task_id'], ttl=120000 if wrong else 5)
+                with patch.object(cli, 'request', side_effect=send):
+                    self.failure('invalid_task_response' if wrong else 'lease_expired', lambda: cli.acquire_task(self.args, self.saved()))
+                self.assertTrue(self.saved()['restore_fresh_task_required'])
+
+    def test_success_receipt_write_failure_keeps_durable_barrier_and_intent(self):
+        self.barrier()
+        original_save = cli.save_config
+        def save(path, value, **kwargs):
+            if value.get('task_lease', {}).get('state') == 'ready': raise OSError('synthetic write failure')
+            return original_save(path, value, **kwargs)
+        def send(*unused, body=None, **kwargs):
+            return self.status() if body is None else self.ready(task=body['task_id'])
+        with patch.object(cli, 'request', side_effect=send), patch.object(cli, 'save_config', side_effect=save):
+            with self.assertRaises(OSError): cli.acquire_task(self.args, self.saved())
+        self.assertTrue(self.saved()['restore_fresh_task_required'])
+        self.assertEqual(self.saved()['task_lease']['state'], 'acquiring')
+
+    def test_original_claim_pin_still_applies_after_first_fresh_task(self):
+        self.barrier(); self.config.pop('restore_fresh_task_required'); cli.save_config(self.path, self.config)
+        before = self.path.read_bytes(); status = self.status(); status['data']['claim_id'] = '4' * 32
+        with patch.object(cli, 'request', return_value=status):
+            self.failure('credential_identity_mismatch', lambda: cli.status_request(self.args, self.saved()))
+        self.assertEqual(self.path.read_bytes(), before)
+
+    def test_revoked_local_identity_is_not_revived_by_a_late_approved_read(self):
+        self.barrier(); self.config['state'] = 'revoked'; cli.save_config(self.path, self.config)
+        before = self.path.read_bytes()
+        with patch.object(cli, 'request', return_value=self.status()):
+            self.failure('pairing_revoked', lambda: cli.status_request(self.args, self.saved()))
+        self.assertEqual(self.path.read_bytes(), before)
+
+    def test_malformed_saved_restore_state_does_not_dispatch(self):
+        self.barrier(); self.config['task_lease'] = {'state': 'acquiring'}; cli.save_config(self.path, self.config)
+        with patch.object(cli, 'request', return_value=self.status()) as request:
+            self.failure('invalid_restored_task_state', lambda: cli.acquire_task(self.args, self.saved()))
+        self.assertEqual(request.call_count, 1)
+        for key, value in (('credential_claim_id', 'bad'), ('restore_fresh_task_required', 'true')):
+            bad = {**self.config, key: value}; cli.save_config(self.path, bad)
+            self.failure('config_unavailable_or_invalid', self.saved)
+
+
 class ConfigStorageTest(unittest.TestCase):
     """Local filesystem boundaries only; not cloud workspace persistence."""
     def test_missing_config_fails_before_request_without_creating_identity(self):

@@ -25,7 +25,7 @@ TOKEN = re.compile(r'^[0-9a-f]{64}$')
 TICKET = re.compile(r'^[0-9a-f]{32}$')
 MAX_RESPONSE = 512 * 1024
 MAX_COMMAND = 8192
-VERSION = '0.4.0-cli.12'
+VERSION = '0.4.0-cli.13'
 PACKAGE = re.compile(r'^[A-Za-z_][A-Za-z0-9_]*(?:\.[A-Za-z_][A-Za-z0-9_]*)+$')
 NODE = re.compile(r'^[1-9][0-9]{0,3}$')
 NODE_COMMANDS = {'click', 'long-click', 'set-text', 'scroll', 'node-action', 'focus', 'set-selection', 'select-all', 'copy', 'cut', 'paste', 'insert-text', 'delete-text', 'editor-action'}
@@ -138,6 +138,11 @@ def load_config(path, local_test=False):
         value = json.loads(raw)
         value['url'] = origin(value['url'], local_test)
         if not TOKEN.fullmatch(value.get('controller_token', '')):
+            raise ValueError()
+        if 'credential_claim_id' in value and not task_hex(value['credential_claim_id']):
+            raise ValueError()
+        if 'restore_fresh_task_required' in value and (
+                type(value['restore_fresh_task_required']) is not bool or 'credential_claim_id' not in value):
             raise ValueError()
         return value
     except Failure:
@@ -548,6 +553,7 @@ def safe_scope(data):
     return {'persistent': True, 'all_apps': True, 'allow_control': True, 'allowed_packages': [], 'command_sequence': sequence}
 
 def remember_approval(args, config, status):
+    check_credential_identity(config, status)
     if 'session_expires_at' not in status or status['session_expires_at'] is not None:
         raise Failure('invalid_pairing_response')
     scope = safe_scope(status)
@@ -602,6 +608,7 @@ def poll_pair(args, config):
     while True:
         result = request(config['url'], '/v1/pair/status', config['controller_token'], timeout=args.timeout,
                          local_test=args.allow_local_http)
+        check_credential_identity(config, result['data'])
         status = safe_pair_status(result['data'])
         if status['state'] == 'approved':
             remember_approval(args, config, status)
@@ -614,26 +621,120 @@ def poll_pair(args, config):
             raise Failure('pairing_wait_expired')
         time.sleep(2)
 
-def status_request(args, config, timeout=None):
-    result = request(config['url'], '/v1/status', config['controller_token'], timeout=timeout or args.timeout,
-                     local_test=args.allow_local_http)
+def check_credential_identity(config, data, *, require_mode=False):
+    """A restored credential stays bound to its original approved claim."""
+    expected = config.get('credential_claim_id')
+    if expected is None:
+        return
+    if config.get('state') == 'revoked':
+        raise Failure('pairing_revoked')
+    if (not isinstance(data, dict) or not task_hex(expected) or data.get('claim_id') != expected
+            or require_mode and data.get('mode') != 'multi'):
+        raise Failure('credential_identity_mismatch', retry_action=False)
+    if not task_integer(data.get('command_sequence'), 0):
+        raise Failure('invalid_sequence')
+
+
+def checked_status(config, result):
     data = result.get('data', {})
-    if data.get('protocol_version') != 4 or type(data.get('deviceConnected')) is not bool or data.get('pending') not in (0, 1):
+    if (not isinstance(data, dict) or data.get('protocol_version') != 4
+            or type(data.get('deviceConnected')) is not bool
+            or type(data.get('pending')) is not int or data['pending'] not in (0, 1)):
         raise Failure('invalid_status_response')
+    check_credential_identity(config, data, require_mode=True)
     status = safe_pair_status({**data, 'state': 'approved'})
     for key in ('deviceConnected', 'pending', 'connection_id', 'command_budget_remaining'):
         status[key] = data.get(key)
     if data.get('mode') == 'multi':
         # Validate the task response before changing any saved connection state.
-        task = safe_task_status(data.get('task'), result.get('elapsed_ms'))
+        status['task'] = safe_task_status(data.get('task'), result.get('elapsed_ms'))
+    return status
+
+
+def status_request(args, config, timeout=None):
+    result = request(config['url'], '/v1/status', config['controller_token'], timeout=timeout or args.timeout,
+                     local_test=args.allow_local_http)
+    status = checked_status(config, result)
     if config.get('connection_id') != status['connection_id']:
         config.pop('snapshot', None); config.pop('observation', None)
         if config.get('task_lease'): clear_task_views(config)
     config['connection_id'] = status['connection_id']
-    if data.get('mode') == 'multi':
-        status['task'] = reconcile_task(args, config, task, result.get('elapsed_ms'))
+    if status.get('mode') == 'multi':
+        if config.get('restore_fresh_task_required'):
+            # A GET may report a prior runtime's lease, including one acquired
+            # after restore. Only our new explicit acquire can lift this barrier.
+            status['restore_fresh_task_required'] = True
+        else:
+            status['task'] = reconcile_task(args, config, status['task'], result.get('elapsed_ms'))
     remember_approval(args, config, status)
     return {'ok': True, **status, 'elapsed_ms': result['elapsed_ms']}
+
+
+def restore_identity(args):
+    if not args.config.is_absolute():
+        raise Failure('absolute_config_path_required')
+    try:
+        args.config.lstat()
+    except FileNotFoundError:
+        pass
+    else:
+        raise Failure('config_exists_reuse_connection_or_choose_new_path')
+    parent = args.config.parent.stat()
+    if parent.st_uid != os.getuid() or stat.S_IMODE(parent.st_mode) != 0o700:
+        raise Failure('restore_parent_must_be_private_0700')
+
+    def unique_fields(pairs):
+        value = {}
+        for key, item in pairs:
+            if key in value:
+                raise ValueError()
+            value[key] = item
+        return value
+
+    try:
+        raw = sys.stdin.read(8193)
+        if len(raw.encode('utf-8')) > 8192:
+            raise ValueError()
+        credential = json.loads(raw, object_pairs_hook=unique_fields)
+        if (not isinstance(credential, dict) or set(credential) != {'website', 'username', 'password'}
+                or not all(isinstance(value, str) for value in credential.values())
+                or not task_hex(credential['username']) or not TOKEN.fullmatch(credential['password'])):
+            raise ValueError()
+    except (ValueError, TypeError, UnicodeError):
+        raise Failure('invalid_restore_credential', retry_action=False)
+    config = {'url': origin(credential['website'], args.allow_local_http),
+              'controller_token': credential['password'], 'credential_claim_id': credential['username'],
+              'restore_fresh_task_required': True}
+    pair = request(config['url'], '/v1/pair/status', config['controller_token'],
+                   timeout=args.timeout, local_test=args.allow_local_http)
+    paired = safe_pair_status(pair.get('data'))
+    if paired['state'] != 'approved':
+        raise Failure('approval_required', retry_action=False)
+    check_credential_identity(config, pair['data'])
+    result = request(config['url'], '/v1/status', config['controller_token'],
+                     timeout=args.timeout, local_test=args.allow_local_http)
+    if isinstance(result.get('data'), dict) and result['data'].get('mode') != 'multi':
+        raise Failure('restore_mode_unsupported', retry_action=False)
+    status = checked_status(config, result)
+    if status['command_sequence'] < paired['command_sequence']:
+        raise Failure('identity_sequence_regressed', retry_action=False)
+    config.update(safe_scope(status), state='approved', session_expires_at=None, allow_tap=False,
+                  mode='multi', claim_id=status['claim_id'], task_needs_observation=True)
+    for key in ('lease_required', 'lease_ready'):
+        if type(status.get(key)) is not bool:
+            raise Failure('invalid_status_response')
+        config[key] = status[key]
+    save_config(args.config, config, replace=False)
+    return {'ok': True, 'state': 'approved', 'mode': 'multi', 'identity_restored': True,
+            'restore_fresh_task_required': True, 'deviceConnected': status['deviceConnected'],
+            'pending': status['pending'],
+            'instruction': 'Original identity restored, not a phone task. Stop the previous runner. Run task-acquire explicitly for a new task, then observe. Do not replay unknown prior actions.'}
+
+
+def require_restored_task(config):
+    if config.get('restore_fresh_task_required'):
+        raise Failure('restored_identity_requires_fresh_task', retry_action=False,
+                      instruction='Run task-acquire explicitly for a new task. Wait if a prior task is active; do not renew or release it. Keep the original restored identity.')
 
 def clear_task_views(config):
     config.pop('snapshot', None)
@@ -783,10 +884,20 @@ def acquire_task(args, config):
     if requested is not None and not task_hex(requested):
         raise Failure('invalid_task_id', retry_action=False)
     # Read before creating an intent, including when local task state was lost.
-    status_request(args, config)
+    status = status_request(args, config)
     if config.get('mode') != 'multi':
         raise Failure('task_leases_not_supported', instruction='Keep the existing single-AI connection; do not re-pair to enable task leases.')
     previous = config.get('task_lease', {})
+    restoring = config.get('restore_fresh_task_required') is True
+    if restoring:
+        # A fresh identity restore never imports the old runtime's task ID.
+        # Once sent, however, our own acquire intent must survive a lost reply.
+        retrying = previous.get('state') == 'acquiring' and task_hex(previous.get('task_id'))
+        if requested is not None and (not retrying or requested != previous['task_id']):
+            raise Failure('restore_requires_generated_task_id', retry_action=False)
+        if previous and (previous.get('state') not in ('acquiring', 'closed', 'expired')
+                         or previous.get('state') == 'acquiring' and not retrying):
+            raise Failure('invalid_restored_task_state', retry_action=False)
     if previous.get('state') == 'releasing':
         raise Failure('task_release_pending', instruction='Resolve task-release using the saved identity before starting another task.')
     if previous.get('state') == 'ready' and task_live(previous):
@@ -801,6 +912,8 @@ def acquire_task(args, config):
         if requested is not None and requested == previous.get('task_id'):
             raise Failure('task_closed', retry_action=False)
         task_id = requested or secrets.token_hex(16)
+        if restoring and task_id in (previous.get('task_id'), status.get('task', {}).get('task_id')):
+            raise Failure('fresh_task_identity_collision', retry_action=False)
     config['task_lease'] = {'state': 'acquiring', 'task_id': task_id}
     clear_task_views(config)
     save_config(args.config, config)  # The same intent survives a lost response/process exit.
@@ -811,14 +924,23 @@ def acquire_task(args, config):
         if failure.result['error'] in ('task_closed', 'lease_expired'):
             invalidate_task(config, 'closed'); save_config(args.config, config)
         raise
-    config['task_lease'] = lease
-    config.update(lease_required=True, lease_ready=True)
-    save_config(args.config, config)
+    if restoring and not task_live(lease):
+        config['task_lease'] = {**lease, 'state': 'expired'}
+        save_config(args.config, config)
+        raise Failure('lease_expired', retry_action=False)
+    ready = {**config, 'task_lease': lease, 'lease_required': True, 'lease_ready': True}
+    if restoring:
+        ready.pop('restore_fresh_task_required', None)
+        clear_task_views(ready)
+    # Failure to save leaves the durable acquire intent and restore barrier.
+    save_config(args.config, ready)
+    config.clear(); config.update(ready)
     if not task_live(lease): raise Failure('lease_expired', retry_action=False)
     return ready_task_output(lease)
 
 
 def renew_task(args, config, timeout=None):
+    require_restored_task(config)
     lease = config.get('task_lease', {})
     if lease.get('state') == 'releasing':
         raise Failure('task_release_pending', retry_action=False,
@@ -867,6 +989,7 @@ def renew_task(args, config, timeout=None):
 
 
 def release_task(args, config):
+    require_restored_task(config)
     lease = config.get('task_lease', {})
     if lease.get('state') == 'closed': return {'ok': True, 'state': 'released'}
     if not all(key in lease for key in ('task_id', 'lease_id', 'lease_epoch')):
@@ -908,6 +1031,7 @@ def ensure_task(args, config, action, timeout=None):
 
 
 def command_request(args, config, body, timeout=None):
+    require_restored_task(config)
     leased = config.get('lease_required') is True or 'task_lease' in config
     if not leased:
         return _command_request(args, config, body, timeout)
@@ -1377,6 +1501,9 @@ def main():
     pair.add_argument('--url', required=True); pair.add_argument('--name', default='My AI')
     pair.add_argument('--ticket-stdin', action='store_true', required=True)
     pair.add_argument('--task-lease', action='store_true', help='Declare task_lease_v1 for a multi-AI invitation; preserve this choice on pairing retries.')
+    restore = sub.add_parser('restore', help='Restore an original multi-AI identity from a private credential record; never starts a phone task.')
+    restore.add_argument('--credential-stdin', action='store_true', required=True,
+                         help='Read JSON website/username/password from secure storage through stdin; never put credentials in arguments.')
     for name in TASK_COMMANDS:
         task = sub.add_parser(name)
         if name == 'task-acquire': task.add_argument('--task-id', help='Optional32hex task identity; an uncertain acquire reuses its saved identity.')
@@ -1466,7 +1593,10 @@ def main():
         after_action = 'none' if args.no_observe or no_followup else args.after_action or 'image'
         if args.output is not None and after_action != 'image':
             raise Failure('output_requires_image_observation', retry_action=False)
+    if args.command == 'restore' and not args.config.is_absolute():
+        raise Failure('absolute_config_path_required')
     lock_config(args.config)
+    if args.command == 'restore': return restore_identity(args)
     if args.command == 'pair-start':
         url = origin(args.url, args.allow_local_http)
         if not 1 <= len(args.name) <= 48 or not args.name.strip() or any(unicodedata.category(c).startswith('C') for c in args.name): raise Failure('invalid_controller_name')
@@ -1517,6 +1647,7 @@ def main():
         return {'ok': True, 'state': 'revoked'}
     if config.get('state') != 'approved': raise Failure('approval_required', instruction='Run pair-status after the owner approves.')
     safe_scope(config)
+    if args.command != 'task-acquire': require_restored_task(config)
     if args.command in TASK_COMMANDS: return task_command(args, config)
     if args.command in FILE_COMMANDS: return file_command(args, config)
     request_id = args.request_id or uuid.uuid4()
