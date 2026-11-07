@@ -3,7 +3,7 @@
 // No cloud service, personal AI, private config or physical device is contacted.
 import assert from 'node:assert/strict';
 import { createHash, randomBytes } from 'node:crypto';
-import { readFile, writeFile, mkdtemp, mkdir, rm, realpath } from 'node:fs/promises';
+import { readFile, writeFile, mkdtemp, mkdir, rm, realpath, stat } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
@@ -11,6 +11,7 @@ import { createRequire } from 'node:module';
 import { createServer } from 'node:http';
 import { spawn } from 'node:child_process';
 const option = k => process.argv.includes(k) ? process.argv[process.argv.indexOf(k) + 1] : undefined;
+const credentialRestoreOnly = process.argv.includes('--credential-restore-only');
 const require = createRequire(new URL('../../worker/package.json', import.meta.url));
 const { Miniflare, convertV4MiniflareOptions } = await import(pathToFileURL(option('--miniflare') ?? require.resolve('miniflare')).href);
 const root = fileURLToPath(new URL('../../../', import.meta.url));
@@ -36,7 +37,7 @@ async function request(path, token, body, method) {
 }
 async function ok(path, token, body, method) { const r = await request(path, token, body, method); assert.equal(r.status, 200, JSON.stringify(r)); return r.data; }
 async function denied(path, token, body, status, error, method) { const r = await request(path, token, body, method); assert.equal(r.status, status, JSON.stringify(r)); assert.equal(r.data.error, error); return r.data; }
-async function check(name, fn) { const started = performance.now(); await fn(); const r = { name, ok: true, elapsed_ms: Math.round(performance.now() - started) }; checks.push(r); console.log(JSON.stringify(r)); }
+async function check(name, fn, group = 'core') { if (credentialRestoreOnly && group !== 'credential-restore') return; const started = performance.now(); await fn(); const r = { name, ok: true, elapsed_ms: Math.round(performance.now() - started) }; checks.push(r); console.log(JSON.stringify(r)); }
 async function enroll() { const d = { id: hex(16), token: hex(32) }; d.base = '/d/' + d.id; await ok('/v1/enroll', null, { device_id: d.id, device_token: d.token }); return d; }
 const caps = ['multi_ai_v1', 'task_lease_v1'];
 const migration = claim => ({ capabilities: caps, expected_claim_id: claim });
@@ -72,8 +73,8 @@ async function phone(d, multi = true) {
 }
 const command = (n, t) => ({ id: crypto.randomUUID(), action: 'ping', sequence: n, ...(t ? { lease_id: t.lease_id, lease_epoch: t.lease_epoch } : {}) });
 const leaseBody = t => ({ task_id: t.task_id, lease_id: t.lease_id, lease_epoch: t.lease_epoch });
-async function cliLoopback(device, controller, { profileName, clockOffsetSeconds = 0, drop = null }) {
-  const profile = join(temp, profileName), cliPath = join(root, 'cli/airtap.py'), requests = [];
+async function cliLoopback(device, controller, { profileName, clockOffsetSeconds = 0, drop = null, createProfile = true }) {
+  const profile = join(temp, profileName), cliPath = option('--cli') ?? join(root, 'cli/airtap.py'), requests = [];
   const edge = createServer(async (req, res) => {
     try {
       const chunks = []; for await (const bytes of req) chunks.push(bytes);
@@ -81,7 +82,7 @@ async function cliLoopback(device, controller, { profileName, clockOffsetSeconds
       const upstream = await mf.dispatchFetch('http://localhost' + req.url, { method: req.method,
         headers: { ...req.headers, 'cf-connecting-ip': '127.0.0.1' }, ...(raw.length ? { body: raw } : {}) });
       const bytes = Buffer.from(await upstream.arrayBuffer());
-      requests.push({ endpoint, status: upstream.status, body: raw.length ? JSON.parse(raw.toString()) : null });
+      requests.push({ endpoint, method: req.method, status: upstream.status, body: raw.length ? JSON.parse(raw.toString()) : null });
       if (drop && endpoint === '/v1/tasks/' + drop) { drop = null; req.socket.destroy(); return; }
       res.writeHead(upstream.status, { 'content-type': 'application/json', 'content-length': bytes.length }); res.end(bytes);
     } catch { res.writeHead(502); res.end(); }
@@ -89,7 +90,7 @@ async function cliLoopback(device, controller, { profileName, clockOffsetSeconds
   const close = async () => { if (edge.listening) await new Promise(resolve => edge.close(resolve)); };
   try {
     await new Promise((resolve, reject) => { edge.once('error', reject); edge.listen(0, '127.0.0.1', resolve); });
-    await writeFile(profile, JSON.stringify({ url: 'http://127.0.0.1:' + edge.address().port + device.base,
+    if (createProfile) await writeFile(profile, JSON.stringify({ url: 'http://127.0.0.1:' + edge.address().port + device.base,
       controller_token: controller.token, state: 'approved', persistent: true, all_apps: true, allow_control: true,
       session_expires_at: null, command_sequence: 0 }), { mode: 0o600 });
   } catch (error) { await close(); throw error; }
@@ -109,24 +110,122 @@ else:
     print(json.dumps({'live':namespace['task_live'](lease),'state':lease.get('state'),
         'remaining_ms':round((lease.get('local_expires_at',time.time())-time.time())*1000)}))
 `;
-  const run = (mode, args) => new Promise((resolve, reject) => {
+  const run = (mode, args, input = null) => new Promise((resolve, reject) => {
     const child = spawn(process.env.PYTHON || 'python3', ['-c', clockShim, String(clockOffsetSeconds), cliPath, mode, ...args],
-      { stdio: ['ignore', 'pipe', 'pipe'] });
+      { stdio: [input === null ? 'ignore' : 'pipe', 'pipe', 'pipe'] });
+    if (input !== null) child.stdin.end(input);
     let out = '', err = ''; const timer = setTimeout(() => child.kill('SIGKILL'), 25000);
     child.stdout.on('data', bytes => out += bytes); child.stderr.on('data', bytes => err += bytes);
     child.on('error', error => { clearTimeout(timer); reject(error); });
     child.on('close', code => {
       clearTimeout(timer);
-      try { assert.equal(err, ''); assert.equal(out.includes(controller.token), false); resolve({ code, value: JSON.parse(out) }); }
+      try { assert.equal(err.includes(controller.token), false); assert.equal(err, ''); assert.equal(out.includes(controller.token), false); resolve({ code, value: JSON.parse(out) }); }
       catch (error) { reject(error); }
     });
   });
-  return { requests, close, setDrop: operation => { drop = operation; },
-    invoke: command => run('invoke', ['--allow-local-http', '--config', profile, command]),
+  return { requests, close, profile, url: 'http://127.0.0.1:' + edge.address().port + device.base, setDrop: operation => { drop = operation; },
+    invoke: (command, args = [], input = null) => run('invoke', ['--allow-local-http', '--config', profile, command, ...args], input),
     probe: () => run('probe', [profile]), saved: async () => JSON.parse(await readFile(profile, 'utf8')) };
 }
 let d, a, b, p, tA, tB, invite;
 try {
+  {
+    const trace = { ok: false, scope: 'independent production CLI processes and local production workerd with synthetic phone; no real credential store, cloud runtime, Android or personal-AI acceptance', cases: [] };
+    try {
+      for (const otherOwner of [false, true]) await check('credential restore requires a fresh task ' + (otherOwner ? 'after another claim and a lost acquire reply' : 'instead of adopting the same claim old lease'), async () => {
+        const result = { other_claim_holds_old_lease: otherOwner, ok: false }; trace.cases.push(result);
+        const x = await enroll(), controller = await single(x);
+        await ok(x.base + '/v1/device/multi/enable', x.token, migration(controller.claim));
+        const phoneFixture = await phone(x);
+        let holder = controller;
+        if (otherOwner) {
+          // The migrated grant must first demonstrate task-lease support before
+          // the production relay permits adding another independent grant.
+          const migratedTask = await ok(x.base + '/v1/tasks/acquire', controller.token, { task_id: hex(16) });
+          await ok(x.base + '/v1/tasks/release', controller.token, leaseBody(migratedTask));
+          const invitation = { invitation_id: hex(16), invitation_sequence: 1, ticket: hex(16) };
+          await ok(x.base + '/v1/device/invitations', x.token, invitation);
+          holder = { token: hex(32), name: 'Synthetic prior holder' };
+          holder.claim = (await ok(x.base + '/v1/pair', null, { ticket: invitation.ticket, controller_token: holder.token, name: holder.name, capabilities: ['task_lease_v1'] })).claim_id;
+          await ok(x.base + '/v1/device/grants/approve', x.token, approval(holder.claim));
+        }
+        let original, restored;
+        try {
+          original = await cliLoopback(x, holder, { profileName: 'restore-original-' + otherOwner + '.json' });
+          const acquired = await original.invoke('task-acquire'); assert.equal(acquired.code, 0);
+          const oldLease = (await original.saved()).task_lease;
+          restored = await cliLoopback(x, controller, { profileName: 'restore-new-' + otherOwner + '.json', createProfile: false });
+          await assert.rejects(readFile(restored.profile), { code: 'ENOENT' });
+          const messagesBeforeRestore = phoneFixture.messages.length;
+          const restoredResult = await restored.invoke('restore', ['--credential-stdin'], JSON.stringify({ website: restored.url, username: controller.claim, password: controller.token }));
+          assert.equal(restoredResult.code, 0, JSON.stringify(restoredResult.value));
+          assert.equal(phoneFixture.messages.length, messagesBeforeRestore, 'restore must not send a phone command or fence');
+          assert.ok(restored.requests.length > 0);
+          assert.ok(restored.requests.every(r => r.method === 'GET' && ['/v1/pair/status', '/v1/status'].includes(r.endpoint)), 'restore may only verify the existing grant');
+          assert.deepEqual(new Set(restored.requests.map(r => r.endpoint)), new Set(['/v1/pair/status', '/v1/status']), 'verify both the approved identity and the multi-AI state');
+          const saved = await restored.saved();
+          assert.equal(saved.url, restored.url); assert.equal(saved.controller_token, controller.token);
+          assert.equal(saved.credential_claim_id, controller.claim); assert.equal(saved.state, 'approved'); assert.equal(saved.mode, 'multi');
+          assert.equal(saved.restore_fresh_task_required, true);
+          assert.equal((await stat(restored.profile)).mode & 0o777, 0o600);
+          for (const key of ['task_lease', 'snapshot', 'observation']) assert.equal(Object.hasOwn(saved, key), false);
+          for (const commandName of ['status', 'pair-status']) {
+            const status = await restored.invoke(commandName); assert.equal(status.code, 0);
+            const after = await restored.saved(); assert.equal(after.restore_fresh_task_required, true); assert.equal(Object.hasOwn(after, 'task_lease'), false);
+          }
+          const beforeBlocked = restored.requests.length;
+          for (const commandName of ['ping', 'task-release']) {
+            const blocked = await restored.invoke(commandName); assert.equal(blocked.code, 1);
+          }
+          assert.ok(restored.requests.slice(beforeBlocked).every(r => r.method === 'GET'), 'restore barrier must not command, acquire or release implicitly');
+          assert.equal(phoneFixture.messages.length, messagesBeforeRestore);
+          const busy = await restored.invoke('task-acquire'); assert.equal(busy.code, 1);
+          const firstAcquire = restored.requests.filter(r => r.endpoint === '/v1/tasks/acquire');
+          assert.equal(firstAcquire.length, 1); assert.equal(firstAcquire[0].status, 429);
+          const acquiring = await restored.saved();
+          assert.equal(acquiring.restore_fresh_task_required, true); assert.equal(acquiring.task_lease.state, 'acquiring');
+          const newIntent = acquiring.task_lease.task_id;
+          assert.notEqual(newIntent, oldLease.task_id); assert.equal(firstAcquire[0].body.task_id, newIntent);
+          const stillHeld = await ok(x.base + '/v1/status', holder.token);
+          assert.equal(stillHeld.task.lease_id, oldLease.lease_id); assert.equal(stillHeld.task.task_id, oldLease.task_id);
+          assert.equal((await original.invoke('task-release')).code, 0);
+          assert.equal((await restored.invoke('status')).code, 0);
+          assert.equal((await restored.saved()).restore_fresh_task_required, true);
+          assert.equal((await restored.saved()).task_lease.task_id, newIntent);
+          if (otherOwner) {
+            restored.setDrop('acquire');
+            const lost = await restored.invoke('task-acquire'); assert.equal(lost.code, 1);
+            const remoteReady = await ok(x.base + '/v1/status', controller.token);
+            assert.equal(remoteReady.task.state, 'ready'); assert.equal(remoteReady.task.task_id, newIntent);
+            assert.equal((await restored.invoke('status')).code, 0);
+            const uncertain = await restored.saved(); assert.equal(uncertain.restore_fresh_task_required, true); assert.equal(uncertain.task_lease.state, 'acquiring');
+            const beforePing = restored.requests.length; assert.equal((await restored.invoke('ping')).code, 1);
+            assert.ok(restored.requests.slice(beforePing).every(r => r.method === 'GET'));
+          }
+          const ready = await restored.invoke('task-acquire'); assert.equal(ready.code, 0, JSON.stringify(ready.value));
+          const active = await restored.saved();
+          assert.notEqual(active.restore_fresh_task_required, true); assert.equal(active.task_lease.state, 'ready');
+          assert.equal(active.task_lease.task_id, newIntent); assert.ok(active.task_lease.lease_epoch > oldLease.lease_epoch);
+          const acquireRequests = restored.requests.filter(r => r.endpoint === '/v1/tasks/acquire');
+          assert.equal(acquireRequests.length, otherOwner ? 3 : 2);
+          assert.ok(acquireRequests.every(r => r.body.task_id === newIntent));
+          assert.equal((await restored.invoke('ping')).code, 0);
+          assert.equal((await restored.invoke('task-release')).code, 0);
+          const final = await ok(x.base + '/v1/status', controller.token); assert.equal(final.task.state, 'idle'); assert.equal(final.pending, 0);
+          assert.equal((await restored.saved()).controller_token, controller.token);
+          assert.equal(phoneFixture.messages.filter(m => m.type === 'command').length, 1);
+          assert.equal(restored.requests.filter(r => r.endpoint === '/v1/command').length, 1);
+          assert.equal(restored.requests.filter(r => r.endpoint === '/v1/tasks/release').length, 1);
+          assert.ok(restored.requests.every(r => ['/v1/pair/status', '/v1/status', '/v1/tasks/acquire', '/v1/tasks/release', '/v1/command'].includes(r.endpoint)), 'no pairing, approval, revocation or other API route');
+          Object.assign(result, { ok: true, restore_get_only: true, fresh_profile_mode: '0600', old_lease_not_adopted_or_released: true, old_task_id_not_reused: true, busy_acquire_status: 429, lost_acquire_reply_checked: otherOwner, ready_status_did_not_clear_barrier: true, same_acquire_intent_preserved: true, acquire_posts: acquireRequests.length, phone_commands: 1, final_task_state: final.task.state, final_pending: final.pending });
+        } catch (error) { result.failure = error.message; throw error; }
+        finally { if (restored) await restored.close(); if (original) await original.close(); }
+      }, 'credential-restore');
+      trace.ok = true;
+    } finally {
+      if (option('--restore-output')) await writeFile(option('--restore-output'), JSON.stringify(trace, null, 2) + '\n', { mode: 0o600 });
+    }
+  }
   await check('old single wire and sequence remain unchanged', async () => {
     d = await enroll(); a = await single(d); p = await phone(d, false);
     await ok(d.base + '/v1/command', a.token, command(7));
