@@ -4,6 +4,8 @@
 
 推荐版本是发布团队的责任。推荐安装包升级时将官网、`/updates/android.json` 和安装包一次部署；仅更新网站也使用同一冻结构建流程，无需虚增 Android 版本；APK 存在 `/downloads/<sha256>.apk`，字节不可覆盖。网站和推荐信息不长期缓存，APK 可永久缓存。正常升级时保留未退役的旧 APK；经审核需停止公开分发的包写入 `retired-apks.json`，旧地址返回 410 与当前安装页链接，不把原地址替换成新 APK 字节。私有历史原件与冻结构建保留。App、CLI 与协议各自管理内部版本，不要求用户理解或配对其编号。
 
+APK 下载支持 HEAD 文件长度和单段 Range 续传。构建从实际保留的 APK 字节生成 `/updates/android-downloads.json`，供静态资源未返回长度时使用；该清单与文件一起部署，不保存用户或设备信息。公网验收逐个核对 APK 的完整内容、HEAD 长度与 206 分段内容。支持续传不代表手机浏览器已获存储权限或所有网络路径都正常。
+
 公开静态页设置 `Cache-Control: public, no-cache, no-transform`，要求 CDN 保持原文并防止自动注入访问统计脚本，再以实际 HTTP 内容核对；此设置仅影响下载站，不修改中继或整个域名区域的分析配置。更新 JSON 仍为 `no-store`。参见 [Cloudflare 自动注入说明](https://developers.cloudflare.com/web-analytics/get-started/)。Cloudflare Managed robots 仍可能在 `/robots.txt` 前附加托管规则，这一项须按[网站验收清单](site-acceptance.md#部署后)单独审阅确切前缀，不以此放宽其他文件的校验。
 
 ## 每夜开发包与推荐安装包
