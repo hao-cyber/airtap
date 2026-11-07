@@ -111,11 +111,10 @@ final class ScreenPreparation {
         return attempt.closingAt < 0;
     }
 
-    /** A verified fallback wake may unblock the remaining request without a first-draw dependency. */
+    /** Only the first request may bootstrap before a draw; retries need a visible window. */
     boolean canBootstrap(String token) {
         return permit(token) && active != null && active.token.equals(token)
-                && (active.dismissRequests == 0 || (active.fallbackWakeObserved
-                && active.dismissRetryAllowed && active.dismissRequests < 2));
+                && active.dismissRequests == 0;
     }
 
     void recordDiagnostic(Diagnostic branch) {

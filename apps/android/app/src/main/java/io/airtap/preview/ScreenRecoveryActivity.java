@@ -58,8 +58,7 @@ public final class ScreenRecoveryActivity extends Activity {
     }
     void progress() {
         if (!isFinishing() && !isDestroyed() && recovery.permit(token, this)) {
-            // After an observed native wake, waiting for a draw can deadlock behind keyguard.
-            // The platform still decides whether this resumed Activity is eligible to dismiss it.
+            // Only an unused first request can bootstrap. A replacement must draw before retrying.
             dismissIfReady(true);
             windowSignal();
         }

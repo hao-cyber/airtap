@@ -89,12 +89,20 @@ public final class ScreenRecoveryActivityTest {
  }
  interface Scenario {void run();}static void test(String name,Scenario scenario){scenario.run();passed++;System.out.println("PASS "+name);}
  public static void main(String[] args){
+  test("replacement waits for its visible frame before spending the last native request",()->{
+   Host h=new Host();h.power.interactive=false;h.begin();h.resume();h.draw();
+   h.activity.onPause();h.activity.onStop();h.keyguard.callbacks.get(0).onDismissError();Handler.advance(1700);
+   check(Context.launches==2,"awake replacement created");h.keyguard.visibleIgnoringKeyguard=false;h.resume();
+   check(h.keyguard.calls==1&&h.reply.errors==0,"resume alone cannot spend the final request on an invisible replacement");
+   h.keyguard.visibleIgnoringKeyguard=true;h.draw();check(h.keyguard.calls==2,"new real frame permits the final request");
+   h.success();check(h.reply.ready==1&&h.reply.errors==0,"recovery verifies unlocked state after the visible request");
+  });
   test("a stopped rejected recovery window is replaced after verified wake",()->{
    Host h=new Host();h.power.interactive=false;h.begin();h.resume();h.draw();
    var old=h.activity;var oldCallback=h.keyguard.callbacks.get(0);old.onPause();old.onStop();oldCallback.onDismissError();
    Handler.advance(1500);check(Context.launches==1,"allow the awake lifecycle to resume before replacing it");
    Handler.advance(200);check(old.destroyed&&Context.launches==2,"replace stopped window once after observed wake");
-   h.keyguard.visibleIgnoringKeyguard=true;h.resume();check(h.keyguard.calls==2,"new visible Activity gets the remaining shared dismissal");
+   h.keyguard.visibleIgnoringKeyguard=true;h.resume();h.draw();check(h.keyguard.calls==2,"new visible Activity gets the remaining shared dismissal");
    oldCallback.onDismissError();check(h.reply.errors==0,"old Activity cannot end the replacement attempt");
    h.success();check(h.reply.ready==1&&h.reply.errors==0&&h.power.releases==1,"actual ready state and removal finish recovery");
   });
@@ -107,7 +115,7 @@ public final class ScreenRecoveryActivityTest {
    Host h=new Host();h.power.interactive=false;h.begin();h.resume();h.draw();var old=h.activity;
    old.onPause();old.onStop();old.onDestroy();Handler.advance(1700);
    check(Context.launches==2,"an attached then destroyed window must not strand a live attempt");
-   h.resume();check(h.keyguard.calls==2,"replacement uses remaining shared dismissal");h.success();
+   h.resume();h.draw();check(h.keyguard.calls==2,"replacement uses remaining shared dismissal");h.success();
    check(h.reply.ready==1&&h.reply.errors==0,"removed original window can recover");
   });
   test("a queued activity that has never attached is not mistaken for a destroyed one",()->{
@@ -119,7 +127,7 @@ public final class ScreenRecoveryActivityTest {
    Host h=new Host();h.power.interactive=false;h.begin();h.resume();h.draw();h.activity.onPause();h.activity.onStop();h.ui.windowPresent=true;
    Handler.advance(2000);check(h.activity.destroyed&&Context.launches==1,"old overlay must disappear before launch");
    h.ui.windowPresent=false;Handler.advance(100);check(Context.launches==2,"replacement starts when old window is gone");
-   h.resume();h.success();check(h.reply.ready==1,"replacement can recover");
+   h.resume();h.draw();h.success();check(h.reply.ready==1,"replacement can recover");
   });
   test("a second stopped window cannot reset the launch or time budget",()->{
    Host h=new Host();h.power.interactive=false;h.begin();h.resume();h.draw();h.activity.onPause();h.activity.onStop();Handler.advance(1700);
@@ -162,12 +170,13 @@ public final class ScreenRecoveryActivityTest {
    check(h.keyguard.calls==2,"screen-on transition permits one current dismissal without requiring a new frame");
    h.success();check(h.reply.ready==1&&h.power.releases==1,"verified ready releases native wake hold");
   });
-  test("observed wake retries a pending pre-draw dismissal without waiting for a frame",()->{
+  test("observed wake does not spend a retry before a frame is visible",()->{
    Host h=new Host();h.power.interactive=false;h.begin();h.resume();var first=h.keyguard.callbacks.get(0);
    Handler.advance(1400);
-   check(h.power.wakes==1&&h.keyguard.calls==2,"an observed awake state permits the remaining native request without a draw dependency");
+   check(h.power.wakes==1&&h.keyguard.calls==1,"wake alone does not prove the Activity became visible");
+   h.draw();check(h.keyguard.calls==2,"a real ready frame permits one retry");
    first.onDismissError();check(h.reply.errors==0,"superseded sleeping callback is ignored");
-   h.success();check(h.reply.ready==1&&h.reply.errors==0,"state polling, not a synthetic draw, verifies recovery");
+   h.success();check(h.reply.ready==1&&h.reply.errors==0,"state polling verifies recovery after the frame-ready request");
   });
   test("awake bootstrap still requires resumed activity and current authentication state",()->{
    Host h=new Host();h.power.interactive=false;h.begin();h.resume();h.activity.onPause();Handler.advance(1400);
@@ -177,9 +186,9 @@ public final class ScreenRecoveryActivityTest {
   });
   test("timeout reports bounded current window state without replacing the last useful event",()->{
    Host h=new Host();h.power.interactive=false;h.begin();h.resume();Handler.advance(6000);
-   check(h.keyguard.calls==2&&h.reply.errors==1,"one bounded post-wake retry only");
+   check(h.keyguard.calls==1&&h.reply.errors==1,"no blind retry while the window remains unavailable");
    check(h.reply.detail.length()<=500&&h.reply.detail.contains("drawn=false")&&h.reply.detail.contains("resumed=true")
-    &&h.reply.detail.contains("last_event=dismiss_requested")&&!h.reply.detail.contains("synthetic-private"),"fixed current-attempt diagnostics fit the existing CLI bound");
+    &&h.reply.detail.contains("last_event=window_not_ready")&&!h.reply.detail.contains("synthetic-private"),"fixed current-attempt diagnostics fit the existing CLI bound");
   });
   test("resumed activity can bootstrap without a visible frame and cannot duplicate pending request",()->{
    Host h=new Host();h.begin();h.resume();check(h.keyguard.calls==1&&!h.activity.window.decor.attached,"platform checks visibility without requiring a frame");
