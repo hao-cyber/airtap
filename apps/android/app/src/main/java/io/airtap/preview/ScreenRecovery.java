@@ -18,6 +18,8 @@ final class ScreenRecovery implements ScreenPreparation.Platform {
     private final Handler main = new Handler(Looper.getMainLooper());
     private final ScreenPreparation preparation = new ScreenPreparation(this);
     private final Map<String, ScreenRecoveryActivity> activities = new HashMap<>();
+    private PowerManager.WakeLock wakeLock;
+    private String wakeToken;
 
     ScreenRecovery(PreviewService service, CompanionUi ui) { this.service = service; this.ui = ui; }
     static ScreenPreparation.State state(Context context) {
@@ -66,6 +68,35 @@ final class ScreenRecovery implements ScreenPreparation.Platform {
     @Override public void relocked(String token) {
         ScreenRecoveryActivity activity = activities.get(token);
         if (activity != null) activity.relocked();
+    }
+    @SuppressWarnings("deprecation")
+    @Override public void wakeFallback(String token, long remainingMillis) {
+        // Some devices leave a correctly launched turnScreenOn Activity stopped while dozing.
+        // Prefer that Activity first; use this public wake API once, within the same permit/deadline.
+        if (remainingMillis <= 0 || !preparation.permit(token) || wakeLock != null) return;
+        PowerManager power = service.getSystemService(PowerManager.class);
+        if (power == null || power.isInteractive() || !preparation.permit(token)) return;
+        PowerManager.WakeLock candidate = null;
+        try {
+            candidate = power.newWakeLock(PowerManager.SCREEN_BRIGHT_WAKE_LOCK
+                    | PowerManager.ACQUIRE_CAUSES_WAKEUP | PowerManager.ON_AFTER_RELEASE, "Airtap:screen-preparation");
+            candidate.setReferenceCounted(false);
+            if (!preparation.permit(token)) return;
+            candidate.acquire(Math.min(ScreenPreparation.TIMEOUT_MS, remainingMillis));
+            wakeLock = candidate; wakeToken = token;
+            android.util.Log.i("AirtapPreview", "event=screen_recovery branch=wake_fallback_requested");
+        } catch (RuntimeException unavailable) {
+            // A platform refusal is not a reason to bypass permission checks or replay the action.
+            try { if (candidate != null && candidate.isHeld()) candidate.release(); }
+            catch (RuntimeException ignored) { /* The native timeout remains bounded. */ }
+            android.util.Log.i("AirtapPreview", "event=screen_recovery branch=wake_fallback_rejected");
+        }
+    }
+    @Override public void releaseWake(String token) {
+        if (!token.equals(wakeToken)) return;
+        PowerManager.WakeLock held = wakeLock; wakeLock = null; wakeToken = null;
+        try { if (held != null && held.isHeld()) held.release(); }
+        catch (RuntimeException ignored) { /* Do not mask the command outcome; native timeout remains. */ }
     }
     @Override public void diagnostic(ScreenPreparation.Diagnostic branch) {
         // Fixed local metadata only; never include a token, system message or screen content.

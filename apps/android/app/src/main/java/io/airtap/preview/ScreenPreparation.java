@@ -8,6 +8,7 @@ final class ScreenPreparation {
     static final long TIMEOUT_MS = 6000;
     static final long POLL_MS = 100;
     static final long SETTLE_MS = 250;
+    static final long WAKE_FALLBACK_MS = 1200;
 
     enum Diagnostic { window_not_ready, bootstrap_requested, dismiss_requested, api_success, api_error, api_cancelled, api_exception, timeout }
 
@@ -45,8 +46,14 @@ final class ScreenPreparation {
         default void diagnostic(Diagnostic branch) { }
         default void progress(String token) { }
         default void relocked(String token) { }
+        default void wakeFallback(String token, long remainingMillis) { }
+        default void releaseWake(String token) { }
     }
-    interface Completion { void ready(boolean recovered); void error(String code); }
+    interface Completion {
+        void ready(boolean recovered);
+        void error(String code);
+        default void error(String code, String detail) { error(code); }
+    }
     private final Platform platform;
     private Attempt active;
 
@@ -61,6 +68,8 @@ final class ScreenPreparation {
         long goneSince = -1;
         int dismissRequests, launches;
         boolean dismissRetryAllowed;
+        boolean wakeFallbackRequested;
+        boolean fallbackWakeObserved;
         Attempt(BooleanSupplier current, Completion completion) {
             this.current = current; this.completion = completion;
             deadline = platform.now() + TIMEOUT_MS;
@@ -141,6 +150,21 @@ final class ScreenPreparation {
         if (state == State.AUTHENTICATION_REQUIRED || state == State.UNAVAILABLE) {
             finish(attempt, state.error()); return;
         }
+        if (state == State.SCREEN_OFF && !attempt.wakeFallbackRequested
+                && platform.now() >= attempt.deadline - TIMEOUT_MS + WAKE_FALLBACK_MS
+                && attempt.closingAt < 0 && permit(attempt.token)) {
+            attempt.wakeFallbackRequested = true;
+            platform.wakeFallback(attempt.token, attempt.deadline - platform.now());
+            if (!live(attempt)) return;
+        }
+        if (state == State.DISMISSIBLE_KEYGUARD && attempt.wakeFallbackRequested && !attempt.fallbackWakeObserved) {
+            // A dismissal sent while dozing can remain pending without a callback. An observed
+            // screen-on transition permits one new native dismissal within the original two-call cap.
+            attempt.fallbackWakeObserved = true;
+            attempt.dismissRetryAllowed = true;
+            platform.relocked(attempt.token);
+            if (!live(attempt)) return;
+        }
         if (state == State.READY) {
             if (attempt.readySince < 0) attempt.readySince = platform.now();
             if (attempt.closingAt < 0 && platform.now() - attempt.readySince >= SETTLE_MS) {
@@ -212,13 +236,19 @@ final class ScreenPreparation {
             error = platform.state().error();
             if (error == null) error = "device_wake_failed";
         }
+        String detail = "Screen preparation: state=" + platform.state().wireName
+                + ", elapsed_ms=" + Math.max(0, Math.min(60000, platform.now() - attempt.deadline + TIMEOUT_MS))
+                + ", launches=" + attempt.launches + ", dismiss_requests=" + attempt.dismissRequests
+                + ", wake_fallback=" + attempt.wakeFallbackRequested
+                + ". The requested action did not run; retain the pairing and inspect recovery before retrying.";
         active = null;
         platform.remove(attempt.tick);
+        platform.releaseWake(attempt.token);
         platform.close(attempt.token);
         platform.clearObservations();
         // close() can deliver lifecycle callbacks. Never complete an invalidated command.
         if (!attempt.current.getAsBoolean()) return;
-        if (error == null) attempt.completion.ready(true); else attempt.completion.error(error);
+        if (error == null) attempt.completion.ready(true); else attempt.completion.error(error, detail);
     }
 
     void cancel() {
@@ -226,6 +256,7 @@ final class ScreenPreparation {
         if (attempt == null) return;
         active = null;
         platform.remove(attempt.tick);
+        platform.releaseWake(attempt.token);
         platform.close(attempt.token);
         platform.clearObservations();
     }

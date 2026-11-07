@@ -14,8 +14,10 @@ public final class ScreenPreparationTest {
         int ready, errors;
         boolean recovered;
         String code;
+        String detail;
         public void ready(boolean recovered) { ready++; this.recovered = recovered; }
         public void error(String code) { errors++; this.code = code; }
+        public void error(String code, String detail) { error(code); this.detail = detail; }
     }
     private static final class Host implements ScreenPreparation.Platform {
         record Scheduled(long at, Runnable callback) { }
@@ -202,6 +204,17 @@ public final class ScreenPreparationTest {
                 "a transient ready sample at the launch cap cannot skip settling or report success");
         scenarios++;
     }
+    private static void failureDetailIsBoundedAndBelongsToThisAttempt() {
+        Host host = new Host(); ScreenPreparation preparation = new ScreenPreparation(host);
+        Reply first = new Reply(); preparation.prepare(() -> true, first); host.advance(6000);
+        check(first.detail != null && first.detail.length() <= 500 && first.detail.contains("state=screen_off")
+                && first.detail.contains("wake_fallback=true") && !first.detail.contains(host.token), "fixed metadata only");
+        Reply second = new Reply(); host.screen = ScreenPreparation.State.DISMISSIBLE_KEYGUARD;
+        preparation.prepare(() -> true, second); host.advance(6000);
+        check(second.detail.contains("state=dismissible_keyguard") && second.detail.contains("wake_fallback=false"),
+                "another command does not inherit previous wake diagnostics");
+        scenarios++;
+    }
     public static void main(String[] args) {
         classifications(); readyDoesNotLaunchOrClear(); authenticationDoesNotLaunch();
         waitsForActivityAndWindowToDisappear(); cancelledDelayedActivityAndCallbacksCannotResume();
@@ -210,6 +223,7 @@ public final class ScreenPreparationTest {
         keyguardTimeoutIsDistinct(); unavailableAndInvalidCommandsDoNotWake(); readyAfterDeadlineCannotComplete();
         slowWindowQueryCannotCompletePastDeadline(); relockCallbackCannotResumeInvalidatedAttempt();
         transientReadyAtLaunchStillCreatesRecoveryWindow(); launchLimitCannotCompleteOnTransientReady();
+        failureDetailIsBoundedAndBelongsToThisAttempt();
         System.out.println("ScreenPreparation: " + scenarios + " scenarios passed");
     }
 }

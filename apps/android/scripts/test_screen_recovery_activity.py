@@ -29,7 +29,15 @@ FAKES = {
  public static void advance(long delta){long end=now+delta;int count=0;while(!queue.isEmpty()&&queue.peek().at<=end){if(++count>10000)throw new AssertionError("unbounded callbacks");Work w=queue.remove();now=w.at;w.call.run();}now=end;}
  public static int pending(){return queue.size();}}''',
 'android/os/SystemClock.java': 'package android.os;public class SystemClock {public static long elapsedRealtime(){return Handler.now;}}',
-'android/os/PowerManager.java': 'package android.os;public class PowerManager {public boolean interactive=true;public boolean isInteractive(){return interactive;}}',
+'android/os/PowerManager.java': '''package android.os;public class PowerManager {
+ public static final int SCREEN_BRIGHT_WAKE_LOCK=10,ACQUIRE_CAUSES_WAKEUP=0x10000000,ON_AFTER_RELEASE=0x20000000;
+ public boolean interactive=true,rejectWake;public int wakes,releases;public long timeout;public WakeLock last;
+ public boolean isInteractive(){return interactive;}
+ public WakeLock newWakeLock(int flags,String tag){if(rejectWake)throw new SecurityException("synthetic-private-platform-detail");return last=new WakeLock();}
+ public final class WakeLock {boolean held;public void setReferenceCounted(boolean value){}
+  public void acquire(long millis){wakes++;timeout=millis;held=true;interactive=true;new Handler().postDelayed(()->held=false,millis);}
+  public boolean isHeld(){return held;}public void release(){held=false;releases++;}}
+}''',
 'android/view/ViewTreeObserver.java': '''package android.view;public class ViewTreeObserver {
  public interface OnPreDrawListener {boolean onPreDraw();}private final java.util.List<OnPreDrawListener> listeners=new java.util.ArrayList<>();
  public boolean isAlive(){return true;}public void addOnPreDrawListener(OnPreDrawListener l){listeners.add(l);}public void removeOnPreDrawListener(OnPreDrawListener l){listeners.remove(l);}
@@ -80,6 +88,31 @@ public final class ScreenRecoveryActivityTest {
  }
  interface Scenario {void run();}static void test(String name,Scenario scenario){scenario.run();passed++;System.out.println("PASS "+name);}
  public static void main(String[] args){
+  test("screen-off fallback wakes once and releases on cancel",()->{
+   Host h=new Host();h.power.interactive=false;h.begin();Handler.advance(1100);
+   check(h.power.wakes==0,"prefer Activity before fallback");Handler.advance(100);
+   check(h.power.wakes==1&&h.power.timeout==4800,"one wake within the original deadline");
+   h.service.recovery.cancel();check(h.power.releases==1&&!h.power.last.isHeld(),"cancel releases the wake hold");
+   Handler.advance(10000);check(h.power.wakes==1&&h.reply.ready==0&&h.reply.errors==0,"cancel cannot resume");
+  });
+  test("native wake refusal keeps original bounded error and no private exception",()->{
+   Host h=new Host();h.power.interactive=false;h.power.rejectWake=true;h.begin();Handler.advance(6000);
+   check(h.reply.errors==1&&"device_wake_failed".equals(h.reply.error),"permission refusal does not crash or claim recovery");
+   check(android.util.Log.lines.stream().noneMatch(s->s.contains("synthetic-private")),"fixed diagnostics only");
+  });
+  test("authentication and revoked command never use fallback",()->{
+   Host h=new Host();h.power.interactive=false;h.begin();h.keyguard.deviceLocked=true;Handler.advance(1300);
+   check(h.power.wakes==0&&"device_authentication_required".equals(h.reply.error),"authentication prevents wake");
+   Host stopped=new Host();stopped.power.interactive=false;stopped.begin();stopped.current=false;Handler.advance(1300);
+   check(stopped.power.wakes==0&&stopped.reply.errors==0,"revocation prevents wake and stale reply");
+  });
+  test("observed fallback wake retries pending dismissal on a reused drawn surface",()->{
+   Host h=new Host();h.power.interactive=false;h.begin();h.resume();h.draw();h.activity.onPause();
+   Handler.advance(1200);check(h.power.wakes==1&&h.keyguard.calls==1,"fallback only wakes before state verification");
+   h.activity.onResume();Handler.advance(100);
+   check(h.keyguard.calls==2,"screen-on transition permits one current dismissal without requiring a new frame");
+   h.success();check(h.reply.ready==1&&h.power.releases==1,"verified ready releases native wake hold");
+  });
   test("resumed activity can bootstrap without a visible frame and cannot duplicate pending request",()->{
    Host h=new Host();h.begin();h.resume();check(h.keyguard.calls==1&&!h.activity.window.decor.attached,"platform checks visibility without requiring a frame");
    h.draw();check(h.keyguard.calls==1&&h.reply.errors==0,"draw does not duplicate bootstrap");
@@ -236,4 +269,4 @@ print(run.stdout, end='')
 if run.returncode:
     print(run.stderr, end='')
     raise SystemExit(run.returncode)
-assert len(checks) == 23
+    assert len(checks) == 27

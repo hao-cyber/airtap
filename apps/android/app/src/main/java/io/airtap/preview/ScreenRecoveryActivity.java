@@ -149,7 +149,8 @@ public final class ScreenRecoveryActivity extends Activity {
     }
     @Override protected void onPause() {
         resumed = false;
-        drawn = false;
+        // A pause/resume can reuse the same drawn surface without another pre-draw callback.
+        // Resumed/attached/shown/window visibility still gate every retry.
         windowReady = false;
         focused = false;
         if (decor != null) decor.removeCallbacks(dismiss);
