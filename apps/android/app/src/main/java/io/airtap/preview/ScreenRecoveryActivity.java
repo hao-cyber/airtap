@@ -57,7 +57,12 @@ public final class ScreenRecoveryActivity extends Activity {
                 && decor.isShown() && decor.getWindowVisibility() == View.VISIBLE;
     }
     void progress() {
-        if (!isFinishing() && !isDestroyed() && recovery.permit(token, this)) windowSignal();
+        if (!isFinishing() && !isDestroyed() && recovery.permit(token, this)) {
+            // After an observed native wake, waiting for a draw can deadlock behind keyguard.
+            // The platform still decides whether this resumed Activity is eligible to dismiss it.
+            dismissIfReady(true);
+            windowSignal();
+        }
     }
     void relocked() {
         if (!isFinishing() && !isDestroyed() && recovery.permit(token, this)) {
@@ -137,6 +142,10 @@ public final class ScreenRecoveryActivity extends Activity {
         }
     }
     boolean isRecoveryVisible() { return visible && !isDestroyed(); }
+    String windowDiagnostic() {
+        return "visible=" + visible + ",resumed=" + resumed + ",drawn=" + drawn
+                + ",attached=" + (decor != null && decor.isAttachedToWindow()) + ",focused=" + focused;
+    }
     void closeRecovery() {
         if (decor != null) {
             decor.removeCallbacks(dismiss);

@@ -99,9 +99,14 @@ final class ScreenRecovery implements ScreenPreparation.Platform {
         catch (RuntimeException ignored) { /* Do not mask the command outcome; native timeout remains. */ }
     }
     @Override public void diagnostic(ScreenPreparation.Diagnostic branch) {
+        preparation.recordDiagnostic(branch);
         // Fixed local metadata only; never include a token, system message or screen content.
         try { android.util.Log.i("AirtapPreview", "event=screen_recovery branch=" + branch); }
         catch (RuntimeException ignored) { /* Diagnostics cannot affect recovery. */ }
+    }
+    @Override public String windowDiagnostic(String token) {
+        ScreenRecoveryActivity activity = activities.get(token);
+        return activity == null ? "absent" : activity.windowDiagnostic();
     }
     @Override public void launch(String token) {
         service.startActivity(new Intent(service, ScreenRecoveryActivity.class).putExtra("request", token)

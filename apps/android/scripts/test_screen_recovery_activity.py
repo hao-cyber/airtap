@@ -73,8 +73,9 @@ TEST = r'''package io.airtap.preview;
 import android.app.KeyguardManager;import android.content.Context;import android.os.Handler;import android.os.PowerManager;import android.view.View;
 public final class ScreenRecoveryActivityTest {
  static int passed;static void check(boolean value,String message){if(!value)throw new AssertionError(message);}
- static final class Reply implements ScreenPreparation.Completion {int ready,errors;String error;
-  public void ready(boolean recovered){check(recovered,"recovery must be reported");ready++;}public void error(String code){errors++;error=code;}}
+ static final class Reply implements ScreenPreparation.Completion {int ready,errors;String error,detail;
+  public void ready(boolean recovered){check(recovered,"recovery must be reported");ready++;}public void error(String code){errors++;error=code;}
+  public void error(String code,String metadata){error(code);detail=metadata;}}
  static final class Host {
   final KeyguardManager keyguard=new KeyguardManager();final PowerManager power=new PowerManager();final CompanionUi ui=new CompanionUi();final Reply reply=new Reply();
   final PreviewService service=new PreviewService();ScreenRecoveryActivity activity;boolean current=true;
@@ -112,6 +113,25 @@ public final class ScreenRecoveryActivityTest {
    h.activity.onResume();Handler.advance(100);
    check(h.keyguard.calls==2,"screen-on transition permits one current dismissal without requiring a new frame");
    h.success();check(h.reply.ready==1&&h.power.releases==1,"verified ready releases native wake hold");
+  });
+  test("observed wake retries a pending pre-draw dismissal without waiting for a frame",()->{
+   Host h=new Host();h.power.interactive=false;h.begin();h.resume();var first=h.keyguard.callbacks.get(0);
+   Handler.advance(1400);
+   check(h.power.wakes==1&&h.keyguard.calls==2,"an observed awake state permits the remaining native request without a draw dependency");
+   first.onDismissError();check(h.reply.errors==0,"superseded sleeping callback is ignored");
+   h.success();check(h.reply.ready==1&&h.reply.errors==0,"state polling, not a synthetic draw, verifies recovery");
+  });
+  test("awake bootstrap still requires resumed activity and current authentication state",()->{
+   Host h=new Host();h.power.interactive=false;h.begin();h.resume();h.activity.onPause();Handler.advance(1400);
+   check(h.keyguard.calls==1,"paused activity cannot use the new bootstrap");
+   h.keyguard.deviceLocked=true;h.activity.onResume();Handler.advance(100);
+   check(h.keyguard.calls==1&&"device_authentication_required".equals(h.reply.error),"authentication still ends the attempt before a second call");
+  });
+  test("timeout reports bounded current window state without replacing the last useful event",()->{
+   Host h=new Host();h.power.interactive=false;h.begin();h.resume();Handler.advance(6000);
+   check(h.keyguard.calls==2&&h.reply.errors==1,"one bounded post-wake retry only");
+   check(h.reply.detail.length()<=500&&h.reply.detail.contains("drawn=false")&&h.reply.detail.contains("resumed=true")
+    &&h.reply.detail.contains("last_event=dismiss_requested")&&!h.reply.detail.contains("synthetic-private"),"fixed current-attempt diagnostics fit the existing CLI bound");
   });
   test("resumed activity can bootstrap without a visible frame and cannot duplicate pending request",()->{
    Host h=new Host();h.begin();h.resume();check(h.keyguard.calls==1&&!h.activity.window.decor.attached,"platform checks visibility without requiring a frame");

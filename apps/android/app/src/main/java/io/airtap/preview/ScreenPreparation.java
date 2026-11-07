@@ -48,6 +48,7 @@ final class ScreenPreparation {
         default void relocked(String token) { }
         default void wakeFallback(String token, long remainingMillis) { }
         default void releaseWake(String token) { }
+        default String windowDiagnostic(String token) { return "unavailable"; }
     }
     interface Completion {
         void ready(boolean recovered);
@@ -70,6 +71,7 @@ final class ScreenPreparation {
         boolean dismissRetryAllowed;
         boolean wakeFallbackRequested;
         boolean fallbackWakeObserved;
+        Diagnostic lastDiagnostic;
         Attempt(BooleanSupplier current, Completion completion) {
             this.current = current; this.completion = completion;
             deadline = platform.now() + TIMEOUT_MS;
@@ -107,9 +109,16 @@ final class ScreenPreparation {
         return attempt.closingAt < 0;
     }
 
-    /** Only the first actual request may bootstrap before a visible frame, even after recreation. */
+    /** A verified fallback wake may unblock the remaining request without a first-draw dependency. */
     boolean canBootstrap(String token) {
-        return permit(token) && active != null && active.token.equals(token) && active.dismissRequests == 0;
+        return permit(token) && active != null && active.token.equals(token)
+                && (active.dismissRequests == 0 || (active.fallbackWakeObserved
+                && active.dismissRetryAllowed && active.dismissRequests < 2));
+    }
+
+    void recordDiagnostic(Diagnostic branch) {
+        // Timeout already has a separate elapsed/deadline outcome; retain the last useful event.
+        if (active != null && branch != Diagnostic.timeout) active.lastDiagnostic = branch;
     }
 
     void allowDismissRetry(String token) {
@@ -240,6 +249,8 @@ final class ScreenPreparation {
                 + ", elapsed_ms=" + Math.max(0, Math.min(60000, platform.now() - attempt.deadline + TIMEOUT_MS))
                 + ", launches=" + attempt.launches + ", dismiss_requests=" + attempt.dismissRequests
                 + ", wake_fallback=" + attempt.wakeFallbackRequested
+                + ", last_event=" + (attempt.lastDiagnostic == null ? "none" : attempt.lastDiagnostic)
+                + ", window=[" + platform.windowDiagnostic(attempt.token) + "]"
                 + ". The requested action did not run; retain the pairing and inspect recovery before retrying.";
         active = null;
         platform.remove(attempt.tick);
