@@ -27,7 +27,7 @@
         </activity>
         <activity android:name=".FeedbackActivity" android:exported="false" />
         <activity android:name=".ScreenRecoveryActivity" android:exported="false"
-            android:theme="@android:style/Theme.Translucent.NoTitleBar"
+            android:theme="@android:style/Theme.NoTitleBar"
             android:taskAffinity="" android:excludeFromRecents="true" android:noHistory="true" />
         <service android:name=".SessionService" android:exported="false" android:foregroundServiceType="specialUse">
             <property android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
