@@ -20,6 +20,7 @@ final class ScreenRecovery implements ScreenPreparation.Platform {
     private final Map<String, ScreenRecoveryActivity> activities = new HashMap<>();
     private PowerManager.WakeLock wakeLock;
     private String wakeToken;
+    private String detachedToken;
 
     ScreenRecovery(PreviewService service, CompanionUi ui) { this.service = service; this.ui = ui; }
     static ScreenPreparation.State state(Context context) {
@@ -37,6 +38,7 @@ final class ScreenRecovery implements ScreenPreparation.Platform {
         ScreenRecoveryActivity previous = activities.get(token);
         if (previous != null && previous != candidate && !previous.isFinishing() && !previous.isDestroyed()) return false;
         activities.put(token, candidate);
+        if (token.equals(detachedToken)) detachedToken = null;
         return true;
     }
     boolean permit(String token) { return preparation.permit(token); }
@@ -54,7 +56,7 @@ final class ScreenRecovery implements ScreenPreparation.Platform {
     }
     void failed(String token, String code) { preparation.failed(token, code); }
     void detached(String token, ScreenRecoveryActivity candidate) {
-        activities.remove(token, candidate);
+        if (activities.remove(token, candidate) && preparation.permit(token)) detachedToken = token;
     }
     @Override public ScreenPreparation.State state() { return state(service); }
     @Override public long now() { return SystemClock.elapsedRealtime(); }
@@ -93,6 +95,7 @@ final class ScreenRecovery implements ScreenPreparation.Platform {
         }
     }
     @Override public void releaseWake(String token) {
+        if (token.equals(detachedToken)) detachedToken = null;
         if (!token.equals(wakeToken)) return;
         PowerManager.WakeLock held = wakeLock; wakeLock = null; wakeToken = null;
         try { if (held != null && held.isHeld()) held.release(); }
@@ -110,7 +113,7 @@ final class ScreenRecovery implements ScreenPreparation.Platform {
     }
     @Override public boolean recoveryStopped(String token) {
         ScreenRecoveryActivity activity = activities.get(token);
-        return activity != null && activity.isRecoveryStopped();
+        return activity == null ? token.equals(detachedToken) : activity.isRecoveryStopped();
     }
     @Override public void launch(String token) {
         service.startActivity(new Intent(service, ScreenRecoveryActivity.class).putExtra("request", token)

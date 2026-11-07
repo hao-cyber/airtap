@@ -103,6 +103,18 @@ public final class ScreenRecoveryActivityTest {
    Handler.advance(1400);h.activity.onStart();h.activity.onResume();Handler.advance(300);
    check(Context.launches==1&&h.keyguard.calls==2,"normal resume must not create another Activity");h.success();
   });
+  test("platform destruction of the no-history window is recoverable after native wake",()->{
+   Host h=new Host();h.power.interactive=false;h.begin();h.resume();h.draw();var old=h.activity;
+   old.onPause();old.onStop();old.onDestroy();Handler.advance(1700);
+   check(Context.launches==2,"an attached then destroyed window must not strand a live attempt");
+   h.resume();check(h.keyguard.calls==2,"replacement uses remaining shared dismissal");h.success();
+   check(h.reply.ready==1&&h.reply.errors==0,"removed original window can recover");
+  });
+  test("a queued activity that has never attached is not mistaken for a destroyed one",()->{
+   Host h=new Host();h.power.interactive=false;h.begin();Handler.advance(2000);
+   check(Context.launches==1,"absence alone is not permission to replace an unobserved launch");
+   h.resume();h.success();check(h.reply.ready==1,"late first Activity still uses original deadline");
+  });
   test("wake replacement waits for old accessibility window to disappear",()->{
    Host h=new Host();h.power.interactive=false;h.begin();h.resume();h.draw();h.activity.onPause();h.activity.onStop();h.ui.windowPresent=true;
    Handler.advance(2000);check(h.activity.destroyed&&Context.launches==1,"old overlay must disappear before launch");

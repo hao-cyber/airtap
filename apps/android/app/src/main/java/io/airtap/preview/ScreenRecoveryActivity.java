@@ -142,7 +142,7 @@ public final class ScreenRecoveryActivity extends Activity {
         }
     }
     boolean isRecoveryVisible() { return visible && !isDestroyed(); }
-    boolean isRecoveryStopped() { return !visible && !resumed && !isFinishing() && !isDestroyed(); }
+    boolean isRecoveryStopped() { return !visible && !resumed; }
     String windowDiagnostic() {
         return "visible=" + visible + ",resumed=" + resumed + ",drawn=" + drawn
                 + ",attached=" + (decor != null && decor.isAttachedToWindow()) + ",focused=" + focused;
