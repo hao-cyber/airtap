@@ -19,7 +19,7 @@
   },
   "personal_ai_use": {
     "Muse": "Downloaded and verified CLI.13; selected actual runner path; original configs retained; status and one phone ping completed; task released. No credential restoration was needed for this existing identity.",
-    "Instinct": "CLI upgrade preparation requested; actual result pending at record creation."
+    "Instinct": "Downloaded the matching SHA256, actually ran --version as CLI.13 and recorded its runner path. Original phone configs remain missing; no restore or pairing was attempted. Supported direct credential-write path and real cross-runtime persistence remain under investigation."
   },
   "limits": [
     "The restore command requires the original approved credential to exist in secure storage. It cannot reconstruct lost credentials.",
