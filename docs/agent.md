@@ -51,6 +51,8 @@ An HTTP 401 or 404 alone does not identify the cause. Check the structured error
 
 ## Restore an original identity from secure storage
 
+This command requires CLI `0.4.0-cli.13` or later. Verify and select the actual runner's CLI before restoring; downloading it does not update a runner that still calls an older file.
+
 For a protocol-4 multi-AI connection, a supported user-private credential store can retain a login record with `website` = the complete original device URL, `username` = its approved `claim_id`, and `password` = its original `controller_token`. Verify that the platform preserves these exact fields and permits controlled retrieval across a real runtime change. Do not invent a Vault API, assume a new process proves durability, or put credentials in chat, arguments or logs. Handle storage setup yourself using the platform's supported tools.
 
 If the local config is missing, recover the verified CLI and pass that record as a bounded JSON object through stdin to `python3 "$AIRTAP_CLI" --config "$AIRTAP_CONFIG" restore --credential-stdin`. Use a new private absolute config path; existing files and symlinks are never overwritten. The command only reads pairing/status, checks the original claim, and restores identity with a persistent fresh-task requirement. Offline is separate from revoked approval. Single-AI mode is not supported by this restoration command; keep any original config and do not re-pair as a fallback. Missing credentials cannot be reconstructed from a phone's approved-connection list.

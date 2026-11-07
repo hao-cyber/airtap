@@ -2,7 +2,7 @@
   "allowlist_path": "tools/source-package-files.json",
   "android_version": "0.4.0-beta.24",
   "archive_root": "airtap-source-0.4.0-beta.24-code54",
-  "cli_version": "0.4.0-cli.12",
+  "cli_version": "0.4.0-cli.13",
   "closure_policy": "airtap-source-closure-v1",
   "files": [
     {
