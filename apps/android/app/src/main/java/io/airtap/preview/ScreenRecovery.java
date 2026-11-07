@@ -108,6 +108,10 @@ final class ScreenRecovery implements ScreenPreparation.Platform {
         ScreenRecoveryActivity activity = activities.get(token);
         return activity == null ? "absent" : activity.windowDiagnostic();
     }
+    @Override public boolean recoveryStopped(String token) {
+        ScreenRecoveryActivity activity = activities.get(token);
+        return activity != null && activity.isRecoveryStopped();
+    }
     @Override public void launch(String token) {
         service.startActivity(new Intent(service, ScreenRecoveryActivity.class).putExtra("request", token)
                 .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_MULTIPLE_TASK

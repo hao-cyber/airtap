@@ -48,6 +48,7 @@ final class ScreenPreparation {
         default void relocked(String token) { }
         default void wakeFallback(String token, long remainingMillis) { }
         default void releaseWake(String token) { }
+        default boolean recoveryStopped(String token) { return false; }
         default String windowDiagnostic(String token) { return "unavailable"; }
     }
     interface Completion {
@@ -67,6 +68,7 @@ final class ScreenPreparation {
         long readySince = -1;
         long closingAt = -1;
         long goneSince = -1;
+        long fallbackWakeAt = -1;
         int dismissRequests, launches;
         boolean dismissRetryAllowed;
         boolean wakeFallbackRequested;
@@ -170,6 +172,7 @@ final class ScreenPreparation {
             // A dismissal sent while dozing can remain pending without a callback. An observed
             // screen-on transition permits one new native dismissal within the original two-call cap.
             attempt.fallbackWakeObserved = true;
+            attempt.fallbackWakeAt = platform.now();
             attempt.dismissRetryAllowed = true;
             platform.relocked(attempt.token);
             if (!live(attempt)) return;
@@ -196,6 +199,16 @@ final class ScreenPreparation {
                 attempt.dismissRetryAllowed = true;
                 platform.relocked(attempt.token);
                 if (!live(attempt)) return;
+            }
+            if (state == State.DISMISSIBLE_KEYGUARD && attempt.fallbackWakeObserved
+                    && attempt.closingAt < 0 && attempt.launches < 2 && attempt.dismissRequests < 2
+                    && platform.now() - attempt.fallbackWakeAt >= SETTLE_MS
+                    && platform.recoveryStopped(attempt.token) && permit(attempt.token)) {
+                // A native wake can leave the pre-wake Activity stopped behind keyguard.
+                // Give its lifecycle time to resume, then replace only that stale window.
+                // The existing close/reopen path waits for removal and keeps both budgets.
+                attempt.closingAt = platform.now();
+                platform.close(attempt.token);
             }
             if (attempt.closingAt >= 0) {
                 // Reopen only after the previous temporary window is gone; keep the same budget.

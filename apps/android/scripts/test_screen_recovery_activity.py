@@ -13,8 +13,8 @@ ROOT = Path(__file__).resolve().parents[1]
 JAVA = ROOT / 'app/src/main/java/io/airtap/preview'
 FAKES = {
 'android/content/Context.java': '''package android.content;public class Context {
- public static final java.util.Map<Class<?>,Object> services=new java.util.HashMap<>();public static Intent launched;
- public <T>T getSystemService(Class<T> type){return type.cast(services.get(type));}public void startActivity(Intent i){launched=i;}}''',
+ public static final java.util.Map<Class<?>,Object> services=new java.util.HashMap<>();public static Intent launched;public static int launches;
+ public <T>T getSystemService(Class<T> type){return type.cast(services.get(type));}public void startActivity(Intent i){launched=i;launches++;}}''',
 'android/content/Intent.java': '''package android.content;public class Intent {
  public static final int FLAG_ACTIVITY_NEW_TASK=1,FLAG_ACTIVITY_MULTIPLE_TASK=2,FLAG_ACTIVITY_NO_HISTORY=4,FLAG_ACTIVITY_EXCLUDE_FROM_RECENTS=8,FLAG_ACTIVITY_NO_ANIMATION=16;
  private final java.util.Map<String,String> extras=new java.util.HashMap<>();public Intent(Context c,Class<?> target){}
@@ -79,7 +79,7 @@ public final class ScreenRecoveryActivityTest {
  static final class Host {
   final KeyguardManager keyguard=new KeyguardManager();final PowerManager power=new PowerManager();final CompanionUi ui=new CompanionUi();final Reply reply=new Reply();
   final PreviewService service=new PreviewService();ScreenRecoveryActivity activity;boolean current=true;
-  Host(){Handler.reset();Context.services.clear();Context.launched=null;android.util.Log.lines.clear();Context.services.put(KeyguardManager.class,keyguard);Context.services.put(PowerManager.class,power);
+  Host(){Handler.reset();Context.services.clear();Context.launched=null;Context.launches=0;android.util.Log.lines.clear();Context.services.put(KeyguardManager.class,keyguard);Context.services.put(PowerManager.class,power);
    PreviewService.instance=service;service.recovery=new ScreenRecovery(service,ui);}
   void begin(){service.recovery.prepare(()->current,reply);check(Context.launched!=null,"recovery must launch");}
   void resume(){activity=new ScreenRecoveryActivity();activity.intent=Context.launched;activity.onCreate(null);activity.onStart();activity.onResume();}
@@ -89,6 +89,42 @@ public final class ScreenRecoveryActivityTest {
  }
  interface Scenario {void run();}static void test(String name,Scenario scenario){scenario.run();passed++;System.out.println("PASS "+name);}
  public static void main(String[] args){
+  test("a stopped rejected recovery window is replaced after verified wake",()->{
+   Host h=new Host();h.power.interactive=false;h.begin();h.resume();h.draw();
+   var old=h.activity;var oldCallback=h.keyguard.callbacks.get(0);old.onPause();old.onStop();oldCallback.onDismissError();
+   Handler.advance(1500);check(Context.launches==1,"allow the awake lifecycle to resume before replacing it");
+   Handler.advance(200);check(old.destroyed&&Context.launches==2,"replace stopped window once after observed wake");
+   h.keyguard.visibleIgnoringKeyguard=true;h.resume();check(h.keyguard.calls==2,"new visible Activity gets the remaining shared dismissal");
+   oldCallback.onDismissError();check(h.reply.errors==0,"old Activity cannot end the replacement attempt");
+   h.success();check(h.reply.ready==1&&h.reply.errors==0&&h.power.releases==1,"actual ready state and removal finish recovery");
+  });
+  test("a recovered awake lifecycle keeps its original window",()->{
+   Host h=new Host();h.power.interactive=false;h.begin();h.resume();h.draw();h.activity.onPause();h.activity.onStop();
+   Handler.advance(1400);h.activity.onStart();h.activity.onResume();Handler.advance(300);
+   check(Context.launches==1&&h.keyguard.calls==2,"normal resume must not create another Activity");h.success();
+  });
+  test("wake replacement waits for old accessibility window to disappear",()->{
+   Host h=new Host();h.power.interactive=false;h.begin();h.resume();h.draw();h.activity.onPause();h.activity.onStop();h.ui.windowPresent=true;
+   Handler.advance(2000);check(h.activity.destroyed&&Context.launches==1,"old overlay must disappear before launch");
+   h.ui.windowPresent=false;Handler.advance(100);check(Context.launches==2,"replacement starts when old window is gone");
+   h.resume();h.success();check(h.reply.ready==1,"replacement can recover");
+  });
+  test("a second stopped window cannot reset the launch or time budget",()->{
+   Host h=new Host();h.power.interactive=false;h.begin();h.resume();h.draw();h.activity.onPause();h.activity.onStop();Handler.advance(1700);
+   check(Context.launches==2,"one replacement");h.resume();h.draw();h.activity.onPause();h.activity.onStop();Handler.advance(4300);
+   check(Context.launches==2&&h.keyguard.calls==2&&h.reply.errors==1&&Handler.now==6000,"one deadline and shared native call cap");
+   check(h.reply.detail.contains("launches=2")&&h.reply.detail.contains("resumed=false"),"failure retains final lifecycle");
+  });
+  test("authentication and command stop fence a pending awake replacement",()->{
+   for(boolean auth:new boolean[]{true,false}){
+    Host h=new Host();h.power.interactive=false;h.begin();h.resume();h.activity.onPause();h.activity.onStop();h.ui.windowPresent=true;
+    Handler.advance(1700);check(Context.launches==1&&h.activity.destroyed,"old window closed but replacement not started");
+    if(auth)h.keyguard.deviceLocked=true;else h.current=false;
+    h.ui.windowPresent=false;Handler.advance(1000);
+    check(Context.launches==1&&h.keyguard.calls==1&&h.reply.ready==0,"no new window or dismissal after invalidation");
+    check(auth?"device_authentication_required".equals(h.reply.error):h.reply.errors==0,"accurate invalidation outcome");
+   }
+  });
   test("screen-off fallback wakes once and releases on cancel",()->{
    Host h=new Host();h.power.interactive=false;h.begin();Handler.advance(1100);
    check(h.power.wakes==0,"prefer Activity before fallback");Handler.advance(100);
