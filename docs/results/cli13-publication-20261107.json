@@ -1,0 +1,30 @@
+{
+  "schema": 1,
+  "date": "2026-11-07",
+  "component": "controller CLI and agent guide",
+  "version": "0.4.0-cli.13",
+  "source_merge": "4c9bb6e",
+  "pull_request": "https://github.com/hao-cyber/airtap/pull/1",
+  "deployed_relay_revision": 23,
+  "relay_runtime_sha256": "1de6018da8bc9b20e279da6f0a8e0d8024c67a0b7bea48cf84f9066d3f271d27",
+  "relay_runtime_unchanged": true,
+  "cli_sha256": "ce8d219490405296812eb00fd65ef8b7acea8d2856bc9bae5c0255b53a594ee3",
+  "agent_guide_sha256": "6f87841f210b7fd83b94dde84b08ee4c48b0989fe2ddb32ad55241be887218c8",
+  "public_get_sha256_verified": true,
+  "checks": {
+    "task_lease_tests": 71,
+    "deployment_tests": 11,
+    "invitation_artifact_routes": 3,
+    "all_passed": true
+  },
+  "personal_ai_use": {
+    "Muse": "Downloaded and verified CLI.13; selected actual runner path; original configs retained; status and one phone ping completed; task released. No credential restoration was needed for this existing identity.",
+    "Instinct": "CLI upgrade preparation requested; actual result pending at record creation."
+  },
+  "limits": [
+    "The restore command requires the original approved credential to exist in secure storage. It cannot reconstruct lost credentials.",
+    "Specific AI platform persistence across a runtime replacement still requires independent verification.",
+    "This asset deployment does not establish phone screen recovery, dual-AI acceptance, or a new APK release."
+  ],
+  "recommended_android_version_code": 52
+}
