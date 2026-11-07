@@ -15,7 +15,7 @@ final class RemoteReadiness {
             String battery = unrestrictedBattery == null ? "后台运行：无法读取，请查看系统设置"
                     : unrestrictedBattery ? "后台运行：系统电池优化已豁免" : "后台运行：仍受系统电池优化，请查看后台运行设置";
             String lock = authenticationRequired == null || secure == null ? "系统验证：暂时无法读取锁屏状态"
-                    : authenticationRequired ? "系统验证：当前需要本人完成解锁验证"
+                    : authenticationRequired ? "系统验证：当前需要完成手机解锁或 SIM 卡验证"
                     : secure ? "系统验证：当前无需验证；后续锁屏仍可能要求密码或生物识别"
                     : "系统验证：未设置锁屏密码，可尝试自动唤醒";
             return networkText + "\n\n手机操作：" + (operation ? "已开启" : "未开启，请开启 Airtap 手机操作")

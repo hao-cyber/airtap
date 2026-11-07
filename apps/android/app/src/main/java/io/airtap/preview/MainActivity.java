@@ -641,7 +641,7 @@ public final class MainActivity extends Activity {
         } catch (Exception unavailable) { }
         try {
             android.app.KeyguardManager keyguard = getSystemService(android.app.KeyguardManager.class);
-            if (keyguard != null) { secure = keyguard.isDeviceSecure(); authentication = keyguard.isDeviceLocked(); }
+            if (keyguard != null) { secure = keyguard.isDeviceSecure(); authentication = ScreenRecovery.authenticationRequired(keyguard); }
         } catch (Exception unavailable) { }
         return new RemoteReadiness.Snapshot(network, PreviewService.instance != null,
                 SessionService.notificationsAllowed(this), battery, secure, authentication);

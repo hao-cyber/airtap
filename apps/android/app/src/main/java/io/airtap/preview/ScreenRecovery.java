@@ -28,9 +28,16 @@ final class ScreenRecovery implements ScreenPreparation.Platform {
             KeyguardManager keyguard = context.getSystemService(KeyguardManager.class);
             PowerManager power = context.getSystemService(PowerManager.class);
             if (keyguard == null || power == null) return ScreenPreparation.State.UNAVAILABLE;
-            return ScreenPreparation.State.of(true, power.isInteractive(), keyguard.isKeyguardLocked(), keyguard.isDeviceLocked());
+            return ScreenPreparation.State.of(true, power.isInteractive(), keyguard.isKeyguardLocked(), authenticationRequired(keyguard));
         } catch (RuntimeException failure) { return ScreenPreparation.State.UNAVAILABLE; }
     }
+    static boolean authenticationRequired(KeyguardManager keyguard) {
+        if (keyguard.isDeviceLocked()) return true;
+        // isDeviceLocked/isDeviceSecure exclude SIM locks. A secure keyguard without
+        // a device credential is a locked SIM, not a swipe screen that we may dismiss.
+        return keyguard.isKeyguardLocked() && keyguard.isKeyguardSecure() && !keyguard.isDeviceSecure();
+    }
+
     void prepare(BooleanSupplier current, ScreenPreparation.Completion completion) { preparation.prepare(current, completion); }
     void cancel() { preparation.cancel(); }
     boolean attach(String token, ScreenRecoveryActivity candidate) {

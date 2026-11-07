@@ -56,8 +56,8 @@ FAKES = {
  public boolean isFinishing(){return finishing;}public boolean isDestroyed(){return destroyed;}
  public void finishAndRemoveTask(){finishing=true;new android.os.Handler().post(()->{onPause();onStop();onDestroy();});}}''',
 'android/app/KeyguardManager.java': '''package android.app;public class KeyguardManager {
- public boolean locked=true,deviceLocked,throwsOnRequest,visibleIgnoringKeyguard=true;public int calls;public final java.util.List<KeyguardDismissCallback> callbacks=new java.util.ArrayList<>();
- public boolean isKeyguardLocked(){return locked;}public boolean isDeviceLocked(){return deviceLocked;}
+ public boolean locked=true,deviceLocked,deviceSecure,keyguardSecure,throwsOnRequest,visibleIgnoringKeyguard=true;public int calls;public final java.util.List<KeyguardDismissCallback> callbacks=new java.util.ArrayList<>();
+ public boolean isKeyguardLocked(){return locked;}public boolean isDeviceLocked(){return deviceLocked;} public boolean isDeviceSecure(){return deviceSecure;}public boolean isKeyguardSecure(){return keyguardSecure;}
  public static class KeyguardDismissCallback {public void onDismissError(){}public void onDismissCancelled(){}public void onDismissSucceeded(){}}
  public void requestDismissKeyguard(Activity activity,KeyguardDismissCallback callback){calls++;callbacks.add(callback);
   if(throwsOnRequest)throw new IllegalStateException("synthetic-private-platform-detail");
@@ -89,6 +89,20 @@ public final class ScreenRecoveryActivityTest {
  }
  interface Scenario {void run();}static void test(String name,Scenario scenario){scenario.run();passed++;System.out.println("PASS "+name);}
  public static void main(String[] args){
+  test("locked SIM without a device credential requires authentication before any wake",()->{
+   Host h=new Host();h.power.interactive=false;h.keyguard.keyguardSecure=true;
+   h.service.recovery.prepare(()->h.current,h.reply);Handler.advance(7000);
+   check("device_authentication_required".equals(h.reply.error),"a SIM PIN is not a dismissible swipe lock");
+   check(Context.launches==0&&h.power.wakes==0&&h.keyguard.calls==0,"no native recovery across SIM authentication");
+  });
+  test("SIM locking during recovery cancels a queued dismissal",()->{
+   Host h=new Host();h.begin();h.keyguard.keyguardSecure=true;h.resume();Handler.advance(1500);
+   check("device_authentication_required".equals(h.reply.error)&&h.keyguard.calls==0&&h.power.wakes==0,"SIM authentication fences the pending native operation");
+  });
+  test("a credential-secured but currently trusted device can still recover normally",()->{
+   Host h=new Host();h.keyguard.deviceSecure=true;h.keyguard.keyguardSecure=true;h.begin();h.resume();h.draw();h.success();
+   check(h.reply.ready==1&&h.reply.errors==0,"configured credentials alone do not mean authentication is currently required");
+  });
   test("replacement waits for its visible frame before spending the last native request",()->{
    Host h=new Host();h.power.interactive=false;h.begin();h.resume();h.draw();
    h.activity.onPause();h.activity.onStop();h.keyguard.callbacks.get(0).onDismissError();Handler.advance(1700);
