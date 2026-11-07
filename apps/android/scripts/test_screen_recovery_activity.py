@@ -48,12 +48,12 @@ FAKES = {
  public boolean isFinishing(){return finishing;}public boolean isDestroyed(){return destroyed;}
  public void finishAndRemoveTask(){finishing=true;new android.os.Handler().post(()->{onPause();onStop();onDestroy();});}}''',
 'android/app/KeyguardManager.java': '''package android.app;public class KeyguardManager {
- public boolean locked=true,deviceLocked,throwsOnRequest;public int calls;public final java.util.List<KeyguardDismissCallback> callbacks=new java.util.ArrayList<>();
+ public boolean locked=true,deviceLocked,throwsOnRequest,visibleIgnoringKeyguard=true;public int calls;public final java.util.List<KeyguardDismissCallback> callbacks=new java.util.ArrayList<>();
  public boolean isKeyguardLocked(){return locked;}public boolean isDeviceLocked(){return deviceLocked;}
  public static class KeyguardDismissCallback {public void onDismissError(){}public void onDismissCancelled(){}public void onDismissSucceeded(){}}
  public void requestDismissKeyguard(Activity activity,KeyguardDismissCallback callback){calls++;callbacks.add(callback);
   if(throwsOnRequest)throw new IllegalStateException("synthetic-private-platform-detail");
-  var view=activity.window.decor;if(!view.attached||!view.shown||view.windowVisibility!=0)callback.onDismissError();}}''',
+  if(!visibleIgnoringKeyguard)callback.onDismissError();}}''',
 'android/util/Log.java': '''package android.util;public class Log {public static final java.util.List<String> lines=new java.util.ArrayList<>();
  public static int i(String tag,String line){lines.add(tag+" "+line);return 0;}}''',
 'io/airtap/preview/CompanionUi.java': '''package io.airtap.preview;final class CompanionUi {int clears;boolean windowPresent;
@@ -80,18 +80,19 @@ public final class ScreenRecoveryActivityTest {
  }
  interface Scenario {void run();}static void test(String name,Scenario scenario){scenario.run();passed++;System.out.println("PASS "+name);}
  public static void main(String[] args){
-  test("resume before visible window does not spend dismiss; drawn window permits one call",()->{
-   Host h=new Host();h.begin();h.resume();check(h.keyguard.calls==0,"onResume is not window readiness");
-   h.draw();check(h.keyguard.calls==1&&h.reply.errors==0,"request after visible frame");
+  test("resumed activity can bootstrap without a visible frame and cannot duplicate pending request",()->{
+   Host h=new Host();h.begin();h.resume();check(h.keyguard.calls==1&&!h.activity.window.decor.attached,"platform checks visibility without requiring a frame");
+   h.draw();check(h.keyguard.calls==1&&h.reply.errors==0,"draw does not duplicate bootstrap");
    h.draw();h.activity.onWindowFocusChanged(true);h.draw();check(h.keyguard.calls==1,"no duplicate dismiss while pending");
    h.success();check(h.reply.ready==1&&h.reply.errors==0&&!h.activity.turnOn&&!h.activity.showLocked,"verified recovery closes temporary window");
   });
   test("keyguard appearing between resume and first visible frame is not skipped",()->{
    Host h=new Host();h.begin();h.keyguard.locked=false;h.resume();h.keyguard.locked=true;h.draw();check(h.keyguard.calls==1,"unlocked resume must not consume request");
   });
-  test("attached but hidden window cannot dismiss and later visibility can",()->{
-   Host h=new Host();h.begin();h.resume();h.activity.window.decor.windowVisibility=View.INVISIBLE;h.draw();check(h.keyguard.calls==0,"hidden window");
-   h.activity.window.decor.windowVisibility=View.VISIBLE;h.draw();check(h.keyguard.calls==1,"actual visible transition");
+  test("platform rejects hidden bootstrap and retry requires an actual visible transition",()->{
+   Host h=new Host();h.begin();h.keyguard.visibleIgnoringKeyguard=false;h.resume();check(h.keyguard.calls==1,"one platform-checked bootstrap");
+   h.activity.window.decor.windowVisibility=View.INVISIBLE;h.draw();check(h.keyguard.calls==1,"hidden frame cannot retry");
+   h.keyguard.visibleIgnoringKeyguard=true;h.activity.window.decor.windowVisibility=View.VISIBLE;h.draw();check(h.keyguard.calls==2,"actual visible transition allows retry after explicit error");
   });
   test("API error retries only after a new ready window and at most once",()->{
    Host h=new Host();h.begin();h.resume();h.draw();var old=h.keyguard.callbacks.get(0);old.onDismissError();
@@ -108,8 +109,8 @@ public final class ScreenRecoveryActivityTest {
    check(h.keyguard.calls==2,"one retry inside original budget");Handler.advance(100);
    check(h.reply.errors==1&&"device_keyguard_dismiss_failed".equals(h.reply.error),"deadline not extended");h.newWindow();check(h.keyguard.calls==2,"no call after deadline");
   });
-  test("authentication transition before first draw never calls dismiss",()->{
-   Host h=new Host();h.begin();h.resume();h.keyguard.deviceLocked=true;h.draw();
+  test("authentication transition before resume never calls bootstrap",()->{
+   Host h=new Host();h.begin();h.keyguard.deviceLocked=true;h.resume();h.draw();
    check(h.keyguard.calls==0&&"device_authentication_required".equals(h.reply.error),"system authentication must win");
   });
   test("authentication transition after error prohibits retry",()->{
@@ -117,11 +118,11 @@ public final class ScreenRecoveryActivityTest {
    check(h.keyguard.calls==1&&"device_authentication_required".equals(h.reply.error),"new auth state is checked again");
   });
   test("stop or lost command before posted dismissal invalidates it",()->{
-   Host h=new Host();h.begin();h.resume();h.activity.window.decor.attached=true;h.activity.window.decor.getViewTreeObserver().draw();h.current=false;Handler.advance(0);
+   Host h=new Host();h.begin();h.keyguard.locked=false;h.resume();h.keyguard.locked=true;h.activity.window.decor.attached=true;h.activity.window.decor.getViewTreeObserver().draw();h.current=false;Handler.advance(0);
    check(h.keyguard.calls==0&&h.reply.ready==0&&h.reply.errors==0&&!h.activity.turnOn,"queued call fenced by current command");
   });
   test("delayed first window after deadline cannot wake or dismiss",()->{
-   Host h=new Host();h.begin();h.resume();Handler.advance(6000);h.draw();
+   Host h=new Host();h.begin();Handler.advance(6000);h.resume();h.draw();
    check(h.keyguard.calls==0&&h.reply.errors==1&&!h.activity.turnOn,"deadline fences late frame");
   });
   test("success callback alone and visible recovery overlay are not ready",()->{
@@ -131,13 +132,13 @@ public final class ScreenRecoveryActivityTest {
    Handler.advance(300);check(h.reply.ready==1,"actual state and window removal verified");
   });
   test("platform exception is final and diagnostics contain only fixed branches",()->{
-   Host h=new Host();h.begin();h.resume();h.keyguard.throwsOnRequest=true;h.draw();h.newWindow();
+   Host h=new Host();h.begin();h.keyguard.throwsOnRequest=true;h.resume();h.draw();h.newWindow();
    check(h.keyguard.calls==1&&h.reply.errors==1,"exception is not permission to repeat API");
-   for(String line:android.util.Log.lines)check(line.matches("AirtapPreview event=screen_recovery branch=(window_not_ready|dismiss_requested|api_success|api_error|api_cancelled|api_exception|timeout)"),"only fixed metadata");
+   for(String line:android.util.Log.lines)check(line.matches("AirtapPreview event=screen_recovery branch=(window_not_ready|bootstrap_requested|dismiss_requested|api_success|api_error|api_cancelled|api_exception|timeout)"),"only fixed metadata");
    check(!android.util.Log.lines.isEmpty(),"diagnostic branch was recorded");
   });
   test("first drawn unlocked sample followed by relock progresses without another frame",()->{
-   Host h=new Host();h.begin();h.resume();h.keyguard.locked=false;h.draw();check(h.keyguard.calls==0,"unlocked sample needs no API");
+   Host h=new Host();h.begin();h.keyguard.locked=false;h.resume();h.draw();check(h.keyguard.calls==0,"unlocked sample needs no API");
    Handler.advance(10);h.keyguard.locked=true;Handler.advance(190);
    check(h.keyguard.calls==1,"coordinator tick uses still-visible window without a new draw");h.success();check(h.reply.ready==1,"recovered");
   });
@@ -167,6 +168,42 @@ public final class ScreenRecoveryActivityTest {
    Host h=new Host();h.begin();h.resume();h.draw();h.keyguard.callbacks.get(0).onDismissError();h.newWindow();check(h.keyguard.calls==2,"budget spent");
    h.activity.closeRecovery();Handler.advance(0);h.resume();h.draw();
    check(h.keyguard.calls==2&&h.reply.errors==1,"third request refused across recreation");
+  });
+  test("screen-off bootstrap delegates visibility to the platform but success still requires awake state",()->{
+   Host h=new Host();h.power.interactive=false;h.begin();h.resume();
+   check(h.keyguard.calls==1&&!h.activity.window.decor.attached,"bootstrap does not wait for an attached frame");
+   h.keyguard.callbacks.get(0).onDismissSucceeded();h.keyguard.locked=false;Handler.advance(500);
+   check(h.reply.ready==0,"successful callback without actual screen wake is not completion");
+   h.power.interactive=true;Handler.advance(1000);check(h.reply.ready==1&&h.reply.errors==0,"actual awake unlocked state and window removal settle");
+  });
+  test("repeat resume cannot retry rejected bootstrap without a new visible window",()->{
+   Host h=new Host();h.begin();h.keyguard.visibleIgnoringKeyguard=false;h.resume();
+   h.activity.onResume();h.activity.onWindowFocusChanged(true);Handler.advance(300);h.activity.onResume();
+   check(h.keyguard.calls==1&&h.reply.errors==0,"resume focus and time are not retry permission");
+   h.keyguard.visibleIgnoringKeyguard=true;h.draw();check(h.keyguard.calls==2,"explicit error plus real ready frame permits second request");
+   h.success();check(h.reply.ready==1,"second request can recover");
+  });
+  test("recreation cannot replay a bootstrap with an unknown result",()->{
+   Host h=new Host();h.begin();h.resume();var old=h.activity;var callback=h.keyguard.callbacks.get(0);
+   old.closeRecovery();Handler.advance(0);h.resume();h.draw();
+   check(h.keyguard.calls==1,"new Activity and draw cannot replay pending platform request");
+   callback.onDismissError();h.newWindow();check(h.keyguard.calls==1,"old instance cannot grant retry permission");
+   Handler.advance(6000-Handler.now);check(h.reply.errors==1&&h.reply.ready==0,"unknown request remains bounded");
+  });
+  test("recreation after a known error still waits for a new real frame",()->{
+   Host h=new Host();h.begin();h.keyguard.visibleIgnoringKeyguard=false;h.resume();
+   h.activity.closeRecovery();Handler.advance(0);h.keyguard.visibleIgnoringKeyguard=true;h.resume();
+   check(h.keyguard.calls==1,"bootstrap is shared across Activity instances");
+   h.draw();check(h.keyguard.calls==2,"known failure plus new visible frame may retry");h.success();check(h.reply.ready==1,"recovery remains valid");
+  });
+  test("unlocked bootstrap samples do not spend the shared first request",()->{
+   Host h=new Host();h.begin();h.keyguard.locked=false;h.resume();h.activity.onResume();check(h.keyguard.calls==0,"no dismissal needed");
+   h.keyguard.locked=true;h.activity.onResume();h.activity.onResume();
+   check(h.keyguard.calls==1,"first actual request happens once after keyguard appears");
+  });
+  test("owner stop before resume prevents both bootstrap and wake flags",()->{
+   Host h=new Host();h.begin();h.current=false;h.resume();h.draw();
+   check(h.keyguard.calls==0&&!h.activity.turnOn&&!h.activity.showLocked&&h.reply.ready==0&&h.reply.errors==0,"stale queued activity never wakes or requests");
   });
   System.out.println("TOTAL "+passed);
  }
@@ -199,4 +236,4 @@ print(run.stdout, end='')
 if run.returncode:
     print(run.stderr, end='')
     raise SystemExit(run.returncode)
-assert len(checks) == 17
+assert len(checks) == 23

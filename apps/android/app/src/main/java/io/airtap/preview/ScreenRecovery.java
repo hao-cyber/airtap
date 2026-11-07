@@ -41,6 +41,12 @@ final class ScreenRecovery implements ScreenPreparation.Platform {
     boolean permit(String token, ScreenRecoveryActivity candidate) {
         return activities.get(token) == candidate && preparation.permit(token);
     }
+    boolean canBootstrap(String token, ScreenRecoveryActivity candidate) {
+        return activities.get(token) == candidate && preparation.canBootstrap(token);
+    }
+    void allowDismissRetry(String token, ScreenRecoveryActivity candidate) {
+        if (activities.get(token) == candidate) preparation.allowDismissRetry(token);
+    }
     int reserveDismiss(String token, ScreenRecoveryActivity candidate) {
         return activities.get(token) == candidate ? preparation.reserveDismiss(token) : 0;
     }

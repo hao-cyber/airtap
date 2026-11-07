@@ -9,7 +9,7 @@ final class ScreenPreparation {
     static final long POLL_MS = 100;
     static final long SETTLE_MS = 250;
 
-    enum Diagnostic { window_not_ready, dismiss_requested, api_success, api_error, api_cancelled, api_exception, timeout }
+    enum Diagnostic { window_not_ready, bootstrap_requested, dismiss_requested, api_success, api_error, api_cancelled, api_exception, timeout }
 
     enum State {
         READY("ready"), SCREEN_OFF("screen_off"), DISMISSIBLE_KEYGUARD("dismissible_keyguard"),
@@ -60,6 +60,7 @@ final class ScreenPreparation {
         long closingAt = -1;
         long goneSince = -1;
         int dismissRequests, launches;
+        boolean dismissRetryAllowed;
         Attempt(BooleanSupplier current, Completion completion) {
             this.current = current; this.completion = completion;
             deadline = platform.now() + TIMEOUT_MS;
@@ -97,6 +98,15 @@ final class ScreenPreparation {
         return attempt.closingAt < 0;
     }
 
+    /** Only the first actual request may bootstrap before a visible frame, even after recreation. */
+    boolean canBootstrap(String token) {
+        return permit(token) && active != null && active.token.equals(token) && active.dismissRequests == 0;
+    }
+
+    void allowDismissRetry(String token) {
+        if (permit(token) && active != null && active.token.equals(token)) active.dismissRetryAllowed = true;
+    }
+
     /** Shared by all Activity instances belonging to this attempt. */
     int reserveDismiss(String token) {
         if (!permit(token)) return 0;
@@ -105,6 +115,8 @@ final class ScreenPreparation {
             finish(attempt, "device_keyguard_dismiss_failed");
             return 0;
         }
+        if (attempt.dismissRequests > 0 && !attempt.dismissRetryAllowed) return 0;
+        attempt.dismissRetryAllowed = false;
         return ++attempt.dismissRequests;
     }
 
@@ -148,6 +160,7 @@ final class ScreenPreparation {
             attempt.goneSince = -1;
             if (attempt.readySince >= 0) {
                 attempt.readySince = -1;
+                attempt.dismissRetryAllowed = true;
                 platform.relocked(attempt.token);
                 if (!live(attempt)) return;
             }
