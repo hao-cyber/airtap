@@ -20,7 +20,7 @@ APK 下载支持 HEAD 文件长度和单段 Range 续传。构建从实际保留
 
 当前为公开测试渠道，使用长期 RSA 3072 发布密钥，Android `debuggable=false`，最低 Android 14。包名继续使用 `io.airtap.preview`，以保留已安装用户的数据；包名不作为用户界面名称。正式发布签名不代表产品已通过全部机型或普通用户验证。
 
-官网推荐 Android `0.4.0-beta.31`（code61），沿用已签名和实测的同一 APK 字节。[版本元数据](android/61.json)固定制品身份，[恢复检查](../docs/results/beta31-code61-recovery-20261108.json)保留实际失败、准备和介入范围。此次更新安装包与网站，不改变中继运行时或已发布 CLI.13。
+官网推荐 Android `0.4.0-beta.31`（code61），沿用已签名和实测的同一 APK 字节。[版本元数据](android/61.json)固定制品身份，[恢复检查](../docs/results/beta31-code61-recovery-20261108.json)保留实际失败、准备和介入范围。此次更新安装包与网站，不改变中继运行时或已发布 CLI.13。 [发布记录](../docs/results/beta31-code61-publication-20261108.json)核对了 32 个冻结文件、72 项公网检查及 [GitHub beta.31](https://github.com/hao-cyber/airtap/releases/tag/v0.4.0-beta.31) 的标签和下载 APK。
 
 Muse 使用原连接在一台魅族 Note 16 上完成两次息屏唤醒、桌面视觉核对、短信界面读取和收尾。机主在测试前完成了重启后的 SIM PIN 验证，该保护开关仍开启，因此后续重启无需人工尚未通过。Google Play 搜索因未登录未完成；本版 Instinct、跨云端环境配置保留和多日后台仍未验证。
 
@@ -62,7 +62,7 @@ python3 release/verify_site.py --build /private/site-26 --base-url https://airta
 首次上线不传 `--previous`。示例中的编号由发布者管理，不能直接用示例值作为验收证据。部署前核对 `build-manifest.json` 并保留冻结目录，之后不修改其文件。Wrangler 会在配置旁写入运行状态，预览和部署均使用新建工作副本；校验始终以原冻结目录为准，不把副本内的 `.wrangler` 当作发布制品。
 
 6. 上述线上验收脚本以普通 Python HTTP 客户端读取固定下载入口、所有页面与静态资源、更新 JSON、推荐及保留的旧 APK，逐字比对冻结构建并检查缓存和下载响应头，防止 CDN 注入或推荐仍旧；对每个退役 APK 地址分别检查 GET 与 HEAD 返回 410、禁止缓存并引导安装当前版本。若 `/robots.txt` 包含已单独审阅的托管前缀，增加 `--managed-robots-prefix /private/reviewed-robots-prefix.txt`，只允许该前缀与冻结原文的精确拼接，并在报告中记录转换摘要；前缀或其他内容变化仍拒绝。它不会部署或访问私人接口；输出只证明网站 HTTP 内容，不代替手机安装、覆盖升级或个人 AI 验收。另在浏览器检查手机和桌面宽度、帮助直达与下载，再完成对应手机覆盖升级。App 检查更新只访问固定域名，不发送身份或凭据，且不会自动安装。安装仍由 Android 系统确认。
-7. 保存提交、部署 ID、证书、APK 摘要和测试结果，发布带这些证据的 release。旧验收仅覆盖其原制品，新制品需要对应变更回归。
+7. 保存提交、部署 ID、证书、APK 摘要和测试结果，发布带这些证据的 release。旧验收仅覆盖其原制品，新制品需要对应变更回归。 创建 GitHub Release 时，`--target` 使用已推送提交的完整 40 位 SHA；缩写可能被 API 拒绝。提交结果未知时先核对标签和 Release 是否已存在，再决定重试，不覆盖已经发布的制品。
 
 ## 仅更新官网与帮助
 

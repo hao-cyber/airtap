@@ -1,0 +1,100 @@
+{
+  "schema": "airtap-release-publication-v1",
+  "recorded_at": "2026-11-08T14:17:47.371881+00:00",
+  "status": "published_with_bounded_acceptance",
+  "publication_performed": true,
+  "release": {
+    "schema": "airtap-android-update-v1",
+    "application_id": "io.airtap.preview",
+    "version_name": "0.4.0-beta.31",
+    "version_code": 61,
+    "apk_sha256": "6ace9ef5178610c5eac7f62594b1616763d33c248380ab4f2648058403e4a390",
+    "apk_bytes": 607693,
+    "signer_sha256": "a2aa0c1b6fdaf1baa37aa20817387524a1318b5dab82bf7c185663141daba60f",
+    "min_sdk": 34,
+    "target_sdk": 36,
+    "debuggable": false,
+    "channel": "beta",
+    "published_at": "2026-11-08",
+    "download_path": "/download/android",
+    "notes": [
+      "修复部分手机息屏后恢复窗口停在锁屏后方的问题。在原有期限内尝试系统唤醒，并在必要时重建一次恢复窗口；超时或失败不会补做原任务。",
+      "识别本轮魅族手机的 SIM PIN 验证状态，避免把它当成可直接退出的滑动锁屏。需要系统验证时停止本次操作，保留原连接，不尝试 PIN。",
+      "补充魅族“锁屏显示”设置指引。该权限允许恢复窗口出现在锁屏上，不会取消手机密码或 SIM 卡验证。",
+      "Muse 使用原连接在一台魅族 Note 16 上完成本版两次息屏唤醒、桌面视觉核对和短信界面读取，最后回桌面并释放控制。两次唤醒约为 4.9 秒、4.2 秒，是本轮观察值。",
+      "测试前机主完成了重启后的 SIM PIN 验证；该 SIM 的 PIN 开关仍开启，不能据此承诺下次重启无需验证。Google Play 搜索因未登录没有完成；本版 Instinct 交接、其他机型和多日后台仍未验证。"
+    ]
+  },
+  "source_binding": {
+    "website_metadata_commit": "952ef586984d7e9fcc47ce9ec34f5ce045d441ce",
+    "android_build_commit": "87095a6cdcfb4b441161cb2f5f945c7e963368cf",
+    "android_source_inputs_rechecked_unchanged": 183,
+    "same_previously_verified_signed_apk_reused": true,
+    "apk_rebuilt_or_resigned_for_publication": false
+  },
+  "website": {
+    "origin": "https://airtap.memtrix.dev",
+    "deployment_kind": "android_update",
+    "previous_recommended_version_code": 52,
+    "recommended_version_code": 61,
+    "version_id": "2360d4d1-a5a3-4d43-8974-eee6cb76da76",
+    "frozen_build_manifest_sha256": "bb5dcc7fa51ac47f60bb20d33d368f5a34ccebe7a67aed9a86889fca9fced470",
+    "local_files_verified": 32,
+    "public_checks_passed": 72,
+    "first_full_verification_run_passed": true,
+    "retained_apk_count": 9,
+    "fixed_download_selects_exact_immutable_apk": true,
+    "public_transformations": [
+      {
+        "path": "/robots.txt",
+        "kind": "reviewed_managed_robots_prefix",
+        "prefix_bytes": 2676,
+        "prefix_sha256": "3073d1e371afb3271c7666148766fedc5145f7d8440f7114062db79b7bd58add",
+        "source_sha256": "d58c84797c04e430e32b11fffbcb73b63a0afd82b00b5f2134574a52c414306e",
+        "public_sha256": "542678d4397ddd6bf8c14d764a94e7f08d46e73aeb4a3c6751844c3dbb13920f"
+      }
+    ],
+    "local_layout_widths_checked": [
+      320,
+      390,
+      768,
+      1440
+    ],
+    "local_horizontal_overflow_found": false,
+    "local_release_checks": {
+      "worker_tests_passed": 17,
+      "python_tests_passed": 35
+    },
+    "network_limit": "One maintainer network vantage point and one complete public verification run; no all-region, long-term availability or recovery-time guarantee."
+  },
+  "github_release": {
+    "publication_in_this_operation": true,
+    "url": "https://github.com/hao-cyber/airtap/releases/tag/v0.4.0-beta.31",
+    "tag": "v0.4.0-beta.31",
+    "target_commit": "952ef586984d7e9fcc47ce9ec34f5ce045d441ce",
+    "asset_downloaded_and_matches_frozen_apk": true,
+    "verified_at": "2026-11-08T14:14:47.632140+00:00",
+    "prerelease": true,
+    "draft": false,
+    "retained_failure": "Initial create with abbreviated target rejected with VALIDATION_ERROR; a read confirmed release absent, then full SHA create succeeded."
+  },
+  "media": {
+    "existing_two_videos_unchanged": true,
+    "new_code61_recording": false,
+    "original_version_disclosures_retained": true
+  },
+  "unchanged_services": {
+    "phone_relay_deployment_changed": false,
+    "published_cli_version": "0.4.0-cli.13",
+    "published_cli_bytes_changed": false,
+    "scope": "Download website and Android recommendation only."
+  },
+  "acceptance_reference": "beta31-code61-recovery-20261108.json",
+  "not_verified_by_publication": [
+    "A future unattended reboot while the SIM PIN setting remains enabled",
+    "Instinct code61 phone tasks and two-AI handoff",
+    "Complete replacement and retirement of the previous device-control route",
+    "Independent newcomer first use, other phones, unplugged endurance or multi-day background use"
+  ],
+  "privacy_scope": "Public artifact identities and aggregate checks only; no device/connection identity, credentials, raw phone content, original chats or private paths."
+}

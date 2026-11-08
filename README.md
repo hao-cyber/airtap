@@ -42,7 +42,7 @@ AI 可以组合这些动作完成跨 App 任务，不限于计算器等演示应
 
 ## 当前支持情况
 
-官网当前提供 **0.4.0-beta.31（code61）**。本版修复部分手机的息屏恢复，并正确提示本轮发现的 SIM PIN 验证；已有配对与数据保留。[更新说明](release/android/61.json) · [检查与真机记录](docs/results/beta31-code61-recovery-20261108.json)。
+官网当前提供 **0.4.0-beta.31（code61）**。本版修复部分手机的息屏恢复，并正确提示本轮发现的 SIM PIN 验证；已有配对与数据保留。[更新说明](release/android/61.json) · [发布与下载核验](docs/results/beta31-code61-publication-20261108.json) · [检查与真机记录](docs/results/beta31-code61-recovery-20261108.json)。
 
 真机测试主要使用魅族 Note 16、Android 15。Muse 与 Instinct 已分别完成息屏后的任务；两者还完成了[持租时拒绝另一 AI、释放后接管的交接](docs/results/beta21-code51-two-ai-handoff-20261103.json)。这些结果保留失败恢复、维护者准备与取证限制。更多机型、纯移动网络完整任务、多日后台和独立新用户完整安装仍待验证。目前没有 iOS 客户端。
 
