@@ -747,6 +747,12 @@ public final class PreviewService extends AccessibilityService {
                     ui.execute(actionRequest, reply, commandCurrent, authority.claim, () -> authorityCurrent(authority));
                 }
                 @Override public void error(String code) { reply.error(code); }
+                @Override public void error(String code, String detail) {
+                    if (!commandCurrent.getAsBoolean()) return;
+                    activeCommand = 0;
+                    ws.send(RelayApi.json("id", requestId, "ok", false,
+                            "error", RelayApi.json("code", code, "next_step", detail)).toString());
+                }
             });
         } catch (ScopedUi.Refused failure) { if (id != null) error(ws, id, failure.code); }
         catch (Exception failure) {

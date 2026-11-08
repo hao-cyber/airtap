@@ -8,8 +8,9 @@ final class ScreenPreparation {
     static final long TIMEOUT_MS = 6000;
     static final long POLL_MS = 100;
     static final long SETTLE_MS = 250;
+    static final long WAKE_FALLBACK_MS = 1200;
 
-    enum Diagnostic { window_not_ready, dismiss_requested, api_success, api_error, api_cancelled, api_exception, timeout }
+    enum Diagnostic { window_not_ready, bootstrap_requested, dismiss_requested, api_success, api_error, api_cancelled, api_exception, timeout }
 
     enum State {
         READY("ready"), SCREEN_OFF("screen_off"), DISMISSIBLE_KEYGUARD("dismissible_keyguard"),
@@ -45,8 +46,16 @@ final class ScreenPreparation {
         default void diagnostic(Diagnostic branch) { }
         default void progress(String token) { }
         default void relocked(String token) { }
+        default void wakeFallback(String token, long remainingMillis) { }
+        default void releaseWake(String token) { }
+        default boolean recoveryStopped(String token) { return false; }
+        default String windowDiagnostic(String token) { return "unavailable"; }
     }
-    interface Completion { void ready(boolean recovered); void error(String code); }
+    interface Completion {
+        void ready(boolean recovered);
+        void error(String code);
+        default void error(String code, String detail) { error(code); }
+    }
     private final Platform platform;
     private Attempt active;
 
@@ -59,7 +68,12 @@ final class ScreenPreparation {
         long readySince = -1;
         long closingAt = -1;
         long goneSince = -1;
+        long fallbackWakeAt = -1;
         int dismissRequests, launches;
+        boolean dismissRetryAllowed;
+        boolean wakeFallbackRequested;
+        boolean fallbackWakeObserved;
+        Diagnostic lastDiagnostic;
         Attempt(BooleanSupplier current, Completion completion) {
             this.current = current; this.completion = completion;
             deadline = platform.now() + TIMEOUT_MS;
@@ -97,6 +111,21 @@ final class ScreenPreparation {
         return attempt.closingAt < 0;
     }
 
+    /** Only the first request may bootstrap before a draw; retries need a visible window. */
+    boolean canBootstrap(String token) {
+        return permit(token) && active != null && active.token.equals(token)
+                && active.dismissRequests == 0;
+    }
+
+    void recordDiagnostic(Diagnostic branch) {
+        // Timeout already has a separate elapsed/deadline outcome; retain the last useful event.
+        if (active != null && branch != Diagnostic.timeout) active.lastDiagnostic = branch;
+    }
+
+    void allowDismissRetry(String token) {
+        if (permit(token) && active != null && active.token.equals(token)) active.dismissRetryAllowed = true;
+    }
+
     /** Shared by all Activity instances belonging to this attempt. */
     int reserveDismiss(String token) {
         if (!permit(token)) return 0;
@@ -105,6 +134,8 @@ final class ScreenPreparation {
             finish(attempt, "device_keyguard_dismiss_failed");
             return 0;
         }
+        if (attempt.dismissRequests > 0 && !attempt.dismissRetryAllowed) return 0;
+        attempt.dismissRetryAllowed = false;
         return ++attempt.dismissRequests;
     }
 
@@ -129,6 +160,22 @@ final class ScreenPreparation {
         if (state == State.AUTHENTICATION_REQUIRED || state == State.UNAVAILABLE) {
             finish(attempt, state.error()); return;
         }
+        if (state == State.SCREEN_OFF && !attempt.wakeFallbackRequested
+                && platform.now() >= attempt.deadline - TIMEOUT_MS + WAKE_FALLBACK_MS
+                && attempt.closingAt < 0 && permit(attempt.token)) {
+            attempt.wakeFallbackRequested = true;
+            platform.wakeFallback(attempt.token, attempt.deadline - platform.now());
+            if (!live(attempt)) return;
+        }
+        if (state == State.DISMISSIBLE_KEYGUARD && attempt.wakeFallbackRequested && !attempt.fallbackWakeObserved) {
+            // A dismissal sent while dozing can remain pending without a callback. An observed
+            // screen-on transition permits one new native dismissal within the original two-call cap.
+            attempt.fallbackWakeObserved = true;
+            attempt.fallbackWakeAt = platform.now();
+            attempt.dismissRetryAllowed = true;
+            platform.relocked(attempt.token);
+            if (!live(attempt)) return;
+        }
         if (state == State.READY) {
             if (attempt.readySince < 0) attempt.readySince = platform.now();
             if (attempt.closingAt < 0 && platform.now() - attempt.readySince >= SETTLE_MS) {
@@ -148,8 +195,19 @@ final class ScreenPreparation {
             attempt.goneSince = -1;
             if (attempt.readySince >= 0) {
                 attempt.readySince = -1;
+                attempt.dismissRetryAllowed = true;
                 platform.relocked(attempt.token);
                 if (!live(attempt)) return;
+            }
+            if (state == State.DISMISSIBLE_KEYGUARD && attempt.fallbackWakeObserved
+                    && attempt.closingAt < 0 && attempt.launches < 2 && attempt.dismissRequests < 2
+                    && platform.now() - attempt.fallbackWakeAt >= SETTLE_MS
+                    && platform.recoveryStopped(attempt.token) && permit(attempt.token)) {
+                // A native wake can leave the pre-wake Activity stopped behind keyguard.
+                // Give its lifecycle time to resume, then replace only that stale window.
+                // The existing close/reopen path waits for removal and keeps both budgets.
+                attempt.closingAt = platform.now();
+                platform.close(attempt.token);
             }
             if (attempt.closingAt >= 0) {
                 // Reopen only after the previous temporary window is gone; keep the same budget.
@@ -199,13 +257,21 @@ final class ScreenPreparation {
             error = platform.state().error();
             if (error == null) error = "device_wake_failed";
         }
+        String detail = "Screen preparation: state=" + platform.state().wireName
+                + ", elapsed_ms=" + Math.max(0, Math.min(60000, platform.now() - attempt.deadline + TIMEOUT_MS))
+                + ", launches=" + attempt.launches + ", dismiss_requests=" + attempt.dismissRequests
+                + ", wake_fallback=" + attempt.wakeFallbackRequested
+                + ", last_event=" + (attempt.lastDiagnostic == null ? "none" : attempt.lastDiagnostic)
+                + ", window=[" + platform.windowDiagnostic(attempt.token) + "]"
+                + ". The requested action did not run; retain the pairing and inspect recovery before retrying.";
         active = null;
         platform.remove(attempt.tick);
+        platform.releaseWake(attempt.token);
         platform.close(attempt.token);
         platform.clearObservations();
         // close() can deliver lifecycle callbacks. Never complete an invalidated command.
         if (!attempt.current.getAsBoolean()) return;
-        if (error == null) attempt.completion.ready(true); else attempt.completion.error(error);
+        if (error == null) attempt.completion.ready(true); else attempt.completion.error(error, detail);
     }
 
     void cancel() {
@@ -213,6 +279,7 @@ final class ScreenPreparation {
         if (attempt == null) return;
         active = null;
         platform.remove(attempt.tick);
+        platform.releaseWake(attempt.token);
         platform.close(attempt.token);
         platform.clearObservations();
     }

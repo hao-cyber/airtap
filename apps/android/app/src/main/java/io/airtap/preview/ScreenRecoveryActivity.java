@@ -15,7 +15,7 @@ public final class ScreenRecoveryActivity extends Activity {
     private int readyGeneration, failedGeneration = -1, requests;
     private int callbackGeneration;
     private View decor;
-    private final Runnable dismiss = () -> { posted = false; dismissIfReady(); };
+    private final Runnable dismiss = () -> { posted = false; dismissIfReady(false); };
     private final ViewTreeObserver.OnPreDrawListener beforeDraw = () -> {
         drawn = true;
         windowSignal();
@@ -41,6 +41,9 @@ public final class ScreenRecoveryActivity extends Activity {
         super.onResume();
         resumed = true;
         if (recovery == null || !recovery.permit(token, this)) { closeRecovery(); return; }
+        // The platform accepts an Activity that would be visible without keyguard and can
+        // turn its screen on during dismissal. Requiring a drawn frame first can deadlock.
+        dismissIfReady(true);
         windowSignal();
     }
     @Override public void onWindowFocusChanged(boolean hasFocus) {
@@ -54,7 +57,11 @@ public final class ScreenRecoveryActivity extends Activity {
                 && decor.isShown() && decor.getWindowVisibility() == View.VISIBLE;
     }
     void progress() {
-        if (!isFinishing() && !isDestroyed() && recovery.permit(token, this)) windowSignal();
+        if (!isFinishing() && !isDestroyed() && recovery.permit(token, this)) {
+            // Only an unused first request can bootstrap. A replacement must draw before retrying.
+            dismissIfReady(true);
+            windowSignal();
+        }
     }
     void relocked() {
         if (!isFinishing() && !isDestroyed() && recovery.permit(token, this)) {
@@ -81,9 +88,11 @@ public final class ScreenRecoveryActivity extends Activity {
             decor.post(dismiss);
         }
     }
-    private void dismissIfReady() {
+    private void dismissIfReady(boolean bootstrap) {
         if (isFinishing() || isDestroyed()) return;
-        if (!visibleWindow()) { windowReady = false; return; }
+        if (bootstrap) {
+            if (!resumed || !visible || decor == null || !recovery.canBootstrap(token, this)) return;
+        } else if (!visibleWindow()) { windowReady = false; return; }
         if (requested || requests >= 2 || (requests > 0 && readyGeneration <= failedGeneration)) return;
         if (!recovery.permit(token, this)) { closeRecovery(); return; }
         KeyguardManager keyguard = getSystemService(KeyguardManager.class);
@@ -97,6 +106,7 @@ public final class ScreenRecoveryActivity extends Activity {
         requested = true;
         requests = reservation;
         final int request = ++callbackGeneration;
+        if (bootstrap) recovery.diagnostic(ScreenPreparation.Diagnostic.bootstrap_requested);
         recovery.diagnostic(ScreenPreparation.Diagnostic.dismiss_requested);
         try {
             keyguard.requestDismissKeyguard(this, new KeyguardManager.KeyguardDismissCallback() {
@@ -110,6 +120,7 @@ public final class ScreenRecoveryActivity extends Activity {
                     if (!accept()) return;
                     recovery.diagnostic(ScreenPreparation.Diagnostic.api_error);
                     if (requests >= 2) { recovery.failed(token, "device_keyguard_dismiss_failed"); return; }
+                    recovery.allowDismissRetry(token, ScreenRecoveryActivity.this);
                     requested = false;
                     failedGeneration = readyGeneration;
                     // Only a new ready-window signal permits one retry within the original deadline.
@@ -130,6 +141,11 @@ public final class ScreenRecoveryActivity extends Activity {
         }
     }
     boolean isRecoveryVisible() { return visible && !isDestroyed(); }
+    boolean isRecoveryStopped() { return !visible && !resumed; }
+    String windowDiagnostic() {
+        return "visible=" + visible + ",resumed=" + resumed + ",drawn=" + drawn
+                + ",attached=" + (decor != null && decor.isAttachedToWindow()) + ",focused=" + focused;
+    }
     void closeRecovery() {
         if (decor != null) {
             decor.removeCallbacks(dismiss);
@@ -142,7 +158,8 @@ public final class ScreenRecoveryActivity extends Activity {
     }
     @Override protected void onPause() {
         resumed = false;
-        drawn = false;
+        // A pause/resume can reuse the same drawn surface without another pre-draw callback.
+        // Resumed/attached/shown/window visibility still gate every retry.
         windowReady = false;
         focused = false;
         if (decor != null) decor.removeCallbacks(dismiss);

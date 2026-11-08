@@ -1,7 +1,7 @@
 {
   "allowlist_path": "tools/source-package-files.json",
-  "android_version": "0.4.0-beta.24",
-  "archive_root": "airtap-source-0.4.0-beta.24-code54",
+  "android_version": "0.4.0-beta.31",
+  "archive_root": "airtap-source-0.4.0-beta.31-code61",
   "cli_version": "0.4.0-cli.13",
   "closure_policy": "airtap-source-closure-v1",
   "files": [
@@ -457,6 +457,10 @@
     },
     {
       "kind": "source",
+      "path": "apps/android/scripts/test_screen_recovery_activity.py"
+    },
+    {
+      "kind": "source",
       "path": "apps/android/scripts/test_semantic_nodes.py"
     },
     {
@@ -470,10 +474,6 @@
     {
       "kind": "source",
       "path": "apps/android/scripts/test_session_screen.py"
-    },
-    {
-      "kind": "source",
-      "path": "apps/android/scripts/test_screen_recovery_activity.py"
     },
     {
       "kind": "source",
@@ -841,6 +841,10 @@
     },
     {
       "kind": "result",
+      "path": "docs/results/apk-download-range-publication-20261108.json"
+    },
+    {
+      "kind": "result",
       "path": "docs/results/beta12-code42-background-observation-20261101.json"
     },
     {
@@ -918,6 +922,10 @@
     {
       "kind": "result",
       "path": "docs/results/beta3-remote-recovery-20261026.json"
+    },
+    {
+      "kind": "result",
+      "path": "docs/results/beta31-code61-recovery-20261108.json"
     },
     {
       "kind": "result",
@@ -1026,6 +1034,10 @@
     {
       "kind": "result",
       "path": "docs/results/cli12-lease-recovery-delivery-20261102.json"
+    },
+    {
+      "kind": "result",
+      "path": "docs/results/cli13-publication-20261107.json"
     },
     {
       "kind": "result",
@@ -1301,6 +1313,10 @@
     },
     {
       "kind": "source",
+      "path": "release/android/61.json"
+    },
+    {
+      "kind": "source",
       "path": "release/build_android.py"
     },
     {
@@ -1425,6 +1441,6 @@
   "protocol_version": 4,
   "schema": "airtap-source-allowlist-v1",
   "scope": "Reviewed current Android, CLI, relay, site, build, CI and test source closure. No Git history, credentials, private deployment state, APK, or raw phone evidence. Historical acceptance retains its original version and scope; a source ZIP is not public release approval.",
-  "version": "0.4.0-beta.24-code54",
-  "version_code": 54
+  "version": "0.4.0-beta.31-code61",
+  "version_code": 61
 }

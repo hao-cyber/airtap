@@ -1,0 +1,73 @@
+{
+  "schema": "airtap-scoped-device-acceptance-v1",
+  "recorded_at": "2026-11-08",
+  "status": "bounded_recovery_passed_not_complete_migration",
+  "version_code": 61,
+  "version_name": "0.4.0-beta.31",
+  "apk_sha256": "6ace9ef5178610c5eac7f62594b1616763d33c248380ab4f2648058403e4a390",
+  "apk_bytes": 607693,
+  "source_commit": "87095a6cdcfb4b441161cb2f5f945c7e963368cf",
+  "build": {
+    "clean_source": true,
+    "core_steps_passed": 39,
+    "production_recovery_activity_scenarios_passed": 41,
+    "release_build_lint_and_native_identity_passed": true,
+    "release_signature_unchanged": true,
+    "test_boundary": "Host state-machine and production Activity checks use Android platform fakes. They do not prove real OEM recovery."
+  },
+  "device": {
+    "model": "Meizu Note 16",
+    "android_version": 15,
+    "physical_usb_connected_for_power": true
+  },
+  "agent": {
+    "name": "Muse",
+    "cli_version": "0.4.0-cli.13",
+    "original_pairing_retained": true,
+    "source_of_results": "Actual original-chat task receipts, with independent read-only maintenance state/log samples. Full cloud tool trace and raw screenshots were not exported."
+  },
+  "preparation_and_prior_failures": [
+    "Earlier candidates could not dismiss this phone's keyguard. Maintainer inspection found the OEM Show on lock screen setting disabled; the setting was enabled through normal system UI.",
+    "On code60 after that setting change, Muse visually verified two screen-off recoveries, a calculator result and return home. Following an ordinary reboot, the original pairing reconnected; the first observed reconnection was within 149 seconds, a polling observation rather than a bound.",
+    "That reboot stopped at a real SIM PIN prompt. Code60 misclassified it as dismissible keyguard. No PIN was tried by the maintainer or AI.",
+    "The same-signature code61 upgrade used authorized USB maintenance and retained the pairing. This installation is not evidence of a cloud-only upgrade."
+  ],
+  "code61_sim_authentication_check": {
+    "fresh_ping": "authentication_required",
+    "single_observe_result": "device_authentication_required",
+    "reported_elapsed_seconds": 1.25,
+    "screen_recovery_or_gui_action_attempted": false,
+    "pin_attempted": false,
+    "lease_released": true,
+    "scope": "Actual SIM-only secure keyguard on this phone; not every combination of SIM and device authentication."
+  },
+  "code61_after_owner_authentication": {
+    "owner_action": "Owner completed SIM PIN verification before the round. Fresh maintenance state was nonsecure keyguard and Dozing.",
+    "wake_trials": [
+      {"confirmed_screen_off": true, "single_observe": true, "reported_elapsed_seconds": 4.9, "desktop_visually_verified_by_agent": true},
+      {"confirmed_screen_off_after_lock_and_wait": true, "wait_seconds": 10, "single_observe": true, "reported_elapsed_seconds": 4.2, "desktop_visually_verified_by_agent": true}
+    ],
+    "sms": {
+      "list_and_conversation_sender_date_checked": true,
+      "folded_or_filter_entry_seen_in_scanned_view": false,
+      "welcome_titled_message_found": false,
+      "live_otp_delivery_tested": false,
+      "boundary": "A bounded GUI inspection of existing carrier notifications, not proof that every SMS source or future OTP is covered."
+    },
+    "google_play": {"opened": true, "login_required": true, "maps_search_completed": false, "account_changed": false},
+    "sim_pin_protection_still_enabled": true,
+    "new_reboot_performed": false,
+    "final_home_and_lease_release": true,
+    "maintenance_gui_actions_during_round": false,
+    "maintenance_observation": "Read-only system state and filtered recovery logs; no UiAutomation dump or task substitution."
+  },
+  "not_verified": [
+    "A subsequent unattended reboot with the SIM PIN setting still enabled",
+    "Google Play account setup or Google Maps search",
+    "A new live verification SMS and complete inbox coverage",
+    "Instinct on code61, cross-runtime credential retention and two-AI handoff",
+    "Independent newcomer first use, physically unplugged endurance, other phones and multiple-day background operation",
+    "Retirement of the previous device control route"
+  ],
+  "privacy_scope": "Aggregate release and bounded test facts only; no phone number, sender identifier, message content, SIM identifiers, pairing details, screenshots or private paths."
+}

@@ -582,11 +582,11 @@ public final class MainActivity extends Activity {
     }
     private String backgroundInstructions() {
         String maker = (android.os.Build.MANUFACTURER + " " + android.os.Build.BRAND).toLowerCase(java.util.Locale.ROOT);
-        if (maker.contains("meizu")) return "魅族手机通常需要分别检查两处：\n1. Airtap 应用信息 → 耗电和后台 → 手动管理：开启‘允许自启动’、‘允许关联启动’、‘允许后台运行’三项。\n2. Android 电池优化 → Airtap：选择‘无限制’或‘不优化’。\n菜单名称因系统版本而异；开启开关不代表已经验证成功。完成后让 AI 测试息屏后的任务。验证重启恢复时，先观察原连接是否自行恢复，再打开 App，避免手动启动掩盖问题。";
+        if (maker.contains("meizu")) return "魅族手机需要检查后台运行和锁屏显示：\n1. Airtap 应用信息 → 权限管理：开启‘锁屏显示’，让恢复窗口能出现在锁屏上。\n2. 耗电和后台 → 手动管理：开启‘允许自启动’、‘允许关联启动’、‘允许后台运行’。\n3. Android 电池优化 → Airtap：选择‘无限制’或‘不优化’。\n只调整 Airtap；菜单名称以当前系统为准。锁屏显示不会取消密码验证。完成后让 AI 验证息屏后的任务与正常重启恢复，不要先手动亮屏或打开 App。";
         return "请在 Airtap 的应用信息中允许后台运行，再检查电池优化设置，为 Airtap 选择‘无限制’或‘不优化’。不同手机的名称可能不同；只需设置 Airtap。完成后让 AI 测试一次息屏后的任务，确认能正常收到并执行。";
     }
     private void backgroundPreparation() {
-        new AlertDialog.Builder(this).setTitle("保持后台连接")
+        new AlertDialog.Builder(this).setTitle("后台与锁屏设置")
                 .setMessage(backgroundInstructions() + "\n\n完成后返回 Airtap，已有配对会保留。")
                 .setPositiveButton("打开 Airtap 应用信息", (dialog, which) -> {
                     try { startActivity(new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, android.net.Uri.parse("package:" + getPackageName()))); }
@@ -641,7 +641,7 @@ public final class MainActivity extends Activity {
         } catch (Exception unavailable) { }
         try {
             android.app.KeyguardManager keyguard = getSystemService(android.app.KeyguardManager.class);
-            if (keyguard != null) { secure = keyguard.isDeviceSecure(); authentication = keyguard.isDeviceLocked(); }
+            if (keyguard != null) { secure = keyguard.isDeviceSecure(); authentication = ScreenRecovery.authenticationRequired(keyguard); }
         } catch (Exception unavailable) { }
         return new RemoteReadiness.Snapshot(network, PreviewService.instance != null,
                 SessionService.notificationsAllowed(this), battery, secure, authentication);
