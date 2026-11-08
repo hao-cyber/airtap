@@ -49,7 +49,7 @@
 - 独立的 `0.4.1-device-preview` 曾记录 Android 平板和 TV 模拟器适配、方向键和维护者 CLI 验收；该历史实验及其发行制品不随本次 Android 手机源码公开。没有实体平板／电视或个人 AI 的新平台验收，不能由此宣称全设备支持。它不属于本手机发布目录的同一 APK。
 - 历史 Android `0.4.0-beta.21`（code51）的实际部署及下载核验见[发布记录](results/beta21-code51-publication-20261103.json)，身份固定在[版本资料](../release/android/51.json)和[制品与发布准备记录](results/beta21-code51-release-preparation-20261103.json)。[Muse 息屏任务](results/beta21-code51-muse-cli12-wake-20261103.json)、[Instinct 息屏任务](results/beta21-code51-instinct-cli12-wake-20261103.json)及[双 AI 交接](results/beta21-code51-two-ai-handoff-20261103.json)已分别完成限定验收；[短时断网](results/beta21-code51-network-recovery-20261102.json)与[供电静置观察](results/beta21-code51-idle-20261103.json)保持各自范围。旧版录屏、历史验收不能替代新版完整验收；真正新运行环境中的配置保留、独立新用户首用、更多机型和多日后台仍按实际证据记录。该版发布不代表重启后的全部日常用途、其他设备迁移或上述待验范围已经通过。
 
-- 官网推荐版本更新为 code61／beta.31，制品身份见[版本资料](../release/android/61.json)，[恢复检查与 Muse 实测](results/beta31-code61-recovery-20261108.json)记录两次息屏唤醒、短信界面核对及 SIM 验证的实际条件。本版不等于重启后无需身份验证；Instinct、本版双 AI 交接和小黑旧链路退役未完成。历史 [code52 发布记录](results/beta22-code52-publication-20261104.json)保持原范围。
+- 官网推荐版本更新为 code62／beta.32，制品身份见[版本资料](../release/android/62.json)。本版按 [Grok 复核](results/grok-code61-review-20261109.json)修正系统验证提示，恢复与鉴权处理沿用 code61；[code61 恢复检查与 Muse 实测](results/beta31-code61-recovery-20261108.json)保留其原条件。本版不等于重启后无需身份验证；Instinct、当前版本双 AI 交接和小黑旧链路退役未完成。历史 [code52 发布记录](results/beta22-code52-publication-20261104.json)保持原范围。
 - 连接恢复说明须区分单次网络期限、重试间隔与总重试次数。code52 的 HTTP 核验单次总期限为 20 秒，未知结果后间隔 10 秒重试；WebSocket 未经核实的拒绝先等 2 秒再核验，没有总重试次数上限。保留原配对不等于允许继续操作；核实前暂停控制，用户停止、撤销或系统身份验证边界保持有效。
 
 ## 设备扩展原则
