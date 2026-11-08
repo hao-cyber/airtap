@@ -5,6 +5,8 @@ const protection = {
 };
 const retiredPage = '<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>安装包已停止提供 · Airtap</title><link rel="stylesheet" href="/style.css"><main class="document"><a href="/">← Airtap</a><h1>请使用当前版本</h1><p>这个旧安装包已停止提供，请前往安装页下载当前版本。</p><p><a href="/install">前往安装页</a></p></main></html>';
 const videoPath = path => /^\/media\/[a-z0-9-]+\.mp4$/.test(path);
+const apkPath = path => /^\/downloads\/[a-f0-9]{64}\.apk$/.test(path);
+const binaryPath = path => videoPath(path) || apkPath(path);
 function fixedBody(body, size) {
   // Workers derives Content-Length from the stream type, not a manually set
   // header. Node's test runtime has no FixedLengthStream.
@@ -13,11 +15,19 @@ function fixedBody(body, size) {
   body.pipeTo(stream.writable).catch(() => {}); // Failure also errors the readable side.
   return stream.readable;
 }
-async function videoResponse(request, response, env, path) {
+async function binaryResponse(request, response, env, path) {
   if (response.status !== 200) return response;
   const headers = new Headers(response.headers);
   let size = Number(headers.get('Content-Length'));
-  if (!size) {
+  if (!size && apkPath(path)) {
+    try {
+      const metadata = await env.ASSETS.fetch(new Request(new URL('/updates/android-downloads.json', request.url)));
+      const inventory = await metadata.json();
+      const bytes = inventory.sizes?.[path.slice('/downloads/'.length, -4)];
+      if (metadata.ok && inventory.schema === 'airtap-android-downloads-v1' && validBinarySize(bytes, path)) size = bytes;
+    } catch { /* An incomplete deployment must not guess an APK length. */ }
+  }
+  if (!size && videoPath(path)) {
     // ASSETS may omit length even for GET. Only these two independently reviewed
     // manifests, deployed atomically with their bytes, can provide it.
     for (const kind of ['usage', 'install']) {
@@ -31,14 +41,10 @@ async function videoResponse(request, response, env, path) {
         }
       } catch { /* An omitted guide must not prevent the other film playing. */ }
     }
-    if (!size) {
-      await response.body?.cancel();
-      return new Response('Video temporarily unavailable', {status:502});
-    }
   }
-  if (!validVideoSize(size) || !response.body) {
+  if (!validBinarySize(size, path) || !response.body) {
     await response.body?.cancel();
-    return new Response('Video temporarily unavailable', {status:502});
+    return new Response('Download temporarily unavailable', {status:502});
   }
   headers.set('Accept-Ranges', 'bytes');
   headers.set('Content-Length', String(size));
@@ -70,7 +76,7 @@ async function videoResponse(request, response, env, path) {
     async pull(controller) {
       while (true) {
         const chunk = await reader.read();
-        if (chunk.done) { controller.error(new Error('Video asset ended early')); return; }
+        if (chunk.done) { controller.error(new Error('Binary asset ended early')); return; }
         const begin = offset; offset += chunk.value.length;
         if (offset <= start) continue;
         controller.enqueue(chunk.value.subarray(Math.max(0, start - begin), Math.min(chunk.value.length, end + 1 - begin)));
@@ -83,21 +89,24 @@ async function videoResponse(request, response, env, path) {
   return new Response(fixedBody(body, end - start + 1), {status:206, headers});
 }
 const validVideoSize = value => Number.isSafeInteger(value) && value >= 1 && value <= 20 * 1024 * 1024;
+const validBinarySize = (value, path) => apkPath(path)
+  ? Number.isSafeInteger(value) && value >= 1 && value <= 25 * 1024 * 1024
+  : validVideoSize(value);
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
     if (!['GET', 'HEAD'].includes(request.method)) return new Response('Method not allowed', {status:405, headers:{Allow:'GET, HEAD'}});
     const asset = async path => {
       const headers = new Headers();
-      // Preserve native video seeking without forwarding cookies or credentials.
-      if (videoPath(path) && request.method === 'GET') {
+      // Preserve seeking and APK resume without forwarding cookies or credentials.
+      if (binaryPath(path) && request.method === 'GET') {
         for (const name of ['Range', 'If-Range']) {
           if (request.headers.has(name)) headers.set(name, request.headers.get(name));
         }
       }
       // A known-length GET body lets the HTTP runtime retain length for HEAD.
       return env.ASSETS.fetch(new Request(new URL(path, url), {
-        method: videoPath(path) && request.method === 'HEAD' ? 'GET' : request.method, headers,
+        method: binaryPath(path) && request.method === 'HEAD' ? 'GET' : request.method, headers,
       }));
     };
     const apkMatch = /^\/downloads\/([a-f0-9]{64})\.apk$/.exec(url.pathname);
@@ -125,14 +134,14 @@ export default {
     const pages = {'/':'/index.html','/install':'/index.html','/help':'/index.html','/privacy':'/privacy.html','/release-notes':'/release-notes.html'};
     const path = pages[url.pathname.replace(/\/$/, '') || '/'] || url.pathname;
     let response = await asset(path);
-    // Some ASSETS implementations ignore Range. Slice their stream only when
-    // needed; never buffer the whole video or apply this behavior to APKs.
-    if (videoPath(path)) response = await videoResponse(request, response, env, path);
+    // Some ASSETS implementations ignore Range. Slice only when needed, without
+    // buffering a whole APK or video. Retirement is checked before either path.
+    if (binaryPath(path)) response = await binaryResponse(request, response, env, path);
     const headers = new Headers(response.headers);
     for (const [key, value] of Object.entries(protection)) headers.set(key, value);
     // Keep public pages fresh and prevent the CDN from injecting analytics scripts.
     headers.set('Cache-Control', /^\/downloads\/[a-f0-9]{64}\.apk$/.test(path) && response.ok ? 'public, max-age=31536000, immutable' : 'public, no-cache, no-transform');
-    if (path === '/updates/android.json' || path === '/updates/retired-android.json') headers.set('Cache-Control', 'no-store');
+    if (['/updates/android.json', '/updates/retired-android.json', '/updates/android-downloads.json'].includes(path)) headers.set('Cache-Control', 'no-store');
     if (path.endsWith('.apk') && response.ok) {
       headers.set('Content-Type','application/vnd.android.package-archive');
       headers.set('Content-Disposition','attachment; filename="Airtap.apk"');

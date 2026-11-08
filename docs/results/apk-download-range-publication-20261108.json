@@ -1,0 +1,42 @@
+{
+  "schema": 1,
+  "date": "2026-11-08",
+  "component": "public Android download website",
+  "source_commit": "3cc7edefff80c3ea2e978c4f68b8901d66bb8b5f",
+  "deployment_version": "e24e2782-fb78-4466-9afc-20d5fcc511ee",
+  "origin": "https://airtap.memtrix.dev",
+  "recommended_android_version_code": 52,
+  "observed_before": {
+    "apk_head_content_length_missing": true,
+    "apk_range_request_returned_full_200": true
+  },
+  "change": "Serve known-length APK HEAD responses and single byte ranges; use a byte-length inventory generated from the frozen retained artifacts when static hosting omits lengths. Preserve retirement checks and stream partial data without buffering the full asset.",
+  "checks": {
+    "worker_tests": 17,
+    "release_python_tests": 35,
+    "local_files_verified": 28,
+    "public_checks_passed": 60,
+    "full_apk_bytes_head_lengths_and_ranges_verified": true,
+    "existing_video_get_head_range_verified": true,
+    "retired_apk_get_head_410_verified": true
+  },
+  "unchanged": {
+    "recommended_apk": true,
+    "all_existing_apk_bytes": true,
+    "pages_and_media_bytes": true,
+    "phone_relay": true,
+    "pairing_and_credentials": true
+  },
+  "limits": [
+    "The HTTP checks use one maintainer network vantage point; they do not establish all-region or phone-network reliability.",
+    "A phone browser download stall was separately observed. Its later normal download succeeded after the personal AI accepted a storage prompt, before this website deployment. The first stall cause remains unproven; this change is not claimed as its demonstrated fix.",
+    "Candidate APK availability does not establish installation, wake/keyguard recovery or a change to the recommended version."
+  ],
+  "subsequent_candidate_asset_addition": {
+    "deployment_version": "2e87d4d8-983b-4152-8be2-1e609ff8ae25",
+    "only_new_code58_apk_and_its_length_entry": true,
+    "worker_unchanged": true,
+    "new_apk_get_head_range_verified": true,
+    "recommendation_unchanged": true
+  }
+}

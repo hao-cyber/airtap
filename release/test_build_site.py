@@ -81,6 +81,9 @@ class Releases(unittest.TestCase):
             self.assertEqual(result['deployment_kind'], 'android_update')
             for sha, content in [(new['apk_sha256'], data), (release['apk_sha256'], old_data)]:
                 self.assertEqual((tmp / 'new/site/downloads' / (sha + '.apk')).read_bytes(), content)
+            inventory=json.loads((tmp / 'new/site/updates/android-downloads.json').read_text())
+            self.assertEqual(inventory, {'schema':'airtap-android-downloads-v1',
+                                        'sizes':{new['apk_sha256']:len(data), release['apk_sha256']:len(old_data)}})
 
     def retirement_policy(self, tmp, hashes):
         policy = tmp / 'retired-apks.json'
@@ -98,6 +101,8 @@ class Releases(unittest.TestCase):
             with self.retirement_policy(tmp, [retired]):
                 self.build(tmp, release, data, previous)
             self.assertEqual(old_path.read_bytes(), retired_data)
+            inventory=json.loads((tmp / 'new/site/updates/android-downloads.json').read_text())
+            self.assertNotIn(retired,inventory['sizes'])
             self.assertFalse((tmp / 'new/site/downloads' / (retired + '.apk')).exists())
             self.assertEqual(list((tmp / 'new/site/downloads').glob('*.apk')), [tmp / 'new/site/downloads' / (release['apk_sha256'] + '.apk')])
             self.assertEqual(json.loads((tmp / 'new/site/updates/retired-android.json').read_text())['sha256'], [retired])

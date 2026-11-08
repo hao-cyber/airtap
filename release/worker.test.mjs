@@ -3,12 +3,12 @@ import assert from 'node:assert/strict';
 import worker from './worker.mjs';
 const hash='a'.repeat(64);
 const retiredHash='b'.repeat(64);
-const assets={'/updates/android.json':JSON.stringify({apk_sha256:hash}),'/updates/retired-android.json':JSON.stringify({schema:'airtap-retired-android-artifacts-v1',sha256:[retiredHash]}),'/index.html':'home','/privacy.html':'privacy','/release-notes.html':'notes',[`/downloads/${hash}.apk`]:'APK'};
+const assets={'/updates/android.json':JSON.stringify({apk_sha256:hash}),'/updates/android-downloads.json':JSON.stringify({schema:'airtap-android-downloads-v1',sizes:{[hash]:3}}),'/updates/retired-android.json':JSON.stringify({schema:'airtap-retired-android-artifacts-v1',sha256:[retiredHash]}),'/index.html':'home','/privacy.html':'privacy','/release-notes.html':'notes',[`/downloads/${hash}.apk`]:'APK'};
 const env={ASSETS:{fetch:async request=>{const p=new URL(request.url).pathname;return new Response(request.method==='HEAD'?null:assets[p]||'missing',{status:p in assets?200:404});}}};
 const get=(path,method='GET')=>worker.fetch(new Request('https://airtap.test'+path,{method}),env);
 test('recommendation redirects temporarily to an immutable APK with no stale cache',async()=>{const r=await get('/download/android');assert.equal(r.status,302);assert.equal(r.headers.get('Location'),`/downloads/${hash}.apk`);assert.equal(r.headers.get('Cache-Control'),'no-store');});
 test('home install help are the same stable entry and documents resolve',async()=>{for(const p of ['/','/install','/install/','/help'])assert.equal(await(await get(p)).text(),'home');assert.equal(await(await get('/privacy')).text(),'privacy');assert.equal(await(await get('/release-notes')).text(),'notes');});
-test('immutable APK has installer MIME, friendly filename, cache and HEAD behavior',async()=>{const r=await get(`/downloads/${hash}.apk`);assert.equal(r.headers.get('Content-Type'),'application/vnd.android.package-archive');assert.match(r.headers.get('Cache-Control'),/immutable/);assert.equal(r.headers.get('Content-Disposition'),'attachment; filename="Airtap.apk"');assert.equal(await(await get(`/downloads/${hash}.apk`,'HEAD')).text(),'');});
+test('immutable APK has installer MIME, friendly filename, cache and known-length HEAD behavior',async()=>{const r=await get(`/downloads/${hash}.apk`);assert.equal(r.headers.get('Content-Type'),'application/vnd.android.package-archive');assert.match(r.headers.get('Cache-Control'),/immutable/);assert.equal(r.headers.get('Content-Disposition'),'attachment; filename="Airtap.apk"');const head=await get(`/downloads/${hash}.apk`,'HEAD');assert.equal(head.headers.get('Content-Length'),'3');assert.equal(head.headers.get('Accept-Ranges'),'bytes');assert.equal(await head.text(),'APK');/* The HTTP runtime strips HEAD's known-length body. */});
 test('updates cannot be cached and private or unknown paths do not fall back to homepage',async()=>{assert.equal((await get('/updates/android.json')).headers.get('Cache-Control'),'no-store');assert.equal((await get('/secrets.json')).status,404);assert.equal((await get('/download/android','POST')).status,405);});
 test('bad recommendation fails closed',async()=>{const r=await worker.fetch(new Request('https://airtap.test/download/android'),{ASSETS:{fetch:async()=>new Response('{"apk_sha256":"../secret"}')}});assert.equal(r.status,503);});
 test('public pages revalidate and forbid CDN script injection',async()=>{for(const p of ['/','/help','/privacy','/release-notes']){const r=await get(p);assert.equal(r.headers.get('Cache-Control'),'public, no-cache, no-transform');assert.match(r.headers.get('Content-Security-Policy'),/script-src 'self'/);}});
@@ -118,4 +118,54 @@ test('installation film survives omitted usage media but rejects wrong or unboun
     assert.equal(r.status,status);
     if(status===206)assert.equal(await r.text(),'234');
   }
+});
+test('APK resume uses a streamed partial response when ASSETS ignores ranges',async()=>{
+  for(const [range,ifRange,status,body,contentRange] of [
+    ['bytes=2-5',null,206,'2345','bytes 2-5/10'],['bytes=7-',null,206,'789','bytes 7-9/10'],
+    ['bytes=-3',null,206,'789','bytes 7-9/10'],['bytes=10-',null,416,'','bytes */10'],
+    ['bytes=2-4','"old"',200,'0123456789',null],['bytes=2-4','"apk"',206,'234','bytes 2-4/10'],
+  ]) {
+    const requestHeaders={Range:range,Authorization:'private',Cookie:'private'};
+    if(ifRange)requestHeaders['If-Range']=ifRange;
+    const r=await worker.fetch(new Request(`https://airtap.test/downloads/${hash}.apk?download=1`,{headers:requestHeaders}),{ASSETS:{fetch:async req=>{
+      if(new URL(req.url).pathname==='/updates/retired-android.json')return env.ASSETS.fetch(req);
+      assert.equal(req.method,'GET');assert.equal(req.headers.get('Range'),range);
+      assert.equal(req.headers.get('If-Range'),ifRange);
+      assert.equal(req.headers.get('Authorization'),null);assert.equal(req.headers.get('Cookie'),null);
+      return new Response('0123456789',{headers:{'Content-Length':'10','ETag':'"apk"'}});
+    }}});
+    assert.equal(r.status,status);assert.equal(r.headers.get('Content-Range'),contentRange);
+    assert.equal(await r.text(),body);
+    if(status!==416){assert.equal(r.headers.get('Content-Length'),String(body.length));assert.match(r.headers.get('Content-Type'),/package-archive/);}
+  }
+});
+test('APK HEAD ignores Range and uses a matching bounded inventory when ASSETS omits length',async()=>{
+  for(const [inventory,status] of [
+    [{schema:'airtap-android-downloads-v1',sizes:{[hash]:10}},200],
+    [{schema:'wrong',sizes:{[hash]:10}},502],
+    [{schema:'airtap-android-downloads-v1',sizes:{['c'.repeat(64)]:10}},502],
+    [{schema:'airtap-android-downloads-v1',sizes:{[hash]:26*1024*1024}},502],
+    [{schema:'airtap-android-downloads-v1',sizes:{[hash]:'10'}},502],
+  ]) {
+    const r=await worker.fetch(new Request(`https://airtap.test/downloads/${hash}.apk`,{method:'HEAD',headers:{Range:'bytes=2-4'}}),{ASSETS:{fetch:async req=>{
+      const path=new URL(req.url).pathname;
+      if(path==='/updates/retired-android.json')return env.ASSETS.fetch(req);
+      if(path==='/updates/android-downloads.json')return new Response(JSON.stringify(inventory));
+      assert.equal(req.method,'GET');assert.equal(req.headers.get('Range'),null);
+      return new Response('0123456789');
+    }}});
+    assert.equal(r.status,status);
+    if(status===200){assert.equal(r.headers.get('Content-Length'),'10');assert.equal(r.headers.get('Content-Range'),null);assert.equal(await r.text(),'0123456789');}
+  }
+  assert.equal((await get('/updates/android-downloads.json')).headers.get('Cache-Control'),'no-store');
+});
+test('native APK partial responses retain byte ranges and immutable identity',async()=>{
+  const r=await worker.fetch(new Request(`https://airtap.test/downloads/${hash}.apk`,{headers:{Range:'bytes=4-6'}}),{ASSETS:{fetch:async req=>{
+    if(new URL(req.url).pathname==='/updates/retired-android.json')return env.ASSETS.fetch(req);
+    assert.equal(req.headers.get('Range'),'bytes=4-6');
+    return new Response('456',{status:206,headers:{'Content-Length':'3','Content-Range':'bytes 4-6/10'}});
+  }}});
+  assert.equal(r.status,206);assert.equal(r.headers.get('Content-Range'),'bytes 4-6/10');
+  assert.equal(r.headers.get('Content-Length'),'3');assert.match(r.headers.get('Cache-Control'),/immutable/);
+  assert.equal(await r.text(),'456');
 });

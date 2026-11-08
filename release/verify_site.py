@@ -56,6 +56,10 @@ def read_build(build):
     for name, data in contents.items():
         if name.startswith('site/downloads/') and (not name.endswith('.apk') or name != 'site/downloads/' + sha(data) + '.apk'):
             raise ValueError('Immutable APK name differs from its content')
+    inventory = json.loads(contents['site/updates/android-downloads.json'])
+    sizes = {sha(data):len(data) for name,data in contents.items() if name.startswith('site/downloads/')}
+    if inventory != {'schema':'airtap-android-downloads-v1','sizes':sizes}:
+        raise ValueError('APK download lengths differ from frozen assets')
     if 'site/updates/retired-android.json' in contents:
         retired = retirement_metadata(json.loads(contents['site/updates/retired-android.json']))['sha256']
         if release['apk_sha256'] in retired or any('site/downloads/' + value + '.apk' in contents for value in retired):
@@ -121,7 +125,7 @@ def verify(build, base_url=None, fetch=request, managed_robots_prefix=None):
                                         'prefix_bytes': len(prefix), 'prefix_sha256': sha(prefix),
                                         'source_sha256': sha(expected), 'public_sha256': sha(data)})
             apk = path.endswith('.apk')
-            cache = 'public, max-age=31536000, immutable' if apk else 'no-store' if path in ('/updates/android.json', '/updates/retired-android.json') else 'public, no-cache, no-transform'
+            cache = 'public, max-age=31536000, immutable' if apk else 'no-store' if path in ('/updates/android.json', '/updates/retired-android.json', '/updates/android-downloads.json') else 'public, no-cache, no-transform'
             if headers.get('cache-control') != cache:
                 raise ValueError('Unexpected cache policy: ' + path)
             if headers.get('x-content-type-options') != 'nosniff' or headers.get('referrer-policy') != 'no-referrer':
@@ -129,36 +133,32 @@ def verify(build, base_url=None, fetch=request, managed_robots_prefix=None):
             if apk and (headers.get('content-type') != 'application/vnd.android.package-archive' or headers.get('content-disposition') != 'attachment; filename="Airtap.apk"'):
                 raise ValueError('Unexpected APK download headers')
             checked.append(path)
-            if path.startswith('/media/') and path.endswith('.mp4'):
-                if headers.get('content-type') != 'video/mp4':
-                    raise ValueError('Unexpected video content type')
+            if apk or (path.startswith('/media/') and path.endswith('.mp4')):
+                kind = 'APK' if apk else 'Video'
+                mime = 'application/vnd.android.package-archive' if apk else 'video/mp4'
+                if headers.get('content-type') != mime:
+                    raise ValueError('Unexpected ' + kind + ' content type')
                 head_status, head_headers, head_body = public_request(path, 'HEAD', 0)
                 head_headers = {key.lower(): value for key, value in head_headers.items()}
-                if (head_status != 200 or head_body or head_headers.get('content-type') != 'video/mp4'
+                if (head_status != 200 or head_body or head_headers.get('content-type') != mime
                         or head_headers.get('content-length') != str(len(expected))):
-                    raise ValueError('Video HEAD identity is invalid')
+                    raise ValueError(kind + ' HEAD identity is invalid')
                 checked.append('HEAD ' + path)
                 end = min(1023, len(expected) - 1)
                 range_status, range_headers, range_body = public_request(
                     path, 'GET', end + 1, {'Range': f'bytes=0-{end}'})
                 range_headers = {key.lower(): value for key, value in range_headers.items()}
                 if (range_status != 206 or range_body != expected[:end + 1]
-                        or range_headers.get('content-type') != 'video/mp4'
+                        or range_headers.get('content-type') != mime
                         or range_headers.get('content-range') != f'bytes 0-{end}/{len(expected)}'
                         or range_headers.get('content-length') != str(end + 1)):
-                    raise ValueError('Video byte range is invalid')
+                    raise ValueError(kind + ' byte range is invalid')
                 checked.append('RANGE ' + path)
         status, headers, data = public_request('/download/android', 'GET', 0)
         headers = {key.lower(): value for key, value in headers.items()}
         if status != 302 or headers.get('location') != '/downloads/' + release['apk_sha256'] + '.apk' or headers.get('cache-control') != 'no-store' or data:
             raise ValueError('Fixed download entry does not select the verified APK')
         checked.append('/download/android')
-        path = '/downloads/' + release['apk_sha256'] + '.apk'
-        status, headers, data = public_request(path, 'HEAD', 0)
-        headers = {key.lower(): value for key, value in headers.items()}
-        if status != 200 or data or headers.get('content-type') != 'application/vnd.android.package-archive':
-            raise ValueError('APK HEAD response is invalid')
-        checked.append('HEAD ' + path)
         retired = json.loads(contents.get('site/updates/retired-android.json', b'{"sha256":[]}'))['sha256']
         for value in retired:
             path = '/downloads/' + value + '.apk'
