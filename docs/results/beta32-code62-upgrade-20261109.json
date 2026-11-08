@@ -1,0 +1,69 @@
+{
+  "schema": "airtap-android-upgrade-acceptance-v1",
+  "recorded_at": "2026-11-09",
+  "status": "passed_with_recovery_and_scope_limits",
+  "release_metadata": "../../release/android/62.json",
+  "source_commit": "f69c5d14dd9f725a49259f61023a902bc551fe5a",
+  "change_scope": "Authentication guidance text and version metadata only; recovery, authentication, pairing and task-lease behavior are unchanged from code61.",
+  "maintainer_validation": {
+    "release_build": "passed",
+    "android_lint": "passed",
+    "native_apk_signature_and_identity": "passed",
+    "same_release_signer_as_code61": true,
+    "source_inputs_unchanged_during_build": true,
+    "unaffected_core_and_recovery_tests_repeated": false
+  },
+  "actual_personal_ai": {
+    "name": "Muse",
+    "cli_version": "0.4.0-cli.13",
+    "phone_model": "Meizu Note 16",
+    "android_version": 15,
+    "previous_version_code": 61,
+    "installed_version_code": 62,
+    "installed_version_name": "0.4.0-beta.32",
+    "entry": "Existing original phone pairing in the personal AI's own cloud environment",
+    "result_source": "Actual original-chat task report and a separate closeout clarification; raw cloud command trace was not exported.",
+    "cloud_apk_download_bytes": 607693,
+    "cloud_apk_sha256": "662122adbc73e775ae347f8ee0936ffb44743ca24e8a0c7d1f16892bb7877dad",
+    "cloud_native_signature_tool_available": false,
+    "signature_verified_independently_by_maintainer": true,
+    "normal_phone_download_and_system_installer_used": true,
+    "phone_download_hashed_independently": false,
+    "installer_safety_warning_confirmed_under_existing_authorization": true,
+    "fresh_ping_confirmed_installed_version": true,
+    "original_pairing_preserved": true,
+    "uninstall_data_clear_or_repair": false,
+    "desktop_image_actually_viewed_after_home": true,
+    "final_control_state": "idle",
+    "final_pending_commands": 0,
+    "usb_or_legacy_task_substitution": false,
+    "owner_or_maintainer_phone_intervention_during_task": false,
+    "nonsecret_usage_corrections_saved_by_agent": true
+  },
+  "failures_and_recovery": [
+    {
+      "failure": "Storage-permission gesture interrupted with unknown result.",
+      "recovery": "The agent inspected fresh state, found the download already completed and continued without blindly replaying the gesture."
+    },
+    {
+      "failure": "Two system-chooser attempts used the wrong foreground package.",
+      "recovery": "The agent used the returned package android and continued through the normal installer."
+    },
+    {
+      "failure": "After installation confirmation, the task lease expired and the phone temporarily disconnected.",
+      "recovery": "The first scheduled check after a 30-second interval found the original connection and code62. This observation is not a recovery-time bound."
+    },
+    {
+      "failure": "The agent invoked an unsupported system-action home parameter.",
+      "recovery": "It corrected the invocation to the CLI home subcommand, viewed the resulting desktop and released control."
+    }
+  ],
+  "not_verified_in_this_upgrade": [
+    "Fresh installation by an independent new user",
+    "A new code62 screen-off, cold-boot or multi-day endurance test; code61 results retain their original version and conditions",
+    "OEM background and lockscreen permissions were not individually reinspected",
+    "Instinct code62 tasks, persistent identity in a fresh runner, or two-AI handoff",
+    "The offline second phone or complete retirement of the previous control route"
+  ],
+  "privacy_scope": "Only public artifact identity and reviewed technical summaries; no device serials, pairing material, credentials, screenshots, raw chat or private paths."
+}

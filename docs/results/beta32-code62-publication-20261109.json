@@ -1,0 +1,96 @@
+{
+  "schema": "airtap-release-publication-v1",
+  "recorded_at": "2026-11-08T17:21:02.316130+00:00",
+  "status": "published_with_bounded_acceptance",
+  "publication_performed": true,
+  "release": {
+    "schema": "airtap-android-update-v1",
+    "application_id": "io.airtap.preview",
+    "version_name": "0.4.0-beta.32",
+    "version_code": 62,
+    "apk_sha256": "662122adbc73e775ae347f8ee0936ffb44743ca24e8a0c7d1f16892bb7877dad",
+    "apk_bytes": 607693,
+    "signer_sha256": "a2aa0c1b6fdaf1baa37aa20817387524a1318b5dab82bf7c185663141daba60f",
+    "min_sdk": 34,
+    "target_sdk": 36,
+    "debuggable": false,
+    "channel": "beta",
+    "published_at": "2026-11-09",
+    "download_path": "/download/android",
+    "notes": [
+      "修正主界面和权限说明：系统要求 SIM 卡验证时，不再只提示手机密码或生物识别。原 AI 连接保留。",
+      "本版仅调整验证提示与版本资料，屏幕恢复、鉴权、配对和任务占用处理沿用 code61。",
+      "SIM PIN 保护仍由系统管理；本版不会输入 PIN、关闭保护或绕过验证。此前 code61 的实测记录保留其原范围，本版不代表无人值守重启、Instinct 跨环境身份或双 AI 交接已经通过。"
+    ]
+  },
+  "source_binding": {
+    "website_metadata_commit": "efc9625d30f9641a223f4df11943bbec165a6adb",
+    "android_build_commit": "f69c5d14dd9f725a49259f61023a902bc551fe5a",
+    "source_inputs_unchanged_during_build": true,
+    "same_verified_signed_apk_reused": true,
+    "apk_rebuilt_or_resigned_for_publication": false
+  },
+  "website": {
+    "origin": "https://airtap.memtrix.dev",
+    "deployment_kind": "android_update",
+    "previous_recommended_version_code": 61,
+    "recommended_version_code": 62,
+    "version_id": "72e48838-a0f1-43ec-a62c-789f0314be1e",
+    "frozen_build_manifest_sha256": "6f50b9df7ce48563aca352aa1bbfc2465832e8768193cafa6bf9b9719f964380",
+    "local_files_verified": 33,
+    "public_checks_passed": 75,
+    "first_full_verification_run_passed": true,
+    "retained_apk_count": 11,
+    "fixed_download_selects_exact_immutable_apk": true,
+    "public_transformations": [
+      {
+        "path": "/robots.txt",
+        "kind": "reviewed_managed_robots_prefix",
+        "prefix_bytes": 2676,
+        "prefix_sha256": "3073d1e371afb3271c7666148766fedc5145f7d8440f7114062db79b7bd58add",
+        "source_sha256": "d58c84797c04e430e32b11fffbcb73b63a0afd82b00b5f2134574a52c414306e",
+        "public_sha256": "542678d4397ddd6bf8c14d764a94e7f08d46e73aeb4a3c6751844c3dbb13920f"
+      }
+    ],
+    "local_layout_widths_checked": [
+      320,
+      390,
+      768,
+      1440
+    ],
+    "local_horizontal_overflow_found": false,
+    "local_release_checks": {
+      "worker_tests_passed": 17,
+      "python_tests_passed": 35
+    },
+    "network_limit": "One maintainer network vantage point and one complete public verification run; no all-region or long-term availability guarantee."
+  },
+  "github_release": {
+    "url": "https://github.com/hao-cyber/airtap/releases/tag/v0.4.0-beta.32",
+    "tag": "v0.4.0-beta.32",
+    "target_commit": "81be402e48f04344d30b43f7b5904b8a8bc5440b",
+    "asset_downloaded_and_matches_frozen_apk": true,
+    "verified_at": "2026-11-08T17:04:01.948302+00:00",
+    "prerelease": true,
+    "draft": false
+  },
+  "media": {
+    "existing_two_videos_unchanged": true,
+    "new_code62_recording": false,
+    "original_version_disclosures_retained": true
+  },
+  "unchanged_services": {
+    "phone_relay_deployment_changed": false,
+    "published_cli_version": "0.4.0-cli.13",
+    "published_cli_bytes_changed": false
+  },
+  "acceptance_reference": "beta32-code62-upgrade-20261109.json",
+  "external_review_reference": "grok-code61-review-20261109.json",
+  "not_verified_by_publication": [
+    "Unattended reboot while SIM PIN protection remains enabled",
+    "Instinct code62 tasks, private identity persistence across runners or two-AI handoff",
+    "The offline second phone or retirement of the old device-control route",
+    "Independent newcomer first use, other phone models or multi-day background use"
+  ],
+  "privacy_scope": "Public artifact identities and reviewed technical summaries only; no device or connection identifiers, credentials, raw phone content, original chats or private paths."
+}

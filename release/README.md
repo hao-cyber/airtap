@@ -22,6 +22,8 @@ APK 下载支持 HEAD 文件长度和单段 Range 续传。构建从实际保留
 
 官网推荐 Android `0.4.0-beta.32`（code62），[版本元数据](android/62.json)固定制品身份。本版修正手机解锁与 SIM 卡验证的提示，[Grok 复核与处理](../docs/results/grok-code61-review-20261109.json)保留发现、父会话核实与未完成项。恢复、配对、鉴权、租约、中继及 CLI.13 均未改变。此前 code61 的[发布记录](../docs/results/beta31-code61-publication-20261108.json)与[恢复检查](../docs/results/beta31-code61-recovery-20261108.json)继续保留各自范围。
 
+本版[发布核验](../docs/results/beta32-code62-publication-20261109.json)确认官网与 GitHub 提供同一签名制品。Muse 经原连接完成[正常覆盖升级与收尾](../docs/results/beta32-code62-upgrade-20261109.json)，保留安装中断和参数错误后的自行恢复记录；本轮没有人工操作手机或 USB 代做任务。该记录不替代新的息屏、重启、Instinct 或双 AI 交接验收。
+
 此前 Muse 在 code61 使用原连接，在一台魅族 Note 16 上完成两次息屏唤醒、桌面视觉核对、短信界面读取和收尾。机主在测试前完成了重启后的 SIM PIN 验证，该保护开关仍开启，因此后续重启无需人工尚未通过。Google Play 搜索因未登录未完成；本版 Instinct、跨云端环境配置保留和多日后台仍未验证。
 
 此前 [code52 发布记录](../docs/results/beta22-code52-publication-20261104.json)与 [Muse 重启记录](../docs/results/beta22-code52-recovery-20261104.json)继续保留，不能作为 code61 的独立重启验收。

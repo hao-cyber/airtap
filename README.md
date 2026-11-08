@@ -44,6 +44,8 @@ AI 可以组合这些动作完成跨 App 任务，不限于计算器等演示应
 
 官网当前提供 **0.4.0-beta.32（code62）**。本版修正手机解锁和 SIM 卡验证的提示，沿用 code61 的恢复与连接处理。[更新说明](release/android/62.json) · [Grok 复核与处理](docs/results/grok-code61-review-20261109.json) · [code61 实测记录](docs/results/beta31-code61-recovery-20261108.json)。
 
+Muse 已通过原连接完成本版远程覆盖升级，核对桌面并释放控制，过程中自行处理了安装断线和操作参数错误，无需接 USB 或人工操作手机。[升级记录](docs/results/beta32-code62-upgrade-20261109.json) · [发布核验](docs/results/beta32-code62-publication-20261109.json)。
+
 真机测试主要使用魅族 Note 16、Android 15。Muse 与 Instinct 已分别完成息屏后的任务；两者还完成了[持租时拒绝另一 AI、释放后接管的交接](docs/results/beta21-code51-two-ai-handoff-20261103.json)。这些结果保留失败恢复、维护者准备与取证限制。更多机型、纯移动网络完整任务、多日后台和独立新用户完整安装仍待验证。目前没有 iOS 客户端。
 
 | 个人 AI | 已有测试 |
