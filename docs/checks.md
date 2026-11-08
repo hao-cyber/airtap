@@ -43,6 +43,8 @@ python3 tools/check.py --suite android
 
 ## 当前覆盖
 
+[code61 恢复检查与 Muse 实测](results/beta31-code61-recovery-20261108.json)：39 步 core、41 个生产恢复 Activity 平台替身场景、release 构建、lint 与原生身份检查通过。本轮魅族 SIM PIN 状态被正确识别；机主完成验证后，Muse 两次从已确认息屏状态自主回到桌面，并完成已有短信的界面读取。该结果不包含下一次无人值守重启、Google Play 登录或本版双 AI 交接。下面的历史记录保留各自版本范围。
+
 [code52 授权恢复与 Muse 重启记录](results/beta22-code52-recovery-20261104.json)对应 beta.22／code52：333 个定向宿主场景、38 步 core、Android 编译与 lint、release 构建和验签通过。未知拒绝不会直接删除原配对，控制保持暂停直至重新核实；明确撤销和本机停止仍生效。已有连接的 HTTP 核验单次总期限为 20 秒，未知结果后间隔 10 秒重试；WebSocket 的未经核实拒绝先等待 2 秒再开始核验。这些是单次请求与间隔限制，没有总重试次数上限，不应写成有限次数后必然停止。
 
 [网站发布记录](results/beta22-code52-publication-20261104.json)确认官网已推荐同一 code52 APK：首次完整公网核验 46 项通过，25 个本地制品通过校验；继承三份旧 APK、六项退役记录及两条旧版视频原字节。中继与已发布 CLI.12 没有改动。网站发布不扩大手机验收范围；同一记录中的 GitHub 发布条目单独确认预发布标签和实际下载的 APK 字节。

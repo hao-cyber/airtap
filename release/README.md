@@ -20,9 +20,11 @@ APK 下载支持 HEAD 文件长度和单段 Range 续传。构建从实际保留
 
 当前为公开测试渠道，使用长期 RSA 3072 发布密钥，Android `debuggable=false`，最低 Android 14。包名继续使用 `io.airtap.preview`，以保留已安装用户的数据；包名不作为用户界面名称。正式发布签名不代表产品已通过全部机型或普通用户验证。
 
-官网已发布 Android `0.4.0-beta.22`（code52），使用已签名与验收的同一 APK 字节。[版本元数据](android/52.json)固定制品身份，[发布记录](../docs/results/beta22-code52-publication-20261104.json)记录官网由 code51 切换至 code52、首次完整公网核验 46 项通过，以及三份旧 APK、六项退役记录和两条旧视频的保留。此次只更新下载站与推荐安装包，中继及已发布 CLI.12 未变。GitHub 的 [beta.22 预发布](https://github.com/hao-cyber/airtap/releases/tag/v0.4.0-beta.22)也已完成，标签提交和下载 APK 原字节已分别核对。
+官网推荐 Android `0.4.0-beta.31`（code61），沿用已签名和实测的同一 APK 字节。[版本元数据](android/61.json)固定制品身份，[恢复检查](../docs/results/beta31-code61-recovery-20261108.json)保留实际失败、准备和介入范围。此次更新安装包与网站，不改变中继运行时或已发布 CLI.13。
 
-[恢复检查与 Muse 实测](../docs/results/beta22-code52-recovery-20261104.json)保留两次失败及恢复、USB 供电与取证限制。Muse 用原连接正常重启后，约 72 秒首次观察到在线，再唤醒并核对 `49×17=833`。这是轮询观察，不是恢复时限保证。Instinct 的 code52 任务、其他设备迁移、真正新云端环境中的配置保留和多日后台尚未完成。
+Muse 使用原连接在一台魅族 Note 16 上完成两次息屏唤醒、桌面视觉核对、短信界面读取和收尾。机主在测试前完成了重启后的 SIM PIN 验证，该保护开关仍开启，因此后续重启无需人工尚未通过。Google Play 搜索因未登录未完成；本版 Instinct、跨云端环境配置保留和多日后台仍未验证。
+
+此前 [code52 发布记录](../docs/results/beta22-code52-publication-20261104.json)与 [Muse 重启记录](../docs/results/beta22-code52-recovery-20261104.json)继续保留，不能作为 code61 的独立重启验收。
 
 历史 code51 的[制品准备](../docs/results/beta21-code51-release-preparation-20261103.json)、[发布](../docs/results/beta21-code51-publication-20261103.json)、[Muse](../docs/results/beta21-code51-muse-cli12-wake-20261103.json)、[Instinct](../docs/results/beta21-code51-instinct-cli12-wake-20261103.json)及[双 AI 交接](../docs/results/beta21-code51-two-ai-handoff-20261103.json)记录保持原范围；原 code39 [版本资料](android/39.json)与验收也保留，不重写历史。
 

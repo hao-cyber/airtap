@@ -42,16 +42,16 @@ AI 可以组合这些动作完成跨 App 任务，不限于计算器等演示应
 
 ## 当前支持情况
 
-官网当前提供 **0.4.0-beta.22（code52）**，支持多个自己的 AI 轮流使用手机，并修复了异常网络响应可能误删原配对的问题：先暂停控制，再核实原连接；明确停止或撤销后仍不会自动恢复。[更新说明](release/android/52.json) · [发布与公网核验](docs/results/beta22-code52-publication-20261104.json) · [检查与真机记录](docs/results/beta22-code52-recovery-20261104.json)。
+官网当前提供 **0.4.0-beta.31（code61）**。本版修复部分手机的息屏恢复，并正确提示本轮发现的 SIM PIN 验证；已有配对与数据保留。[更新说明](release/android/61.json) · [检查与真机记录](docs/results/beta31-code61-recovery-20261108.json)。
 
 真机测试主要使用魅族 Note 16、Android 15。Muse 与 Instinct 已分别完成息屏后的任务；两者还完成了[持租时拒绝另一 AI、释放后接管的交接](docs/results/beta21-code51-two-ai-handoff-20261103.json)。这些结果保留失败恢复、维护者准备与取证限制。更多机型、纯移动网络完整任务、多日后台和独立新用户完整安装仍待验证。目前没有 iOS 客户端。
 
 | 个人 AI | 已有测试 |
 | --- | --- |
-| Muse | code52／CLI.12 保留原连接完成正常重启、恢复后唤醒，核对 `49×17=833`、回桌面并释放。首次重连在重启接受后约 72 秒被观察到；观察超时和窗口变化各一次，随后恢复。次数与视觉结果来自 Muse 回执，未导出完整工具轨迹。[记录](docs/results/beta22-code52-recovery-20261104.json) |
+| Muse | code61／CLI.13 用原连接完成两次息屏唤醒，约 4.9 秒、4.2 秒，实看桌面；通过短信 App 核对已有运营商通知，回桌面并释放。测试前机主完成了重启后的 SIM PIN 验证；Google Play 搜索因未登录没完成。[记录](docs/results/beta31-code61-recovery-20261108.json) |
 | Instinct | code51／CLI.12 从息屏恢复，在 Google Play 搜索并核对 Google Maps，再回桌面并释放。首次观察和启动后的观察曾失败，之后自行恢复。[记录](docs/results/beta21-code51-instinct-cli12-wake-20261103.json) |
 
-Instinct 的 code52 任务与双 AI 交接尚未验证；原连接配置在真正更换云端运行环境后的保留也未完成验收。上表的 code51 结果不能替代这些检查。
+Instinct 的 code61 任务与双 AI 交接尚未验证；原连接配置在真正更换云端运行环境后的保留也未完成验收。上表的 code51 结果不能替代这些检查。测试手机的 SIM PIN 开关仍开启，下次重启仍需系统验证；普通息屏唤醒通过不等于重启后无需人参与。
 
 其他 AI 尚未确认兼容。它至少需要能执行网络工具调用；用截图定位和操作时，还需要实际读取图片的能力。普通聊天入口不一定具备这些能力。[AI 接入说明](docs/agent.md)
 
