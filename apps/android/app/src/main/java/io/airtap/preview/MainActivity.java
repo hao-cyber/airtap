@@ -582,7 +582,7 @@ public final class MainActivity extends Activity {
     }
     private String backgroundInstructions() {
         String maker = (android.os.Build.MANUFACTURER + " " + android.os.Build.BRAND).toLowerCase(java.util.Locale.ROOT);
-        if (maker.contains("meizu")) return "魅族手机需要检查后台运行和锁屏显示：\n1. Airtap 应用信息 → 权限管理：开启‘锁屏显示’，让恢复窗口能出现在锁屏上。\n2. 耗电和后台 → 手动管理：开启‘允许自启动’、‘允许关联启动’、‘允许后台运行’。\n3. Android 电池优化 → Airtap：选择‘无限制’或‘不优化’。\n只调整 Airtap；菜单名称以当前系统为准。锁屏显示不会取消密码验证。完成后让 AI 验证息屏后的任务与正常重启恢复，不要先手动亮屏或打开 App。";
+        if (maker.contains("meizu")) return "魅族手机需要检查后台运行和锁屏显示：\n1. Airtap 应用信息 → 权限管理：开启‘锁屏显示’，让恢复窗口能出现在锁屏上。\n2. 耗电和后台 → 手动管理：开启‘允许自启动’、‘允许关联启动’、‘允许后台运行’。\n3. Android 电池优化 → Airtap：选择‘无限制’或‘不优化’。\n只调整 Airtap；菜单名称以当前系统为准。锁屏显示不会取消手机密码或 SIM 卡验证。完成后让 AI 验证息屏后的任务与正常重启恢复，不要先手动亮屏或打开 App。";
         return "请在 Airtap 的应用信息中允许后台运行，再检查电池优化设置，为 Airtap 选择‘无限制’或‘不优化’。不同手机的名称可能不同；只需设置 Airtap。完成后让 AI 测试一次息屏后的任务，确认能正常收到并执行。";
     }
     private void backgroundPreparation() {
@@ -600,7 +600,7 @@ public final class MainActivity extends Activity {
         return switch (status) {
             case CONNECTED -> "你的 AI 已连接";
             case SCREEN_PREPARABLE -> "已连接，任务到来时唤醒";
-            case SYSTEM_AUTH_REQUIRED -> "请完成手机解锁验证";
+            case SYSTEM_AUTH_REQUIRED -> "请完成手机或 SIM 卡验证";
             case SECURE_CONNECTION_REQUIRED -> "请检查安全连接更新";
             case NOTIFICATIONS_REQUIRED -> "请开启连接通知";
             case STORAGE_UNAVAILABLE -> "暂时无法读取原连接";
@@ -614,7 +614,7 @@ public final class MainActivity extends Activity {
         return switch (status) {
             case CONNECTED -> "连接正常，可以让自己的 AI 开始使用。";
             case SCREEN_PREPARABLE -> "手机正在息屏或显示系统允许退出的锁屏。任务到来时会尝试自动唤醒，你不用一直点亮屏幕。";
-            case SYSTEM_AUTH_REQUIRED -> "系统当前要求密码或生物识别，需要本人在手机完成验证。验证后会恢复原连接，AI 再查看屏幕继续。";
+            case SYSTEM_AUTH_REQUIRED -> "系统当前要求手机解锁或 SIM 卡验证。请在手机上按提示完成；原 AI 连接会保留，随后让 AI 查看屏幕继续。";
             case SECURE_CONNECTION_REQUIRED -> "无法验证服务的安全连接。原 AI 配对已保留，请检查 Airtap 和系统更新；不要关闭证书校验或重新配对来绕过这个问题。";
             case STORAGE_UNAVAILABLE -> "暂时无法读取或保存本机的连接记录，手机操作已暂停。请检查存储后重试；无需先删除记录或重新配对。";
             case NOTIFICATIONS_REQUIRED -> "连接记录仍在。开启 Airtap 的系统通知后会自动继续，无需重新配对。";

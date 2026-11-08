@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="accessibility_description">让你自己的个人 AI 查看屏幕、切换应用、点击、长按、输入和滑动。开启此权限后，还需在 Airtap 核对数字并确认连接；确认一次后可持续使用。执行任务时按需亮屏，系统允许退出的锁屏自动恢复；正常断网自动重连。系统要求密码或生物识别时，等待验证完成。你可从 Airtap 或连接通知随时停止，停止后不会自动恢复。AI 无法操作 Airtap 的授权界面；系统受保护的画面和权限仍由 Android 管理。</string>
+    <string name="accessibility_description">让你自己的个人 AI 查看屏幕、切换应用、点击、长按、输入和滑动。开启此权限后，还需在 Airtap 核对数字并确认连接；确认一次后可持续使用。执行任务时按需亮屏，系统允许退出的锁屏自动恢复；正常断网自动重连。系统要求手机解锁或 SIM 卡验证时，等待验证完成。你可从 Airtap 或连接通知随时停止，停止后不会自动恢复。AI 无法操作 Airtap 的授权界面；系统受保护的画面和权限仍由 Android 管理。</string>
     <item name="test_button" type="id" />
     <item name="counter" type="id" />
     <item name="relay_url" type="id" />
