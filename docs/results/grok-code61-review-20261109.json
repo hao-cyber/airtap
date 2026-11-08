@@ -1,0 +1,39 @@
+{
+  "schema": "airtap-external-review-v1",
+  "recorded_at": "2026-11-09",
+  "reviewed_source_commit": "17541e4e2f9a500629f5b0a79a17c168c25a0bd8",
+  "reviewer": {
+    "backend": "Grok",
+    "reported_model": "grok-4.7",
+    "profile": "agent-grok-readonly",
+    "native_terminal_observed": true,
+    "fallback_used": false
+  },
+  "scope": "Read-only public-source snapshot and sanitized technical acceptance summary. No private credentials or raw phone/chat material were supplied. No device operation or tests were performed by the reviewer. This was a focused review, not a complete security certification.",
+  "confirmed_finding": {
+    "area": "MainActivity SYSTEM_AUTH_REQUIRED title/detail",
+    "trigger": "The phone is connected and Android requires SIM verification, while UI text only mentions device password/biometrics.",
+    "impact": "The owner can be directed toward the wrong type of verification.",
+    "fix_commit": "f69c5d14dd9f725a49259f61023a902bc551fe5a",
+    "fix": "Name phone unlock or SIM verification in the main UI, related accessibility description and background explanation; retain current authentication behavior."
+  },
+  "parent_verification": {
+    "reviewed_android_tree_matches_original_code61_apk_source": true,
+    "original_apk_source_commit": "87095a6cdcfb4b441161cb2f5f945c7e963368cf",
+    "method": "git diff of the complete apps/android trees is empty",
+    "no_recovery_budget_change_without_a_new_failure": true,
+    "no_extra_cold_reboot_into_known_missing_sim_authentication": true,
+    "no_change_to_credential_or_stop_boundaries": true
+  },
+  "unresolved_validation": [
+    "An offline second test phone has no available diagnostic entry; cause unknown.",
+    "The second personal AI lacks a verified persistent private identity in its current environment; code61 handoff has not run.",
+    "SIM PIN protection remains enabled on the active phone; a previous owner verification does not disable it.",
+    "Combined device credentials plus SIM PIN and multi-day unattended use remain unverified."
+  ],
+  "process_exit_reason_review": {
+    "finding": "The review raised an uncertainty about REASON_USER_STOPPED. Official documentation identifies this as the Android user/profile being stopped; REASON_USER_REQUESTED covers a user force-stopping or removing an app. No evidence established a missing ordinary-app stop barrier, so no speculative change was made.",
+    "source": "https://developer.android.com/reference/android/app/ApplicationExitInfo#REASON_USER_STOPPED"
+  },
+  "release_scope": "Existing evidence supports the stated limited Beta, not complete migration or a promise of zero owner participation."
+}
