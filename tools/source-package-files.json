@@ -841,6 +841,10 @@
     },
     {
       "kind": "result",
+      "path": "docs/results/apk-download-range-publication-20261108.json"
+    },
+    {
+      "kind": "result",
       "path": "docs/results/beta12-code42-background-observation-20261101.json"
     },
     {
@@ -1030,6 +1034,10 @@
     {
       "kind": "result",
       "path": "docs/results/cli12-lease-recovery-delivery-20261102.json"
+    },
+    {
+      "kind": "result",
+      "path": "docs/results/cli13-publication-20261107.json"
     },
     {
       "kind": "result",
