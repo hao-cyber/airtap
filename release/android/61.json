@@ -1,0 +1,22 @@
+{
+  "schema": "airtap-android-update-v1",
+  "application_id": "io.airtap.preview",
+  "version_name": "0.4.0-beta.31",
+  "version_code": 61,
+  "apk_sha256": "6ace9ef5178610c5eac7f62594b1616763d33c248380ab4f2648058403e4a390",
+  "apk_bytes": 607693,
+  "signer_sha256": "a2aa0c1b6fdaf1baa37aa20817387524a1318b5dab82bf7c185663141daba60f",
+  "min_sdk": 34,
+  "target_sdk": 36,
+  "debuggable": false,
+  "channel": "beta",
+  "published_at": "2026-11-08",
+  "download_path": "/download/android",
+  "notes": [
+    "修复部分手机息屏后恢复窗口停在锁屏后方的问题。在原有期限内尝试系统唤醒，并在必要时重建一次恢复窗口；超时或失败不会补做原任务。",
+    "识别本轮魅族手机的 SIM PIN 验证状态，避免把它当成可直接退出的滑动锁屏。需要系统验证时停止本次操作，保留原连接，不尝试 PIN。",
+    "补充魅族“锁屏显示”设置指引。该权限允许恢复窗口出现在锁屏上，不会取消手机密码或 SIM 卡验证。",
+    "Muse 使用原连接在一台魅族 Note 16 上完成本版两次息屏唤醒、桌面视觉核对和短信界面读取，最后回桌面并释放控制。两次唤醒约为 4.9 秒、4.2 秒，是本轮观察值。",
+    "测试前机主完成了重启后的 SIM PIN 验证；该 SIM 的 PIN 开关仍开启，不能据此承诺下次重启无需验证。Google Play 搜索因未登录没有完成；本版 Instinct 交接、其他机型和多日后台仍未验证。"
+  ]
+}
