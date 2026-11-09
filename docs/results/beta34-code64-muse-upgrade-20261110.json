@@ -1,0 +1,29 @@
+{
+  "version_code": 64,
+  "personal_ai": "Muse",
+  "device": "existing first phone",
+  "actual_upgrade": "63 to 64 through original approved pairing",
+  "tool_version": "0.4.0-cli.14",
+  "verification": [
+    "actual ping version64",
+    "32×4=128 visually verified",
+    "home visually verified",
+    "idle release sequence1375"
+  ],
+  "failures_and_recovery": [
+    "Initial connected false; recovered after 30-second wait.",
+    "Download remained pending about50seconds; normal alternate query download completed about10seconds later.",
+    "Post-install410; original connection returned after20seconds."
+  ],
+  "manual_owner_actions": 0,
+  "usb_or_old_link_task_execution": false,
+  "reboot_or_network_change": false,
+  "schema": "airtap-personal-ai-upgrade-v1",
+  "date": "2026-11-10",
+  "evidence": "Actual Muse response from its original authenticated conversation; raw record retained privately.",
+  "limits": [
+    "One original approved phone connection; not new-pairing acceptance.",
+    "The staged upgrade used CLI.14; subsequent CLI.15 execution is separate.",
+    "No reboot or long unattended interval verified by this task."
+  ]
+}

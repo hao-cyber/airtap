@@ -968,8 +968,16 @@
       "kind": "result"
     },
     {
+      "kind": "result",
+      "path": "docs/results/beta34-code64-muse-upgrade-20261110.json"
+    },
+    {
       "path": "docs/results/beta34-code64-pairing-journey-20261110.json",
       "kind": "result"
+    },
+    {
+      "kind": "result",
+      "path": "docs/results/beta34-code64-publication-20261110.json"
     },
     {
       "kind": "result",
