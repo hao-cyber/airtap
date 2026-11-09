@@ -20,9 +20,11 @@ code63 将首次及新增 AI 的邀请改为八位数字。数字只定位短期
 
 ## 当前发布身份
 
+官网推荐 Android `0.4.0-beta.34`（code64），[版本资料](android/64.json)固定制品身份。新邀请最长一小时，过期可一次点击重新生成，AI 在手机批准后自行核实。[构建与配对检查](../docs/results/beta34-code64-pairing-journey-20261110.json)与历史个人 AI 实测各自保持验证范围。
+
 当前为公开测试渠道，使用长期 RSA 3072 发布密钥，Android `debuggable=false`，最低 Android 14。包名继续使用 `io.airtap.preview`，以保留已安装用户的数据；包名不作为用户界面名称。正式发布签名不代表产品已通过全部机型或普通用户验证。
 
-官网推荐 Android `0.4.0-beta.33`（code63），[版本元数据](android/63.json)固定制品身份。[发布核验](../docs/results/beta33-code63-publication-20261110.json)记录中继 revision26、CLI.14 和官网的实际更新。Muse 经两台原连接完成[远程覆盖升级、计算器核对与收尾](../docs/results/beta33-code63-muse-two-devices-20261110.json)，没有 USB 或人工操作手机。新短码的实体手机配对、当前 Instinct 任务和双 AI 交接尚未完成。
+此前 Android `0.4.0-beta.33`（code63），[版本元数据](android/63.json)固定制品身份。[发布核验](../docs/results/beta33-code63-publication-20261110.json)记录中继 revision26、CLI.14 和官网的实际更新。Muse 经两台原连接完成[远程覆盖升级、计算器核对与收尾](../docs/results/beta33-code63-muse-two-devices-20261110.json)，没有 USB 或人工操作手机。新短码的实体手机配对、当前 Instinct 任务和双 AI 交接尚未完成。
 
 此前 code62 的[发布核验](../docs/results/beta32-code62-publication-20261109.json)确认官网与 GitHub 提供同一签名制品。Muse 经原连接完成[正常覆盖升级与收尾](../docs/results/beta32-code62-upgrade-20261109.json)，保留安装中断和参数错误后的自行恢复记录；该轮没有人工操作手机或 USB 代做任务。随后在第二台手机完成[原连接升级与 70 秒息屏恢复](../docs/results/beta32-code62-second-device-20261109.json)：约 4.4 秒唤醒，计算器结果和桌面均实际查看，保留失败恢复记录。这仍不替代重启、Instinct 或双 AI 交接验收。
 

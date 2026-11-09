@@ -42,7 +42,7 @@ AI 可以组合这些动作完成跨 App 任务，不限于计算器等演示应
 
 ## 当前支持情况
 
-当前版本 **0.4.0-beta.33（code63）** 将接入邀请改为八位数字，AI 申请后仍需在手机核对六位数字并批准。已有连接保留。[更新说明](release/android/63.json) · [协议与 Android 检查](docs/results/beta33-code63-short-invitations-20261110.json) · [发布核验](docs/results/beta33-code63-publication-20261110.json)。
+当前版本 **0.4.0-beta.34（code64）** 延长新邀请到一小时，过期后可一键重新生成。发给 AI 八位码，在手机核对六位码并批准，AI 会自动继续；已有连接保留。[更新说明](release/android/64.json) · [构建与配对检查](docs/results/beta34-code64-pairing-journey-20261110.json)。
 
 Muse 已通过两台手机的原连接完成 code63 远程覆盖升级，在计算器核对 28 × 3 = 84，再看图确认桌面并释放控制。下载、权限点击结果未知和安装断线由它自行恢复，无需接 USB 或人工操作手机。[本次实测](docs/results/beta33-code63-muse-two-devices-20261110.json)。
 

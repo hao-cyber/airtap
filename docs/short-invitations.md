@@ -8,7 +8,7 @@
 
 - 手机用自己的设备凭据调用 `POST /d/<id>/v1/device/invitation-code`，JSON 为 `{"ticket":"<当前短期票据>"}`。只接受该设备的有效邀请。返回 `protocol_version:4`、八位字符串 `code`、原 `pairing_expires_at`。同一邀请重试取得同一码，不续期，不替换现有批准。
 - AI 用 `POST /v1/invitations/resolve`，JSON 为 `{"code":"12345678"}`。请求没有控制凭据；响应包含协议版本、相对设备路径、原短期票据、到期时间、CLI/指南摘要及 `task_lease_required`。解析不认领、不消耗、不批准邀请，手机批准仍是控制的必要条件。
-- CLI.14 的 `pair-code --service <HTTPS根地址> --name <名称> --code-stdin` 保存自己的配对身份，然后走原配对协议。多 AI 租约能力由解析结果决定。结果未知时先查询同一身份，不能换码或覆盖配置重来。
+- CLI.15 的 `pair-code --service <HTTPS根地址> --name <名称> --code-stdin` 保存自己的配对身份，然后走原配对协议。多 AI 租约能力由解析结果决定。结果未知时先查询同一身份，不能换码或覆盖配置重来。
 - 对已经批准的连接使用保存的配置，不再次索取邀请码。新增 AI 使用另一份私有凭据；一个 AI 完成任务只释放租约，不撤销连接。
 
 ## 期限、隔离与存储

@@ -139,3 +139,5 @@ GitHub Actions 功能保持开启。曾有明确 payments／spending-limit 拒�
 当前继续使用上面的本地命令完成检查，记录结果及实际验收范围。普通测试失败不能当作账单故障停用；其他工作流须逐项根据实际失败注释判断，不由品牌、runner 名称或 failure 状态推定。恢复这套受账单限制的工作流须先解决运行条件并经机主明确授权，不因支付状态恢复而自动重开，也不擅自购买额度或升级套餐。
 
 本地通过与云端状态分开记录。工作流停用的行为见 [GitHub 官方说明](https://docs.github.com/en/actions/how-tos/manage-workflow-runs/disable-and-enable-workflows)。这套检查不负责 Airtap 中继、手机客户端或网站的部署。
+
+[code64 配对流程检查](results/beta34-code64-pairing-journey-20261110.json)：40 步 core、签名构建与 lint 通过；覆盖一小时边界、单步重新生成、取消结果未知及停止/切换后的回调。USB 覆盖安装与界面观察单独记录，不代替个人 AI 实测。
