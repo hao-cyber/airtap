@@ -1,0 +1,25 @@
+{
+  "schema": "airtap-site-closeout-verification-v1",
+  "date": "2026-11-10",
+  "source_commit": "4ec20913742b6067c2ced536816c4421ca744698",
+  "site_version": "dc33a7b7-252f-482b-b727-9a16a5510c15",
+  "android_version_code": 64,
+  "same_apk_sha256": "b1061cd980313697097525074660ae953e2bb509a2fd6fa659373fda1aa9f419",
+  "changes": [
+    "Current two-phone Muse and Instinct tasks, handoff and short screen-off results replace stale pending statements.",
+    "Privacy page now describes the actual one-hour new invitation lifetime.",
+    "README and phone guide describe the current pairing and credential-restoration evidence with its limits."
+  ],
+  "verification": {
+    "release_site_tests": 35,
+    "frozen_files": 35,
+    "public_http_checks": 81,
+    "passed": true,
+    "frozen_manifest_sha256": "baf3b864c24155bfb4c8d59c793c9e70b38afa08c2dcbe548fcbafc393a36973",
+    "existing_reviewed_videos_retained": true,
+    "managed_robots_prefix": "Only the previously reviewed exact prefix accepted."
+  },
+  "runtime_scope": "Static site refresh only; APK, signing identity, relay deployment and actual AI configurations unchanged by this website deployment.",
+  "phone_evidence": "beta34-code64-two-ai-20261110.json",
+  "privacy": "Only aggregate test and deployment facts; no raw phone images, conversation, device URL, pairing code or credential."
+}
