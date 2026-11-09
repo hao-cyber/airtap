@@ -4,6 +4,8 @@ import org.json.JSONObject;
 
 /** Strict v4 response checks. Enrollment has no expiry and never implies a control grant. */
 final class ServiceProtocol {
+    static final long MAX_PAIRING_TTL_SECONDS = 60 * 60;
+    static final long MAX_INVITATION_FUTURE_SECONDS = MAX_PAIRING_TTL_SECONDS + 30;
     static void version(JSONObject body) {
         exactInteger(body, "protocol_version", 4);
     }
@@ -12,7 +14,8 @@ final class ServiceProtocol {
         version(body);
         if (!"public".equals(body.opt("enrollment_mode"))) throw new IllegalArgumentException();
         explicitNull(body, "enrollment_expires_at");
-        exactInteger(body, "pairing_ttl_seconds", 300);
+        long pairingTtl = integer(body, "pairing_ttl_seconds");
+        if (pairingTtl <= 0 || pairingTtl > MAX_PAIRING_TTL_SECONDS) throw new IllegalArgumentException();
         explicitNull(body, "session_ttl_seconds");
         explicitNull(body, "command_budget");
         Object id = body.opt("service_id");
@@ -37,7 +40,7 @@ final class ServiceProtocol {
 
     static long invitation(JSONObject body, long now) {
         long expiry = invitationShape(body);
-        if (expiry <= now || expiry > now + 330) throw new IllegalArgumentException();
+        if (expiry <= now || expiry > now + MAX_INVITATION_FUTURE_SECONDS) throw new IllegalArgumentException();
         return expiry;
     }
 

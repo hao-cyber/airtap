@@ -6,7 +6,7 @@ import { readFile } from 'node:fs/promises';
 import { timingSafeEqual } from 'node:crypto';
 const source = (await readFile(new URL('../../worker/worker.mjs', import.meta.url), 'utf8')).replace("import { DurableObject } from 'cloudflare:workers';", 'class DurableObject { constructor(ctx, env) { this.ctx = ctx; this.env = env; } }');
 crypto.subtle.timingSafeEqual ??= timingSafeEqual;
-const { MultiPairingRelay } = await import('data:text/javascript;base64,' + Buffer.from(source).toString('base64'));
+const { MultiPairingRelay, hash, PAIRING_TTL_SECONDS } = await import('data:text/javascript;base64,' + Buffer.from(source).toString('base64'));
 const h = c => c.repeat(32), claim = h('a'), lease = h('b'), taskId = h('c'), connection = h('d'), operation = h('e');
 const clock = () => Date.now();
 const grant = () => ({ id: claim, hash: '1'.repeat(64), name: 'Synthetic', sequence: 41, seen: ['saved-command'], lease_required: true, lease_ready: true,
@@ -22,12 +22,12 @@ function socket(s) {
     send(v) { this.sent.push(JSON.parse(v)); }, close() { this.readyState = 3; } };
 }
 class Relay extends MultiPairingRelay { protocolVersion() { return 4; } globalExpired() { return this.state.serviceRetired === true; } }
-async function instance(s, ws, fail = () => false) {
+async function instance(s, ws, fail = () => false, env = {}) {
   let saved = structuredClone(s), alarm;
   const ctx = { storage: { async get() { return structuredClone(saved); }, async put(k,v) { if (fail()) throw new Error('synthetic storage failure'); saved = structuredClone(v); },
     async setAlarm(n) { alarm = n; }, async deleteAlarm() { alarm = null; } },
     getWebSockets: () => ws ? [ws] : [], blockConcurrencyWhile(fn) { this.ready = Promise.resolve().then(fn); return this.ready; } };
-  const r = new Relay(ctx, {}); await ctx.ready;
+  const r = new Relay(ctx, env); await ctx.ready;
   return { r, saved: () => saved, alarm: () => alarm };
 }
 const body = () => ({ task_id: taskId, lease_id: lease, lease_epoch: 4 });
@@ -222,4 +222,37 @@ test('claim-scoped single stop is durable and cannot report success after a fail
   const before=structuredClone(saved());assert.equal((await (await r.revokeSingleGrant(claim)).json()).ok,true);
   assert.deepEqual(saved(),before);assert.equal(disconnected,2);
   await error(await r.enableMulti(migration()),'stale_claim');assert.deepEqual(saved(),before);
+});
+
+
+test('single invitation and pending comparison remain valid past five minutes, then expire at one hour', async t => {
+  let millis=Date.now();t.mock.method(Date,'now',()=>millis);const start=Math.floor(millis/1000);
+  assert.equal(PAIRING_TTL_SECONDS,3600);
+  const device='7'.repeat(64),controller='8'.repeat(64),s={...singleState('idle'),candidate:null,ticketHash:null,persistent:false,deviceHash:await hash(device)};
+  const {r}=await instance(s,null,()=>false,{EXPIRES_AT:String(start+7200)});
+  const request=new Request('https://synthetic.invalid/v1/device/pairing',{method:'POST'});
+  const created=await (await r.handle('/v1/device/pairing',request,{},device,s.deviceHash)).json();
+  assert.equal(created.pairing_expires_at,start+3600);
+  millis=(start+301)*1000;await r.expire();assert.equal(r.state.phase,'waiting');
+  const pair=await (await r.handle('/v1/pair',request,{ticket:created.ticket,controller_token:controller,name:'Synthetic AI'},null,null)).json();
+  assert.equal(pair.state,'pending');assert.equal(pair.pairing_expires_at,created.pairing_expires_at);
+  millis=(start+3599)*1000;await r.expire();assert.equal(r.state.phase,'pending');
+  millis=(start+3600)*1000;await r.expire();assert.equal(r.state.phase,'revoked');
+  const refused=await r.handle('/v1/device/approve',request,{claim_id:pair.claim_id,allow_tap:false,persistent:true,all_apps:true,allow_control:true,allowed_packages:[]},device,s.deviceHash);
+  assert.notEqual(refused.status,200);
+});
+test('multi invitation retries retain a fixed one-hour expiry and expired candidate never creates a grant', async t => {
+  let millis=Date.now();t.mock.method(Date,'now',()=>millis);const start=Math.floor(millis/1000);
+  const s={...state(),task:null,grants:{}};
+  const {r}=await instance(s,null,()=>false,{CLI_SHA256:'a'.repeat(64),AGENT_SHA256:'b'.repeat(64)});
+  const body={invitation_id:h('4'),invitation_sequence:76,ticket:h('5')};
+  const first=await (await r.invitation(body)).json();assert.equal(first.pairing_expires_at,start+3600);
+  millis=(start+301)*1000;await r.expire();
+  const retry=await (await r.invitation(body)).json();assert.equal(retry.pairing_expires_at,first.pairing_expires_at);
+  const candidate=await (await r.pairMulti({ticket:body.ticket,controller_token:'9'.repeat(64),name:'Synthetic AI',capabilities:['task_lease_v1']})).json();
+  assert.equal(candidate.state,'pending');assert.equal(candidate.pairing_expires_at,first.pairing_expires_at);
+  millis=(start+3599)*1000;await r.expire();assert.ok(r.state.invitation?.candidate);
+  millis=(start+3600)*1000;await r.expire();assert.equal(r.state.invitation,null);
+  const denied=await r.approveMulti({claim_id:candidate.claim_id,allow_tap:false,persistent:true,all_apps:true,allow_control:true,allowed_packages:[]});
+  assert.equal(denied.status,409);assert.equal(Object.keys(r.state.grants).length,0);
 });

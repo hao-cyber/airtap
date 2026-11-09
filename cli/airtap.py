@@ -25,7 +25,9 @@ TOKEN = re.compile(r'^[0-9a-f]{64}$')
 TICKET = re.compile(r'^[0-9a-f]{32}$')
 MAX_RESPONSE = 512 * 1024
 MAX_COMMAND = 8192
-VERSION = '0.4.0-cli.14'
+VERSION = '0.4.0-cli.15'
+PAIRING_TTL_SECONDS = 60 * 60
+PAIRING_CLOCK_TOLERANCE_SECONDS = 30
 PACKAGE = re.compile(r'^[A-Za-z_][A-Za-z0-9_]*(?:\.[A-Za-z_][A-Za-z0-9_]*)+$')
 NODE = re.compile(r'^[1-9][0-9]{0,3}$')
 NODE_COMMANDS = {'click', 'long-click', 'set-text', 'scroll', 'node-action', 'focus', 'set-selection', 'select-all', 'copy', 'cut', 'paste', 'insert-text', 'delete-text', 'editor-action'}
@@ -604,7 +606,7 @@ def safe_pair_status(data):
     return result
 
 def poll_pair(args, config):
-    deadline = time.monotonic() + 300
+    deadline = time.monotonic() + PAIRING_TTL_SECONDS
     while True:
         result = request(config['url'], '/v1/pair/status', config['controller_token'], timeout=args.timeout,
                          local_test=args.allow_local_http)
@@ -1570,7 +1572,7 @@ def pair_with_code(args):
     if (not isinstance(result, dict) or set(result) != required or type(result.get('protocol_version')) is not int or result.get('protocol_version') != 4
             or not isinstance(result.get('device_base_path'), str) or not re.fullmatch(r'/d/[a-f0-9]{32}', result['device_base_path'])
             or not isinstance(result.get('ticket'), str) or not TICKET.fullmatch(result['ticket'])
-            or type(result.get('pairing_expires_at')) is not int or not time.time() < result['pairing_expires_at'] <= time.time() + 330
+            or type(result.get('pairing_expires_at')) is not int or not time.time() < result['pairing_expires_at'] <= time.time() + PAIRING_TTL_SECONDS + PAIRING_CLOCK_TOLERANCE_SECONDS
             or any(not isinstance(result.get(k), str) or not TOKEN.fullmatch(result[k]) for k in ('cli_sha256', 'agent_sha256'))
             or type(result.get('task_lease_required')) is not bool):
         raise Failure('invalid_short_invitation_response')

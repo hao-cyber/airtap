@@ -33,7 +33,8 @@ record InvitationArtifacts(String identity, String identityFingerprint, String t
     }
     boolean matches(String currentIdentity, String token, String currentTicket, long currentExpiry, long now) {
         return identity.equals(currentIdentity) && identityFingerprint.equals(fingerprint(token))
-                && ticket.equals(currentTicket) && expiry == currentExpiry && expiry > now && expiry <= now + 330;
+                && ticket.equals(currentTicket) && expiry == currentExpiry && expiry > now
+                && expiry <= now + ServiceProtocol.MAX_INVITATION_FUTURE_SECONDS;
     }
     String verificationInstructions() {
         return "先下载下面的接入说明为原始字节，按本邀请中的 AIRTAP_GUIDE_SHA256 核对 SHA-256，一致后才阅读并使用说明；"

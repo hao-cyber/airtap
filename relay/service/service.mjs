@@ -1,5 +1,5 @@
 import { DurableObject } from 'cloudflare:workers';
-import { MultiPairingRelay, publicAsset, route, bearer, readBody, hash, equal, exact, HEX32, HEX64, now } from '../worker/worker.mjs';
+import { MultiPairingRelay, publicAsset, route, bearer, readBody, hash, equal, exact, HEX32, HEX64, now, PAIRING_TTL_SECONDS } from '../worker/worker.mjs';
 
 import { FeedbackStore, feedbackEnabled, isFeedbackPath, feedbackListPath, feedbackRequest, adminAuthenticated } from './feedback.mjs';
 
@@ -148,7 +148,7 @@ export default { async fetch(request, env) {
 Ask the owner for their eight-digit invitation code. This code only permits a pairing request, not phone control.
 Use a verified, patched HTTPS tool. POST JSON {"code":"12345678"} to ${base}/v1/invitations/resolve. The example digits are not a real invitation. Do not put codes in URLs or logs.
 The response binds the current device path, short-lived ticket and SHA256 values for /agent.md and /cli/airtap.py. Download original bytes and verify the returned digests before use. This flow trusts this owner-specified HTTPS service; do not accept a substitute domain or disable TLS validation.
-Verified CLI 0.4.0-cli.14+: pair-code --service ${base} --code-stdin. Supply only the real code through stdin and use a private config path. Reuse an existing pending config after an uncertain reply.
+Verified CLI 0.4.0-cli.15+: pair-code --service ${base} --code-stdin. Supply only the real code through stdin and use a private config path. Reuse an existing pending config after an uncertain reply.
 Follow /agent.md to request pairing with your own credential. Show the returned six-digit comparison code to the owner. Wait for their phone-side approval. Do not approve yourself or replace an existing connection.
 `, { headers: { ...HEADERS, 'Content-Type': 'text/plain; charset=utf-8', 'Referrer-Policy': 'no-referrer' } });
     }
@@ -171,7 +171,7 @@ Follow /agent.md to request pairing with your own credential. Show the returned 
 
     if (path === '/v1/service' && request.method === 'GET') return reply(200, {
       service_id: env.SERVICE_ID, label: env.SERVICE_LABEL, registration_open: env.REGISTRATION_OPEN === 'true', control_open: env.CONTROL_OPEN === 'true',
-      enrollment_mode: 'public', enrollment_expires_at: null, pairing_ttl_seconds: 300, session_ttl_seconds: null, command_budget: null, capabilities: ['short_invitation_v1', 'multi_ai_v1', 'task_lease_v1', 'companion_v1', 'paged_tree_v1', 'node_text_v1', 'windows_v1', 'volume_v1', 'atomic_input_v1', 'system_actions_v1', 'semantic_node_v1', 'drag_v1', 'gesture_v1', 'files_v1', 'file_share_v1', ...(feedbackEnabled(env) ? ['feedback_v1'] : [])], persistent_pairing: true,
+      enrollment_mode: 'public', enrollment_expires_at: null, pairing_ttl_seconds: PAIRING_TTL_SECONDS, session_ttl_seconds: null, command_budget: null, capabilities: ['short_invitation_v1', 'multi_ai_v1', 'task_lease_v1', 'companion_v1', 'paged_tree_v1', 'node_text_v1', 'windows_v1', 'volume_v1', 'atomic_input_v1', 'system_actions_v1', 'semantic_node_v1', 'drag_v1', 'gesture_v1', 'files_v1', 'file_share_v1', ...(feedbackEnabled(env) ? ['feedback_v1'] : [])], persistent_pairing: true,
     });
     if (isFeedbackPath(path)) {
       if (!feedbackEnabled(env)) return reply(404, { error: 'not_found' });

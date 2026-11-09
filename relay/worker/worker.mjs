@@ -20,6 +20,7 @@ const COMMAND_LIMIT = 8 * 1024;
 const H = { 'Cache-Control': 'no-store, no-cache, no-transform', 'X-Content-Type-Options': 'nosniff', 'X-Airtap-Protocol-Version': '2' };
 const json = (status, data) => new Response(JSON.stringify(data), { status, headers: { ...H, 'Content-Type': 'application/json' } });
 const now = () => Math.floor(Date.now() / 1000);
+export const PAIRING_TTL_SECONDS = 60 * 60;
 const randomHex = bytes => [...crypto.getRandomValues(new Uint8Array(bytes))].map(x => x.toString(16).padStart(2, '0')).join('');
 const encode = value => new TextEncoder().encode(value);
 const hash = async value => [...new Uint8Array(await crypto.subtle.digest('SHA-256', encode(value)))].map(x => x.toString(16).padStart(2, '0')).join('');
@@ -390,7 +391,7 @@ export class PairingRelay extends DurableObject {
         const ticket = randomHex(16), ticketHash = await hash(ticket);
         // A fresh explicit invitation invalidates the previous controller and
         // starts a new replay domain. Reconnect/hibernation never clears seen.
-        const next = { ...s, generation: s.generation + 1, phase: 'waiting', ticketHash, pairingExpires: Math.min(now() + 300, this.globalDeadline()), candidate: null, sessionExpires: null, allowTap: false, allowControl: false, allowedPackages: [], persistent: false, allApps: false, sequence: 0, seen: [] };
+        const next = { ...s, generation: s.generation + 1, phase: 'waiting', ticketHash, pairingExpires: Math.min(now() + PAIRING_TTL_SECONDS, this.globalDeadline()), candidate: null, sessionExpires: null, allowTap: false, allowControl: false, allowedPackages: [], persistent: false, allApps: false, sequence: 0, seen: [] };
         this.state = next; this.disconnect('new_pairing', 410);
         await this.persist(next);
         await this.schedule();
@@ -684,7 +685,7 @@ export class MultiPairingRelay extends PairingRelay {
     if (Object.values(s.grants).some(g => !g.lease_ready)) return this.json(409, { error: 'client_upgrade_required' });
     if (Object.keys(s.grants).length && !this.transportReady()) return this.json(409, { error: 'device_upgrade_required' });
     if (![this.env.CLI_SHA256, this.env.AGENT_SHA256].every(x => typeof x === 'string' && HEX64.test(x))) return this.json(503, { error: 'artifact_metadata_unavailable' });
-    const next = { id: body.invitation_id, sequence: body.invitation_sequence, origin: 'multi_ai_v1', ticketHash, expiresAt: now() + 300, candidate: null };
+    const next = { id: body.invitation_id, sequence: body.invitation_sequence, origin: 'multi_ai_v1', ticketHash, expiresAt: now() + PAIRING_TTL_SECONDS, candidate: null };
     await this.persist({ ...s, invitation: next, invitationSequence: next.sequence }); await this.scheduleMulti();
     return this.invitationResult(next);
   }

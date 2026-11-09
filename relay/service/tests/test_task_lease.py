@@ -1022,7 +1022,7 @@ class InvitationCodeTest(unittest.TestCase):
         self.path = Path(self.temp.name).resolve() / 'short.json'
         self.args = SimpleNamespace(config=self.path, service='https://relay.example', name='Fixture AI', timeout=25, allow_local_http=False)
         self.invite = {'protocol_version': 4, 'device_base_path': '/d/' + 'a' * 32,
-                       'ticket': 'b' * 32, 'pairing_expires_at': int(time.time()) + 300,
+                       'ticket': 'b' * 32, 'pairing_expires_at': int(time.time()) + 3600,
                        'cli_sha256': 'c' * 64, 'agent_sha256': 'd' * 64, 'task_lease_required': True}
         self.pending = {'protocol_version': 4, 'state': 'pending', 'claim_id': CLAIM,
                         'verification_code': '123456', 'pairing_expires_at': self.invite['pairing_expires_at']}
@@ -1036,6 +1036,7 @@ class InvitationCodeTest(unittest.TestCase):
     def test_invalid_resolution_never_creates_identity(self):
         values = [[], None, {**self.invite, 'device_base_path': '//evil.example/d/' + 'a' * 32},
                   {**self.invite, 'pairing_expires_at': int(time.time()) - 1},
+                  {**self.invite, 'pairing_expires_at': int(time.time()) + 3632},
                   {**self.invite, 'task_lease_required': 'true'}, {**self.invite, 'extra': 'unexpected'},
                   {**self.invite, 'ticket': 'b' * 32 + '\n'}, {**self.invite, 'cli_sha256': 'bad'}]
         for value in values:
@@ -1045,6 +1046,18 @@ class InvitationCodeTest(unittest.TestCase):
                 with self.assertRaises(cli.Failure) as failure: self.invoke(request)
                 self.assertEqual(failure.exception.result['error'], 'invalid_short_invitation_response')
                 self.assertFalse(self.path.exists()); self.assertEqual(len(calls), 1)
+
+    def test_wait_continues_past_old_five_minute_limit_and_observes_approval(self):
+        self.args.wait = True
+        config = {'url': 'https://relay.example' + self.invite['device_base_path'], 'controller_token': TOKEN}
+        approved = {**self.pending, 'state': 'approved', 'session_expires_at': None,
+                    'allow_tap': False, 'allow_control': True, 'allowed_packages': [], 'persistent': True, 'all_apps': True}
+        with patch.object(cli, 'request', side_effect=[{'data': self.pending}, {'data': approved}]) as request, \
+             patch.object(cli.time, 'monotonic', side_effect=[0, 301]), patch.object(cli.time, 'sleep'), \
+             patch.object(cli, 'remember_approval') as remember:
+            result = cli.poll_pair(self.args, config)
+        self.assertEqual(result['state'], 'approved'); self.assertEqual(request.call_count, 2)
+        remember.assert_called_once()
 
     def seed(self):
         cli.save_config(self.path, {'url': 'https://relay.example' + self.invite['device_base_path'],

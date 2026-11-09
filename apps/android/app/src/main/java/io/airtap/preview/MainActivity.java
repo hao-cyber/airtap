@@ -202,13 +202,14 @@ public final class MainActivity extends Activity {
         } else if (claim != null) {
             heading("这是你自己的 AI 吗？"); paragraph(candidate + " 请求连接（名称由对方提供）。请与 AI 告诉你的六位数字核对：");
             content.addView(AppUi.text(this, code.substring(0, 3) + " " + code.substring(3), 44)); AppUi.space(content, 20);
+            paragraph("有效至 "+new java.text.SimpleDateFormat("HH:mm",java.util.Locale.getDefault()).format(new java.util.Date(invitationExpiry*1000))+"；批准后 AI 会自动核实连接，不用再回复“已点”。");
             paragraph("确认后，你的 AI 可以持续查看和操作整台手机，包括按需亮屏、切换应用、点击和输入。需要做什么，由你告诉自己的 AI。你随时可以停止并解除连接。");
             primary(busy ? "正在连接…" : "数字一致，连接我的 AI", v -> approve()); content.addView(button("不是我的 AI，取消", v -> disconnect()));
         } else if (invitationUncertain) {
             heading(busy ? "正在核查邀请" : "继续连接自己的 AI");
             paragraph("原手机身份已保留。Airtap 会先核查服务上的邀请，不会因一次网络中断自动换掉已有邀请或 AI 连接。");
             primary(busy ? "正在核查…" : "再次检查邀请状态", v -> checkInvitation(true));
-            content.addView(button("重新生成邀请", v -> invite()));
+            content.addView(button("重新生成邀请码", v -> invite()));
         } else if (ticket != null) {
             heading("把邀请码告诉你的 AI");
             invitationCode.render(content, config, ticket, invitationExpiry);
@@ -218,7 +219,7 @@ public final class MainActivity extends Activity {
                 AlertDialog dialog = new AlertDialog.Builder(this).setTitle("我的 AI 接入邀请").setView(scroll).setPositiveButton("返回", null).create();
                 dialog.getWindow().addFlags(WindowManager.LayoutParams.FLAG_SECURE); dialog.show();
             }));
-            paragraph("正在等待你的 AI…\n邀请有效期为 5 分钟，接入成功后无需重复发送。"); content.addView(button("重新生成邀请", v -> invite()));
+            paragraph("正在等待你的 AI…\n请在显示的到期时间前完成申请与核码，接入成功后无需重复发送。"); content.addView(button("重新生成邀请码", v -> invite()));
         } else {
             heading("连接你自己的 AI"); paragraph("手机已准备好。把邀请交给你已有的个人 AI，核对一次数字后即可使用。");
             paragraph("使用你平时的个人 AI 对话即可。AI 需要能调用工具，让它按邀请自行检查；你不用运行命令或安装 Codex 插件。"); content.addView(button("远程使用准备", v -> remotePreparation())); primary(busy ? "正在准备…" : "邀请我的 AI", v -> invite());

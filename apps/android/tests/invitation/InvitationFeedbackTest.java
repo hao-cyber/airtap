@@ -13,12 +13,12 @@ public final class InvitationFeedbackTest {
     static InvitationFeedback.ServerTime clock(long at){return InvitationFeedback.serverTime(date(at),0,0);}
     static void rejected(String code,JSONObject body,long now,InvitationFeedback.ServerTime clock){try{InvitationFeedback.validate(body,now,clock);throw new AssertionError("accepted");}catch(InvitationFeedback.Rejected e){check(e.code.equals(code));check(!e.userMessage.contains("a".repeat(32)));}}
     public static void main(String[] args){
-        test("strict existing acceptance window unchanged across both boundaries",()->{for(long delta=-2;delta<=332;delta++){boolean old=false,newer=false;try{ServiceProtocol.invitation(body(NOW+delta),NOW);old=true;}catch(IllegalArgumentException expected){}try{InvitationFeedback.validate(body(NOW+delta),NOW,clock(NOW));newer=true;}catch(InvitationFeedback.Rejected expected){}check(old==newer);}});
-        test("31 second slow phone receives actionable clock mismatch, not network",()->rejected("device_service_clock_mismatch",body(NOW+300),NOW-31,clock(NOW)));
-        test("fast phone and still-live server ticket receive clock mismatch",()->rejected("device_service_clock_mismatch",body(NOW+300),NOW+400,clock(NOW)));
+        test("one-hour acceptance window is bounded identically across both validators",()->{for(long delta=-2;delta<=3632;delta++){boolean old=false,newer=false;try{ServiceProtocol.invitation(body(NOW+delta),NOW);old=true;}catch(IllegalArgumentException expected){}try{InvitationFeedback.validate(body(NOW+delta),NOW,clock(NOW));newer=true;}catch(InvitationFeedback.Rejected expected){}check(old==newer);}});
+        test("31 second slow phone receives actionable clock mismatch, not network",()->rejected("device_service_clock_mismatch",body(NOW+3600),NOW-31,clock(NOW)));
+        test("fast phone and still-live server ticket receive clock mismatch",()->rejected("device_service_clock_mismatch",body(NOW+3600),NOW+3700,clock(NOW)));
         test("server confirms expired ticket; ask for new invitation",()->rejected("invitation_expired",body(NOW-1),NOW,clock(NOW)));
-        test("future lifetime exceeding both clocks remains invalid response",()->rejected("invalid_invitation_response",body(NOW+600),NOW-31,clock(NOW)));
-        test("missing server Date cannot establish a clock fault",()->rejected("invitation_time_unconfirmed",body(NOW+331),NOW,null));
+        test("future lifetime exceeding both clocks remains invalid response",()->rejected("invalid_invitation_response",body(NOW+7200),NOW-31,clock(NOW)));
+        test("missing server Date cannot establish a clock fault",()->rejected("invitation_time_unconfirmed",body(NOW+3631),NOW,null));
         test("expired local time without corroborating Date stays uncertain",()->rejected("invitation_time_unconfirmed",body(NOW-1),NOW,null));
         test("malformed ticket is format failure even when clocks differ",()->rejected("invalid_invitation_response",body(NOW+300).put("ticket","not-a-ticket"),NOW-31,clock(NOW)));
         test("wrong protocol and string expiry are format errors",()->{rejected("invalid_invitation_response",body(NOW+300).put("protocol_version",3),NOW-31,clock(NOW));rejected("invalid_invitation_response",body(NOW+300).put("pairing_expires_at","1793034300"),NOW-31,clock(NOW));});

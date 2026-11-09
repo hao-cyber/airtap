@@ -89,7 +89,7 @@ public final class MultiAiControlTest{
       String migration=trust.migration(config).getString("id");check(trust.completeMigration(config,migration,Set.of(A)));trust.requireLease(config,A);
       String fence=trust.grantFence(config,A);int saves=FakeDisk.saves;owner.backgroundPoll();RelayApi.requests.get(RelayApi.requests.size()-1).respond(multiState(A),200,null);
       var box=new android.widget.LinearLayout();owner.render(box);
-      check(!box.hasText(waiting)&&box.hasText("我的 AI 连接")&&box.hasText("已授权 · 按任务轮流使用")&&box.hasButton("添加另一位自己的 AI"));
+      check(!box.hasText(waiting)&&box.hasText("我的 AI 连接")&&box.hasText("已连接 · 可继续使用")&&box.hasButton("添加另一位自己的 AI"));
       check(fence.equals(trust.grantFence(config,A))&&trust.grant(config,A).getLong("sequence")==7&&FakeDisk.saves==saves&&invitationPosts()==0);
     }
   });
@@ -294,7 +294,7 @@ public final class MultiAiControlTest{
     OwnerIdentityHarness owner=invitationOwner();JSONObject invite=trust.beginInvitation(config,0);
     trust.completeInvitation(config,invite.getString("invitation_id"),invite.getLong("invitation_sequence"),System.currentTimeMillis()/1000-60,"1".repeat(64),"2".repeat(64));
     owner.remote=multiState(A);var box=new android.widget.LinearLayout();owner.render(box);
-    check(box.hasText("邀请已过期")&&box.hasButton("取消过期邀请")&&!box.hasButton("继续准备原邀请")&&!box.hasButton("添加另一位自己的 AI")&&invitationPosts()==0);
+    check(box.hasText("邀请已过期")&&box.hasButton("重新生成邀请码")&&!box.hasButton("继续准备原邀请")&&!box.hasButton("添加另一位自己的 AI")&&invitationPosts()==0);
   });
   test("expired unapproved invitation never displays a cached candidate verification code",()->{
     OwnerIdentityHarness owner=invitationOwner();JSONObject invite=trust.beginInvitation(config,0);long expiry=System.currentTimeMillis()/1000-60;
@@ -318,31 +318,42 @@ public final class MultiAiControlTest{
     check(box.hasButton("继续准备原邀请")&&!box.hasText("邀请已过期")&&!box.hasText("short-invitation-presenter")&&RelayApi.requests.isEmpty());
     trust.cancelInvitation(config,invite.getString("invitation_id"),invite.getLong("invitation_sequence"));
     box=new android.widget.LinearLayout();owner.render(box);
-    check(box.hasText("正在确认取消")&&box.hasButton("取消这次邀请")&&!box.hasButton("继续准备原邀请")&&!box.hasButton("添加另一位自己的 AI")&&RelayApi.requests.isEmpty());
+    check(box.hasText("正在确认取消")&&box.hasButton("取消本次邀请")&&!box.hasButton("继续准备原邀请")&&!box.hasButton("添加另一位自己的 AI")&&RelayApi.requests.isEmpty());
   });
   test("already approved pending connection takes priority over the original invitation deadline",()->{
     OwnerIdentityHarness owner=invitationOwner();JSONObject invite=trust.beginInvitation(config,0);
     trust.completeInvitation(config,invite.getString("invitation_id"),invite.getLong("invitation_sequence"),System.currentTimeMillis()/1000-60,"1".repeat(64),"2".repeat(64));
     String approval=trust.beginApproval(config,B,"Synthetic approved AI");owner.remote=multiState(A);
     var box=new android.widget.LinearLayout();owner.render(box);
-    check(box.hasText("已核码确认")&&box.hasButton("继续核实")&&box.hasButton("取消这次邀请")&&!box.hasText("邀请已过期")&&!box.hasButton("取消过期邀请"));
+    check(box.hasText("已核码确认")&&box.hasButton("继续核实")&&box.hasButton("取消本次邀请")&&!box.hasText("邀请已过期")&&!box.hasButton("重新生成邀请码"));
     check(approval.equals(trust.pending(config).getString("approval_id"))&&RelayApi.requests.isEmpty());
   });
-  test("expired invitation cancellation must be confirmed before a separate explicit new invitation",()->{
+  test("one regeneration action confirms old cancellation before a fresh invitation without touching another AI",()->{
     OwnerIdentityHarness owner=invitationOwner();JSONObject invite=trust.beginInvitation(config,0);String originalFence=trust.grantFence(config,A);
     trust.completeInvitation(config,invite.getString("invitation_id"),invite.getLong("invitation_sequence"),System.currentTimeMillis()/1000-60,"1".repeat(64),"2".repeat(64));
-    owner.remote=multiState(A);var box=new android.widget.LinearLayout();owner.render(box);box.click("取消过期邀请");
+    owner.remote=multiState(A);var box=new android.widget.LinearLayout();owner.render(box);box.click("重新生成邀请码");
     var cancel=RelayApi.requests.get(0);check(cancel.path.equals("/v1/device/invitations/cancel")&&cancel.body.getString("invitation_id").equals(invite.getString("invitation_id")));
     cancel.respond(null,0,"lost_response");box=new android.widget.LinearLayout();owner.render(box);
-    check(box.hasText("正在确认取消")&&!box.hasButton("添加另一位自己的 AI")&&invitationPosts()==0&&originalFence.equals(trust.grantFence(config,A)));
-    box.click("取消这次邀请");var retry=RelayApi.requests.get(1);
+    check(box.hasText("邀请已过期")&&box.hasButton("重新生成邀请码")&&!box.hasButton("添加另一位自己的 AI")&&invitationPosts()==0&&originalFence.equals(trust.grantFence(config,A)));
+    box.click("重新生成邀请码");var retry=RelayApi.requests.get(1);
     for(String key:List.of("invitation_id","invitation_sequence"))check(cancel.body.get(key).equals(retry.body.get(key)));
     retry.respond(RelayApi.json("protocol_version",4,"ok",true),200,null);check(trust.invitation(config)==null&&invitationPosts()==0);
     RelayApi.requests.get(2).respond(multiState(A).put("invitation_sequence",invite.getLong("invitation_sequence")),200,null);
-    box=new android.widget.LinearLayout();owner.render(box);check(box.hasButton("添加另一位自己的 AI")&&invitationPosts()==0);
-    box.click("添加另一位自己的 AI");check(invitationPosts()==1);var next=RelayApi.requests.get(3);
+    check(invitationPosts()==1);var next=RelayApi.requests.get(3);
     check(!next.body.getString("invitation_id").equals(invite.getString("invitation_id"))&&!next.body.getString("ticket").equals(invite.getString("ticket"))&&next.body.getLong("invitation_sequence")>invite.getLong("invitation_sequence"));
     check(originalFence.equals(trust.grantFence(config,A))&&OwnerRevocations.revoked.isEmpty()&&!OwnerRevocations.all);
+  });
+  test("stop, leaving or identity change during regeneration never creates a replacement invitation",()->{
+    for(String mutation:List.of("stop","leave","identity")){
+      reset();OwnerIdentityHarness owner=invitationOwner();JSONObject invite=trust.beginInvitation(config,0);
+      trust.completeInvitation(config,invite.getString("invitation_id"),invite.getLong("invitation_sequence"),System.currentTimeMillis()/1000-60,"1".repeat(64),"2".repeat(64));
+      owner.remote=multiState(A);var box=new android.widget.LinearLayout();owner.render(box);box.click("重新生成邀请码");var cancel=RelayApi.requests.get(0);
+      if(mutation.equals("stop"))trust.stop();
+      else if(mutation.equals("leave"))owner.pause();
+      else owner.bindIdentity(new EnrollmentStore.Config("https://other.invalid/d/"+B,"f".repeat(64)));
+      cancel.respond(RelayApi.json("protocol_version",4,"ok",true),200,null);
+      check(invitationPosts()==0&&RelayApi.requests.size()==1);
+    }
   });
   System.out.println("TOTAL "+passed);
  }

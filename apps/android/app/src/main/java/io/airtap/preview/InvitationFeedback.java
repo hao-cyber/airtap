@@ -26,12 +26,12 @@ final class InvitationFeedback {
         final long expiry;
         try { expiry = ServiceProtocol.invitationShape(body); }
         catch (RuntimeException invalid) { throw new Rejected("invalid_invitation_response"); }
-        // Exact existing acceptance rule: no adjustment of the device clock or ticket expiry.
-        if (expiry > now && expiry <= now + 330) return expiry;
+        // Bound the advertised one-hour invitation; never adjust the device clock or extend a ticket.
+        if (expiry > now && expiry <= now + ServiceProtocol.MAX_INVITATION_FUTURE_SECONDS) return expiry;
         if (serverTime != null) {
             if (expiry <= serverTime.earliest) throw new Rejected("invitation_expired");
-            if (expiry > serverTime.latest + 330) throw new Rejected("invalid_invitation_response");
-            boolean serverValid = expiry > serverTime.latest && expiry <= serverTime.earliest + 330;
+            if (expiry > serverTime.latest + ServiceProtocol.MAX_INVITATION_FUTURE_SECONDS) throw new Rejected("invalid_invitation_response");
+            boolean serverValid = expiry > serverTime.latest && expiry <= serverTime.earliest + ServiceProtocol.MAX_INVITATION_FUTURE_SECONDS;
             boolean clocksDiffer = serverTime.earliest - now > 30 || now - serverTime.latest > 30;
             if (serverValid && clocksDiffer) throw new Rejected("device_service_clock_mismatch");
         }

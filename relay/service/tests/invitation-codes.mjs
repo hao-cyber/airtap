@@ -68,6 +68,8 @@ try {
  await mf.ready;const d=await enroll(),other=await enroll();let i;
  await check('owner-only mint, strict input, stable code and original expiry',async()=>{
   i=await invitation(d);assert.match(i.code,/^[0-9]{8}$/);
+  assert.ok(i.pairing_expires_at>=Math.floor(Date.now()/1000)+3598&&i.pairing_expires_at<=Math.floor(Date.now()/1000)+3600);
+  assert.equal((await ok('/v1/service')).pairing_ttl_seconds,3600);
   const again=await ok(d.base+'/v1/device/invitation-code',d.token,{ticket:i.ticket});
   assert.equal(again.code,i.code);assert.equal(again.pairing_expires_at,i.pairing_expires_at);
   assert.equal((await call(d.base+'/v1/device/invitation-code',other.token,{ticket:i.ticket})).status,401);
@@ -111,6 +113,7 @@ try {
   const task=await ok(d.base+'/v1/tasks/acquire',d.controller,{task_id:hex(16)});
   const seed={invitation_id:hex(16),invitation_sequence:1,ticket:hex(16)};await ok(d.base+'/v1/device/invitations',d.token,seed);
   const first=await ok(d.base+'/v1/device/invitation-code',d.token,{ticket:seed.ticket});assert.equal((await resolve(first.code)).task_lease_required,true);
+  assert.ok(first.pairing_expires_at>=Math.floor(Date.now()/1000)+3598&&first.pairing_expires_at<=Math.floor(Date.now()/1000)+3600);
   await ok(d.base+'/v1/device/invitations/cancel',d.token,{invitation_id:seed.invitation_id,invitation_sequence:1});
   assert.equal((await call('/v1/invitations/resolve',null,{code:first.code})).status,404);
   const next={invitation_id:hex(16),invitation_sequence:2,ticket:hex(16)};await ok(d.base+'/v1/device/invitations',d.token,next);
