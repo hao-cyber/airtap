@@ -44,16 +44,16 @@ AI 可以组合这些动作完成跨 App 任务，不限于计算器等演示应
 
 当前版本 **0.4.0-beta.34（code64）** 延长新邀请到一小时，过期后可一键重新生成。发给 AI 八位码，在手机核对六位码并批准，AI 会自动继续；已有连接保留。[更新说明](release/android/64.json) · [构建与配对检查](docs/results/beta34-code64-pairing-journey-20261110.json) · [发布核验](docs/results/beta34-code64-publication-20261110.json)。
 
-Muse 已通过一台手机的原连接完成 code64 远程升级，核对 32 × 4 = 128、回桌面并释放控制；离线、下载停滞和安装后的断线由它自行恢复。[本次实测](docs/results/beta34-code64-muse-upgrade-20261110.json)。另一台手机本轮由维护者通过 USB 升级，随后接入与实际任务另行验证。
+两台测试手机均已升级到 code64，分别接入 Muse 和 Instinct。Muse 通过一台的原连接完成远程升级；另一台由维护者通过 USB 升级、正常核码后接入。接下来的手机任务由各 AI 自己执行。[升级记录](docs/results/beta34-code64-muse-upgrade-20261110.json) · [两台手机实测](docs/results/beta34-code64-two-ai-20261110.json)
 
-真机测试主要使用魅族 Note 16、Android 15。Muse 与 Instinct 已分别完成息屏后的任务；两者还完成了[持租时拒绝另一 AI、释放后接管的交接](docs/results/beta21-code51-two-ai-handoff-20261103.json)。这些结果保留失败恢复、维护者准备与取证限制。更多机型、纯移动网络完整任务、多日后台和独立新用户完整安装仍待验证。目前没有 iOS 客户端。
+两台魅族 Note 16、Android 15 均完成了[两个 AI 互斥交接与 90 秒息屏后的再次使用](docs/results/beta34-code64-two-ai-20261110.json)：一个 AI 操作时，另一个的申请被拒绝；正常释放后可接手，无需重新配对。Muse 验证一台息屏后的任务，Instinct 验证另一台。更多机型、纯移动网络完整任务、多日后台和独立新用户完整安装仍待验证。目前没有 iOS 客户端。
 
 | 个人 AI | 已有测试 |
 | --- | --- |
-| Muse | 两台原连接已完成 [code63 升级和计算器任务](docs/results/beta33-code63-muse-two-devices-20261110.json)。此前 code62 完成短信、维基百科与计算器[续用任务](docs/results/beta32-code62-muse-reuse-20261109.json)，以及[另一台手机的短时息屏恢复](docs/results/beta32-code62-second-device-20261109.json)。 |
-| Instinct | code51／CLI.12 从息屏恢复，在 Google Play 搜索并核对 Google Maps，再回桌面并释放。首次观察和启动后的观察曾失败，之后自行恢复。[记录](docs/results/beta21-code51-instinct-cli12-wake-20261103.json) |
+| Muse | code64：原连接远程升级；另一台手机在 Google Play 搜索 Google Maps，计算器核对 37 × 3 = 111，回桌面并释放。 |
+| Instinct | code64／CLI.15：两台各自接入，完成计算器、短信 App 发送方与日期核对、浏览器阅读，并再次取得控制完成任务。 |
 
-Instinct 已通过[两次从 Vault 取用合成凭据并认证](docs/results/instinct-vault-use-20261109.json)，并为两台手机分别[保存和取用了新的独立凭据](docs/results/instinct-credential-preparation-20261109.json)，尚待手机核码批准。当前版本任务、双 AI 交接，以及真正更换云端运行环境后的恢复仍未完成验收。上表的 code51 结果不能替代这些检查。一台测试手机的 SIM PIN 开关仍开启，下次重启仍需系统验证；普通息屏唤醒通过不等于重启后无需人参与。
+Instinct 已将两份完整连接信息存入自己的 Vault，再从中取回并恢复到两个新的私有配置，实际查询均通过。这验证了保存与恢复流程；真正更换云端虚拟机仍未验证。上述任务与失败恢复见[本轮记录](docs/results/beta34-code64-two-ai-20261110.json)。一台测试手机的 SIM PIN 仍开启，重启后仍需系统验证；普通息屏唤醒通过不等于重启后无需人参与。
 
 其他 AI 尚未确认兼容。它至少需要能执行网络工具调用；用截图定位和操作时，还需要实际读取图片的能力。普通聊天入口不一定具备这些能力。[AI 接入说明](docs/agent.md)
 

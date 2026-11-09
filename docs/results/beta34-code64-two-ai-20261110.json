@@ -1,0 +1,211 @@
+{
+  "schema": "airtap-two-phone-personal-ai-acceptance-v1",
+  "date": "2026-11-10",
+  "android_version": "0.4.0-beta.34",
+  "version_code": 64,
+  "cli_version": "0.4.0-cli.15",
+  "relay_revision": 27,
+  "evidence_scope": "Actual receipts from the existing authenticated Muse and Instinct conversations. Raw chats, phone UI observations, identities and credentials retained privately; no full cloud trace exported.",
+  "devices": [
+    {
+      "device": "first phone",
+      "model": "Meizu Note 16",
+      "android": 15,
+      "muse": {
+        "pairing": "original grant retained",
+        "remote_upgrade_63_to_64": true,
+        "cli15_execution": true,
+        "visual_task": "32×4=128, home and idle; upgrade used CLI.14 before switching to CLI.15"
+      },
+      "instinct": {
+        "pairing": "new primary grant approved through normal owner UI",
+        "visual_task": "36×3=108; SMS App sender/date inspection; home and idle",
+        "reuse_visual_task": "43×2=86; home and idle",
+        "old_unavailable_grant": "precisely removed through named confirmation after the new grant was actually usable"
+      }
+    },
+    {
+      "device": "second phone",
+      "model": "Meizu Note 16",
+      "android": 15,
+      "upgrade": "USB maintenance, data preserved",
+      "muse": {
+        "pairing": "new identity after the owner had revoked the prior grant; the revoked identity was not restored",
+        "visual_task": "Google Play search for Google Maps, no install/update; 37×3=111; home and idle"
+      },
+      "instinct": {
+        "pairing": "new grant approved through normal owner UI",
+        "visual_task": "34×3=102; Wikipedia Android article opened directly; home and idle",
+        "reuse_visual_task": "41×2=82; home and idle",
+        "wikipedia_search": "After a fresh visual keyboard observation, typed all letters of Android with normal taps, submitted the search, visually checked the resulting article, then returned home and released; did not use a direct article URL for this test."
+      }
+    }
+  ],
+  "credential_persistence": {
+    "agent": "Instinct",
+    "two_existing_vault_records_updated": true,
+    "same_original_private_keys": true,
+    "complete_url_and_claim_saved_in_existing_username_as_versioned_json": true,
+    "new_private_directory_restore_only_from_fresh_vault_retrieval": true,
+    "restored_configs_permissions": "0600 inside 0700 directory",
+    "both_approved_and_online_read_only": true,
+    "actual_runner_uses_restored_configs": true,
+    "credential_exports_removed": true,
+    "new_vm_or_provider_runtime_replacement_tested": false
+  },
+  "operator_actions": {
+    "owner_actions_during_this_round": 0,
+    "owner_phone_approval": "Delegated maintainer compared each six-digit code with the corresponding actual AI receipt and approved through normal phone UI; owner did not personally click.",
+    "maintenance_transport": {
+      "first_phone": "Temporary wireless ADB enabled by Muse in normal Android settings; existing computer trust reused; disabled again after pairing maintenance.",
+      "second_phone": "Already connected USB used for upgrade and owner-side pairing maintenance."
+    },
+    "temporary_ui_observer": "Read-only observer used FLAG_DONT_SUPPRESS_ACCESSIBILITY_SERVICES; removed from both phones after setup.",
+    "display_settings": "Original values restored and checked.",
+    "phone_task_substitution_by_maintenance": false
+  },
+  "retained_failures_and_recovery": [
+    "Legacy UIAutomator observation temporarily suppressed accessibility; replaced during maintenance by a read-only observer preserving other services.",
+    "Initial helper installation confirmations timed out; ordinary installer confirmation was completed within its window without changing authentication.",
+    "Instinct saw protected_airtap_window while the maintainer was still in the owner management screen; it released and waited until maintenance returned home.",
+    "Muse lacked a helper in its new directory and used an unsupported read-tree argument; it corrected both before continuing.",
+    "Muse stopped its pending-approval read-only wait on an explicit coordination message; maintainer then sent the approved-resume instruction. This is not evidence of zero coordinator intervention.",
+    "Initial Instinct search diagnosis found invalid pixel coordinates and no text-input action dispatched; normalized coordinates opened the search field. Direct article navigation was recorded separately.",
+    "Initial mutual-exclusion window was missed: Instinct waited for a foreign lease expiry field that is intentionally private. Coordinator clarified that service busy from another identity suffices. The ensuing acquire raced with release and was immediately released; it does not count as a rejected competing acquire.",
+    "A maintainer follow-up combined finishing the second-phone holder with an ambiguous later instruction not to operate that phone. Muse skipped that window and completed the first-phone wake task. The coordinator corrected this with a single-device holder instruction; no skipped window was counted as passed."
+  ],
+  "mutual_exclusion_and_handoff": {
+    "status": "passed_on_both_phones",
+    "first_phone": {
+      "busy_observed_local": "03:11:27",
+      "competing_acquire_rejected": true,
+      "error": "device_busy",
+      "http_status": 429,
+      "no_phone_action_while_busy": true,
+      "idle_and_new_own_lease_local": "03:12:47",
+      "fresh_code64_ping_and_visual_home": true,
+      "released_local": "03:13:02",
+      "evidence": "Actual Instinct receipt at03:15; not evidence of a full300-second holder interval.",
+      "later_muse_holder": {
+        "start_local": "03:14:03",
+        "monotonic_seconds": 300.0,
+        "explicit_successful_renewals": 14,
+        "failures": 0,
+        "lease_lost": false,
+        "home_visually_checked": true,
+        "final_state": "idle",
+        "final_sequence": 1461,
+        "scope": "This later complete holder interval is separate from the earlier Instinct rejection window."
+      }
+    },
+    "second_phone": {
+      "busy_observed_local": "03:26:05",
+      "competing_acquire_local": "03:26:06",
+      "competing_acquire_rejected": true,
+      "error": "device_busy",
+      "http_status": 429,
+      "no_phone_action_while_busy": true,
+      "post_release_reuse": "new own lease, fresh observation, HOME visual check and release passed",
+      "muse_holder": {
+        "start_local": "03:26:02",
+        "end_local": "03:31:02",
+        "monotonic_seconds": 300.0,
+        "explicit_successful_renewals": 14,
+        "failures": 0,
+        "lease_lost": false,
+        "final_home_visually_checked": true,
+        "final_state": "idle",
+        "final_sequence": 49,
+        "pre_acquire": "Muse first waited read-only for Instinct to release.",
+        "retained_runner_error": "Optional mid-window ping/observe checkpoints were skipped by a runner scheduling condition bug. Renewals and final visual check ran; no checkpoint observation is claimed.",
+        "released_local": "03:31:10"
+      }
+    }
+  },
+  "screen_off_reuse": {
+    "status": "passed_on_both_phones",
+    "first_phone": {
+      "agent": "Muse",
+      "lock_local": "03:20:14",
+      "ping_confirmed_screen_off": true,
+      "release_then_90_seconds_without_gui": true,
+      "new_task_local": "03:21:49",
+      "new_ping_still_screen_off": true,
+      "observe_recovery_ms": 4533,
+      "desktop_visually_checked": true,
+      "calculator": "46×2=92 visually checked",
+      "final_home_view_and_idle": true,
+      "final_sequence": 1490,
+      "authentication_required": false,
+      "failures": 0,
+      "retries": 0
+    },
+    "second_phone": {
+      "agent": "Instinct",
+      "lock_local": "03:31:37",
+      "ping_confirmed_screen_off": true,
+      "release_then_90_seconds_without_gui": true,
+      "new_task_local": "03:33:11",
+      "new_ping_still_screen_off": true,
+      "observe_autonomous_wake": true,
+      "calculator": "47×2=94 visually checked",
+      "final_home_view_and_idle": true,
+      "released_local": "03:33:59",
+      "pin_or_owner_intervention": false,
+      "holder_monitoring_stopped": true
+    }
+  },
+  "limits": [
+    "Same two phones and Android version; no independent newcomer, new VM, other model or multi-day availability acceptance.",
+    "A first-phone SIM PIN remains enabled; normal screen-off reuse is distinct from unattended reboot.",
+    "Existing SMS GUI inspection is not a new OTP delivery test or a complete notification archive.",
+    "Temporary maintenance access and coordinator messages are disclosed; only the agents performed the recorded actual tasks."
+  ],
+  "previous_route_retirement": {
+    "old_host_services_disabled": 4,
+    "old_exact_schedules_removed": 3,
+    "old_host_control_sockets_closed": true,
+    "old_perpetual_sms_polling_loop_stopped": true,
+    "old_loop_exit": "Exact identified loop received SIGTERM during its sleep interval after the poll completed; no broader process termination.",
+    "historical_data_preserved": true,
+    "phone_wireless_maintenance_disabled": true,
+    "old_phone_helper": "Exact old companion identified through the actual app catalogue and system information; auto management, self start, associated start and background running disabled through normal UI; force-stop confirmed by disabled button. Data retained.",
+    "post_retirement_airtap_task": "Muse operated the normal phone settings through Airtap after the old host services were disabled, then visually verified HOME and released to idle sequence1565.",
+    "failures": [
+      "Initial crontab file install failed without mutation because the private backup could not be read under the target user; the same reviewed bytes installed via stdin after original state verification.",
+      "Bounded drain found an existing permanent polling loop; it could not drain on its own. The exact loop was identified and gracefully terminated after its poll completed, then the exact services were stopped."
+    ],
+    "notification_reader_setting": "Not listed in the observed app permissions screens; no notification-access setting was changed. UI absence alone is not a manifest audit.",
+    "status": "retired_for_current_on_demand_phone_control",
+    "intentional_scope": "Old automatic SMS polling and notification archive producers remain stopped; historical data is retained. This is not a claim that GUI queries reproduce every transient notification or the previous continuous archive."
+  },
+  "final_read_only_check": {
+    "agent": "Instinct",
+    "local_time": "03:37",
+    "both_pairings_approved": true,
+    "both_phones_online": true,
+    "pending_approvals": 0,
+    "second_phone": "idle",
+    "first_phone": "busy while Muse performs the authorized final maintenance; no takeover attempted",
+    "monitoring_stopped": true,
+    "private_connections_and_vault_records_retained": true,
+    "daily_entry": "Airtap only; old health alerts stopped; paused SMS monitor not restarted"
+  },
+  "status": "two_phone_personal_ai_pairing_tasks_handoff_and_screen_off_reuse_passed",
+  "closeout": {
+    "owner_questions_required": false,
+    "all_test_leases_released": true,
+    "finite_competition_monitoring_stopped": true,
+    "both_muse_and_instinct_connections_retained": true,
+    "current_owner_management_pending_approvals": 0,
+    "temporary_maintainer_helpers_removed": true,
+    "black_wireless_debugging_disabled": true,
+    "daily_control_uses_airtap": true
+  },
+  "checks_reused": {
+    "core_steps_passed": 40,
+    "signed_android_release_build_and_lint": true,
+    "site_build_and_verifier_tests_passed": 35,
+    "scope": "Runtime inputs unchanged since the reviewed code64 build; closing documentation and site copy do not rerun all device or Android build checks."
+  }
+}

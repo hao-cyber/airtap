@@ -51,5 +51,39 @@
     "Host tests, local Workers and USB maintenance do not constitute personal AI or independent new-user acceptance.",
     "Existing expired invitations remain expired; owner approval is still required.",
     "No device reboot, network change, PIN entry or old-link retirement was performed by this validation."
-  ]
+  ],
+  "product_review": {
+    "job": "When adding my own AI, I want to share one short invitation and confirm the correct requester, so the AI can start using the phone without another round of coordination.",
+    "methods": [
+      "Map the full journey across the phone and AI chat",
+      "Walk through waiting, expiry, cancellation, mistaken disconnection and later reuse",
+      "Count owner handoffs separately from maintainer help",
+      "Verify observed results with the actual AI clients"
+    ],
+    "friction_and_response": [
+      {
+        "friction": "Five-minute invitations expired while messages and approval were still in progress.",
+        "change": "New invitations and comparison codes share an explicit one-hour deadline. Existing expired tickets are not revived."
+      },
+      {
+        "friction": "Long connection material was awkward to move between devices.",
+        "change": "Eight-digit invitation with a short share/copy message; retain the service origin for an AI unfamiliar with Airtap."
+      },
+      {
+        "friction": "Invitation actions competed with existing connection management.",
+        "change": "Show the invitation next step first, with one primary action and distinct cancellation versus named disconnection."
+      },
+      {
+        "friction": "An expired attempt required explaining and navigating the flow again.",
+        "change": "Regenerate directly after the old invitation is confirmed canceled, preserving established AI connections."
+      },
+      {
+        "friction": "The owner had to relay approval back to the AI.",
+        "change": "CLI can wait through the actual deadline and confirm approval; client task planning still determines whether it continues automatically."
+      }
+    ],
+    "remaining_owner_decision": "Compare the six digits from the trusted AI chat with the phone and approve the intended AI. Do not auto-approve an arbitrary requester.",
+    "independent_new_user_study": false,
+    "actual_two_phone_results": "beta34-code64-two-ai-20261110.json"
+  }
 }
