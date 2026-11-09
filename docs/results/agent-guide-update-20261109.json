@@ -1,0 +1,26 @@
+{
+  "schema": "airtap-guide-publication-v1",
+  "date": "2026-11-09",
+  "source_commit": "0cbcae5a77744b04d8bc00fccb1ad5a55835d76c",
+  "deployed_relay_revision": 24,
+  "changes": [
+    "Clarified owner-authorized ordinary delegation without repeated proxy prefixes, retaining truthful provenance and identity checks",
+    "Separated complete device URL retention from password-manager website normalization",
+    "Documented supported private temporary credential delivery to the CLI and the limits of repeated-retrieval tests"
+  ],
+  "agent_guide_sha256": "02c9369ed1764e54805067793752194a49cb09d6a47d51abd43a08e131bf7a7f",
+  "cli_sha256": "ce8d219490405296812eb00fd65ef8b7acea8d2856bc9bae5c0255b53a594ee3",
+  "relay_runtime_sha256": "1de6018da8bc9b20e279da6f0a8e0d8024c67a0b7bea48cf84f9066d3f271d27",
+  "existing_service_identity_settings_and_cli_preserved": true,
+  "live_guide_and_cli_bytes_match_source": true,
+  "live_download_redirects_accepted": false,
+  "artifact_routes_and_invitation_hash_cases_passed": 3,
+  "new_apk_release": false,
+  "android_recommendation_version_code": 62,
+  "limits": [
+    "This updates an agent guide, not phone runtime behavior",
+    "No new phone action or two-AI handoff is claimed for this publication",
+    "Existing invitation hashes still identify their original bytes; do not bypass a mismatch"
+  ],
+  "privacy_scope": "Public source and artifact metadata only"
+}

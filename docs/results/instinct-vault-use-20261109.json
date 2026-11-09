@@ -41,5 +41,15 @@
     "Replacement of the actual execution VM",
     "A real current-version Instinct phone task or two-AI handoff"
   ],
-  "privacy_scope": "Only aggregate synthetic test results; no values, private accounts, endpoint addresses, raw messages, device identifiers or credentials"
+  "privacy_scope": "Only aggregate synthetic test results; no values, private accounts, endpoint addresses, raw messages, device identifiers or credentials",
+  "original_identity_followup": {
+    "related_vault_entry_found": false,
+    "previous_recorded_config_paths_present": false,
+    "original_credential_restored": false,
+    "scope": "Only Airtap-related Vault records and the two known original config paths; no claim that all possible backups were searched",
+    "cli13_runner_rechecked_by_agent": true,
+    "automatic_arbitrary_service_token_import": "Not established by the available tool description; no real token write attempted",
+    "maintainer_ui_save_route": "Normal authorized Vault UI creation and controlled use were demonstrated with synthetic fields; this does not establish automatic agent-side import",
+    "new_pairing_or_phone_action": false
+  }
 }
