@@ -50,10 +50,10 @@ Muse 已通过原连接完成本版远程覆盖升级，核对桌面并释放控
 
 | 个人 AI | 已有测试 |
 | --- | --- |
-| Muse | code61／CLI.13 用原连接完成两次息屏唤醒，约 4.9 秒、4.2 秒，实看桌面；通过短信 App 核对已有运营商通知，回桌面并释放。测试前机主完成了重启后的 SIM PIN 验证；Google Play 搜索因未登录没完成。[记录](docs/results/beta31-code61-recovery-20261108.json) |
+| Muse | code62 用原连接核对短信发送方与日期，查维基百科，再用计算器验算，回桌面并释放。一次观察错误自行纠正，无新增人工操作；起始已亮屏。[续用记录](docs/results/beta32-code62-muse-reuse-20261109.json)。code61 的两次息屏唤醒另见[原条件与结果](docs/results/beta31-code61-recovery-20261108.json)。 |
 | Instinct | code51／CLI.12 从息屏恢复，在 Google Play 搜索并核对 Google Maps，再回桌面并释放。首次观察和启动后的观察曾失败，之后自行恢复。[记录](docs/results/beta21-code51-instinct-cli12-wake-20261103.json) |
 
-Instinct 的当前版本任务与双 AI 交接尚未验证；原连接配置在真正更换云端运行环境后的保留也未完成验收。上表的 code51 结果不能替代这些检查。测试手机的 SIM PIN 开关仍开启，下次重启仍需系统验证；普通息屏唤醒通过不等于重启后无需人参与。
+Instinct 已通过[两次从 Vault 取用合成凭据并认证](docs/results/instinct-vault-use-20261109.json)，但尚未恢复原设备连接。当前版本任务、双 AI 交接，以及真正更换云端运行环境后的恢复仍未完成验收。上表的 code51 结果不能替代这些检查。测试手机的 SIM PIN 开关仍开启，下次重启仍需系统验证；普通息屏唤醒通过不等于重启后无需人参与。
 
 其他 AI 尚未确认兼容。它至少需要能执行网络工具调用；用截图定位和操作时，还需要实际读取图片的能力。普通聊天入口不一定具备这些能力。[AI 接入说明](docs/agent.md)
 
