@@ -2,8 +2,6 @@ package io.airtap.preview;
 
 import android.app.Activity;
 import android.app.AlertDialog;
-import android.content.ClipData;
-import android.content.ClipboardManager;
 import android.content.Intent;
 import android.os.Bundle;
 import android.os.Handler;
@@ -84,6 +82,7 @@ public final class MainActivity extends Activity {
     private TextView feedback;
     private UpdateNotice updates;
     private final FileGrantAttempt fileGrantAttempt = new FileGrantAttempt();
+    private final InvitationCode invitationCode = new InvitationCode(this, () -> { renderKey=null;render(); });
     private final MultiAiOwner multiOwner = new MultiAiOwner(this, () -> { renderKey=null;render(); }, this::sharedFolderAccess);
     private final Runnable refresh = new Runnable() {
         @Override public void run() {
@@ -211,9 +210,9 @@ public final class MainActivity extends Activity {
             primary(busy ? "正在核查…" : "再次检查邀请状态", v -> checkInvitation(true));
             content.addView(button("重新生成邀请", v -> invite()));
         } else if (ticket != null) {
-            heading("把邀请发给你的 AI"); paragraph("复制或分享这台手机生成的完整邀请，发到你自己的私人 AI 对话。AI 告诉你六位数字后，回到 Airtap 核对并确认。");
-            primary("复制接入邀请", v -> copy()); content.addView(button("分享给我的 AI", v -> share()));
-            content.addView(button("查看接入邀请", v -> {
+            heading("把邀请码告诉你的 AI");
+            invitationCode.render(content, config, ticket, invitationExpiry);
+            content.addView(button("完整邀请与校验信息", v -> {
                 TextView text = AppUi.text(this, prompt(), 14); text.setTextIsSelectable(true); text.setPadding(24, 24, 24, 24);
                 ScrollView scroll = new ScrollView(this); scroll.addView(text);
                 AlertDialog dialog = new AlertDialog.Builder(this).setTitle("我的 AI 接入邀请").setView(scroll).setPositiveButton("返回", null).create();
@@ -478,12 +477,6 @@ public final class MainActivity extends Activity {
                 + "连接成功后保存私有连接配置供以后复用，任务结束不要自动撤销。根据我的需求使用手机，不预设只支持少数 App 或任务，已经明确授权的操作无需重复确认。"
                 + "手机可能不在我身边，先根据设备能力尝试自动亮屏和恢复连接；确需我处理时说明具体原因与最少步骤。执行后观察结果，未知动作不要重复提交。";
     }
-    private void copy() {
-        String value = prompt(); if (value == null) return; ClipData clip = ClipData.newPlainText("我的 AI 手机邀请", value);
-        android.os.PersistableBundle extras = new android.os.PersistableBundle(); extras.putBoolean("android.content.extra.IS_SENSITIVE", true); clip.getDescription().setExtras(extras);
-        getSystemService(ClipboardManager.class).setPrimaryClip(clip); change("已复制，粘贴到你自己的 AI 对话即可。");
-    }
-    private void share() { String value = prompt(); if (value != null) startActivity(Intent.createChooser(new Intent(Intent.ACTION_SEND).setType("text/plain").putExtra(Intent.EXTRA_TEXT, value), "发送给自己的 AI")); }
     private void poll() {
         if(multiOwner.enabled(config))return;
         if (!visible || polling || busy || (ticket == null && !invitationUncertain && claim == null) || config == null || pendingApproval() != null || System.currentTimeMillis() < nextPoll) return;
@@ -800,5 +793,5 @@ public final class MainActivity extends Activity {
         multiOwner.pause();
         visible = false; setupPaused = busy || setupPaused; fenceSetup(); main.removeCallbacks(refresh); super.onPause();
     }
-    @Override public void onDestroy() { ++epoch; main.removeCallbacksAndMessages(null); super.onDestroy(); }
+    @Override public void onDestroy() { invitationCode.close(); multiOwner.closeInvitationCode(); ++epoch; main.removeCallbacksAndMessages(null); super.onDestroy(); }
 }

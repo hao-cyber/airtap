@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Opt-in native production-client/workerd checks. All identities and target content are synthetic."""
-import argparse, concurrent.futures, hashlib, json, os, queue, secrets, shlex, subprocess, threading, time, uuid
+import argparse, concurrent.futures, hashlib, json, os, queue, re, secrets, shlex, subprocess, threading, time, uuid
 from pathlib import Path
 HERE=Path(__file__).resolve().parent;ROOT=HERE.parents[4]
 CLIENT='io.airtap.fixture.multi';TARGET='io.airtap.fixture.multitarget'
@@ -171,9 +171,9 @@ def main():
                 assert ok(d['base']+'/v1/device/grants',d['token'])['grants']==[]
                 invitation_clicks=0
                 for _ in range(3):
-                    if find_button('复制接入邀请'):break
+                    if find_button('复制给我的 AI'):break
                     click('添加另一位自己的 AI');invitation_clicks+=1;time.sleep(.8)
-                wait(lambda:find_button('复制接入邀请'),15)
+                wait(lambda:find_button('复制给我的 AI'),15)
                 remote=ok(d['base']+'/v1/device/grants',d['token']);assert remote['invitation'] is not None and not bridge('inspect')['grants'];capture_ui('new-invitation-after-explicit-cleanup')
                 return {'notification_pending_intent_sent':True,'empty_mode_no_local_consent':True,'explicit_generation_stop':True,'new_invitation_created':True,'invitation_button_clicks':invitation_clicks}
             check('notification STOP after unknown commit recovers empty mode then explicit cleanup allows new invite',stopped_unknown)
@@ -215,10 +215,31 @@ def main():
                 return f
             def first_click():
                 multi_setup(False);fid,before=hold_explicit();released(fid,False)
-                wait(lambda:find_button('复制接入邀请'),15);local=native_invitation();remote=ok(d['base']+'/v1/device/grants',d['token'])
+                wait(lambda:find_button('复制给我的 AI'),15);local=native_invitation();remote=ok(d['base']+'/v1/device/grants',d['token'])
                 assert metrics()['request_counts']['invitation']==before+1 and local['phase']=='ready' and remote['invitation']['invitation_id']==local['invitation_id']
-                return {'explicit_add_callbacks':1,'held_real_get':fault_state(fid),'invitation_posts':1,'same_remote_id':True}
+                digits=wait(lambda:next((v['text'].replace(' ','') for v in ui() if re.fullmatch(r'[0-9]{4} [0-9]{4}',v['text']) and v['visible']),None),15)
+                resolved=ok('/v1/invitations/resolve',body={'code':digits});assert resolved['device_base_path']==d['base'] and resolved['ticket']==local['ticket'] and resolved['task_lease_required']
+                ui(recreate=True);wait(lambda:find_button('复制给我的 AI'),15)
+                again=next(v['text'].replace(' ','') for v in ui() if re.fullmatch(r'[0-9]{4} [0-9]{4}',v['text']))
+                assert again==digits and metrics()['request_counts']['invitation']==before+1
+                capture_ui('eight-digit-invitation-after-recreate')
+                return {'explicit_add_callbacks':1,'held_real_get':fault_state(fid),'invitation_posts':1,'same_remote_id':True,'visible_eight_digits_resolved':True,'same_code_after_activity_recreate':True}
             check('one actual Owner add callback from unknown remote state creates exactly one invitation after real GET',first_click)
+            def approve_short_code():
+                digits=next(v['text'].replace(' ','') for v in ui() if re.fullmatch(r'[0-9]{4} [0-9]{4}',v['text']))
+                resolved=ok('/v1/invitations/resolve',body={'code':digits})
+                B={'name':'Short code synthetic B','token':secrets.token_hex(32),'seq':0}
+                candidate=ok(d['base']+'/v1/pair',body={'ticket':resolved['ticket'],'controller_token':B['token'],'name':B['name'],'capabilities':['task_lease_v1']});B['claim']=candidate['claim_id']
+                wait(lambda:find_button('数字一致，连接这位 AI'),15)
+                shown=candidate['verification_code'][:3]+' '+candidate['verification_code'][3:]
+                assert any(v['text']==shown for v in ui());click('数字一致，连接这位 AI')
+                wait(lambda:any(g['claim']==B['claim'] for g in bridge('inspect')['grants']),20);connect()
+                for agent in [A,B]:
+                    task=acquire(agent);good(agent,lease=task);release(agent,task)
+                assert request('/v1/invitations/resolve',body={'code':digits})[0]==404
+                assert len(bridge('inspect')['grants'])==2
+                return {'actual_phone_owner_button':True,'six_digit_comparison_matched':True,'independent_A_and_B_native_ping_and_release':True,'code_unusable_after_approval':True}
+            check('short code claim reaches actual six-digit owner approval and both connections remain usable',approve_short_code)
             def late_stop():
                 multi_setup(True);fid,before=hold_explicit();click('停止并解除所有 AI');click('停止所有')
                 wait(lambda:not bridge('inspect')['grants'],10);released(fid,True);time.sleep(1)
@@ -245,7 +266,7 @@ def main():
             check('actual HOME pause abandons held add GET and resume does not create an invitation',late_pause)
             def unknown_retry():
                 multi_setup(True);fid,before,original=start_unknown_invitation();remote=ok(d['base']+'/v1/device/grants',d['token'])
-                assert remote['invitation']['invitation_id']==original['invitation_id'];click('继续准备原邀请');wait(lambda:find_button('复制接入邀请'),15)
+                assert remote['invitation']['invitation_id']==original['invitation_id'];click('继续准备原邀请');wait(lambda:find_button('复制给我的 AI'),15)
                 after=native_invitation();assert all(original[k]==after[k] for k in ('invitation_id','invitation_sequence','ticket'))
                 assert metrics()['request_counts']['invitation']==before+2 and after['phase']=='ready'
                 return {'dropped_real_commit':fault_state(fid),'explicit_retry_callbacks':1,'invitation_posts':2,'same_id_sequence_ticket':True}

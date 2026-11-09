@@ -141,9 +141,37 @@ export default { async fetch(request, env) {
     const admission = await env.INGRESS.limit({ key: ingressIp + (feedback ? ':feedback' : stop ? ':stop' : ':ordinary') });
     if (!admission.success) return reply(429, { error: 'ingress_rate_limited' });
     if (['/agent.md', '/cli/airtap.py'].includes(path)) return await artifact(request, env, path);
+    if (path === '/connect' && request.method === 'GET') {
+      const base = new URL(request.url).origin;
+      return new Response(`Airtap short invitation
+
+Ask the owner for their eight-digit invitation code. This code only permits a pairing request, not phone control.
+Use a verified, patched HTTPS tool. POST JSON {"code":"12345678"} to ${base}/v1/invitations/resolve. The example digits are not a real invitation. Do not put codes in URLs or logs.
+The response binds the current device path, short-lived ticket and SHA256 values for /agent.md and /cli/airtap.py. Download original bytes and verify the returned digests before use. This flow trusts this owner-specified HTTPS service; do not accept a substitute domain or disable TLS validation.
+Verified CLI 0.4.0-cli.14+: pair-code --service ${base} --code-stdin. Supply only the real code through stdin and use a private config path. Reuse an existing pending config after an uncertain reply.
+Follow /agent.md to request pairing with your own credential. Show the returned six-digit comparison code to the owner. Wait for their phone-side approval. Do not approve yourself or replace an existing connection.
+`, { headers: { ...HEADERS, 'Content-Type': 'text/plain; charset=utf-8', 'Referrer-Policy': 'no-referrer' } });
+    }
+    if (path === '/v1/invitations/resolve' && request.method === 'POST') {
+      if (!/^application\/json(?:\s*;\s*charset=utf-8)?$/i.test(request.headers.get('Content-Type') ?? '')) return reply(415, { error: 'json_required' });
+      const parsed = await readBody(request, 128);
+      if (parsed.error) return reply(parsed.error.status, await parsed.error.json());
+      let body; try { body = JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(parsed.bytes)); } catch { return reply(400, { error: 'invalid_request' }); }
+      if (!exact(body, ['code']) || typeof body.code !== 'string' || !/^[0-9]{8}$/.test(body.code)) return reply(400, { error: 'invalid_invitation_code' });
+      const found = await registry(env).lookupInvitationCode(body.code, ingressIp);
+      if (found.error) return reply(found.status, { error: found.error });
+      // Registry locks are released before calling a device: owner code creation
+      // calls the registry while holding the device lock, never the reverse.
+      const valid = await device(env, found.id).validateInvitationCode(found);
+      if (!valid) return reply(404, { error: 'invitation_code_unavailable' });
+      return reply(200, { device_base_path: '/d/' + found.id, ticket: found.ticket,
+        pairing_expires_at: found.expires, cli_sha256: found.cli_sha256, agent_sha256: found.agent_sha256,
+        task_lease_required: found.mode === 'multi' });
+    }
+
     if (path === '/v1/service' && request.method === 'GET') return reply(200, {
       service_id: env.SERVICE_ID, label: env.SERVICE_LABEL, registration_open: env.REGISTRATION_OPEN === 'true', control_open: env.CONTROL_OPEN === 'true',
-      enrollment_mode: 'public', enrollment_expires_at: null, pairing_ttl_seconds: 300, session_ttl_seconds: null, command_budget: null, capabilities: ['multi_ai_v1', 'task_lease_v1', 'companion_v1', 'paged_tree_v1', 'node_text_v1', 'windows_v1', 'volume_v1', 'atomic_input_v1', 'system_actions_v1', 'semantic_node_v1', 'drag_v1', 'gesture_v1', 'files_v1', 'file_share_v1', ...(feedbackEnabled(env) ? ['feedback_v1'] : [])], persistent_pairing: true,
+      enrollment_mode: 'public', enrollment_expires_at: null, pairing_ttl_seconds: 300, session_ttl_seconds: null, command_budget: null, capabilities: ['short_invitation_v1', 'multi_ai_v1', 'task_lease_v1', 'companion_v1', 'paged_tree_v1', 'node_text_v1', 'windows_v1', 'volume_v1', 'atomic_input_v1', 'system_actions_v1', 'semantic_node_v1', 'drag_v1', 'gesture_v1', 'files_v1', 'file_share_v1', ...(feedbackEnabled(env) ? ['feedback_v1'] : [])], persistent_pairing: true,
     });
     if (isFeedbackPath(path)) {
       if (!feedbackEnabled(env)) return reply(404, { error: 'not_found' });
@@ -174,10 +202,11 @@ export default { async fetch(request, env) {
     const url = new URL(request.url); url.pathname = suffix;
     const forwarded = new Request(url, request);
     const isUnenroll = suffix === '/v1/device/unenroll' && request.method === 'POST';
+    const isInvitationCode = suffix === '/v1/device/invitation-code' && request.method === 'POST';
     const isAsset = ['/agent.md', '/cli/airtap.py'].includes(suffix) && request.method === 'GET';
     const isFeedback = isFeedbackPath(suffix);
     if (isFeedback && !feedbackEnabled(env)) return reply(404, { error: 'not_found' });
-    if (suffix !== '/mcp' && !isUnenroll && !isAsset && !isFeedback && (!route(forwarded) || suffix === '/v1/setup')) return reply(404, { error: 'not_found' });
+    if (suffix !== '/mcp' && !isUnenroll && !isInvitationCode && !isAsset && !isFeedback && (!route(forwarded) || suffix === '/v1/setup')) return reply(404, { error: 'not_found' });
     const resolved = await registry(env).resolve(id);
     if (!resolved) return reply(404, { error: 'device_not_found' });
     if (resolved.state === 'retired') {
@@ -196,14 +225,92 @@ export default { async fetch(request, env) {
   } catch { return reply(503, { error: 'service_unavailable', detail: 'Do not replay an uncertain action.' }); }
 } };
 
+// At most one live code per enrolled device. The original pairing ticket is
+// retained only for the invitation lifetime; no control credential is stored.
+// Public resolution is read-only and never consumes or approves an invitation.
+class InvitationCodes {
+  constructor(storage, salt) { this.storage = storage; this.salt = salt; }
+  async key(code) { return 'invite:c:' + await hash(this.salt + ':invitation:' + code); }
+  async schedule() {
+    const expiry = await this.storage.get('invite:next'), rates = await this.storage.get('invite:rates');
+    const deadlines = [expiry, rates ? (rates.minute + 1) * 60 : null].filter(x => x != null);
+    const next = deadlines.length ? Math.min(...deadlines) : null;
+    const existing = await this.storage.getAlarm();
+    if (next && (!existing || next * 1000 < existing)) await this.storage.setAlarm(Math.max(now() + 1, next) * 1000);
+  }
+  async cleanup() {
+    const rows = await this.storage.list({ prefix: 'invite:d:' });
+    let next = null;
+    for (const [key, row] of rows) {
+      if (row.expires <= now()) await this.storage.delete([key, await this.key(row.code)]);
+      else next = next === null ? row.expires : Math.min(next, row.expires);
+    }
+    if (next !== null) await this.storage.put('invite:next', next); else await this.storage.delete('invite:next');
+    const rates = await this.storage.get('invite:rates');
+    if (rates && rates.minute !== Math.floor(now() / 60)) await this.storage.delete('invite:rates');
+    await this.schedule();
+  }
+  async create(row) {
+    const key = 'invite:d:' + row.id, old = await this.storage.get(key);
+    if (old && old.expires > now() && old.expires === row.expires && old.ticket === row.ticket && old.generation === row.generation && old.mode === row.mode) {
+      await this.schedule(); return { code: old.code, pairing_expires_at: old.expires };
+    }
+    let code, index;
+    for (let tries = 0; tries < 16; tries++) {
+      let sample; do { sample = crypto.getRandomValues(new Uint32Array(1))[0]; } while (sample >= 4200000000);
+      code = String(sample % 100000000).padStart(8, '0'); index = await this.key(code);
+      if (!await this.storage.get(index)) break;
+      code = null;
+    }
+    if (!code) return fail(503, 'invitation_code_unavailable');
+    await this.storage.transaction(async tx => {
+      if (old) await tx.delete(await this.key(old.code));
+      await tx.put(key, { ...row, code });
+      await tx.put(index, { id: row.id, expires: row.expires });
+      const previous = await tx.get('invite:next');
+      await tx.put('invite:next', previous ? Math.min(previous, row.expires) : row.expires);
+    });
+    await this.schedule();
+    return { code, pairing_expires_at: row.expires };
+  }
+  async lookup(code, ip) {
+    // Bound both lookup work and the rate ledger, including unsuccessful guesses.
+    const minute = Math.floor(now() / 60), old = await this.storage.get('invite:rates');
+    const rate = old?.minute === minute ? old : { minute, total: 0, ips: {} };
+    if (rate.total >= 600 || (rate.ips[ip] ?? 0) >= 10) return fail(429, 'invitation_lookup_rate_limited');
+    rate.total++; rate.ips[ip] = (rate.ips[ip] ?? 0) + 1;
+    await this.storage.put('invite:rates', rate);
+    await this.schedule();
+    const pointer = await this.storage.get(await this.key(code));
+    const row = pointer ? await this.storage.get('invite:d:' + pointer.id) : null;
+    if (!row || row.code !== code || row.expires <= now()) return fail(404, 'invitation_code_unavailable');
+    return row;
+  }
+}
+
 function emptyRegistry() { return { version: 1, devices: {}, daily: { day: day(), registrations: 0, ips: {} } }; }
 export class AdmissionRegistry extends DurableObject {
-  constructor(ctx, env) { super(ctx, env); this.feedbackStore = new FeedbackStore(ctx.storage, undefined, env.IP_HASH_SALT); this.data = emptyRegistry(); ctx.blockConcurrencyWhile(async () => { this.data = await ctx.storage.get('registry') ?? emptyRegistry(); }); }
+  constructor(ctx, env) { super(ctx, env); this.feedbackStore = new FeedbackStore(ctx.storage, undefined, env.IP_HASH_SALT); this.invitationCodes = new InvitationCodes(ctx.storage, env.IP_HASH_SALT); this.data = emptyRegistry(); ctx.blockConcurrencyWhile(async () => { this.data = await ctx.storage.get('registry') ?? emptyRegistry(); }); }
   async feedbackOperation(actor, command) {
     if (!feedbackEnabled(this.env)) return { status: 404, body: { error: 'not_found' } };
-    return this.ctx.blockConcurrencyWhile(() => this.feedbackStore.run(actor, command));
+    return this.ctx.blockConcurrencyWhile(async () => { const result = await this.feedbackStore.run(actor, command); await this.invitationCodes.schedule(); return result; });
   }
-  async alarm() { return this.ctx.blockConcurrencyWhile(() => this.feedbackStore.alarm()); }
+  async alarm() { return this.ctx.blockConcurrencyWhile(async () => { await this.feedbackStore.alarm(); await this.invitationCodes.cleanup(); }); }
+  async createInvitationCode(row) {
+    return this.ctx.blockConcurrencyWhile(async () => {
+      const record = this.data.devices[row.id];
+      if (!record || record.state !== 'active' || !equal(record.hash, row.deviceHash)) return fail(401, 'unauthorized');
+      return this.invitationCodes.create(row);
+    });
+  }
+  async lookupInvitationCode(code, ip) {
+    return this.ctx.blockConcurrencyWhile(async () => {
+      const row = await this.invitationCodes.lookup(code, ip);
+      if (row.error) return row;
+      const record = this.data.devices[row.id];
+      return record?.state === 'active' && equal(record.hash, row.deviceHash) ? row : fail(404, 'invitation_code_unavailable');
+    });
+  }
   async save(next) { await this.ctx.storage.put('registry', next); this.data = next; }
   async saveUsage(id, usage) { await this.ctx.storage.put('usage:' + id, usage); }
   async resolve(id) { return this.ctx.blockConcurrencyWhile(async () => { const r = this.data.devices[id]; return r ? { state: r.state, ...(r.state === 'retired' ? { hash: r.hash } : {}) } : null; }); }
@@ -405,7 +512,42 @@ export class ServiceDeviceRelay extends MultiPairingRelay {
       });
     } catch { return this.json(503, { error: 'feedback_unavailable' }); }
   }
+  codeInvitation(ticket) {
+    const s = this.state, i = this.multi() ? s.invitation : null;
+    if (s.serviceRetired || !s.serviceId || typeof ticket !== 'string' || !HEX32.test(ticket)) return null;
+    if (this.multi()) return i && i.expiresAt > now() ? { ticketHash: i.ticketHash, expires: i.expiresAt, mode: 'multi', generation: s.generation } : null;
+    return ['waiting', 'pending'].includes(s.phase) && s.pairingExpires > now()
+      ? { ticketHash: s.ticketHash, expires: s.pairingExpires, mode: 'single', generation: s.generation } : null;
+  }
+  async validateInvitationCode(row) {
+    return this.ctx.blockConcurrencyWhile(async () => {
+      await this.expire();
+      const current = this.codeInvitation(row.ticket);
+      return !!current && row.id === this.state.serviceId && equal(row.deviceHash, this.state.deviceHash)
+        && row.generation === current.generation && row.expires === current.expires && row.mode === current.mode
+        && equal(await hash(row.ticket), current.ticketHash);
+    });
+  }
+  async invitationCode(request) {
+    if (!/^application\/json(?:\s*;\s*charset=utf-8)?$/i.test(request.headers.get('Content-Type') ?? '')) return this.json(415, { error: 'json_required' });
+    const parsed = await readBody(request, 128); if (parsed.error) return parsed.error;
+    let body; try { body = JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(parsed.bytes)); } catch { return this.json(400, { error: 'invalid_request' }); }
+    const token = bearer(request), tokenHash = token ? await hash(token) : null;
+    return this.ctx.blockConcurrencyWhile(async () => {
+      if (!equal(tokenHash, this.state.deviceHash)) return this.json(401, { error: 'unauthorized' });
+      await this.expire();
+      const invitation = exact(body, ['ticket']) ? this.codeInvitation(body.ticket) : null;
+      if (!invitation || !equal(await hash(body.ticket), invitation.ticketHash)) return this.json(409, { error: 'invitation_unavailable' });
+      if (![this.env.CLI_SHA256, this.env.AGENT_SHA256].every(x => typeof x === 'string' && HEX64.test(x))) return this.json(503, { error: 'artifact_metadata_unavailable' });
+      const quota = await registry(this.env).charge(this.state.serviceId, this.state.deviceHash, 'request', 4096);
+      if (quota.error) return this.json(quota.status, { error: quota.error });
+      const result = await registry(this.env).createInvitationCode({ id: this.state.serviceId, deviceHash: this.state.deviceHash,
+        ...invitation, ticket: body.ticket, cli_sha256: this.env.CLI_SHA256, agent_sha256: this.env.AGENT_SHA256 });
+      return result.error ? this.json(result.status, { error: result.error }) : this.json(200, result);
+    });
+  }
   async fetch(request) {
+    if (new URL(request.url).pathname === '/v1/device/invitation-code' && request.method === 'POST') return this.invitationCode(request);
     if (isFeedbackPath(new URL(request.url).pathname)) return this.reports(request);
     if (new URL(request.url).pathname === '/mcp') return this.mcp(request);
     if (new URL(request.url).pathname === '/v1/device/unenroll' && request.method === 'POST') {

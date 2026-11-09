@@ -27,7 +27,7 @@ FIXED = {'apps/android/app/build.gradle', 'apps/android/build.gradle',
          'apps/android/gradle/wrapper/gradle-wrapper.jar',
          'apps/android/gradle/wrapper/gradle-wrapper.properties',
          'relay/worker/package.json', 'relay/worker/package-lock.json',
-         'relay/worker/worker.mjs', 'docs/multi-ai-protocol.md', 'docs/agent.md', 'docs/checks.md', 'docs/source-distribution.md', 'tools/ci/github-actions-check.yml.disabled',
+         'relay/worker/worker.mjs', 'docs/multi-ai-protocol.md', 'docs/short-invitations.md', 'docs/agent.md', 'docs/checks.md', 'docs/source-distribution.md', 'tools/ci/github-actions-check.yml.disabled',
          'release/retired-apks.json', 'release/usage-video.json', 'release/install-video.json', 'tools/check.py', 'tools/package_source.py', 'tools/package_download.py', 'tools/source_manifest.py', ALLOWLIST}
 IGNORED = {'__pycache__', 'node_modules', '.gradle', '.wrangler', 'build', '.pytest_cache'}
 

@@ -1,8 +1,8 @@
 {
   "allowlist_path": "tools/source-package-files.json",
-  "android_version": "0.4.0-beta.32",
-  "archive_root": "airtap-source-0.4.0-beta.32-code62",
-  "cli_version": "0.4.0-cli.13",
+  "android_version": "0.4.0-beta.33",
+  "archive_root": "airtap-source-0.4.0-beta.33-code63",
+  "cli_version": "0.4.0-cli.14",
   "closure_policy": "airtap-source-closure-v1",
   "files": [
     {
@@ -144,6 +144,10 @@
     {
       "kind": "source",
       "path": "apps/android/app/src/main/java/io/airtap/preview/InvitationArtifacts.java"
+    },
+    {
+      "kind": "source",
+      "path": "apps/android/app/src/main/java/io/airtap/preview/InvitationCode.java"
     },
     {
       "kind": "source",
@@ -1184,6 +1188,10 @@
       "path": "docs/results/website-onboarding-20261027.json"
     },
     {
+      "kind": "source",
+      "path": "docs/short-invitations.md"
+    },
+    {
       "kind": "document",
       "path": "docs/source-distribution.md"
     },
@@ -1242,6 +1250,10 @@
     {
       "kind": "source",
       "path": "relay/service/tests/invitation-artifacts.mjs"
+    },
+    {
+      "kind": "source",
+      "path": "relay/service/tests/invitation-codes.mjs"
     },
     {
       "kind": "source",
@@ -1481,6 +1493,6 @@
   "protocol_version": 4,
   "schema": "airtap-source-allowlist-v1",
   "scope": "Reviewed current Android, CLI, relay, site, build, CI and test source closure. No Git history, credentials, private deployment state, APK, or raw phone evidence. Historical acceptance retains its original version and scope; a source ZIP is not public release approval.",
-  "version": "0.4.0-beta.32-code62",
-  "version_code": 62
+  "version": "0.4.0-beta.33-code63",
+  "version_code": 63
 }

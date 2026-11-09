@@ -1016,6 +1016,73 @@ m.lock_config(pathlib.Path(sys.argv[2])); print('locked',flush=True); sys.stdin.
 
 
 
+class InvitationCodeTest(unittest.TestCase):
+    def setUp(self):
+        self.temp = tempfile.TemporaryDirectory()
+        self.path = Path(self.temp.name).resolve() / 'short.json'
+        self.args = SimpleNamespace(config=self.path, service='https://relay.example', name='Fixture AI', timeout=25, allow_local_http=False)
+        self.invite = {'protocol_version': 4, 'device_base_path': '/d/' + 'a' * 32,
+                       'ticket': 'b' * 32, 'pairing_expires_at': int(time.time()) + 300,
+                       'cli_sha256': 'c' * 64, 'agent_sha256': 'd' * 64, 'task_lease_required': True}
+        self.pending = {'protocol_version': 4, 'state': 'pending', 'claim_id': CLAIM,
+                        'verification_code': '123456', 'pairing_expires_at': self.invite['pairing_expires_at']}
+
+    def tearDown(self): self.temp.cleanup()
+
+    def invoke(self, request, code='0123 4567'):
+        with patch.object(sys, 'stdin', io.StringIO(code + '\n')), patch.object(cli, 'request', side_effect=request):
+            return cli.pair_with_code(self.args)
+
+    def test_invalid_resolution_never_creates_identity(self):
+        values = [[], None, {**self.invite, 'device_base_path': '//evil.example/d/' + 'a' * 32},
+                  {**self.invite, 'pairing_expires_at': int(time.time()) - 1},
+                  {**self.invite, 'task_lease_required': 'true'}, {**self.invite, 'extra': 'unexpected'},
+                  {**self.invite, 'ticket': 'b' * 32 + '\n'}, {**self.invite, 'cli_sha256': 'bad'}]
+        for value in values:
+            with self.subTest(value=value):
+                calls = []
+                def request(*args, **kwargs): calls.append(args); return {'data': value}
+                with self.assertRaises(cli.Failure) as failure: self.invoke(request)
+                self.assertEqual(failure.exception.result['error'], 'invalid_short_invitation_response')
+                self.assertFalse(self.path.exists()); self.assertEqual(len(calls), 1)
+
+    def seed(self):
+        cli.save_config(self.path, {'url': 'https://relay.example' + self.invite['device_base_path'],
+            'controller_token': TOKEN, 'state': 'pending', 'pairing_name': self.args.name,
+            'short_invitation_service': self.args.service, 'short_invitation_code': '01234567',
+            'pairing_capabilities': ['task_lease_v1']})
+
+    def test_retry_checks_saved_status_and_never_redeems_another_code(self):
+        self.seed(); before = self.path.read_bytes()
+        for change in ('code', 'service', 'name'):
+            with self.subTest(change=change), patch.object(cli, 'request') as request:
+                original = copy.copy(self.args)
+                if change == 'service': self.args.service = 'https://another.example'
+                if change == 'name': self.args.name = 'Changed AI'
+                with self.assertRaises(cli.Failure):
+                    self.invoke(request, '87654321' if change == 'code' else '01234567')
+                request.assert_not_called(); self.assertEqual(self.path.read_bytes(), before); self.args = original
+        calls = []
+        def request(url, endpoint, *args, **kwargs):
+            calls.append(endpoint); return {'data': self.pending}
+        self.assertEqual(self.invoke(request)['claim_id'], CLAIM)
+        self.assertEqual(calls, ['/v1/pair/status'])
+
+    def test_transport_failure_or_revocation_never_replays_pairing(self):
+        self.seed(); before = self.path.read_bytes()
+        for failure in [cli.Failure('network_failure'), cli.Failure('http_error', status=410), cli.Failure('http_error', status=503)]:
+            calls = []
+            def request(*args, **kwargs): calls.append(args); raise failure
+            with self.assertRaises(cli.Failure): self.invoke(request)
+            self.assertEqual(len(calls), 1); self.assertEqual(self.path.read_bytes(), before)
+
+    def test_bad_name_and_code_do_not_write_or_call_service(self):
+        for name, code in [('', '01234567'), ('Fixture AI', '123456'), ('Fixture AI', '１２３４５６７８')]:
+            self.args.name = name
+            with patch.object(cli, 'request') as request, self.assertRaises(cli.Failure): self.invoke(request, code)
+            request.assert_not_called(); self.assertFalse(self.path.exists())
+
+
 class ProcessRoundtripTest(unittest.TestCase):
     """Actual CLI subprocesses and a loopback-only HTTP fixture, not a relay/device."""
     def test_lost_release_blocks_renew_across_processes_with_or_without_pending_renewal(self):

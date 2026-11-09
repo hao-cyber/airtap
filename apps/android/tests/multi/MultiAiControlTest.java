@@ -301,21 +301,21 @@ public final class MultiAiControlTest{
     trust.completeInvitation(config,invite.getString("invitation_id"),invite.getLong("invitation_sequence"),expiry,"1".repeat(64),"2".repeat(64));
     owner.remote=multiState(A).put("invitation",RelayApi.json("invitation_id",invite.getString("invitation_id"),"invitation_sequence",invite.getLong("invitation_sequence"),"candidate",RelayApi.json("claim_id",B,"name","Synthetic waiting AI","verification_code","123456")));
     var box=new android.widget.LinearLayout();owner.render(box);
-    check(box.hasText("邀请已过期")&&!box.hasText("123 456")&&!box.hasButton("数字一致，连接这位 AI")&&!box.hasButton("复制接入邀请")&&!box.hasButton("查看接入邀请")&&RelayApi.requests.isEmpty());
+    check(box.hasText("邀请已过期")&&!box.hasText("123 456")&&!box.hasButton("数字一致，连接这位 AI")&&!box.hasText("short-invitation-presenter")&&!box.hasButton("完整邀请与校验信息")&&RelayApi.requests.isEmpty());
     check(trust.pending(config)==null&&trust.grant(config,B)==null&&trust.invitation(config).getLong("pairing_expires_at")==expiry);
   });
   test("unexpired ready invitation and candidate keep their existing explicit actions",()->{
     OwnerIdentityHarness owner=invitationOwner();JSONObject invite=trust.beginInvitation(config,0);
     trust.completeInvitation(config,invite.getString("invitation_id"),invite.getLong("invitation_sequence"),System.currentTimeMillis()/1000+300,"1".repeat(64),"2".repeat(64));
     owner.remote=multiState(A);var box=new android.widget.LinearLayout();owner.render(box);
-    check(box.hasButton("复制接入邀请")&&box.hasButton("查看接入邀请")&&!box.hasText("邀请已过期")&&!box.hasButton("继续准备原邀请"));
+    check(box.hasText("short-invitation-presenter")&&box.hasButton("完整邀请与校验信息")&&!box.hasText("邀请已过期")&&!box.hasButton("继续准备原邀请"));
     owner.remote.put("invitation",RelayApi.json("invitation_id",invite.getString("invitation_id"),"invitation_sequence",invite.getLong("invitation_sequence"),"candidate",RelayApi.json("claim_id",B,"name","Synthetic waiting AI","verification_code","123456")));
     box=new android.widget.LinearLayout();owner.render(box);check(box.hasText("123 456")&&box.hasButton("数字一致，连接这位 AI")&&RelayApi.requests.isEmpty());
   });
   test("unknown invitation result keeps the original retry and canceled intent only offers cancellation",()->{
     OwnerIdentityHarness owner=invitationOwner();JSONObject invite=trust.beginInvitation(config,0);owner.remote=multiState(A);
     var box=new android.widget.LinearLayout();owner.render(box);
-    check(box.hasButton("继续准备原邀请")&&!box.hasText("邀请已过期")&&!box.hasButton("复制接入邀请")&&RelayApi.requests.isEmpty());
+    check(box.hasButton("继续准备原邀请")&&!box.hasText("邀请已过期")&&!box.hasText("short-invitation-presenter")&&RelayApi.requests.isEmpty());
     trust.cancelInvitation(config,invite.getString("invitation_id"),invite.getLong("invitation_sequence"));
     box=new android.widget.LinearLayout();owner.render(box);
     check(box.hasText("正在确认取消")&&box.hasButton("取消这次邀请")&&!box.hasButton("继续准备原邀请")&&!box.hasButton("添加另一位自己的 AI")&&RelayApi.requests.isEmpty());

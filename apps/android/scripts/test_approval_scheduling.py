@@ -25,7 +25,8 @@ activity='''package io.airtap.preview;
 import org.json.JSONObject;
 final class MainActivityHarness extends android.app.Activity {
  final SingleOwner multiOwner=new SingleOwner();
- static final class SingleOwner {boolean enabled(EnrollmentStore.Config config){return false;}}
+ final SingleOwner invitationCode=new SingleOwner();
+ static final class SingleOwner {void close(){}void closeInvitationCode(){}boolean enabled(EnrollmentStore.Config config){return false;}}
  final ConnectionFeedback connectionFeedback=new ConnectionFeedback();final android.os.Handler main=new android.os.Handler();
  EnrollmentStore.Config config;Object invitationArtifacts;boolean busy,storageError;int epoch,changes;String claim,ticket,code,candidate,message="";long invitationExpiry;
  MainActivityHarness(EnrollmentStore.Config c,String claim){config=c;this.claim=claim;candidate="synthetic owner-confirmed AI";}

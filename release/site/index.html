@@ -81,8 +81,8 @@
     <ol class="setup-steps">
       <li><span class="step-number">01</span><h3>安装并打开</h3><p>在安卓手机上下载安装包，打开 Airtap，点击“开始使用”。</p><a href="/help#install-help">安装帮助</a></li>
       <li><span class="step-number">02</span><h3>准备手机</h3><p>按提示开启“Airtap 手机操作”，返回 App，再允许连接通知。</p><a href="/help#operation-help">系统设置怎么选</a></li>
-      <li><span class="step-number">03</span><h3>把邀请发给 AI</h3><p>复制或分享 App 生成的完整邀请，发到自己的私人 AI 对话。若尚未生成，点击“邀请我的 AI”。</p><p class="step-note">发的是接入邀请，不是官网或 GitHub 链接。</p></li>
-      <li><span class="step-number">04</span><h3>核码连接</h3><p>核对 AI 与 Airtap 显示的六位数字。相同就点击“数字一致，连接我的 AI”。</p><p class="step-note">看到“你的 AI 已连接”后，就可以提任务。</p></li>
+      <li><span class="step-number">03</span><h3>把邀请码告诉 AI</h3><p>点击“邀请我的 AI”，手机会显示八位数字。第一次接入时，点“复制给我的 AI”，把短句发到自己的私人 AI 对话。</p><p class="step-note">短句带有接入地址。已经知道地址的 AI，只需邀请码。</p></li>
+      <li><span class="step-number">04</span><h3>核码连接</h3><p>AI 会返回另一组六位核对码。核对它与 Airtap 显示的数字。相同就点击“数字一致，连接我的 AI”。</p><p class="step-note">看到“你的 AI 已连接”后，就可以提任务。</p></li>
     </ol>
     <div class="after-setup"><h3>接下来，回到原来的 AI 对话。</h3><p>直接交代你想做的事。已经说过的任务，让 AI 检查手机状态后继续；平时不必重新发邀请。Airtap 用来查看连接、更新或停止控制。</p></div>
   </section>
@@ -95,12 +95,12 @@
   <section class="faq section" id="help" aria-labelledby="help-title">
     <div class="section-heading"><p class="eyebrow">使用帮助</p><h2 id="help-title">卡在哪一步，就从这里找。</h2></div>
     <nav class="help-shortcuts" aria-label="按遇到的问题查看帮助"><a href="/help#install-help">安装</a><a href="/help#pair-help">接入 AI</a><a href="/help#offline-help">离线恢复</a><a href="/help#remote-help">远程使用</a></nav>
-    <details id="ai-help"><summary>我的 AI 能用吗？</summary><p>需要能调用工具、执行网络请求的个人 AI；用截图找位置、点击时，还需要实际看图能力。Muse 与 Instinct 有上面的限定范围实测，其他 AI 的具体产品、模式和版本仍需验证。只能聊天、不能调用工具的窗口还不能接入。</p><p>把完整邀请交给你的 AI，让它检查接入要求并实际尝试连接。普通聊天模式不会因为收到邀请就自动获得工具能力。</p></details>
+    <details id="ai-help"><summary>我的 AI 能用吗？</summary><p>需要能调用工具、执行网络请求的个人 AI；用截图找位置、点击时，还需要实际看图能力。Muse 与 Instinct 有上面的限定范围实测，其他 AI 的具体产品、模式和版本仍需验证。只能聊天、不能调用工具的窗口还不能接入。</p><p>把 App 生成的接入短句交给你的 AI，让它检查工具能力并实际连接。普通聊天模式不会因为收到邀请就自动获得工具能力。</p></details>
     <details id="connection-help"><summary>需要 USB、电脑、插件，或同一个 Wi-Fi 吗？</summary><p>安装和日常使用无需 USB、常开电脑、额外插件或自建服务器。手机主动通过网络连接公共中继，AI 无需与手机在同一 Wi-Fi。先用能上网的 Wi-Fi 接入；纯移动网络的完整任务仍待独立验收。</p><p>开发者也可以部署开源中继，见<a href="https://github.com/hao-cyber/airtap/blob/main/docs/reproduce-v040.md" target="_blank" rel="noopener noreferrer">自行部署说明</a>。</p></details>
     <details id="install-help"><summary>下载和更新怎么操作？</summary><p>在安卓手机浏览器打开下载的 Airtap.apk。若系统询问，允许该浏览器安装应用，再返回继续。微信等 App 拦截下载时，用菜单里的“在浏览器打开”。安装后打开 Airtap，点击“开始使用”。</p><p>本页下载按钮始终提供推荐版本，App 的“设置 → 检查更新”也能找到它。更新直接覆盖安装，不要先卸载或清除数据。近期版本保留有效连接；极早预览版若显示“开始新版连接”，按提示重新邀请和核码，其他 App 的账号不需要重建。</p></details>
     <details id="operation-help"><summary>进入“无障碍”以后，该点哪里？</summary><ol><li>找到“Airtap 手机操作”。有些手机需要先进入“已下载的应用”“已安装的应用”或“已安装的服务”。</li><li>打开“使用 Airtap 手机操作”或“启用服务”，按系统提示确认。</li><li>返回 Airtap，也可以从桌面重新打开。再允许连接通知，App 会继续准备邀请。</li></ol><p>开关打不开时，查看<a href="/help#restricted-settings-help">受限设置帮助</a>。</p></details>
     <details id="restricted-settings-help"><summary>提示“受限设置”，开关打不开怎么办？</summary><p>确认安装包来自本页后，在 Airtap 点击“提示‘受限设置’？” → “打开 Airtap 应用信息”，从右上角“⋮”菜单选择“允许受限制的设置”，按系统提示确认，再返回开启手机操作。</p><p>不同手机入口可能不同。没有这个菜单时，先回无障碍列表，点一次“Airtap 手机操作”；若系统显示受限设置提示，关闭后再回应用信息检查。</p></details>
-    <details id="pair-help"><summary>发了邀请，AI 没接上怎么办？</summary><p>确认发的是 App 生成的完整邀请，发到能使用工具的私人 AI 对话。只有官网或 GitHub 链接不够。若 AI 只解释步骤，让它按邀请实际完成接入；若该模式没有工具能力，则暂时不能用。</p><p>邀请五分钟有效。尚未批准且确认已过期时，再生成新邀请；AI 已申请连接时，继续核对六位数字。连接成功后无需反复发邀请。</p></details>
+    <details id="pair-help"><summary>发了邀请，AI 没接上怎么办？</summary><p>第一次接入请点 App 的“复制给我的 AI”，短句包含八位邀请码和服务地址。仅有数字时，AI 还需要知道接入哪个 Airtap 服务。请发到能使用工具的私人 AI 对话。若 AI 只解释步骤，让它按邀请实际完成接入；若该模式没有工具能力，则暂时不能用。</p><p>邀请五分钟有效。尚未批准且确认已过期时，再生成新邀请；AI 已申请连接时，继续核对六位数字。连接成功后无需反复发邀请。</p></details>
     <details id="multiple-ai-help"><summary>能连接多个自己的 AI 吗？</summary><p>可以。在 Airtap 里选择“连接多个自己的 AI”，按手机提示开启并保留原连接，再分别邀请自己的其他 AI。每个 AI 有独立连接，可以单独停止；同一时刻由一个 AI 操作，其他 AI 等待它完成后接手。</p><p>无需把一个 AI 的连接配置复制给另一个，也不用每次交接重新配对。是否已完成，仍由 AI 检查实际结果后汇报。</p></details>
     <details id="offline-help"><summary>原来能用，现在离线或操作超时怎么办？</summary><p>先让 AI 保留原连接，先用一分钟检查状态；仍未恢复则继续诊断，不代表超过一分钟就需要重新配对。连接建立长时间没有响应时，App 也会自动重试。连上后重新看屏幕，再继续未完成的任务；不用因为一次掉线就重新配对。操作超时可能已经执行，不能直接重复发送或点击。</p><p>仍未恢复时，让 AI 说明查到了什么、具体需要你做哪一步。按实际提示检查供电、网络、手机操作权限与后台设置；不要直接卸载或清数据。系统强制停止后可能需要重新打开 Airtap；主动“停止并解除”或系统要求身份验证时，AI 应停止自动恢复。</p><p>特定网络下，中继连接仍可能持续超时。已有一次调整手机原有 VPN 分流后恢复的<a href="https://github.com/hao-cyber/airtap/blob/main/docs/results/beta9-code39-network-route-20261029.json" target="_blank" rel="noopener noreferrer">限定排查记录</a>；这不代表所有网络都需要 VPN，或长期后台问题已经解决。</p></details>
     <details id="remote-help"><summary>手机可以放在家里，不随身带着吗？</summary><p>可以按远程使用来准备：手机保持供电和网络，离开前让 AI 检查这台手机的连接、息屏唤醒和后台表现。需要调整后台设置时，只调整 Airtap。当前没有一键完成所有准备和验证的功能。</p><p>魅族手机还应在 Airtap 应用权限中开启“锁屏显示”，允许自启动、关联启动和后台运行，并在 Android 电池优化中选择“无限制”或“不优化”。这些设置不会取消密码或 SIM PIN。SIM 卡若开启 PIN 保护，重启后仍需验证；输入一次不会关闭该开关。验证正常重启时，先让 AI 查原连接，不要先手动打开 Airtap。</p><p>一次正常重启或短时检查不代表多日无人值守已通过。系统强制停止后可能需要重新打开 App；要求本人身份验证时，本次设备操作不会执行，验证后由 AI 重新观察再继续。</p></details>

@@ -14,6 +14,8 @@ final class MultiAiOwner {
     private final Activity owner;
     private final Runnable changed;
     private final Consumer<String> folder;
+    private final InvitationCode invitationCode;
+    void closeInvitationCode() { invitationCode.close(); }
     private EnrollmentStore.Config identity;
     private JSONObject remote;
     private String message="";
@@ -24,7 +26,7 @@ final class MultiAiOwner {
     private AlertDialog enableCheck;
     private Object invitationRead;
     private String lastEnableStage="not_requested";
-    MultiAiOwner(Activity owner,Runnable changed,Consumer<String> folder){this.owner=owner;this.changed=changed;this.folder=folder;}
+    MultiAiOwner(Activity owner,Runnable changed,Consumer<String> folder){this.owner=owner;this.changed=changed;this.folder=folder;this.invitationCode=new InvitationCode(owner,changed);}
     JSONObject diagnostics(EnrollmentStore.Config expected){
         boolean same=expected!=null&&identity!=null&&expected.url.equals(identity.url)&&expected.token.equals(identity.token);
         return RelayApi.json("visible",visible,"busy",busy,"enable_check_visible",enableCheck!=null&&enableCheck.isShowing(),
@@ -224,7 +226,7 @@ final class MultiAiOwner {
             else if(candidate!=null){String claim=MultiAiProtocol.hex(candidate,"claim_id"),code=candidate.getString("verification_code"),name=candidate.getString("name");if(!code.matches("[0-9]{6}"))throw new IllegalArgumentException();text(box,name+" 请求连接（名称由对方提供）",18);text(box,code.substring(0,3)+" "+code.substring(3),44);text(box,"与自己的 AI 告诉你的六位数字核对。确认后它可持续查看和操作整台手机。",16);box.addView(button("数字一致，连接这位 AI",()->approve(claim,name)));}
             else if(expiredInvitation){text(box,"这次邀请已过期",18);text(box,"请先取消过期邀请，确认结束后再准备新的邀请。已有 AI 连接保留。",16);}
             else if(invitation!=null){String phase=invitation.getString("phase");text(box,"canceled".equals(phase)?"正在确认取消这次邀请":"邀请已保存，交给另一位自己的 AI",18);
-                if("ready".equals(phase)&&invitation.getLong("pairing_expires_at")>System.currentTimeMillis()/1000){box.addView(button("复制接入邀请",()->copy(invitation)));box.addView(button("查看接入邀请",()->show(invitation)));}
+                if("ready".equals(phase)&&invitation.getLong("pairing_expires_at")>System.currentTimeMillis()/1000){invitationCode.render(box,identity,invitation.getString("ticket"),invitation.getLong("pairing_expires_at"));box.addView(button("完整邀请与校验信息",()->show(invitation)));}
                 else if(!"canceled".equals(phase))box.addView(button("继续准备原邀请",()->create(false)));
             }
             if(invitation!=null||pending!=null)box.addView(button(expiredInvitation?"取消过期邀请":"取消这次邀请",this::cancel));
@@ -262,7 +264,7 @@ final class MultiAiOwner {
                 if(error!=null){change(status==409?error:"邀请结果尚未确认。原邀请已保存，请继续准备，不会更换票据。");return;}
                 try{ServiceProtocol.version(reply);String id=MultiAiProtocol.hex(reply,"invitation_id");long sequence=MultiAiProtocol.integer(reply,"invitation_sequence",false),expiry=MultiAiProtocol.integer(reply,"pairing_expires_at",false);
                     if(!id.equals(invitation.getString("invitation_id"))||sequence!=invitation.getLong("invitation_sequence")||!reply.has("expires_at")||!reply.isNull("expires_at"))throw new IllegalArgumentException();
-                    new TrustedGrant(owner).completeInvitation(config,id,sequence,expiry,reply.getString("cli_sha256"),reply.getString("agent_sha256"));change("邀请已准备好，复制给另一位自己的 AI，回来核对六位数字。");poll(false);
+                    new TrustedGrant(owner).completeInvitation(config,id,sequence,expiry,reply.getString("cli_sha256"),reply.getString("agent_sha256"));change("邀请已准备好，把邀请码告诉另一位自己的 AI，回来核对六位数字。");poll(false);
                 }catch(Exception invalid){change("邀请尚未核实，请继续准备原邀请。原有 AI 不受影响。");}
             });
         }catch(Exception failure){
@@ -275,7 +277,6 @@ final class MultiAiOwner {
         InvitationArtifacts artifacts=new InvitationArtifacts(identity.url,InvitationArtifacts.fingerprint(identity.token),ticket,expiry,invite.getString("cli_sha256"),invite.getString("agent_sha256"));
         return "请接入我的 Airtap 手机，使用支持 task_lease_v1 的新版工具（Python CLI 申请时使用 pair-start --task-lease）。\n"+artifacts.verificationInstructions()+"\n接入说明：\n"+identity.url+"/agent.md\nPython CLI：\n"+identity.url+"/cli/airtap.py\n手机服务地址：\n"+identity.url+"\n接入票据（不要公开）：\nAIRTAP_PAIRING_TICKET="+ticket+"\n申请后把六位核对码告诉我，等我在手机确认。保存私有连接配置；每个完整任务先取得任务租约，必要时续租，完成后释放任务，不撤销授权。重新取得任务后先观察，未知操作不要重放。";
     }
-    private void copy(JSONObject invite){try{ClipData data=ClipData.newPlainText("我的 AI 手机邀请",prompt(invite));android.os.PersistableBundle extras=new android.os.PersistableBundle();extras.putBoolean("android.content.extra.IS_SENSITIVE",true);data.getDescription().setExtras(extras);owner.getSystemService(ClipboardManager.class).setPrimaryClip(data);change("已复制，粘贴给你自己的 AI 即可。");}catch(Exception failure){change("邀请已过期或尚未核实，请取消后准备新邀请。");}}
     private void show(JSONObject invite){try{TextView t=AppUi.text(owner,prompt(invite),14);t.setTextIsSelectable(true);ScrollView scroll=new ScrollView(owner);scroll.addView(t);AlertDialog dialog=new AlertDialog.Builder(owner).setTitle("我的 AI 接入邀请").setView(scroll).setPositiveButton("返回",null).create();dialog.getWindow().addFlags(WindowManager.LayoutParams.FLAG_SECURE);dialog.show();}catch(Exception failure){change("邀请已过期或尚未核实。");}}
     private void approve(String claim,String name){try{if(OwnerRevocations.allPending(owner,identity))return;new TrustedGrant(owner).beginApproval(identity,claim,name);if(PreviewService.instance!=null)PreviewService.instance.restore();change("正在完成你已核码确认的连接，原有 AI 授权保持不变。");}catch(Exception failure){change("未能保存确认，请检查存储；原有 AI 授权保持不变。");}}
     private void cancel(){

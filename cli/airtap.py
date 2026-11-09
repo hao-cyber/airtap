@@ -25,7 +25,7 @@ TOKEN = re.compile(r'^[0-9a-f]{64}$')
 TICKET = re.compile(r'^[0-9a-f]{32}$')
 MAX_RESPONSE = 512 * 1024
 MAX_COMMAND = 8192
-VERSION = '0.4.0-cli.13'
+VERSION = '0.4.0-cli.14'
 PACKAGE = re.compile(r'^[A-Za-z_][A-Za-z0-9_]*(?:\.[A-Za-z_][A-Za-z0-9_]*)+$')
 NODE = re.compile(r'^[1-9][0-9]{0,3}$')
 NODE_COMMANDS = {'click', 'long-click', 'set-text', 'scroll', 'node-action', 'focus', 'set-selection', 'select-all', 'copy', 'cut', 'paste', 'insert-text', 'delete-text', 'editor-action'}
@@ -1490,6 +1490,105 @@ def file_command(args, config):
     raise Failure('unknown_file_command')
 
 
+def start_pairing(args, supplied_ticket=None):
+    url = origin(args.url, args.allow_local_http)
+    if not 1 <= len(args.name) <= 48 or not args.name.strip() or any(unicodedata.category(c).startswith('C') for c in args.name): raise Failure('invalid_controller_name')
+    existing = args.config.exists()
+    if existing:
+        config = load_config(args.config, args.allow_local_http)
+        if config.get('state') != 'pending':
+            raise Failure('config_exists_reuse_connection_or_choose_new_path')
+        if config['url'] != url or config.get('pairing_name') != args.name or config.get('pairing_capabilities', []) != (['task_lease_v1'] if args.task_lease else []):
+            raise Failure('pairing_identity_mismatch', instruction='Use the same URL, name and private config. Do not replace an uncertain pairing identity.')
+    ticket = supplied_ticket if supplied_ticket is not None else sys.stdin.readline(128).strip()
+    if not TICKET.fullmatch(ticket): raise Failure('invalid_pairing_ticket')
+    if existing:
+        # A lost response can hide a pending or already-approved claim.
+        # Only an explicit unauthorized response permits the idempotent POST.
+        try:
+            known = request(url, '/v1/pair/status', config['controller_token'], timeout=args.timeout,
+                            local_test=args.allow_local_http)
+        except Failure as failure:
+            if failure.result.get('error') != 'http_error' or failure.result.get('status') != 401:
+                raise
+        else:
+            status = safe_pair_status(known['data'])
+            if status['state'] == 'approved':
+                remember_approval(args, config, status)
+                return {'ok': True, **status, 'instruction': 'The owner already approved this connection. Run wait-ready and keep this private config.'}
+            if status['state'] != 'pending':
+                raise Failure('pairing_not_pending', retry_action=False)
+            config.update(status); save_config(args.config, config)
+            return {'ok': True, **status, 'instruction': 'Tell the owner the code now. Wait for approval on their phone, then run wait-ready. Keep this private config for future tasks.'}
+    else:
+        config = {'url': url, 'controller_token': secrets.token_hex(32), 'state': 'pending', 'pairing_name': args.name}
+        if args.task_lease: config['pairing_capabilities'] = ['task_lease_v1']
+        save_config(args.config, config, replace=False)
+    pair_body = {'ticket': ticket, 'controller_token': config['controller_token'], 'name': args.name}
+    if config.get('pairing_capabilities'): pair_body['capabilities'] = config['pairing_capabilities']
+    result = request(url, '/v1/pair', body=pair_body, method='POST', timeout=args.timeout, local_test=args.allow_local_http)
+    status = safe_pair_status(result['data']); config.update(status); save_config(args.config, config)
+    return {'ok': True, **status, 'instruction': 'Tell the owner the code now. Wait for approval on their phone, then run wait-ready. Keep this private config for future tasks.'}
+
+
+def pair_with_code(args):
+    if not 1 <= len(args.name) <= 48 or not args.name.strip() or any(unicodedata.category(c).startswith('C') for c in args.name):
+        raise Failure('invalid_controller_name')
+    service = origin(args.service, args.allow_local_http)
+    if urllib.parse.urlsplit(service).path not in ('', '/'):
+        raise Failure('service_root_required')
+    raw = sys.stdin.readline(64).strip()
+    code = raw.replace(' ', '').replace('-', '')
+    if not re.fullmatch(r'[0-9]{8}', code):
+        raise Failure('invalid_invitation_code')
+    existing = load_config(args.config, args.allow_local_http) if args.config.exists() else None
+    if existing:
+        if existing.get('state') != 'pending':
+            raise Failure('config_exists_reuse_connection_or_choose_new_path')
+        # Preserve the exact saved pairing after a lost reply, even if the short
+        # code has since expired. Never apply a new code to an existing identity.
+        if existing.get('short_invitation_service') != service or existing.get('short_invitation_code') != code or existing.get('pairing_name') != args.name:
+            raise Failure('pairing_identity_mismatch')
+        try:
+            found = request(existing['url'], '/v1/pair/status', existing['controller_token'],
+                            timeout=args.timeout, local_test=args.allow_local_http)
+        except Failure as failure:
+            if failure.result.get('error') != 'http_error' or failure.result.get('status') != 401:
+                raise
+        else:
+            status = safe_pair_status(found['data'])
+            if status['state'] == 'approved':
+                remember_approval(args, existing, status)
+            elif status['state'] == 'pending':
+                existing.update(status); save_config(args.config, existing)
+            else:
+                raise Failure('pairing_not_pending', retry_action=False)
+            return {'ok': True, **status, 'instruction': 'Keep this original identity. Wait for phone approval if pending; do not request another invitation.'}
+    result = request(service, '/v1/invitations/resolve', body={'code': code}, method='POST',
+                     timeout=args.timeout, local_test=args.allow_local_http)['data']
+    required = {'protocol_version', 'device_base_path', 'ticket', 'pairing_expires_at', 'cli_sha256', 'agent_sha256', 'task_lease_required'}
+    if (not isinstance(result, dict) or set(result) != required or type(result.get('protocol_version')) is not int or result.get('protocol_version') != 4
+            or not isinstance(result.get('device_base_path'), str) or not re.fullmatch(r'/d/[a-f0-9]{32}', result['device_base_path'])
+            or not isinstance(result.get('ticket'), str) or not TICKET.fullmatch(result['ticket'])
+            or type(result.get('pairing_expires_at')) is not int or not time.time() < result['pairing_expires_at'] <= time.time() + 330
+            or any(not isinstance(result.get(k), str) or not TOKEN.fullmatch(result[k]) for k in ('cli_sha256', 'agent_sha256'))
+            or type(result.get('task_lease_required')) is not bool):
+        raise Failure('invalid_short_invitation_response')
+    args.url = origin(service + result['device_base_path'], args.allow_local_http)
+    args.task_lease = result['task_lease_required']
+    if existing:
+        if existing['url'] != args.url or existing.get('pairing_name') != args.name or existing.get('pairing_capabilities', []) != (['task_lease_v1'] if args.task_lease else []):
+            raise Failure('pairing_identity_mismatch')
+    else:
+        config = {'url': args.url, 'controller_token': secrets.token_hex(32), 'state': 'pending', 'pairing_name': args.name,
+                  'short_invitation_service': service, 'short_invitation_code': code}
+        if args.task_lease: config['pairing_capabilities'] = ['task_lease_v1']
+        save_config(args.config, config, replace=False)
+    # The existing pairing path checks a saved candidate before any POST. Short
+    # code resolution itself does not create an identity or grant phone access.
+    return start_pairing(args, result['ticket'])
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--version', action='version', version='airtap ' + VERSION)
@@ -1501,6 +1600,10 @@ def main():
     pair.add_argument('--url', required=True); pair.add_argument('--name', default='My AI')
     pair.add_argument('--ticket-stdin', action='store_true', required=True)
     pair.add_argument('--task-lease', action='store_true', help='Declare task_lease_v1 for a multi-AI invitation; preserve this choice on pairing retries.')
+    by_code = sub.add_parser('pair-code', help='Request pairing from an eight-digit invitation; phone approval is still required.')
+    by_code.add_argument('--service', required=True, help='Owner-provided HTTPS service root; not a device URL.')
+    by_code.add_argument('--name', default='My AI')
+    by_code.add_argument('--code-stdin', action='store_true', required=True)
     restore = sub.add_parser('restore', help='Restore an original multi-AI identity from a private credential record; never starts a phone task.')
     restore.add_argument('--credential-stdin', action='store_true', required=True,
                          help='Read JSON website/username/password from secure storage through stdin; never put credentials in arguments.')
@@ -1597,45 +1700,8 @@ def main():
         raise Failure('absolute_config_path_required')
     lock_config(args.config)
     if args.command == 'restore': return restore_identity(args)
-    if args.command == 'pair-start':
-        url = origin(args.url, args.allow_local_http)
-        if not 1 <= len(args.name) <= 48 or not args.name.strip() or any(unicodedata.category(c).startswith('C') for c in args.name): raise Failure('invalid_controller_name')
-        existing = args.config.exists()
-        if existing:
-            config = load_config(args.config, args.allow_local_http)
-            if config.get('state') != 'pending':
-                raise Failure('config_exists_reuse_connection_or_choose_new_path')
-            if config['url'] != url or config.get('pairing_name') != args.name or config.get('pairing_capabilities', []) != (['task_lease_v1'] if args.task_lease else []):
-                raise Failure('pairing_identity_mismatch', instruction='Use the same URL, name and private config. Do not replace an uncertain pairing identity.')
-        ticket = sys.stdin.readline(128).strip()
-        if not TICKET.fullmatch(ticket): raise Failure('invalid_pairing_ticket')
-        if existing:
-            # A lost response can hide a pending or already-approved claim.
-            # Only an explicit unauthorized response permits the idempotent POST.
-            try:
-                known = request(url, '/v1/pair/status', config['controller_token'], timeout=args.timeout,
-                                local_test=args.allow_local_http)
-            except Failure as failure:
-                if failure.result.get('error') != 'http_error' or failure.result.get('status') != 401:
-                    raise
-            else:
-                status = safe_pair_status(known['data'])
-                if status['state'] == 'approved':
-                    remember_approval(args, config, status)
-                    return {'ok': True, **status, 'instruction': 'The owner already approved this connection. Run wait-ready and keep this private config.'}
-                if status['state'] != 'pending':
-                    raise Failure('pairing_not_pending', retry_action=False)
-                config.update(status); save_config(args.config, config)
-                return {'ok': True, **status, 'instruction': 'Tell the owner the code now. Wait for approval on their phone, then run wait-ready. Keep this private config for future tasks.'}
-        else:
-            config = {'url': url, 'controller_token': secrets.token_hex(32), 'state': 'pending', 'pairing_name': args.name}
-            if args.task_lease: config['pairing_capabilities'] = ['task_lease_v1']
-            save_config(args.config, config, replace=False)
-        pair_body = {'ticket': ticket, 'controller_token': config['controller_token'], 'name': args.name}
-        if config.get('pairing_capabilities'): pair_body['capabilities'] = config['pairing_capabilities']
-        result = request(url, '/v1/pair', body=pair_body, method='POST', timeout=args.timeout, local_test=args.allow_local_http)
-        status = safe_pair_status(result['data']); config.update(status); save_config(args.config, config)
-        return {'ok': True, **status, 'instruction': 'Tell the owner the code now. Wait for approval on their phone, then run wait-ready. Keep this private config for future tasks.'}
+    if args.command == 'pair-start': return start_pairing(args)
+    if args.command == 'pair-code': return pair_with_code(args)
     config = load_config(args.config, args.allow_local_http)
     if args.command == 'pair-status': return poll_pair(args, config)
     if args.command == 'wait-ready': return wait_ready(args, config)
