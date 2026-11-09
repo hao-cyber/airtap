@@ -40,7 +40,16 @@
     "Grok source review timed out; no external-review pass claimed."
   ],
   "upstream_reference": "https://developers.cloudflare.com/durable-objects/deployments/durable-objects-code-updates/",
-  "phone_rollout": "Muse received owner-authorized upgrades of both original connections. Results are recorded separately after receipt.",
+  "phone_rollout": "Muse completed both remote upgrades with original approved claims, calculator result and HOME image checks, and release to idle; zero owner phone actions or USB/ADB use. Failures and recovery are preserved in the separate acceptance record.",
+  "phone_rollout_record": "beta33-code63-muse-two-devices-20261110.json",
+  "github": {
+    "android_release": "https://github.com/hao-cyber/airtap/releases/tag/v0.4.0-beta.33",
+    "cli_release": "https://github.com/hao-cyber/airtap/releases/tag/v0.4.0-cli.14",
+    "both_tags_target": "a9194005b3649c12a21b752f09d6ac629d230890",
+    "remote_tags_verified": true,
+    "downloaded_apk_exact_bytes_verified": true,
+    "downloaded_cli_guide_and_checksum_manifest_verified": true
+  },
   "not_claimed": [
     "Physical-phone eight-digit pairing and owner approval",
     "Current Instinct grants or two-AI handoff",
