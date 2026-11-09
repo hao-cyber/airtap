@@ -53,5 +53,14 @@
     "This does not establish current-version Instinct operation or two-AI handoff",
     "The upgrade used an already configured phone and retained its original connection; it was not independent first installation"
   ],
-  "privacy_scope": "Reviewed technical summary only; no credentials, identifiers, private URLs, screenshots, raw messages or private file paths"
+  "privacy_scope": "Reviewed technical summary only; no credentials, identifiers, private URLs, screenshots, raw messages or private file paths",
+  "publication": {
+    "source_commit": "db56af6b3d3c8c0fecc06a9ab87b618e8ff7a8c8",
+    "public_website": "https://airtap.memtrix.dev/install",
+    "site_deployment_id": "b3e744dc-7c9b-4e26-93fd-ecaad75efae1",
+    "frozen_site_files_verified": 33,
+    "public_http_checks_passed": 75,
+    "apk_changed": false,
+    "relay_runtime_changed": false
+  }
 }
