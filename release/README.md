@@ -22,9 +22,9 @@ code63 将首次及新增 AI 的邀请改为八位数字。数字只定位短期
 
 当前为公开测试渠道，使用长期 RSA 3072 发布密钥，Android `debuggable=false`，最低 Android 14。包名继续使用 `io.airtap.preview`，以保留已安装用户的数据；包名不作为用户界面名称。正式发布签名不代表产品已通过全部机型或普通用户验证。
 
-官网推荐 Android `0.4.0-beta.32`（code62），[版本元数据](android/62.json)固定制品身份。本版修正手机解锁与 SIM 卡验证的提示，[Grok 复核与处理](../docs/results/grok-code61-review-20261109.json)保留发现、父会话核实与未完成项。恢复、配对、鉴权、租约、中继及 CLI.13 均未改变。此前 code61 的[发布记录](../docs/results/beta31-code61-publication-20261108.json)与[恢复检查](../docs/results/beta31-code61-recovery-20261108.json)继续保留各自范围。
+官网推荐 Android `0.4.0-beta.33`（code63），[版本元数据](android/63.json)固定制品身份。[发布核验](../docs/results/beta33-code63-publication-20261110.json)记录中继 revision26、CLI.14 和官网的实际更新。Muse 经两台原连接完成[远程覆盖升级、计算器核对与收尾](../docs/results/beta33-code63-muse-two-devices-20261110.json)，没有 USB 或人工操作手机。新短码的实体手机配对、当前 Instinct 任务和双 AI 交接尚未完成。
 
-本版[发布核验](../docs/results/beta32-code62-publication-20261109.json)确认官网与 GitHub 提供同一签名制品。Muse 经原连接完成[正常覆盖升级与收尾](../docs/results/beta32-code62-upgrade-20261109.json)，保留安装中断和参数错误后的自行恢复记录；本轮没有人工操作手机或 USB 代做任务。随后在第二台手机完成[原连接升级与 70 秒息屏恢复](../docs/results/beta32-code62-second-device-20261109.json)：约 4.4 秒唤醒，计算器结果和桌面均实际查看，保留失败恢复记录。这仍不替代重启、Instinct 或双 AI 交接验收。
+此前 code62 的[发布核验](../docs/results/beta32-code62-publication-20261109.json)确认官网与 GitHub 提供同一签名制品。Muse 经原连接完成[正常覆盖升级与收尾](../docs/results/beta32-code62-upgrade-20261109.json)，保留安装中断和参数错误后的自行恢复记录；该轮没有人工操作手机或 USB 代做任务。随后在第二台手机完成[原连接升级与 70 秒息屏恢复](../docs/results/beta32-code62-second-device-20261109.json)：约 4.4 秒唤醒，计算器结果和桌面均实际查看，保留失败恢复记录。这仍不替代重启、Instinct 或双 AI 交接验收。
 
 此前 Muse 在 code61 使用原连接，在一台魅族 Note 16 上完成两次息屏唤醒、桌面视觉核对、短信界面读取和收尾。机主在测试前完成了重启后的 SIM PIN 验证，该保护开关仍开启，因此后续重启无需人工尚未通过。Google Play 搜索因未登录未完成；本版 Instinct、跨云端环境配置保留和多日后台仍未验证。
 

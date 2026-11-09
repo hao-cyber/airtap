@@ -44,13 +44,13 @@ AI 可以组合这些动作完成跨 App 任务，不限于计算器等演示应
 
 当前版本 **0.4.0-beta.33（code63）** 将接入邀请改为八位数字，AI 申请后仍需在手机核对六位数字并批准。已有连接保留。[更新说明](release/android/63.json) · [协议与 Android 检查](docs/results/beta33-code63-short-invitations-20261110.json) · [发布核验](docs/results/beta33-code63-publication-20261110.json)。
 
-此前 Muse 已通过原连接完成 code62 远程覆盖升级，核对桌面并释放控制，过程中自行处理了安装断线和操作参数错误，无需接 USB 或人工操作手机。[升级记录](docs/results/beta32-code62-upgrade-20261109.json) · [发布核验](docs/results/beta32-code62-publication-20261109.json)。
+Muse 已通过两台手机的原连接完成 code63 远程覆盖升级，在计算器核对 28 × 3 = 84，再看图确认桌面并释放控制。下载、权限点击结果未知和安装断线由它自行恢复，无需接 USB 或人工操作手机。[本次实测](docs/results/beta33-code63-muse-two-devices-20261110.json)。
 
 真机测试主要使用魅族 Note 16、Android 15。Muse 与 Instinct 已分别完成息屏后的任务；两者还完成了[持租时拒绝另一 AI、释放后接管的交接](docs/results/beta21-code51-two-ai-handoff-20261103.json)。这些结果保留失败恢复、维护者准备与取证限制。更多机型、纯移动网络完整任务、多日后台和独立新用户完整安装仍待验证。目前没有 iOS 客户端。
 
 | 个人 AI | 已有测试 |
 | --- | --- |
-| Muse | 两台手机已用原连接运行 code62。一台完成短信、维基百科与计算器[续用任务](docs/results/beta32-code62-muse-reuse-20261109.json)；另一台完成远程升级，静置息屏 70 秒后约 4.4 秒自动唤醒，再用计算器核对结果并回桌面。失败与自行恢复见[第二台实测](docs/results/beta32-code62-second-device-20261109.json)。 |
+| Muse | 两台原连接已完成 [code63 升级和计算器任务](docs/results/beta33-code63-muse-two-devices-20261110.json)。此前 code62 完成短信、维基百科与计算器[续用任务](docs/results/beta32-code62-muse-reuse-20261109.json)，以及[另一台手机的短时息屏恢复](docs/results/beta32-code62-second-device-20261109.json)。 |
 | Instinct | code51／CLI.12 从息屏恢复，在 Google Play 搜索并核对 Google Maps，再回桌面并释放。首次观察和启动后的观察曾失败，之后自行恢复。[记录](docs/results/beta21-code51-instinct-cli12-wake-20261103.json) |
 
 Instinct 已通过[两次从 Vault 取用合成凭据并认证](docs/results/instinct-vault-use-20261109.json)，并为两台手机分别[保存和取用了新的独立凭据](docs/results/instinct-credential-preparation-20261109.json)，尚待手机核码批准。当前版本任务、双 AI 交接，以及真正更换云端运行环境后的恢复仍未完成验收。上表的 code51 结果不能替代这些检查。一台测试手机的 SIM PIN 开关仍开启，下次重启仍需系统验证；普通息屏唤醒通过不等于重启后无需人参与。

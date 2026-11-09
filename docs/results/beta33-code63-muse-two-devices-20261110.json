@@ -1,0 +1,64 @@
+{
+  "schema": "airtap-personal-ai-acceptance-v1",
+  "date": "2026-11-10",
+  "scope": "Muse remotely upgrades two existing physical phones from code62 to code63 and verifies a limited task on each original connection.",
+  "evidence_source": "Actual Muse cloud-runner report received in its original conversation; private transcript retained outside the public repository.",
+  "delegation": "Owner-authorized maintainer sent the ordinary task through the normal Muse composer; not represented as personally typed by the owner.",
+  "android_version_code": 63,
+  "android_version_name": "0.4.0-beta.33",
+  "cli_version": "0.4.0-cli.14",
+  "cli_sha256": "90917eea8af87a6d49645502500be214e059f9519cd92c21c35816bac4a43bc5",
+  "guide_sha256": "eaddb077b3d39db0b3038f10ce36c47e531269b86434bdfa6c9766fc97d175c4",
+  "apk_sha256": "d885315ef17e20bf5db257da8613f58d55fc424cc569fc4d3cb8c74b5f9b1271",
+  "apk_bytes": 611789,
+  "actual_cli_and_artifact_checks_reported": true,
+  "devices": [
+    {
+      "label": "phone_a",
+      "original_approved_claim_preserved": true,
+      "actual_code63_ping_reported": true,
+      "calculator": "28 × 3 = 84",
+      "result_image_viewed": true,
+      "home_image_viewed": true,
+      "final_task_state": "idle",
+      "retained_failures_and_recovery": [
+        "Opening the download required a fresh observation; observed then retried.",
+        "A storage-permission tap returned an unknown result; state and a new image confirmed permission and the completed download, without blindly replaying the tap.",
+        "Installation disconnected the channel with 410; waited 20 seconds, reconnected using the original configuration, and confirmed code63."
+      ]
+    },
+    {
+      "label": "phone_b",
+      "original_approved_claim_preserved": true,
+      "actual_code63_ping_reported": true,
+      "calculator": "28 × 3 = 84",
+      "result_image_viewed": true,
+      "home_image_viewed": true,
+      "final_task_state": "idle",
+      "retained_failures_and_recovery": [
+        "After approximately two hours idle, the first image showed the lock-screen notification shade. A ready status did not establish that the launcher was foreground; a swipe only scrolled notifications, then Back exposed the browser.",
+        "A storage-permission tap returned an unknown result; a fresh observation confirmed it had applied.",
+        "Download stalled for approximately 55 seconds; reopening the same verified artifact URL with a candidate=1 query completed in approximately 10 seconds.",
+        "File-manager launch returned a transport 503, then required observation after reconnect; a fresh observation allowed progress.",
+        "Installation disconnected the channel with 410; waited 20 seconds, reconnected using the original configuration, and confirmed code63."
+      ]
+    }
+  ],
+  "owner_phone_actions_during_run": 0,
+  "usb_adb_or_legacy_control_used": false,
+  "reboot_network_proxy_sim_or_lock_settings_changed": false,
+  "new_invitation_created_or_connection_revoked": false,
+  "instinct_preparation": {
+    "actual_cli14_and_exact_artifact_hashes_reported": true,
+    "two_prepared_independent_vault_credentials_retrieved": true,
+    "temporary_exports_deleted_reported": true,
+    "new_phone_pairings_started": false,
+    "new_phone_pairings_approved": false
+  },
+  "not_claimed": [
+    "Physical-phone short-code pairing or new Instinct phone approval",
+    "Current-version two-AI handoff or replacement of a cloud execution environment",
+    "Reboot without system authentication, multi-day background reliability, or independent first-user onboarding",
+    "Retirement of the remaining legacy phone control chain"
+  ]
+}
