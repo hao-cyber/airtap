@@ -1,0 +1,55 @@
+{
+  "schema": "airtap-pairing-journey-validation-v1",
+  "date": "2026-11-10",
+  "android_version": "0.4.0-beta.34",
+  "version_code": 64,
+  "cli_version": "0.4.0-cli.15",
+  "source_commit": "9d94f2a7675023828c4ddd9955472f09942fcfd5",
+  "changes": [
+    "New invitations last one hour; retries retain the original deadline.",
+    "Expired invitations can be regenerated in one action after confirmed cancellation.",
+    "Invitation steps precede existing connections; cancellation and named connection removal are distinct.",
+    "CLI approval wait supports the actual one-hour deadline."
+  ],
+  "checks": {
+    "core": {
+      "passed": true,
+      "completed": true,
+      "steps": 40
+    },
+    "android_release_build_and_lint": true,
+    "clean_source": true,
+    "inputs_unchanged": true,
+    "signer_sha256": "a2aa0c1b6fdaf1baa37aa20817387524a1318b5dab82bf7c185663141daba60f",
+    "apk_sha256": "b1061cd980313697097525074660ae953e2bb509a2fd6fa659373fda1aa9f419",
+    "apk_bytes": 611789,
+    "controlled_clock_single_and_multi": [
+      "invitation and comparison remain valid past 301 seconds",
+      "valid at 3599 seconds; denied at 3600",
+      "retry never extends expiry; expired candidate cannot be approved"
+    ],
+    "regeneration": [
+      "same invitation cancellation confirmed before replacement",
+      "unknown response retries preserve identity",
+      "stop, screen leave and identity change prevent late creation"
+    ],
+    "physical_android": {
+      "model": "Meizu Note 16",
+      "android": 15,
+      "usb_maintenance_upgrade": true,
+      "package_version_observed": 64,
+      "expired_invitation_ui_observed": true,
+      "personal_ai_pairing": "not yet verified in this record"
+    }
+  },
+  "retained_failures": [
+    "Initial check invocation lacked JAVA_HOME; rerun with the installed JDK.",
+    "Setup recovery exposed a remaining five-minute artifact-restoration bound; production code fixed and core rerun passed.",
+    "Initial site build lacked JAVA_HOME; signed build already passed and site build rerun succeeded."
+  ],
+  "limitations": [
+    "Host tests, local Workers and USB maintenance do not constitute personal AI or independent new-user acceptance.",
+    "Existing expired invitations remain expired; owner approval is still required.",
+    "No device reboot, network change, PIN entry or old-link retirement was performed by this validation."
+  ]
+}
