@@ -343,11 +343,15 @@ def deploy(path, wrangler, prepare_only):
         print(json.dumps({'prepared': True, 'deployed': False, **public}))
         return 0
     state['attempted'] = True
+    # Newly added RPC methods must be available across both DO classes when
+    # the new Worker starts using them. A deferred rollout can retain old code
+    # for minutes. Reset runtime instances, preserving their durable records.
+    state['durable_objects_code_update_mode'] = 'immediate'
     replace_json(path, state)
     root = path.parent
     env = dict(os.environ, WRANGLER_LOG_PATH=str(root / 'wrangler.log'), WRANGLER_SEND_METRICS='false', CI='true')
     try:
-        result = subprocess.run([wrangler, 'deploy', '--config', str(root / 'wrangler.json'),
+        result = subprocess.run([wrangler, 'deploy', '--durable-objects-code-update-mode', 'immediate', '--config', str(root / 'wrangler.json'),
                                  '--secrets-file', str(root / 'secrets.json')],
                                 cwd=root, env=env, capture_output=True, text=True, timeout=180)
         json_write(root / ('output-' + secrets.token_hex(6) + '.json'), {'stdout': result.stdout, 'stderr': result.stderr})

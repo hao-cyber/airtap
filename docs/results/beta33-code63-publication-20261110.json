@@ -1,0 +1,49 @@
+{
+  "schema": "airtap-publication-v1",
+  "date": "2026-11-10",
+  "android_version_code": 63,
+  "android_version_name": "0.4.0-beta.33",
+  "apk_sha256": "d885315ef17e20bf5db257da8613f58d55fc424cc569fc4d3cb8c74b5f9b1271",
+  "cli_version": "0.4.0-cli.14",
+  "cli_sha256": "90917eea8af87a6d49645502500be214e059f9519cd92c21c35816bac4a43bc5",
+  "guide_sha256": "eaddb077b3d39db0b3038f10ce36c47e531269b86434bdfa6c9766fc97d175c4",
+  "relay_revision": 26,
+  "relay_runtime_sha256": "1b97ad6f2b02c364c6dfcf64d2ef9ce6a1acd92e67a45f666b77067404ad144d",
+  "service_identity_preserved": true,
+  "durable_objects_code_update_mode": "immediate",
+  "deployment_tool_sha256": "a60d9796ab217491947dfb0f898dd2fa13876a15661ace83486103ec8536dfd9",
+  "website_deployment_id": "39ff5dc2-d06c-4076-b290-0f9eccc3b35f",
+  "frozen_site_files": 34,
+  "public_website_checks": 78,
+  "public_website_passed": true,
+  "existing_reviewed_videos_retained": true,
+  "public_short_code_roundtrip": {
+    "passed": true,
+    "tested_revision": 25,
+    "same_runtime_as_revision_26": true,
+    "checks": [
+      "discovery",
+      "bootstrap_and_exact_artifacts",
+      "idempotent_owner_code",
+      "resolution",
+      "pending_cannot_control",
+      "approval_consumes_code",
+      "synthetic_enrollment_retired"
+    ],
+    "synthetic_enrollment_removed": true
+  },
+  "retained_failures_and_limits": [
+    "First deployment returned RPC method missing while an active registry still ran old code; after the deferred update completed the same runtime passed the public short-code lifecycle check.",
+    "Publication tooling now applies DO code immediately; 12 deployment tests and a real revision26 deployment verified the explicit mode and retained identity. Active objects/connections may reset, so unknown phone actions are never replayed.",
+    "A further synthetic enrollment after revision26 was rejected by the existing IP daily limit of 3 registrations. The limit was not relaxed or bypassed; revision26 discovery and exact artifact checks succeeded, but this additional full pairing run did not happen.",
+    "Cloudflare Managed robots prefix was separately reviewed and compared exactly; no other website bytes were exempted.",
+    "Grok source review timed out; no external-review pass claimed."
+  ],
+  "upstream_reference": "https://developers.cloudflare.com/durable-objects/deployments/durable-objects-code-updates/",
+  "phone_rollout": "Muse received owner-authorized upgrades of both original connections. Results are recorded separately after receipt.",
+  "not_claimed": [
+    "Physical-phone eight-digit pairing and owner approval",
+    "Current Instinct grants or two-AI handoff",
+    "No-interruption rollout or independent new-user acceptance"
+  ]
+}

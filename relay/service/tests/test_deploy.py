@@ -5,6 +5,10 @@ import os
 from pathlib import Path
 import tempfile
 import unittest
+import io
+from contextlib import redirect_stdout
+from types import SimpleNamespace
+from unittest.mock import patch
 
 spec = importlib.util.spec_from_file_location('service_deploy', Path(__file__).parents[1] / 'deploy.py')
 d = importlib.util.module_from_spec(spec)
@@ -58,6 +62,20 @@ class DeployTests(unittest.TestCase):
         path = self.first(admin='f'*64)
         newer = d.prepare_revision(path, 'configure', None)
         self.assertEqual(d.validate(newer)[0]['feedback_admin_sha256'], 'f'*64)
+    def test_deployment_applies_do_code_immediately_and_retains_identity(self):
+        old = self.first()
+        candidate = d.prepare_revision(old, 'configure', None)
+        with patch.object(d.subprocess, 'run', return_value=SimpleNamespace(returncode=0, stdout='', stderr='')) as run, redirect_stdout(io.StringIO()):
+            self.assertEqual(d.deploy(candidate, 'wrangler', False), 0)
+        argv = run.call_args.args[0]
+        self.assertEqual(argv[argv.index('--durable-objects-code-update-mode') + 1], 'immediate')
+        state, config, salt, latest = d.validate(candidate)
+        self.assertEqual(state['durable_objects_code_update_mode'], 'immediate')
+        self.assertEqual(state['service_id'], self.state['service_id'])
+        self.assertEqual(config['durable_objects'], d.BINDINGS)
+        self.assertEqual(salt, self.salt)
+        self.assertEqual(latest['state_path'], str(candidate))
+        self.assertIsNone(latest['pending_state'])
     def test_changed_hash_rejected(self):
         path = self.first(admin='f'*64)
         d.replace_json(self.root/'secrets.json', dict(IP_HASH_SALT=self.salt, FEEDBACK_ADMIN_SHA256='d'*64))
