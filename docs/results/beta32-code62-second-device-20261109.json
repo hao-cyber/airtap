@@ -1,0 +1,57 @@
+{
+  "schema": "airtap-personal-ai-device-reuse-v1",
+  "date": "2026-11-09",
+  "status": "remote_upgrade_cross_app_and_screen_off_recovery_passed",
+  "release_metadata": "../../release/android/62.json",
+  "agent": "Muse",
+  "device": "Second Meizu Note 16, Android 15",
+  "source": "Actual replies in the original Muse conversation; raw command traces were not exported",
+  "preparation": {
+    "owner_connected_charger_before_test": true,
+    "prior_offline_cause": "Owner-reported depleted battery",
+    "connected_on_first_query": true,
+    "original_pairing_preserved": true,
+    "maintenance_phone_command_substitution": false
+  },
+  "upgrade_and_reuse": {
+    "period_local": "22:55–23:01, UTC+08:00",
+    "version_before": 52,
+    "version_after": 62,
+    "initial_screen": "ready",
+    "apk_bytes_verified_in_agent_cloud": 607693,
+    "apk_sha256_verified_against_release_metadata": true,
+    "installation": "Normal phone browser download and system package installer; no reported signature conflict or downgrade",
+    "failure_and_recovery": [
+      "The installation interrupted the connection with a lease expiry. Muse queried state and recovered after a 20-second interval without repeating installation.",
+      "An unencoded Chinese URL was rejected. Muse encoded the URL and took a fresh observation before retrying."
+    ],
+    "task": "Checked Marie Curie's birth year in Wikipedia, calculated 2026 minus 1867 and visually verified 159, then returned HOME and viewed the desktop",
+    "final_task_state": "idle"
+  },
+  "screen_off_recovery": {
+    "period_local": "23:05–23:09, UTC+08:00",
+    "lock_request": "Normal system-action lock_screen",
+    "initial_lock_failure": "The task needed a current observation; ping alone was insufficient. A fresh observation followed by the lock request succeeded.",
+    "quiet_interval_seconds": 70,
+    "queries_during_quiet_interval": "Read-only status only; no observation or phone input",
+    "new_task_ping_screen_state": "screen_off",
+    "observe_automatic_wake_seconds_approximate": 4.4,
+    "desktop_actually_viewed": true,
+    "calculator_expression": "19 * 23",
+    "calculator_result_visually_verified": 437,
+    "home_actually_viewed_after_task": true,
+    "final_task_state": "idle"
+  },
+  "owner_intervention_during_tasks": false,
+  "system_authentication_encountered": false,
+  "rebooted": false,
+  "network_or_sim_settings_changed": false,
+  "other_device_check": "The first device remained code62 and screen-ready; its earlier cross-App task was not repeated",
+  "limits": [
+    "This was one charging device and a short screen-off interval, not a reboot or multi-day availability test",
+    "The requested runner was CLI.13; these replies did not independently rehash its file",
+    "This does not establish current-version Instinct operation or two-AI handoff",
+    "The upgrade used an already configured phone and retained its original connection; it was not independent first installation"
+  ],
+  "privacy_scope": "Reviewed technical summary only; no credentials, identifiers, private URLs, screenshots, raw messages or private file paths"
+}

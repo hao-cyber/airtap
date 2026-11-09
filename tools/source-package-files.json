@@ -945,6 +945,10 @@
     },
     {
       "kind": "result",
+      "path": "docs/results/beta32-code62-second-device-20261109.json"
+    },
+    {
+      "kind": "result",
       "path": "docs/results/beta32-code62-upgrade-20261109.json"
     },
     {
@@ -1102,6 +1106,10 @@
     {
       "kind": "result",
       "path": "docs/results/guide-sms-network-preparation-20261103.json"
+    },
+    {
+      "kind": "result",
+      "path": "docs/results/instinct-credential-preparation-20261109.json"
     },
     {
       "kind": "source",
