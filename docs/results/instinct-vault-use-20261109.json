@@ -1,0 +1,45 @@
+{
+  "schema": "airtap-platform-credential-use-acceptance-v1",
+  "date": "2026-11-09",
+  "platform": "Instinct",
+  "status": "synthetic_repeated_retrieval_and_authentication_passed",
+  "setup": {
+    "normal_authenticated_account_vault_ui": true,
+    "synthetic_record_created_by_maintainer": true,
+    "explicit_agent_computer_scope": true,
+    "saved_entry_survived_page_reload": true,
+    "real_device_credentials_used": false
+  },
+  "actual_agent_execution": {
+    "entry": "Original authorized iMessage conversation",
+    "credential_source": "Platform-supported Vault delivery to private temporary files",
+    "first_http_status": 200,
+    "second_http_status": 200,
+    "authentication_success_both_times": true,
+    "different_server_receipts": true,
+    "second_credential_delivery_after_first_temp_files_deleted": true,
+    "temporary_files_and_directories_cleaned": true,
+    "extra_approval_required_for_final_supported_route": false,
+    "result_source": "Task acknowledged in the original conversation; result returned by scoped authenticated inbound email, with archive hash and recorded ingress authentication headers checked"
+  },
+  "observed_limitations": [
+    "Vault website metadata reduced the configured address to a domain, losing the complete subdomain and path; preserve the full device URL separately.",
+    "Direct credential injection was not available in the tested tool surface; the supported temporary-file route worked.",
+    "A maintainer request initially excluded temporary export and prevented the supported route; its scope was corrected before execution.",
+    "An earlier email request to inspect or hash stored fields was declined; it did not perform authentication and is not counted as a failed authentication.",
+    "The maintainer fixture first encountered edge HTTP 403/1010 with the Python default User-Agent. A descriptive application User-Agent and JSON request headers passed; no browser impersonation or TLS override was used. The agent used that application User-Agent."
+  ],
+  "cleanup": {
+    "synthetic_vault_entry_deleted_and_absent_after_reload": true,
+    "temporary_worker_deleted": true,
+    "removed_endpoint_returns_404": true,
+    "production_relay_changed_for_this_test": false
+  },
+  "not_verified": [
+    "Original lost phone credential recovery",
+    "Agent-created service credential storage without maintainer UI setup",
+    "Replacement of the actual execution VM",
+    "A real current-version Instinct phone task or two-AI handoff"
+  ],
+  "privacy_scope": "Only aggregate synthetic test results; no values, private accounts, endpoint addresses, raw messages, device identifiers or credentials"
+}

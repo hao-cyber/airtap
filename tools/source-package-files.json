@@ -932,6 +932,10 @@
       "path": "docs/results/beta31-code61-recovery-20261108.json"
     },
     {
+      "kind": "source",
+      "path": "docs/results/beta32-code62-muse-reuse-20261109.json"
+    },
+    {
       "kind": "result",
       "path": "docs/results/beta32-code62-publication-20261109.json"
     },
@@ -1094,6 +1098,10 @@
     {
       "kind": "result",
       "path": "docs/results/guide-sms-network-preparation-20261103.json"
+    },
+    {
+      "kind": "source",
+      "path": "docs/results/instinct-vault-use-20261109.json"
     },
     {
       "kind": "result",

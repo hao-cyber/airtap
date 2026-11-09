@@ -1,0 +1,35 @@
+{
+  "schema": "airtap-personal-ai-reuse-acceptance-v1",
+  "date": "2026-11-09",
+  "status": "passed_with_recovery_and_scope_limits",
+  "release_metadata": "../../release/android/62.json",
+  "agent": "Muse",
+  "device": "Meizu Note 16, Android 15",
+  "installed_version_code": 62,
+  "connection": "Original approved connection in the personal AI's own cloud environment",
+  "source": "Actual response in the original Muse conversation; raw command traces were not exported",
+  "initial_screen": "ready",
+  "steps": [
+    "Confirmed the installed version and existing connection",
+    "Used the Messages App to check the existing latest carrier notification's sender and date; no body or verification code included in this record",
+    "Checked Marie Curie's birth year, 1867, in Chinese Wikipedia",
+    "Calculated 2026 minus 1867 and visually checked 159",
+    "Returned HOME, actually viewed the desktop and released control"
+  ],
+  "failure_and_recovery": {
+    "failure": "One Messages action used the wrong package context and returned fresh_observation_required",
+    "recovery": "Muse captured a fresh observation and used the correct package; the retry succeeded"
+  },
+  "final_control_state": "idle",
+  "owner_phone_intervention": false,
+  "maintenance_phone_action_substitution": false,
+  "pairing_replaced": false,
+  "other_phone_operated": false,
+  "limits": [
+    "The phone started screen-ready; this task did not test waking from screen-off or reboot",
+    "The requested runner was CLI.13; this response did not independently rehash its file",
+    "This is one actual Muse task, not current-version Instinct or two-AI acceptance",
+    "It does not establish independent first installation, multi-day availability or retirement of the previous control route"
+  ],
+  "privacy_scope": "Reviewed technical summary only; no credentials, device identifiers, private URLs, screenshots, raw messages or private file paths"
+}
