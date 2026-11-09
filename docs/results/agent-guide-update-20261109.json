@@ -22,5 +22,27 @@
     "No new phone action or two-AI handoff is claimed for this publication",
     "Existing invitation hashes still identify their original bytes; do not bypass a mismatch"
   ],
-  "privacy_scope": "Public source and artifact metadata only"
+  "privacy_scope": "Public source and artifact metadata only",
+  "website_update": {
+    "source_commit": "82726d1990e631130c3d0c1a9e66c3bca3821330",
+    "deployment_id": "578d9f16-4b43-4249-aebd-99799cb744df",
+    "public_origin": "https://airtap.memtrix.dev",
+    "deployment_kind": "site_refresh",
+    "readme_and_site_show_actual_code62_muse_reuse": true,
+    "android_apk_bytes_and_recommendation_unchanged": true,
+    "existing_two_reviewed_videos_preserved": true,
+    "local_files_verified": 33,
+    "public_http_checks_passed": 75,
+    "browser_review": {
+      "mobile_width": 390,
+      "desktop_width": 1440,
+      "explicit_viewport_emulation": true,
+      "horizontal_overflow": false,
+      "reviewed_changed_evidence_section": true
+    },
+    "local_environment_corrections": [
+      "First packaging attempt found no default Java runtime; reran with the existing Android Studio JBR and native APK verification passed.",
+      "A raw headless window screenshot did not reflect the requested mobile viewport; explicit device metrics verified the actual 390px layout without a site code change."
+    ]
+  }
 }
