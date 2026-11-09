@@ -1,0 +1,61 @@
+{
+  "schema": "airtap-validation-v1",
+  "date": "2026-11-10",
+  "android_version": "0.4.0-beta.33",
+  "version_code": 63,
+  "cli_version": "0.4.0-cli.14",
+  "built_source_commit": "ea4a257aa1bb6fd6f36962787e601b7b970f9a63",
+  "apk_sha256": "d885315ef17e20bf5db257da8613f58d55fc424cc569fc4d3cb8c74b5f9b1271",
+  "apk_bytes": 611789,
+  "signer_sha256": "a2aa0c1b6fdaf1baa37aa20817387524a1318b5dab82bf7c185663141daba60f",
+  "source_inputs_unchanged": true,
+  "validation": {
+    "core_steps": 40,
+    "core_passed": true,
+    "android_release_build_lint_and_signature": true,
+    "protocol_scope": "Real local workerd/SQLite and CLI subprocesses with synthetic identities; owner-only mint, same-code retry, isolated read-only resolution, lost reply, second AI, cancellation, expiry, unenrollment, rate limits and cleanup.",
+    "native_checks": [
+      {
+        "name": "one actual Owner add callback from unknown remote state creates exactly one invitation after real GET",
+        "passed": true
+      },
+      {
+        "name": "short code claim reaches actual six-digit owner approval and both connections remain usable",
+        "passed": true
+      },
+      {
+        "name": "STOP while explicit add GET is held cancels the intent and never creates a late invitation",
+        "passed": true
+      },
+      {
+        "name": "cancel original unknown invitation while its continuation GET is held cannot recreate it",
+        "passed": true
+      },
+      {
+        "name": "actual HOME pause abandons held add GET and resume does not create an invitation",
+        "passed": true
+      },
+      {
+        "name": "unknown committed invitation POST retry keeps its original ID sequence and ticket",
+        "passed": true
+      }
+    ],
+    "native_scope": "Production Java in isolated test package on disposable Android emulator; actual native View callbacks, TLS and relay. Test-only owner drivers and synthetic registration; not physical touchscreen or first-user permission setup."
+  },
+  "retained_failures": [
+    "Initial host harness did not model the new invitation presenter cleanup; fixture updated and full core rerun passed.",
+    "Initial native test driver did not allow its new resolver path; test-only path allowlist extended, unchanged production APK/Java rerun passed."
+  ],
+  "not_verified": [
+    "Physical-phone short-code creation and owner approval",
+    "Muse or Instinct first pairing with the eight-digit entry",
+    "Independent new-user onboarding"
+  ],
+  "deployment": "Recorded separately after actual deployment and public checks.",
+  "external_review": {
+    "requested_backend": "grok",
+    "dispatch": "llm-cli with no fallback; isolated source-only input",
+    "outcome": "idle timeout after 180 seconds; no completed review",
+    "not_counted_as_pass": true
+  }
+}

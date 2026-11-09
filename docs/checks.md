@@ -43,6 +43,8 @@ python3 tools/check.py --suite android
 
 ## 当前覆盖
 
+[code63 短邀请码检查](results/beta33-code63-short-invitations-20261110.json)：40 步 core、release 构建/lint/验签及隔离 Android 原生邀请界面 6 项检查通过。新协议覆盖同码重试、失效、限速、清理与原连接保留；不代替两台实体手机或个人 AI 的短码接入验收。
+
 code62 仅修正系统验证的界面与权限说明，Android release 构建、lint、原生版本与原签名校验通过。[Grok 复核与处理](results/grok-code61-review-20261109.json)记录确认的文案缺陷及未完成项。恢复、配对、鉴权和租约源码未改，因此没有为文案改动重跑下列 code61 的整套核心与恢复场景；这也不把旧实测改写为 code62 的新版验收。
 
 [code61 恢复检查与 Muse 实测](results/beta31-code61-recovery-20261108.json)：39 步 core、41 个生产恢复 Activity 平台替身场景、release 构建、lint 与原生身份检查通过。本轮魅族 SIM PIN 状态被正确识别；机主完成验证后，Muse 两次从已确认息屏状态自主回到桌面，并完成已有短信的界面读取。该结果不包含下一次无人值守重启、Google Play 登录或本版双 AI 交接。下面的历史记录保留各自版本范围。

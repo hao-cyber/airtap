@@ -1,0 +1,20 @@
+{
+  "schema": "airtap-android-update-v1",
+  "application_id": "io.airtap.preview",
+  "version_name": "0.4.0-beta.33",
+  "version_code": 63,
+  "apk_sha256": "d885315ef17e20bf5db257da8613f58d55fc424cc569fc4d3cb8c74b5f9b1271",
+  "apk_bytes": 611789,
+  "signer_sha256": "a2aa0c1b6fdaf1baa37aa20817387524a1318b5dab82bf7c185663141daba60f",
+  "min_sdk": 34,
+  "target_sdk": 36,
+  "debuggable": false,
+  "channel": "beta",
+  "published_at": "2026-11-10",
+  "download_path": "/download/android",
+  "notes": [
+    "接入邀请改为八位数字，可口述，也可一键复制带服务地址的短句。首次接入与添加另一位 AI 使用相同入口。",
+    "AI 申请后仍需在手机核对另一组六位数字并确认；邀请码最多五分钟有效，不能直接控制手机。",
+    "配套 CLI.14 支持数字接入与丢失回包恢复，升级保留已有批准。短码界面与配对检查范围见发布记录，不能据此推定所有个人 AI 或机型已通过。"
+  ]
+}

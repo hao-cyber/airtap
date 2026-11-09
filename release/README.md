@@ -8,6 +8,8 @@ APK 下载支持 HEAD 文件长度和单段 Range 续传。构建从实际保留
 
 公开静态页设置 `Cache-Control: public, no-cache, no-transform`，要求 CDN 保持原文并防止自动注入访问统计脚本，再以实际 HTTP 内容核对；此设置仅影响下载站，不修改中继或整个域名区域的分析配置。更新 JSON 仍为 `no-store`。参见 [Cloudflare 自动注入说明](https://developers.cloudflare.com/web-analytics/get-started/)。Cloudflare Managed robots 仍可能在 `/robots.txt` 前附加托管规则，这一项须按[网站验收清单](site-acceptance.md#部署后)单独审阅确切前缀，不以此放宽其他文件的校验。
 
+code63 将首次及新增 AI 的邀请改为八位数字。数字只定位短期邀请，仍需手机核对另一组六位数字并批准。协议、CLI、Android 原生界面与异常路径的检查范围见[本版记录](../docs/results/beta33-code63-short-invitations-20261110.json)；历史手机实测保持各自版本。
+
 ## 每夜开发包与推荐安装包
 
 新公开仓库的 [Android 每夜构建](../.github/workflows/android-nightly.yml) 在北京时间每日 03:17（UTC 19:17）调度，也可手动触发。它使用标准 Ubuntu 24.04 runner、Java 17，执行 debug 构建与 lint；只保存开发 APK、摘要和构建元数据，每次最多 20 MiB、保留 3 天，不配置 Actions 缓存。调度不保证准点，公开仓库长期无活动可能自动停用；费用与完整运行说明见[代码检查说明](../docs/checks.md#android-每夜构建)。

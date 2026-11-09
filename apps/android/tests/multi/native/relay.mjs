@@ -267,7 +267,7 @@ async function main() {
       if (value.op === 'request') {
         if (restarting || shuttingDown || !mf) throw new Error('relay_unavailable');
         if (!['GET', 'POST'].includes(value.method) || typeof value.path !== 'string'
-            || !/^\/(?:v1\/(?:service|enroll)|d\/[a-f0-9]{32}\/(?:v1\/[A-Za-z0-9_/-]+|mcp|agent\.md|cli\/airtap\.py))$/.test(value.path)
+            || !/^\/(?:v1\/(?:service|enroll|invitations\/resolve)|d\/[a-f0-9]{32}\/(?:v1\/[A-Za-z0-9_/-]+|mcp|agent\.md|cli\/airtap\.py))$/.test(value.path)
             || value.token !== undefined && (typeof value.token !== 'string' || !/^[a-f0-9]{64}$/.test(value.token))
             || value.method === 'GET' && value.body !== undefined) throw new Error('invalid_request');
         const hasBody = value.body !== undefined;
