@@ -2,7 +2,7 @@
 
 目标是让个人 AI 在机主授权和平台允许的范围内使用手机，尽量补齐人操作手机所需的观察、输入、文件与设备接口。**本清单持续补充；列出某项不代表已经实现，更不代表所有 App 和设备已经通过验收。**
 
-本表描述 code65／Android 0.4.0-beta.35、CLI.16 的扩展候选。通知事件、任务进度、文件续传、跨请求持续触控和媒体采集的实现与检查见[本轮记录](results/beta35-code65-capabilities-20261110.json)。候选检查不代表官网、实体手机或个人 AI 已升级；当前发布身份见[发布说明](../release/README.md#当前发布身份)。历史实测保持原有版本和范围。
+本表描述 code65／Android 0.4.0-beta.35、CLI.16 的扩展实现。通知事件、任务进度、文件续传、跨请求持续触控和媒体采集的实现与检查见[本轮记录](results/beta35-code65-capabilities-20261110.json)。[公网发布核验](results/beta35-code65-publication-20261110.json)已完成；它不代表实体手机或个人 AI 已升级。当前发布身份见[发布说明](../release/README.md#当前发布身份)。历史实测保持原有版本和范围。
 
 连续触摸、语义控件、文本编辑、系统导航、音量、窗口、分页观察、长文本、范围内文件传输与分享，以及多 AI 连接和任务租约已有实现。历史 code51 在一台已配置的魅族 Android 15 手机上分别完成 [Muse 息屏任务](results/beta21-code51-muse-cli12-wake-20261103.json)、[Instinct 息屏任务](results/beta21-code51-instinct-cli12-wake-20261103.json)和[双 AI 互斥与交接](results/beta21-code51-two-ai-handoff-20261103.json)；[短时断网恢复](results/beta21-code51-network-recovery-20261102.json)与[供电静置观察](results/beta21-code51-idle-20261103.json)是另行记录的维护者检查。原子能力实测仍保留各自版本、任务和失败范围，详见后文。
 

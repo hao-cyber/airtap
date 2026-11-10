@@ -42,7 +42,7 @@ AI 可以组合这些动作完成跨 App 任务，不限于计算器等演示应
 
 ## 当前支持情况
 
-当前版本 **0.4.0-beta.35（code65）** 增加可选通知事件、按住后继续观察和拖动、64 MiB 文件续传，以及拍照、录像、录音和录屏回传。配套 CLI.16 可以保存任务进度，结果未知时先核验再续接。[更新说明](release/android/65.json) · [实现与检查](docs/results/beta35-code65-capabilities-20261110.json)。
+当前版本 **0.4.0-beta.35（code65）** 增加可选通知事件、按住后继续观察和拖动、64 MiB 文件续传，以及拍照、录像、录音和录屏回传。配套 CLI.16 可以保存任务进度，结果未知时先核验再续接。[更新说明](release/android/65.json) · [实现与检查](docs/results/beta35-code65-capabilities-20261110.json) · [发布核验](docs/results/beta35-code65-publication-20261110.json)。
 
 本版扩展已通过核心检查与 Android 模拟器验证；实体手机的新能力尚待逐项实测。通知事件与 SIM PIN 输入默认关闭，麦克风需系统授权，录屏每次确认。已有邀请仍有效一小时，升级保留有效连接。
 
