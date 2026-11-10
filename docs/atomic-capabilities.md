@@ -2,7 +2,7 @@
 
 目标是让个人 AI 在机主授权和平台允许的范围内使用手机，尽量补齐人操作手机所需的观察、输入、文件与设备接口。**本清单持续补充；列出某项不代表已经实现，更不代表所有 App 和设备已经通过验收。**
 
-本表描述 code65／Android 0.4.0-beta.35、CLI.16 的扩展实现。通知事件、任务进度、文件续传、跨请求持续触控和媒体采集的实现与检查见[本轮记录](results/beta35-code65-capabilities-20261110.json)。[公网发布核验](results/beta35-code65-publication-20261110.json)已完成；它不代表实体手机或个人 AI 已升级。当前发布身份见[发布说明](../release/README.md#当前发布身份)。历史实测保持原有版本和范围。
+本表描述 code65／Android 0.4.0-beta.35、CLI.16 的扩展实现。通知事件、任务进度、文件续传、跨请求持续触控和媒体采集的实现与检查见[本轮记录](results/beta35-code65-capabilities-20261110.json)。[公网发布核验](results/beta35-code65-publication-20261110.json)与[Muse 两台真机验收](results/beta35-code65-muse-20261110.json)分别记录发布和实际任务；后者覆盖持续触控、任务保存、96 KiB 文件操作与短时息屏恢复，不覆盖全部新增接口。当前发布身份见[发布说明](../release/README.md#当前发布身份)。历史实测保持原有版本和范围。
 
 连续触摸、语义控件、文本编辑、系统导航、音量、窗口、分页观察、长文本、范围内文件传输与分享，以及多 AI 连接和任务租约已有实现。历史 code51 在一台已配置的魅族 Android 15 手机上分别完成 [Muse 息屏任务](results/beta21-code51-muse-cli12-wake-20261103.json)、[Instinct 息屏任务](results/beta21-code51-instinct-cli12-wake-20261103.json)和[双 AI 互斥与交接](results/beta21-code51-two-ai-handoff-20261103.json)；[短时断网恢复](results/beta21-code51-network-recovery-20261102.json)与[供电静置观察](results/beta21-code51-idle-20261103.json)是另行记录的维护者检查。原子能力实测仍保留各自版本、任务和失败范围，详见后文。
 
@@ -228,7 +228,7 @@ Android 会区分锁屏状态和是否需要安全身份验证；唤醒屏幕或
 
 ## 12. 本轮扩展与后续范围
 
-本轮六类扩展的操作方式见 [AI 接入说明](agent.md#new-events-continued-touch-capture-and-task-progress)，实现与证据见[扩展设计](design/device-capability-expansion.md)。41 个核心检查阶段及 26 项 Android 原生模拟器检查已通过；实体手机、新能力的个人 AI 任务和实卡 SIM PIN 正向路径另行验收，不能由模拟器推定。
+本轮六类扩展的操作方式见 [AI 接入说明](agent.md#new-events-continued-touch-capture-and-task-progress)，实现与证据见[扩展设计](design/device-capability-expansion.md)。41 个核心检查阶段及 26 项 Android 原生模拟器检查已通过。Muse 在两台魅族 Android 15 上完成持续触控、job 保存再读、96 KiB 合成文件上传下载/改名/精确清理与短时息屏唤醒，见[真机记录](results/beta35-code65-muse-20261110.json)。通知实际投递、实卡 SIM PIN 正向路径和媒体采集仍待真机验证；不能由默认关闭返回或模拟器推定。
 
 | 方向 | 当前已落地 | 仍需分别验证或实现 |
 | --- | --- | --- |

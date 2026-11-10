@@ -1,0 +1,70 @@
+{
+  "android": "0.4.0-beta.35/code65",
+  "cli": "0.4.0-cli.16",
+  "usb_or_legacy_used": false,
+  "scope": "Two physical devices; existing Muse connections; no newly enabled notification, SIM PIN or capture permissions",
+  "not_validated": [
+    "New Instinct account device control",
+    "Notification permission and event delivery on real device",
+    "Actual SIM PIN input",
+    "Real device camera/microphone/MediaProjection capture",
+    "Cross-process long job interruption and large file interruption on physical devices beyond tested sample"
+  ],
+  "schema": "airtap-personal-ai-physical-validation-v1",
+  "date": "2026-11-10",
+  "evidence_origin": "Maintainer-dispatched tasks and actual final results in the existing Muse chat; raw screenshots and conversation retained privately.",
+  "devices": {
+    "A": {
+      "window_local": "2026-11-10 22:17–22:30 +08:00",
+      "original_pair_preserved": true,
+      "calc_visual": [
+        114,
+        117
+      ],
+      "continuous_touch": true,
+      "job_restart_persistence": true,
+      "synthetic_file_bytes": 98304,
+      "file_sha_roundtrip": true,
+      "rename_and_test_cleanup": true,
+      "screen_off_seconds": 65,
+      "observe_wake_ms": 4505.9,
+      "final": "HOME/idle/quiet",
+      "human_intervention": false,
+      "recoveries": [
+        "APK inspection script UTF-16 and signing-block offset errors corrected",
+        "expected upgrade lease loss; status, wait20s, reacquire",
+        "fresh observation required before calculator launch",
+        "touch on result selected text; restored",
+        "job-resolve argument order corrected",
+        "fresh stat before directory delete"
+      ]
+    },
+    "B": {
+      "window_local": "2026-11-10 22:31–22:42 +08:00",
+      "upgrade_from": 64,
+      "original_pair_preserved": true,
+      "calc_visual": [
+        141,
+        144
+      ],
+      "continuous_touch": true,
+      "job_restart_persistence": true,
+      "synthetic_file_bytes": 98304,
+      "file_sha_roundtrip": true,
+      "rename_and_test_cleanup": true,
+      "screen_off_seconds": 69,
+      "observe_wake_ms": 4202,
+      "final": "HOME/idle/quiet",
+      "human_intervention": false,
+      "recoveries": [
+        "first browser APK download stalled about73s; same official artifact with candidate query completed about12s",
+        "expected upgrade lease loss; status, wait20s, reacquire",
+        "local evidence command filename corrected after successful wake; no phone replay"
+      ],
+      "preexisting_workspace_file_preserved": true
+    }
+  },
+  "device_model": "Meizu Note 16",
+  "android_version": "15",
+  "result": "Passed within the listed scope; not complete coverage of every new capability."
+}
