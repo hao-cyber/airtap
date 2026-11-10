@@ -1,0 +1,373 @@
+{
+  "schema": "airtap-device-capabilities-validation-v1",
+  "date": "2026-11-10",
+  "candidate": {
+    "android_version": "0.4.0-beta.35",
+    "version_code": 65,
+    "cli_version": "0.4.0-cli.16"
+  },
+  "core": {
+    "completed": true,
+    "passed": true,
+    "steps": [
+      {
+        "step": "source-closure",
+        "exit_code": 0,
+        "seconds": 0.073
+      },
+      {
+        "step": "python-source-package",
+        "exit_code": 0,
+        "seconds": 4.735
+      },
+      {
+        "step": "test_observation_pages",
+        "exit_code": 0,
+        "seconds": 0.661
+      },
+      {
+        "step": "test_atomic_input",
+        "exit_code": 0,
+        "seconds": 0.702
+      },
+      {
+        "step": "test_drag",
+        "exit_code": 0,
+        "seconds": 0.756
+      },
+      {
+        "step": "test_semantic_nodes",
+        "exit_code": 0,
+        "seconds": 0.566
+      },
+      {
+        "step": "test_windows",
+        "exit_code": 0,
+        "seconds": 0.549
+      },
+      {
+        "step": "test_session_screen",
+        "exit_code": 0,
+        "seconds": 0.82
+      },
+      {
+        "step": "test_session_recovery_gate",
+        "exit_code": 0,
+        "seconds": 0.514
+      },
+      {
+        "step": "test_screen_recovery_activity",
+        "exit_code": 0,
+        "seconds": 0.641
+      },
+      {
+        "step": "test_events",
+        "exit_code": 0,
+        "seconds": 0.464
+      },
+      {
+        "step": "test_sim_pin",
+        "exit_code": 0,
+        "seconds": 0.559
+      },
+      {
+        "step": "test_audio_volume",
+        "exit_code": 0,
+        "seconds": 0.543
+      },
+      {
+        "step": "test_file_transfer",
+        "exit_code": 0,
+        "seconds": 3.176
+      },
+      {
+        "step": "test_approval_recovery",
+        "exit_code": 0,
+        "seconds": 0.856
+      },
+      {
+        "step": "test_approval_scheduling",
+        "exit_code": 0,
+        "seconds": 0.93
+      },
+      {
+        "step": "test_task_lease",
+        "exit_code": 0,
+        "seconds": 0.472
+      },
+      {
+        "step": "test_multi_ai_control",
+        "exit_code": 0,
+        "seconds": 0.94
+      },
+      {
+        "step": "test_multi_ai_migration",
+        "exit_code": 0,
+        "seconds": 0.715
+      },
+      {
+        "step": "test_multi_file_scopes",
+        "exit_code": 0,
+        "seconds": 0.693
+      },
+      {
+        "step": "test_enrollment_record_limits",
+        "exit_code": 0,
+        "seconds": 0.655
+      },
+      {
+        "step": "test_maintenance_diagnostics",
+        "exit_code": 0,
+        "seconds": 0.715
+      },
+      {
+        "step": "test_owner_revocations",
+        "exit_code": 0,
+        "seconds": 0.745
+      },
+      {
+        "step": "test_setup_recovery",
+        "exit_code": 0,
+        "seconds": 0.699
+      },
+      {
+        "step": "test_tls_policy",
+        "exit_code": 0,
+        "seconds": 0.639
+      },
+      {
+        "step": "test_feedback",
+        "exit_code": 0,
+        "seconds": 0.597
+      },
+      {
+        "step": "test_invitation_feedback",
+        "exit_code": 0,
+        "seconds": 0.523
+      },
+      {
+        "step": "connection-closing",
+        "exit_code": 0,
+        "seconds": 0.761
+      },
+      {
+        "step": "python-service",
+        "exit_code": 0,
+        "seconds": 11.43
+      },
+      {
+        "step": "python-site",
+        "exit_code": 0,
+        "seconds": 0.286
+      },
+      {
+        "step": "companion-roundtrip",
+        "exit_code": 0,
+        "seconds": 29.438
+      },
+      {
+        "step": "file-transfer-roundtrip",
+        "exit_code": 0,
+        "seconds": 7.133
+      },
+      {
+        "step": "usage-storage",
+        "exit_code": 0,
+        "seconds": 0.565
+      },
+      {
+        "step": "relay-scale",
+        "exit_code": 0,
+        "seconds": 1.628
+      },
+      {
+        "step": "pair-recovery",
+        "exit_code": 0,
+        "seconds": 1.906
+      },
+      {
+        "step": "feedback-roundtrip",
+        "exit_code": 0,
+        "seconds": 1.253
+      },
+      {
+        "step": "invitation-artifacts",
+        "exit_code": 0,
+        "seconds": 0.498
+      },
+      {
+        "step": "invitation-codes",
+        "exit_code": 0,
+        "seconds": 1.557
+      },
+      {
+        "step": "multi-ai-roundtrip",
+        "exit_code": 0,
+        "seconds": 20.665
+      },
+      {
+        "step": "tenant-isolation",
+        "exit_code": 0,
+        "seconds": 0.499
+      },
+      {
+        "step": "multi-ai-state",
+        "exit_code": 0,
+        "seconds": 0.184
+      }
+    ],
+    "scope": "Host fixtures, local workerd, CLI and MCP. Core ran before the version-only increment and final native audio/camera additions; those additions compiled and ran in the separate Android fixture."
+  },
+  "android": {
+    "compile_and_lint": true,
+    "native": {
+      "complete": true,
+      "checks": [
+        {
+          "name": "real Android notification delivered through listener",
+          "passed": true
+        },
+        {
+          "name": "event content encrypted at rest",
+          "passed": true
+        },
+        {
+          "name": "other grant has no historical event content",
+          "passed": true
+        },
+        {
+          "name": "owner opt out deletes recorded events",
+          "passed": true
+        },
+        {
+          "name": "native screenshot for continued touch",
+          "passed": true
+        },
+        {
+          "name": "held native pointer acknowledged",
+          "passed": true
+        },
+        {
+          "name": "screenshot while pointer stays down",
+          "passed": true
+        },
+        {
+          "name": "native continuation keeps same pointer",
+          "passed": true
+        },
+        {
+          "name": "one native down and one up across observe/move",
+          "passed": true
+        },
+        {
+          "name": "screen capture requests system consent",
+          "passed": true
+        },
+        {
+          "name": "system-consented recording imported into workspace",
+          "passed": true
+        },
+        {
+          "name": "recording has nonempty verified hash",
+          "passed": true
+        },
+        {
+          "name": "media output available to normal file transport",
+          "passed": true
+        },
+        {
+          "name": "recording bytes accessible through normal scoped file read",
+          "passed": true
+        },
+        {
+          "name": "completed capture clears its encrypted pending-output marker",
+          "passed": true
+        },
+        {
+          "name": "task invalidation cancels pending consent without recording",
+          "passed": true
+        },
+        {
+          "name": "normal photo camera is observable by Airtap",
+          "passed": true
+        },
+        {
+          "name": "normal Android photo capture imports a nonempty workspace file",
+          "passed": true
+        },
+        {
+          "name": "completed photo output URI no longer opens",
+          "passed": true
+        },
+        {
+          "name": "normal video camera is observable by Airtap",
+          "passed": true
+        },
+        {
+          "name": "normal Android video capture imports a nonempty workspace file",
+          "passed": true
+        },
+        {
+          "name": "completed video output URI no longer opens",
+          "passed": true
+        },
+        {
+          "name": "runtime-consented bounded microphone recording returns M4A",
+          "passed": true
+        },
+        {
+          "name": "authorized microphone session starts",
+          "passed": true
+        },
+        {
+          "name": "authority loss stops microphone service and discards partial capture",
+          "passed": true
+        },
+        {
+          "name": "SIM PIN entry disabled by default",
+          "passed": true
+        }
+      ],
+      "evidence": "Production extension classes in the installed debug APK. Real Android notification listener, Keystore, continued touch, MediaProjection, system camera, microphone runtime consent and file import; synthetic local grants and BooleanSuppliers. Test presses normal system recording consent using UiAutomation with FLAG_DONT_SUPPRESS_ACCESSIBILITY_SERVICES. No physical phone, live SIM PIN, network pairing, OEM or personal-AI acceptance.",
+      "apk_sha256": "cba2162e15bb6591ae700915bb84f12b6a1a93e0ffcdd7acccbd7a66271a4a71",
+      "physical_phone": false,
+      "personal_ai": false
+    }
+  },
+  "sim_pin": {
+    "passed": 8,
+    "tests": [
+      "disabled_by_default_no_input",
+      "puk_and_ambiguous_slot_refused",
+      "device_password_and_non_system_window_refused",
+      "challenge_bound_to_claim_and_expiry",
+      "one_keypad_submission_telephony_ready_and_request_redaction",
+      "field_interference_stops_before_submit_persistent_no_retry",
+      "authority_loss_stops_remaining_digits",
+      "failed_result_does_not_repeat_pin"
+    ],
+    "limitations": [
+      "Synthetic keypad and telephony adapters; not a live SIM, OEM keypad, correct physical-card PIN or system-password acceptance."
+    ]
+  },
+  "external_review": {
+    "backend": "grok",
+    "attempts": 2,
+    "result": "unavailable",
+    "reason": "First idle timeout 600s; focused retry hard timeout 360s with network errors. No completed review."
+  },
+  "found_and_fixed": [
+    "Larger upload chunks exceeded the HTTP child input buffer; enlarged only the upload transport allowance and retained the normal 8 KiB command bound.",
+    "External camera could not write an IS_PENDING MediaStore row; replaced external outputs with a single-session URI provider and verified access closes after completion.",
+    "Task invalidation canceled gestures but not a pending capture; now stops capture, requests external Activity closure and waits for file IO to drain.",
+    "Waiting for events held the CLI config lock; each read now locks and reloads separately, releasing while waiting."
+  ],
+  "not_verified": [
+    "Physical Meizu notification delivery and microphone/camera capture",
+    "Real SIM PIN entry, OEM keypad or device-password unlock",
+    "Personal AI end-to-end use of these new commands",
+    "Multi-day event retention/OEM background delivery"
+  ],
+  "deployed": false,
+  "privacy": "Only synthetic emulator content and public source. No real phone screenshots, chat, credentials or SIM PIN included."
+}

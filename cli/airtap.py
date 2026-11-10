@@ -2,6 +2,7 @@
 """Airtap personal-AI CLI. Python 3.10+, standard library only."""
 import argparse
 import base64
+import contextlib
 import getpass
 import hashlib
 import http.client
@@ -24,8 +25,8 @@ import uuid
 TOKEN = re.compile(r'^[0-9a-f]{64}$')
 TICKET = re.compile(r'^[0-9a-f]{32}$')
 MAX_RESPONSE = 512 * 1024
-MAX_COMMAND = 8192
-VERSION = '0.4.0-cli.15'
+MAX_COMMAND = 65536
+VERSION = '0.4.0-cli.16'
 PAIRING_TTL_SECONDS = 60 * 60
 PAIRING_CLOCK_TOLERANCE_SECONDS = 30
 PACKAGE = re.compile(r'^[A-Za-z_][A-Za-z0-9_]*(?:\.[A-Za-z_][A-Za-z0-9_]*)+$')
@@ -34,13 +35,14 @@ NODE_COMMANDS = {'click', 'long-click', 'set-text', 'scroll', 'node-action', 'fo
 SYSTEM_ACTIONS = ('notifications', 'quick_settings', 'dismiss_notification_shade', 'all_apps', 'dpad_up', 'dpad_down', 'dpad_left', 'dpad_right', 'dpad_center', 'power_dialog', 'lock_screen', 'split_screen')
 AUDIO_STREAMS = ('music', 'alarm', 'ring', 'notification', 'system', 'voice_call')
 VOLUME_COMMANDS = {'set-volume', 'adjust-volume'}
-CONTROL_COMMANDS = {'set-volume', 'adjust-volume', 'launch', 'open-url', 'click', 'long-click', 'set-text', 'scroll', 'node-action', 'tap', 'long-press', 'swipe', 'drag', 'gesture', 'back', 'home', 'recents', 'system-action', 'focus', 'set-selection', 'select-all', 'copy', 'cut', 'paste', 'insert-text', 'delete-text', 'editor-action'}
+CONTROL_COMMANDS = {'sim-pin-submit', 'media-capture', 'media-stop', 'touch-begin', 'touch-move', 'touch-end', 'set-volume', 'adjust-volume', 'launch', 'open-url', 'click', 'long-click', 'set-text', 'scroll', 'node-action', 'tap', 'long-press', 'swipe', 'drag', 'gesture', 'back', 'home', 'recents', 'system-action', 'focus', 'set-selection', 'select-all', 'copy', 'cut', 'paste', 'insert-text', 'delete-text', 'editor-action'}
 NODE_OPERATIONS = ('accessibility_focus', 'clear_accessibility_focus', 'next_granularity', 'previous_granularity', 'custom', 'select', 'clear_selection', 'clear_focus', 'context_click', 'expand', 'collapse', 'dismiss', 'show_on_screen', 'scroll_up', 'scroll_down', 'scroll_left', 'scroll_right', 'page_up', 'page_down', 'page_left', 'page_right', 'scroll_to_position', 'set_progress', 'drag_start', 'drag_drop', 'drag_cancel')
-FILE_LIMIT = 8 * 1024 * 1024
-FILE_CHUNK_LIMIT = 4096
-FILE_COMMANDS = ('file-share', 'file-roots', 'file-list', 'file-stat', 'file-read', 'file-download', 'file-upload', 'file-upload-status', 'file-upload-finish', 'file-upload-abort')
+FILE_LIMIT = 64 * 1024 * 1024
+FILE_CHUNK_LIMIT = 32768
+FILE_COMMANDS = ('file-mkdir', 'file-rename', 'file-delete', 'file-share', 'file-roots', 'file-list', 'file-stat', 'file-read', 'file-download', 'file-upload', 'file-upload-status', 'file-upload-finish', 'file-upload-abort')
 DEFAULT_CONFIG = pathlib.Path.home() / '.config/airtap/preview.json'
 MAX_INTEGER = 9007199254740991
+EVENT_COMMANDS = ('event-status', 'event-read', 'event-wait')
 TASK_COMMANDS = ('task-acquire', 'task-renew', 'task-release')
 TASK_ERRORS = {
     'lease_required': 409, 'lease_mismatch': 409, 'lease_renew_required': 409,
@@ -51,7 +53,7 @@ TASK_ERRORS = {
 }
 TASK_BEFORE_OBSERVE = {'ping', 'apps', 'windows', 'foreground', 'system_actions', 'audio_state',
               'observe', 'read_tree', 'home', 'file_roots', 'file_list', 'file_stat',
-              'file_read', 'file_upload_status'}
+              'file_read', 'file_upload_status', 'media_status', 'media_stop', 'sim_pin_prepare', 'sim_pin_submit'}
 
 class Failure(Exception):
     def __init__(self, code, **details):
@@ -392,7 +394,7 @@ def connection_for_url(parsed, timeout):
 
 def _request_child():
     """Secrets arrive via stdin. Parent enforces deadline including DNS and download."""
-    request = json.loads(sys.stdin.buffer.read(16385))
+    request = json.loads(sys.stdin.buffer.read(MAX_COMMAND + 8193))
     parsed = urllib.parse.urlsplit(request['url'])
     conn = None
     http_attempted = False
@@ -1033,6 +1035,8 @@ def ensure_task(args, config, action, timeout=None):
 
 
 def command_request(args, config, body, timeout=None):
+    if body['action'] in ('event_status', 'event_read'):
+        return _command_request(args, config, body, timeout)
     require_restored_task(config)
     leased = config.get('lease_required') is True or 'task_lease' in config
     if not leased:
@@ -1060,7 +1064,7 @@ def _command_request(args, config, body, timeout=None):
     if sequence > 9007199254740991:
         raise Failure('sequence_exhausted')
     body = {**body, 'sequence': sequence}
-    if len(json_bytes(body)) > MAX_COMMAND: raise Failure('request_body_too_large', retry_action=False)
+    if len(json_bytes(body)) > (MAX_COMMAND if body['action']=='file_upload_chunk' else 8192): raise Failure('request_body_too_large', retry_action=False)
     config['command_sequence'] = sequence
     save_config(args.config, config)  # Consume before sending; unknown results are never replayed.
     result = request(config['url'], '/v1/command', config['controller_token'], body=body,
@@ -1252,6 +1256,12 @@ def lock_config(path):
         os.close(fd); raise Failure('another_phone_operation_in_progress')
     _config_lock = fd
 
+def unlock_config():
+    global _config_lock
+    if _config_lock is not None:
+        os.close(_config_lock)
+        _config_lock = None
+
 def drag_path(hold_ms, waypoints):
     if type(hold_ms) is not int or not 100 <= hold_ms <= 3000 or not 1 <= len(waypoints) <= 16:
         raise Failure('invalid_drag')
@@ -1303,8 +1313,9 @@ def file_path(value, empty=False):
     return value
 
 
-def local_file_bytes(path):
-    """Read only an explicitly supplied regular file, without following any symlink."""
+@contextlib.contextmanager
+def local_file_stream(path):
+    """Open a regular file without following symlinks; bound size before any read."""
     path = pathlib.Path(os.path.abspath(path))
     directory = os.open(path.anchor, os.O_RDONLY | os.O_DIRECTORY)
     try:
@@ -1313,17 +1324,34 @@ def local_file_bytes(path):
             os.close(directory); directory = child
         fd = os.open(path.name, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK, dir_fd=directory)
         with os.fdopen(fd, 'rb') as stream:
-            before = os.fstat(stream.fileno())
+            before=os.fstat(stream.fileno())
             if not stat.S_ISREG(before.st_mode) or not 0 <= before.st_size <= FILE_LIMIT:
                 raise Failure('input_must_be_regular_file_within_limit')
-            data = stream.read(FILE_LIMIT + 1)
-            after = os.fstat(stream.fileno())
-            identity = lambda st: (st.st_dev, st.st_ino, st.st_size, st.st_mtime_ns, st.st_ctime_ns)
-            if len(data) != before.st_size or identity(before) != identity(after):
-                raise Failure('input_changed_during_read')
-            return data
+            yield stream, before
     finally:
         os.close(directory)
+
+
+def stable_file(stream, before):
+    after=os.fstat(stream.fileno())
+    identity=lambda st:(st.st_dev,st.st_ino,st.st_size,st.st_mtime_ns,st.st_ctime_ns)
+    if identity(before)!=identity(after): raise Failure('input_changed_during_read')
+
+
+def stream_hash(stream):
+    digest=hashlib.sha256(); stream.seek(0)
+    while True:
+        chunk=stream.read(65536)
+        if not chunk: break
+        digest.update(chunk)
+    return digest.hexdigest()
+
+
+def local_file_bytes(path):
+    with local_file_stream(path) as (stream,before):
+        data=stream.read(FILE_LIMIT+1);stable_file(stream,before)
+        if len(data)!=before.st_size: raise Failure('input_changed_during_read')
+        return data
 
 
 def file_call(args, config, action, **fields):
@@ -1403,6 +1431,14 @@ def file_command(args, config):
     if hasattr(args, 'path'): file_path(args.path, command in ('file-list', 'file-stat'))
     if hasattr(args, 'transfer_id') and args.transfer_id is not None and not TICKET.fullmatch(args.transfer_id):
         raise Failure('invalid_transfer_id')
+    if command in ('file-mkdir','file-rename','file-delete'):
+        if args.root!='workspace': raise Failure('file_scope_unavailable')
+        fields={'root':args.root,'path':args.path}
+        if command!='file-mkdir':
+            if not TOKEN.fullmatch(args.version): raise Failure('invalid_file_version')
+            fields['version']=args.version
+        if command=='file-rename': fields['destination']=file_path(args.destination)
+        return file_call(args,config,command.replace('-','_'),**fields)
     if command == 'file-share':
         if args.root != 'workspace' or not re.fullmatch(r'[a-f0-9]{64}', args.version) or len(args.mime_type) > 127 or not re.fullmatch(r'[a-zA-Z0-9!#$&^_.+-]+/[a-zA-Z0-9!#$&^_.+-]+', args.mime_type): raise Failure('invalid_file_share')
         if args.target_package and (args.target_package != 'android' and not re.fullmatch(r'[A-Za-z_][A-Za-z0-9_]*(?:\.[A-Za-z_][A-Za-z0-9_]*)+', args.target_package) or args.target_package == 'io.airtap.preview' or args.target_package.startswith('io.airtap.preview.')): raise Failure('invalid_file_share_target')
@@ -1423,6 +1459,7 @@ def file_command(args, config):
         response['result'].update(output=str(args.output.absolute()), bytes=len(data))
         return response
     if command == 'file-download':
+        if args.output.exists() or args.output.is_symlink(): raise Failure('file_already_exists')
         metadata = file_call(args, config, 'file_stat', root=args.root, path=args.path)['result']
         size, version, expected_hash = metadata.get('size'), metadata.get('version'), metadata.get('sha256')
         if (metadata.get('root') != args.root or metadata.get('path') != args.path or metadata.get('kind') != 'file'
@@ -1430,66 +1467,103 @@ def file_command(args, config):
                 or not isinstance(version, str) or not TOKEN.fullmatch(version)
                 or not isinstance(expected_hash, str) or not TOKEN.fullmatch(expected_hash)):
             raise Failure('file_not_downloadable_with_verified_hash')
-        data = bytearray()
-        while len(data) < size:
-            response = file_call(args, config, 'file_read', root=args.root, path=args.path,
-                                 offset=len(data), length=min(FILE_CHUNK_LIMIT, size-len(data)), version=version)['result']
-            data.extend(checked_file_chunk(response, args.root, args.path, len(data), min(FILE_CHUNK_LIMIT, size-len(data)), version, size))
-        if hashlib.sha256(data).hexdigest() != expected_hash:
-            raise Failure('file_hash_mismatch', retry_action=False)
-        private_write(args.output, data, replace=False)
-        return {'ok': True, 'result': {'root': args.root, 'path': args.path, 'bytes': len(data), 'sha256': expected_hash, 'output': str(args.output.absolute())}}
+        spec={'identity':job_identity(config),'root':args.root,'path':args.path,'size':size,'version':version,'sha256':expected_hash}
+        identity=hashlib.sha256(json_bytes(spec)).hexdigest()
+        directory=private_directory(args.config.parent/'downloads')
+        part=directory/(identity+'.part')
+        if not part.exists(): private_write(part,b'',replace=False)
+        fd=os.open(part,os.O_RDWR|os.O_NOFOLLOW|os.O_NONBLOCK)
+        with os.fdopen(fd,'r+b') as stream:
+            info=os.fstat(stream.fileno())
+            if not stat.S_ISREG(info.st_mode) or info.st_uid!=os.getuid() or info.st_mode&0o077 or info.st_size>size:
+                raise Failure('unsafe_download_partial')
+            offset=info.st_size;stream.seek(offset)
+            while offset<size:
+                length=min(FILE_CHUNK_LIMIT,size-offset)
+                response=file_call(args,config,'file_read',root=args.root,path=args.path,offset=offset,length=length,version=version)['result']
+                chunk=checked_file_chunk(response,args.root,args.path,offset,length,version,size)
+                stream.write(chunk);stream.flush();os.fsync(stream.fileno());offset+=len(chunk)
+            if stream_hash(stream)!=expected_hash:
+                raise Failure('file_hash_mismatch',retry_action=False,partial=str(part),instruction='Inspect and remove this corrupt private partial before a fresh download.')
+            output=pathlib.Path(args.output);target=private_directory(output.parent)
+            dfd=os.open(target,os.O_RDONLY|os.O_DIRECTORY|os.O_NOFOLLOW)
+            temp='.airtap-'+secrets.token_hex(12)
+            try:
+                out=os.open(temp,os.O_WRONLY|os.O_CREAT|os.O_EXCL|os.O_NOFOLLOW,0o600,dir_fd=dfd)
+                with os.fdopen(out,'wb') as destination:
+                    stream.seek(0)
+                    while True:
+                        chunk=stream.read(65536)
+                        if not chunk:break
+                        destination.write(chunk)
+                    destination.flush();os.fsync(destination.fileno())
+                try:os.link(temp,output.name,src_dir_fd=dfd,dst_dir_fd=dfd,follow_symlinks=False)
+                except FileExistsError:raise Failure('file_already_exists')
+                os.fsync(dfd)
+            finally:
+                try:os.unlink(temp,dir_fd=dfd)
+                except FileNotFoundError:pass
+                os.close(dfd)
+        part.unlink()
+        return {'ok':True,'result':{'root':args.root,'path':args.path,'bytes':size,'sha256':expected_hash,'output':str(args.output.absolute())}}
     if command == 'file-upload':
-        data = local_file_bytes(args.input)
-        spec = {'root': args.root, 'path': args.path, 'size': len(data), 'sha256': hashlib.sha256(data).hexdigest()}
-        prior = config.get('last_file_upload', {})
-        transfer = args.transfer_id
-        if transfer is None and prior:
-            if all(prior.get(k) == v for k, v in spec.items()): transfer = prior.get('transfer_id')
-            elif prior.get('root') == args.root and prior.get('path') == args.path:
-                raise Failure('upload_spec_changed', instruction='Inspect the saved transfer first. Use an explicit new transfer ID only for an intentionally new upload.')
-        if transfer is None: transfer = secrets.token_hex(16)
-        if not isinstance(transfer, str) or not TICKET.fullmatch(transfer): raise Failure('invalid_transfer_id')
-        spec['transfer_id'] = transfer
-        # Persist identity BEFORE dispatch so an uncertain begin is resumable.
-        config['last_file_upload'] = spec; save_config(args.config, config)
-        try:
-            if prior == spec:
-                try:
-                    state = checked_upload(file_call(args, config, 'file_upload_status', transfer_id=transfer)['result'], spec)
-                except Failure as failure:
-                    if failure.result.get('error') != 'file_transfer_not_found': raise
-                    if args.root != 'workspace':
-                        raise Failure('file_external_transfer_not_found', instruction='This external-directory transfer has no retained receipt. Inspect the authorized directory before intentionally starting a new upload; do not assume no file was created.')
-                    state = checked_upload(file_call(args, config, 'file_upload_begin', **spec)['result'], spec)
-            else:
-                state = checked_upload(file_call(args, config, 'file_upload_begin', **spec)['result'], spec)
-            if state['state'] == 'expired': raise Failure('file_transfer_expired', instruction='Internal staging was reclaimed. Inspect the original folder; do not recreate an uncertain provider document. A recorded known document may still be explicitly aborted under the current folder permission.')
-            if state['state'] == 'aborted': raise Failure('file_transfer_aborted')
-            if state['state'] == 'commit_unknown': raise Failure('file_commit_unknown', instruction='The file provider may have created a file before its identity was saved. Inspect the authorized directory; do not retry finish, begin or abort to guess the result.')
-            if state.get('cleanup_required'): raise Failure('file_cleanup_required', instruction='The provider created a document with a conflicting name. Inspect status; explicitly abort this transfer to remove only its recorded created document, then decide a new destination.')
-            while state['state'] == 'receiving' and state['offset'] < len(data):
-                offset = state['offset']; chunk = data[offset:offset+FILE_CHUNK_LIMIT]
-                state = checked_upload(file_call(args, config, 'file_upload_chunk', transfer_id=transfer, offset=offset,
-                    data_base64=base64.b64encode(chunk).decode('ascii'), sha256=hashlib.sha256(chunk).hexdigest())['result'], spec)
-                if state['state'] != 'receiving' or state['offset'] != offset + len(chunk):
-                    raise Failure('invalid_upload_progress')
-            if state['state'] != 'finished':
-                state = checked_upload(file_call(args, config, 'file_upload_finish', transfer_id=transfer)['result'], spec)
-            if state['state'] == 'commit_unknown': raise Failure('file_commit_unknown', instruction='The file provider may have created a file before its identity was saved. Inspect the authorized directory; do not retry finish, begin or abort to guess the result.')
-            if state.get('cleanup_required'): raise Failure('file_cleanup_required', instruction='The provider created a document with a conflicting name. Inspect status; explicitly abort this transfer to remove only its recorded created document, then decide a new destination.')
-            if state['state'] != 'finished': raise Failure('upload_not_finished')
-            # A durable completion receipt does not prove that another app has not changed the target later.
-            current = file_call(args, config, 'file_stat', root=args.root, path=args.path)['result']
-            if (current.get('root') != args.root or current.get('path') != args.path or current.get('kind') != 'file'
-                    or current.get('size') != spec['size'] or current.get('sha256') != spec['sha256']):
-                raise Failure('finished_file_changed', retry_action=False)
-            return {'ok': True, 'result': {**state, 'verification': 'current_stat_sha256'}}
-        except Failure as failure:
-            failure.result.update(transfer_id=transfer, retry_action=False)
-            failure.result.setdefault('instruction', 'Keep this transfer ID and the same input bytes. After reconnection inspect file-upload-status. A receiving or publishing transfer can resume with the same spec; commit_unknown requires checking the authorized directory. Do not create a new transfer for an unknown outcome.')
-            raise
+        with local_file_stream(args.input) as (stream, before):
+            return file_upload_stream(args,config,stream,before)
     raise Failure('unknown_file_command')
+
+
+def file_upload_stream(args,config,stream,before):
+    digest=stream_hash(stream);stable_file(stream,before)
+    spec={'root':args.root,'path':args.path,'size':before.st_size,'sha256':digest}
+    prior = config.get('last_file_upload', {})
+    transfer = args.transfer_id
+    if transfer is None and prior:
+        if all(prior.get(k) == v for k, v in spec.items()): transfer = prior.get('transfer_id')
+        elif prior.get('root') == args.root and prior.get('path') == args.path:
+            raise Failure('upload_spec_changed', instruction='Inspect the saved transfer first. Use an explicit new transfer ID only for an intentionally new upload.')
+    if transfer is None: transfer = secrets.token_hex(16)
+    if not isinstance(transfer, str) or not TICKET.fullmatch(transfer): raise Failure('invalid_transfer_id')
+    spec['transfer_id'] = transfer
+    # Persist identity BEFORE dispatch so an uncertain begin is resumable.
+    config['last_file_upload'] = spec; save_config(args.config, config)
+    try:
+        if prior == spec:
+            try:
+                state = checked_upload(file_call(args, config, 'file_upload_status', transfer_id=transfer)['result'], spec)
+            except Failure as failure:
+                if failure.result.get('error') != 'file_transfer_not_found': raise
+                if args.root != 'workspace':
+                    raise Failure('file_external_transfer_not_found', instruction='This external-directory transfer has no retained receipt. Inspect the authorized directory before intentionally starting a new upload; do not assume no file was created.')
+                state = checked_upload(file_call(args, config, 'file_upload_begin', **spec)['result'], spec)
+        else:
+            state = checked_upload(file_call(args, config, 'file_upload_begin', **spec)['result'], spec)
+        if state['state'] == 'expired': raise Failure('file_transfer_expired', instruction='Internal staging was reclaimed. Inspect the original folder; do not recreate an uncertain provider document. A recorded known document may still be explicitly aborted under the current folder permission.')
+        if state['state'] == 'aborted': raise Failure('file_transfer_aborted')
+        if state['state'] == 'commit_unknown': raise Failure('file_commit_unknown', instruction='The file provider may have created a file before its identity was saved. Inspect the authorized directory; do not retry finish, begin or abort to guess the result.')
+        if state.get('cleanup_required'): raise Failure('file_cleanup_required', instruction='The provider created a document with a conflicting name. Inspect status; explicitly abort this transfer to remove only its recorded created document, then decide a new destination.')
+        while state['state'] == 'receiving' and state['offset'] < before.st_size:
+            offset = state['offset']; stable_file(stream,before); stream.seek(offset); chunk = stream.read(min(FILE_CHUNK_LIMIT,before.st_size-offset))
+            if not chunk: raise Failure('input_changed_during_read')
+            state = checked_upload(file_call(args, config, 'file_upload_chunk', transfer_id=transfer, offset=offset,
+                data_base64=base64.b64encode(chunk).decode('ascii'), sha256=hashlib.sha256(chunk).hexdigest())['result'], spec)
+            if state['state'] != 'receiving' or state['offset'] != offset + len(chunk):
+                raise Failure('invalid_upload_progress')
+        stable_file(stream,before)
+        if state['state'] != 'finished':
+            state = checked_upload(file_call(args, config, 'file_upload_finish', transfer_id=transfer)['result'], spec)
+        if state['state'] == 'commit_unknown': raise Failure('file_commit_unknown', instruction='The file provider may have created a file before its identity was saved. Inspect the authorized directory; do not retry finish, begin or abort to guess the result.')
+        if state.get('cleanup_required'): raise Failure('file_cleanup_required', instruction='The provider created a document with a conflicting name. Inspect status; explicitly abort this transfer to remove only its recorded created document, then decide a new destination.')
+        if state['state'] != 'finished': raise Failure('upload_not_finished')
+        # A durable completion receipt does not prove that another app has not changed the target later.
+        current = file_call(args, config, 'file_stat', root=args.root, path=args.path)['result']
+        if (current.get('root') != args.root or current.get('path') != args.path or current.get('kind') != 'file'
+                or current.get('size') != spec['size'] or current.get('sha256') != spec['sha256']):
+            raise Failure('finished_file_changed', retry_action=False)
+        return {'ok': True, 'result': {**state, 'verification': 'current_stat_sha256'}}
+    except Failure as failure:
+        failure.result.update(transfer_id=transfer, retry_action=False)
+        failure.result.setdefault('instruction', 'Keep this transfer ID and the same input bytes. After reconnection inspect file-upload-status. A receiving or publishing transfer can resume with the same spec; commit_unknown requires checking the authorized directory. Do not create a new transfer for an unknown outcome.')
+        raise
 
 
 def start_pairing(args, supplied_ticket=None):
@@ -1591,10 +1665,175 @@ def pair_with_code(args):
     return start_pairing(args, result['ticket'])
 
 
+JOB_COMMANDS = ('job-create', 'job-show', 'job-resolve', 'job-finish')
+
+
+def job_identity(config):
+    # Pair identity only; no credential or phone content is copied to the journal.
+    return hashlib.sha256((config['url'] + '\n' + config.get('claim_id', '')).encode()).hexdigest()
+
+
+def job_path(args):
+    if not args.job_id or not re.fullmatch(r'[a-zA-Z0-9_-]{1,64}', args.job_id):
+        raise Failure('invalid_job_id')
+    return args.config.parent / 'jobs' / (args.job_id + '.json')
+
+
+def job_load(args, config):
+    path = job_path(args)
+    info=path.lstat()
+    if not stat.S_ISREG(info.st_mode) or info.st_uid!=os.getuid() or info.st_mode&0o077 or info.st_size>256*1024:raise Failure('unsafe_job_file')
+    data = local_file_bytes(path)
+    if len(data) > 256*1024: raise Failure('job_too_large')
+    try: job = json.loads(data)
+    except (ValueError, UnicodeError): raise Failure('invalid_job')
+    if not isinstance(job, dict): raise Failure('invalid_job')
+    if job.get('schema') != 1 or job.get('identity') != job_identity(config):
+        raise Failure('job_identity_mismatch')
+    steps = job.get('steps')
+    if (job.get('job_id') != args.job_id or job.get('state') not in ('active', 'complete')
+            or not isinstance(steps, list) or not 1 <= len(steps) <= 100
+            or any(not isinstance(s, dict) or not isinstance(s.get('id'), str)
+                   or not re.fullmatch(r'[a-zA-Z0-9_-]{1,64}', s['id'])
+                   or s.get('state') not in ('planned', 'outcome_unknown', 'needs_verification', 'verified', 'skipped')
+                   or not isinstance(s.get('attempts'), list) or len(s['attempts']) > 20
+                   or any(not isinstance(a, dict) for a in s['attempts']) for s in steps)
+            or len({s['id'] for s in steps}) != len(steps)):
+        raise Failure('invalid_job')
+    return job
+
+
+def job_save(args, job, replace=True):
+    data = json_bytes(job)
+    if len(data) > 256*1024: raise Failure('job_too_large')
+    private_write(job_path(args), data, replace=replace)
+
+
+def job_step(args, job):
+    matches = [step for step in job['steps'] if step['id'] == args.step_id]
+    if len(matches) != 1: raise Failure('job_step_not_found')
+    return matches[0]
+
+
+def job_command(args, config):
+    if args.command == 'job-create':
+        raw = sys.stdin.buffer.read(32769)
+        try: plan = json.loads(raw)
+        except (ValueError, UnicodeError): raise Failure('invalid_job_plan')
+        if (len(raw) > 32768 or not isinstance(plan, list) or not 1 <= len(plan) <= 100
+                or any(not isinstance(s, dict) or set(s) != {'id','title'} or not isinstance(s['id'], str)
+                       or not re.fullmatch(r'[a-zA-Z0-9_-]{1,64}',s['id']) or not isinstance(s['title'],str)
+                       or not 1 <= len(s['title']) <= 240 for s in plan)
+                or len({s['id'] for s in plan}) != len(plan)):
+            raise Failure('invalid_job_plan')
+        job = {'schema':1, 'identity':job_identity(config), 'job_id':args.job_id, 'state':'active',
+               'steps':[{**s, 'state':'planned', 'attempts':[]} for s in plan]}
+        job_save(args,job,replace=False)
+    else:
+        job = job_load(args,config)
+        if args.command == 'job-resolve':
+            if job['state'] != 'active': raise Failure('job_closed')
+            step = job_step(args,job)
+            raw=sys.stdin.buffer.read(4097)
+            try: evidence=raw.decode('utf-8').strip()
+            except UnicodeError: raise Failure('invalid_evidence')
+            if not evidence or len(raw)>4096: raise Failure('evidence_required')
+            step['state'] = 'planned' if args.resolution == 'not_applied' else args.resolution
+            step['resolution']={'at':time.time(),'result':args.resolution,'evidence':evidence}
+            job_save(args,job)
+        elif args.command == 'job-finish':
+            if any(s['state'] not in ('verified','skipped') for s in job['steps']):
+                raise Failure('job_has_unverified_steps')
+            job['state']='complete'; job_save(args,job)
+    return {'ok':True,'job':job}
+
+
+def job_before(args, config, body):
+    if not getattr(args,'job_id',None) or body['action'].replace('_','-') not in CONTROL_COMMANDS: return None
+    job=job_load(args,config); step=job_step(args,job)
+    if job['state']!='active' or step['state']!='planned':
+        raise Failure('job_step_requires_verification', retry_action=False,
+                      instruction='Inspect the phone before resolving this step. A dispatched or uncertain action is never automatically replayed.')
+    if len(step['attempts'])>=20: raise Failure('job_attempt_limit')
+    step['state']='outcome_unknown'
+    step['attempts'].append({'request_id':body['id'],'action':body['action'],'at':time.time(),'outcome':'unknown'})
+    job_save(args,job)  # A crash after this line is conservative, never an implicit retry.
+    return job
+
+
+def job_after(args, job, result=None, failure=None):
+    if job is None: return
+    step=job_step(args,job); attempt=step['attempts'][-1]
+    if result is not None:
+        step['state']='needs_verification'; attempt['outcome']='device_acknowledged'
+    elif isinstance(failure,Failure):
+        attempt['error']=failure.result['error']
+        # Even a known rejection doesn't prove a multi-part UI effect had no side effects.
+        step['state']='outcome_unknown'; attempt['outcome']='needs_inspection'
+    job_save(args,job)
+
+
+def event_command(args, config):
+    if args.command == 'event-status':
+        return command_request(args, config, {'id': str(uuid.uuid4()), 'action': 'event_status'})
+    if ((args.epoch and not TICKET.fullmatch(args.epoch)) or not 0 <= args.after <= MAX_INTEGER
+            or not 1 <= args.limit <= 16 or (not args.epoch and args.after != 0)):
+        raise Failure('invalid_event_cursor')
+    deadline = time.monotonic() + (args.wait_seconds if args.command == 'event-wait' else 0)
+    while True:
+        result = command_request(args, config, {'id': str(uuid.uuid4()), 'action': 'event_read',
+                                  'epoch': args.epoch, 'after': args.after, 'limit': args.limit})
+        page = result['result']
+        if (not isinstance(page.get('epoch'), str) or not TICKET.fullmatch(page['epoch'])
+                or type(page.get('next')) is not int or not 0 <= page['next'] <= MAX_INTEGER
+                or type(page.get('gap')) is not bool or not isinstance(page.get('events'), list)
+                or len(page['events']) > args.limit or not isinstance(page.get('status'), dict)):
+            raise Failure('invalid_event_response')
+        previous = args.after if args.epoch == page['epoch'] else 0
+        for event in page['events']:
+            if (not isinstance(event, dict) or type(event.get('sequence')) is not int
+                    or not previous < event['sequence'] <= page['next']):
+                raise Failure('invalid_event_response')
+            previous = event['sequence']
+        if page['events'] or page['gap'] or not page['status'].get('listener_connected') or time.monotonic() >= deadline:
+            return result
+        time.sleep(min(5, max(0, deadline-time.monotonic())))
+
+
+def wait_for_events(args):
+    # Polls are read-only, but the sequence/config must be locked for each request.
+    # Release the lock between polls so waiting for a message doesn't block a task.
+    deadline = time.monotonic() + args.wait_seconds
+    single = argparse.Namespace(**vars(args)); single.command = 'event-read'
+    transient = {'another_phone_operation_in_progress', 'busy', 'device_disconnected',
+                 'connection_changed', 'device_disconnected_outcome_unknown',
+                 'connection_changed_outcome_unknown', 'device_timeout', 'ingress_rate_limited'}
+    while True:
+        acquired = False
+        try:
+            lock_config(args.config); acquired = True
+            config = load_config(args.config, args.allow_local_http)
+            if config.get('state') != 'approved': raise Failure('approval_required')
+            safe_scope(config)
+            result = event_command(single, config)
+        except Failure as failure:
+            if failure.result['error'] not in transient or time.monotonic() >= deadline:
+                raise
+        else:
+            page = result['result']
+            if page['events'] or page['gap'] or not page['status'].get('listener_connected') or time.monotonic() >= deadline:
+                return result
+        finally:
+            if acquired: unlock_config()
+        time.sleep(min(5, max(0, deadline-time.monotonic())))
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--version', action='version', version='airtap ' + VERSION)
     parser.add_argument('--config', type=pathlib.Path, default=DEFAULT_CONFIG)
+    parser.add_argument('--job-id', help='Private durable task plan ID; with --step-id, journal a control action before sending.')
+    parser.add_argument('--step-id', help='Step in the durable plan; unknown outcomes require inspection before reuse.')
     parser.add_argument('--timeout', type=float, default=25)
     parser.add_argument('--allow-local-http', action='store_true', help='TEST ONLY: HTTP loopback')
     sub = parser.add_subparsers(dest='command', required=True)
@@ -1613,13 +1852,13 @@ def main():
         task = sub.add_parser(name)
         if name == 'task-acquire': task.add_argument('--task-id', help='Optional32hex task identity; an uncertain acquire reuses its saved identity.')
     pair_status = sub.add_parser('pair-status'); pair_status.add_argument('--wait', action='store_true')
-    for command in ('status', 'wait-ready', 'revoke', 'ping', 'apps', 'windows', 'foreground', 'observe', 'read-tree', 'read-tree-page', 'read-node-text', 'system-actions', 'audio-state', *sorted(CONTROL_COMMANDS)):
+    for command in ('status', 'wait-ready', 'revoke', 'ping', 'apps', 'windows', 'foreground', 'observe', 'read-tree', 'read-tree-page', 'read-node-text', 'system-actions', 'audio-state', 'media-status', 'sim-pin-prepare', *sorted(CONTROL_COMMANDS)):
         child = sub.add_parser(command)
         if command in ('status', 'wait-ready'):
             child.add_argument('--wait-seconds', type=float, default=60)
         if command not in ('status', 'wait-ready', 'revoke'):
             child.add_argument('--request-id', type=uuid.UUID)
-        if command in NODE_COMMANDS or command in ('read-tree', 'read-tree-page', 'read-node-text', 'launch', 'open-url', 'tap', 'long-press', 'swipe', 'drag', 'gesture'):
+        if command in NODE_COMMANDS or command in ('read-tree', 'read-tree-page', 'read-node-text', 'launch', 'open-url', 'tap', 'long-press', 'swipe', 'drag', 'gesture', 'touch-begin', 'touch-move'):
             child.add_argument('--package', required=command != 'read-tree')
         if command == 'open-url': child.add_argument('--url', required=True)
         if command == 'read-tree-page':
@@ -1653,9 +1892,17 @@ def main():
             after.add_argument('--no-observe', action='store_true', help='Do not capture after action; caller must observe separately')
             after.add_argument('--after-action', choices=('image', 'tree', 'none'),
                                help='Post-action observation (default: image; volume and lock_screen: none)')
-        if command in ('tap', 'long-press', 'swipe', 'drag'):
+        if command in ('tap', 'long-press', 'swipe', 'drag', 'touch-begin', 'touch-move'):
             child.add_argument('--observation-id', required=True)
             child.add_argument('--x', type=float, required=True); child.add_argument('--y', type=float, required=True)
+        if command=='sim-pin-submit':
+            child.add_argument('--challenge',required=True);child.add_argument('--pin-stdin',action='store_true',required=True)
+        if command in ('media-status','media-stop'): child.add_argument('--capture-id',required=True)
+        if command=='media-capture':
+            child.add_argument('--kind',choices=('photo','video','audio','screen'),required=True)
+            child.add_argument('--seconds',type=int,default=30)
+        if command in ('touch-move','touch-end'): child.add_argument('--touch-id',required=True)
+        if command == 'touch-move': child.add_argument('--duration-ms',type=int,default=500)
         if command == 'swipe':
             child.add_argument('--end-x', type=float, required=True); child.add_argument('--end-y', type=float, required=True)
             child.add_argument('--duration-ms', type=int, default=500)
@@ -1666,11 +1913,25 @@ def main():
         if command == 'gesture':
             child.add_argument('--observation-id', required=True)
             child.add_argument('--gesture-stdin', action='store_true', required=True, help='Read JSON touch-track array from stdin; requires phone gesture_v1')
+    for command in JOB_COMMANDS:
+        child=sub.add_parser(command)
+        if command=='job-create': child.add_argument('--plan-stdin',action='store_true',required=True)
+        if command=='job-resolve':
+            child.add_argument('--resolution',choices=('verified','not_applied','skipped'),required=True)
+            child.add_argument('--evidence-stdin',action='store_true',required=True)
+    for command in EVENT_COMMANDS:
+        child = sub.add_parser(command, help='Owner-enabled phone notifications; no screen wake or task lease. The cursor is not consumed.')
+        if command != 'event-status':
+            child.add_argument('--epoch', default=''); child.add_argument('--after', type=int, default=0)
+            child.add_argument('--limit', type=int, default=16)
+        if command == 'event-wait': child.add_argument('--wait-seconds', type=float, default=60)
     for command in FILE_COMMANDS:
         child = sub.add_parser(command)
-        if command in ('file-share', 'file-list', 'file-stat', 'file-read', 'file-download', 'file-upload'):
+        if command in ('file-mkdir','file-rename','file-delete','file-share', 'file-list', 'file-stat', 'file-read', 'file-download', 'file-upload'):
             child.add_argument('--root', required=True)
-            child.add_argument('--path', default='', required=command in ('file-share', 'file-read', 'file-download', 'file-upload'))
+            child.add_argument('--path', default='', required=command in ('file-mkdir','file-rename','file-delete','file-share', 'file-read', 'file-download', 'file-upload'))
+        if command in ('file-rename','file-delete'): child.add_argument('--version',required=True)
+        if command == 'file-rename': child.add_argument('--destination',required=True)
         if command == 'file-share':
             child.add_argument('--version', required=True); child.add_argument('--mime-type', required=True)
             child.add_argument('--target-package', default='', help='Optional App package; empty opens the normal system share chooser. Not proof of sending.')
@@ -1692,7 +1953,7 @@ def main():
     if not 1 <= args.timeout <= 60: raise Failure('invalid_timeout')
     if hasattr(args, 'wait_seconds') and not 1 <= args.wait_seconds <= 300: raise Failure('invalid_wait')
     if args.command in CONTROL_COMMANDS:
-        no_followup = args.command in VOLUME_COMMANDS or (args.command == 'system-action' and args.name == 'lock_screen')
+        no_followup = args.command in VOLUME_COMMANDS or args.command in ('media-capture','media-stop','sim-pin-submit') or (args.command == 'system-action' and args.name == 'lock_screen')
         if no_followup and args.after_action in ('image', 'tree'):
             raise Failure('post_action_observation_unavailable', retry_action=False)
         after_action = 'none' if args.no_observe or no_followup else args.after_action or 'image'
@@ -1700,11 +1961,13 @@ def main():
             raise Failure('output_requires_image_observation', retry_action=False)
     if args.command == 'restore' and not args.config.is_absolute():
         raise Failure('absolute_config_path_required')
+    if args.command == 'event-wait': return wait_for_events(args)
     lock_config(args.config)
     if args.command == 'restore': return restore_identity(args)
     if args.command == 'pair-start': return start_pairing(args)
     if args.command == 'pair-code': return pair_with_code(args)
     config = load_config(args.config, args.allow_local_http)
+    if args.command in JOB_COMMANDS: return job_command(args, config)
     if args.command == 'pair-status': return poll_pair(args, config)
     if args.command == 'wait-ready': return wait_ready(args, config)
     if args.command == 'status': return status_request(args, config)
@@ -1715,6 +1978,7 @@ def main():
         return {'ok': True, 'state': 'revoked'}
     if config.get('state') != 'approved': raise Failure('approval_required', instruction='Run pair-status after the owner approves.')
     safe_scope(config)
+    if args.command in EVENT_COMMANDS: return event_command(args, config)
     if args.command != 'task-acquire': require_restored_task(config)
     if args.command in TASK_COMMANDS: return task_command(args, config)
     if args.command in FILE_COMMANDS: return file_command(args, config)
@@ -1725,6 +1989,25 @@ def main():
     if package is not None:
         if not valid_package(package): raise Failure('invalid_or_protected_package')
         body['package'] = package
+    if args.command=='sim-pin-submit':
+        if not TICKET.fullmatch(args.challenge):raise Failure('invalid_challenge')
+        raw=sys.stdin.buffer.read(16)
+        try:pin=raw.decode('ascii').strip()
+        except UnicodeError:raise Failure('invalid_sim_pin_format')
+        if not re.fullmatch(r'[0-9]{4,8}',pin):raise Failure('invalid_sim_pin_format')
+        body.update(challenge=args.challenge,pin=pin)
+    if args.command in ('media-status','media-stop'):
+        if not TICKET.fullmatch(args.capture_id):raise Failure('invalid_capture_id')
+        body['capture_id']=args.capture_id
+    if args.command=='media-capture':
+        if not 1<=args.seconds<=60:raise Failure('invalid_duration')
+        body.update(kind=args.kind,seconds=args.seconds)
+    if args.command in ('touch-move','touch-end'):
+        if not TICKET.fullmatch(args.touch_id):raise Failure('invalid_touch_id')
+        body['touch_id']=args.touch_id
+    if args.command == 'touch-move':
+        if not 1<=args.duration_ms<=5000:raise Failure('invalid_duration')
+        body['duration_ms']=args.duration_ms
     if args.command in VOLUME_COMMANDS:
         body['stream'] = args.stream
         if args.command == 'set-volume':
@@ -1789,7 +2072,7 @@ def main():
             body.update(before=args.before, after=args.after)
         if args.command == 'editor-action': body['editor_action'] = args.editor_action
     if args.command == 'system-action': body['name'] = args.name
-    if args.command in ('tap', 'long-press', 'swipe', 'drag', 'gesture'):
+    if args.command in ('tap', 'long-press', 'swipe', 'drag', 'gesture', 'touch-begin', 'touch-move'):
         observation = config.get('observation', {})
         if (observation.get('observation_id') != args.observation_id or observation.get('package') != package
                 or not observation.get('issued_at', 0) <= time.time() < observation.get('expires_at', 0)):
@@ -1806,15 +2089,22 @@ def main():
         if args.command == 'drag':
             body.update(hold_ms=args.hold_ms, path=drag_path(args.hold_ms, args.to))
         if args.command == 'gesture':
-            raw = sys.stdin.buffer.read(MAX_COMMAND + 1)
-            if len(raw) > MAX_COMMAND: raise Failure('request_too_large')
+            raw = sys.stdin.buffer.read(8193)
+            if len(raw) > 8192: raise Failure('request_too_large')
             try: tracks = json.loads(raw.decode('utf-8', errors='strict'))
             except (ValueError, UnicodeError, RecursionError): raise Failure('invalid_gesture')
             body['tracks'] = gesture_tracks(tracks)
-    if len(json_bytes(body)) > MAX_COMMAND: raise Failure('request_too_large')
+    if len(json_bytes(body)) > 8192: raise Failure('request_too_large')
     if args.command in CONTROL_COMMANDS:
         config.pop('snapshot', None); config.pop('observation', None); save_config(args.config, config)
-    started = time.time(); result = command_request(args, config, body)
+    job = job_before(args,config,body)
+    started = time.time()
+    try:
+        result = command_request(args, config, body)
+    except BaseException as failure:
+        job_after(args,job,failure=failure)
+        raise
+    job_after(args,job,result=result)
     if args.command in ('read-tree', 'read-tree-page'): remember_snapshot(args, config, result['result'], result['result'].get('package'), started, continuation=args.command == 'read-tree-page')
     if args.command in CONTROL_COMMANDS and after_action != 'none':
         try:

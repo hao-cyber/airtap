@@ -554,6 +554,8 @@ public final class MainActivity extends Activity {
         layout.addView(button("检查更新", v -> updates.check(true)));
         layout.addView(button("使用帮助", v -> updates.open("/help")));
         layout.addView(button("文件访问", v -> fileAccess()));
+        layout.addView(button("通知事件", v -> notificationEvents()));
+        layout.addView(button("SIM PIN 输入", v -> simPinSettings()));
         if (config != null && config.enrolled() && config.publicService()) {
             layout.addView(button("问题反馈", v -> startActivity(new Intent(this, FeedbackActivity.class))));
         }
@@ -573,6 +575,23 @@ public final class MainActivity extends Activity {
         ScrollView scroll = new ScrollView(this); scroll.addView(layout);
         AlertDialog dialog = new AlertDialog.Builder(this).setTitle("设置").setView(scroll).setPositiveButton("返回", null).create();
         if (dialog.getWindow() != null) dialog.getWindow().addFlags(WindowManager.LayoutParams.FLAG_SECURE); dialog.show();
+    }
+    private void simPinSettings() {
+        new AlertDialog.Builder(this).setTitle("允许 AI 输入你提供的 SIM PIN")
+            .setMessage("默认关闭。开启后，已配对的 AI 可以把你提供的正确 SIM PIN 输入系统键盘；Airtap 不保存 PIN，也不会猜测或绕过验证。只支持能明确识别的系统 SIM PIN 界面，不支持 PUK、手机密码或生物识别。\n\n错误或结果未知后会停止重试。请先在系统界面核对 SIM 状态，再重新开启此项。")
+            .setPositiveButton("开启／重置一次尝试",(d,w)->{try{SimPinInput.configure(this,true);change("已允许正常 SIM PIN 输入。现有 AI 连接保持不变。");}catch(Exception e){change("设置未保存。");}})
+            .setNeutralButton("关闭",(d,w)->{try{SimPinInput.configure(this,false);change("SIM PIN 输入已关闭。");}catch(Exception e){change("设置未保存。");}}).setNegativeButton("返回",null).show();
+    }
+    private void notificationEvents() {
+        boolean enabled=NotificationEvents.selected(this);
+        new AlertDialog.Builder(this).setTitle("让 AI 等待新通知")
+                .setMessage("开启后，已连接的 AI 可以读取其连接获批之后到达的新通知。手机加密存储每个 AI 最近 64 条，只返回最近 24 小时内的内容；读取或收到新通知时清理过期记录。中继不保存正文，关闭会清除这份事件记录。\n\n系统可能隐藏验证码；没有通知不代表没有短信，AI 可继续打开短信 App 核对。\n\n当前："+(enabled?"已开启":"未开启")+"；系统通知使用权："+(NotificationEvents.permission(this)?"已允许":"未允许"))
+                .setPositiveButton(enabled?"关闭并清除":"开启",(dialog,which)->{
+                    try { NotificationEvents.select(this,!enabled);
+                        if(!enabled&&!NotificationEvents.permission(this))startActivity(new Intent(android.provider.Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS));
+                        change(enabled?"通知事件已关闭并清除":"已开启通知事件，请完成系统授权。已有 AI 连接保持不变。");
+                    }catch(Exception failure){change("通知设置未完成，请重试。");}
+                }).setNegativeButton("返回",null).show();
     }
     private String backgroundInstructions() {
         String maker = (android.os.Build.MANUFACTURER + " " + android.os.Build.BRAND).toLowerCase(java.util.Locale.ROOT);

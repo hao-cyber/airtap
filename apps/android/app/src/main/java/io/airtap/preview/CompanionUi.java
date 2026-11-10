@@ -31,6 +31,7 @@ final class CompanionUi {
     private Rect imageBounds, imageWindowBounds;
     private int imageRotation;
     private TouchGesture activeGesture;
+    private TouchSession touchSession;
     private boolean uncertainGesture;
     private PagedTree<AccessibilityNodeInfo> pagedTree;
     private static final long TREE_SCAN_MS = 5000;
@@ -38,11 +39,16 @@ final class CompanionUi {
     private record Target(AccessibilityNodeInfo node, String identity, AtomicInput.EditorTicket editor, SemanticNodeActions.Ticket semantics) {}
     CompanionUi(AccessibilityService service, BooleanSupplier authorized) { this.service = service; this.authorized = authorized; }
     void clear() { revision++; nodes.clear(); snapshot = null; imageId = null; pagedTree = null; }
-    void cancelGestures() { if (activeGesture != null) activeGesture.cancel(); }
-    boolean quiescent() { return activeGesture == null && !uncertainGesture; }
+    void cancelGestures() { if (activeGesture != null) activeGesture.cancel(); if(touchSession!=null)touchSession.cancel(); }
+    boolean quiescent() { return activeGesture == null && touchSession == null && !uncertainGesture; }
     private void gestureFinished() {
         if (activeGesture != null && !activeGesture.quiescent()) uncertainGesture = true;
         activeGesture = null;
+    }
+    boolean admits(String action,String owner) {
+        if(activeGesture!=null||uncertainGesture)return false;
+        if(touchSession==null)return true;
+        return touchSession.ready()&&touchSession.owner.equals(owner)&&java.util.Set.of("ping","observe","read_tree","read_tree_page","read_node_text","foreground","windows","touch_move","touch_end").contains(action);
     }
     private void check() {
         if (!authorized.getAsBoolean()) throw new ScopedUi.Refused("permission_denied");
@@ -151,6 +157,10 @@ final class CompanionUi {
             case "tap": case "long_press": exact(request, "package", "observation_id", "x", "y"); break;
             case "swipe": exact(request, "package", "observation_id", "x", "y", "end_x", "end_y", "duration_ms"); break;
             case "drag": exact(request, "package", "observation_id", "x", "y", "hold_ms", "path"); DragPlan.parse(request); break;
+            case "media_capture": exact(request,"kind","seconds");if(!java.util.Set.of("photo","video","audio","screen").contains(request.getString("kind"))||ServiceProtocol.integer(request,"seconds")<1||ServiceProtocol.integer(request,"seconds")>60)throw new ScopedUi.Refused("invalid_request");break;
+            case "touch_begin": exact(request,"package","observation_id","x","y");coordinate(request,"x");coordinate(request,"y");break;
+            case "touch_move": exact(request,"package","observation_id","touch_id","x","y","duration_ms");coordinate(request,"x");coordinate(request,"y");if(!request.getString("touch_id").matches("[a-f0-9]{32}")||ServiceProtocol.integer(request,"duration_ms")<1||ServiceProtocol.integer(request,"duration_ms")>5000)throw new ScopedUi.Refused("invalid_request");break;
+            case "touch_end": exact(request,"touch_id");if(!request.getString("touch_id").matches("[a-f0-9]{32}"))throw new ScopedUi.Refused("invalid_request");break;
             case "gesture": exact(request, "package", "observation_id", "tracks"); GesturePlan.parse(request, GestureDescription.getMaxStrokeCount()); break;
             default: throw new ScopedUi.Refused("unsupported_action");
         }
@@ -283,6 +293,8 @@ final class CompanionUi {
             String expected = request.has("package") ? request.getString("package") : null;
             if (expected != null && !AppCatalog.allowed(expected)) throw new ScopedUi.Refused("protected_package");
             switch (action) {
+                case "media_capture": root(null);noOwnerWindow();clear();reply.success(MediaCapture.start(service,owner,request,shareAuthority));return;
+                case "touch_begin": case "touch_move": case "touch_end": touch(request,reply,owner,shareAuthority);return;
                 case "apps": {
                     exact(request); check(); JSONArray apps = new JSONArray();
                     for (AppCatalog.Entry app : AppCatalog.installed(service)) apps.put(RelayApi.json("package", app.packageName, "name", app.label));
@@ -439,6 +451,28 @@ final class CompanionUi {
         Object value = q.get(key);
         if (!(value instanceof Number)) throw new ScopedUi.Refused("invalid_coordinate");
         double n = ((Number)value).doubleValue(); if (!Double.isFinite(n) || n < 0 || n >= 1) throw new ScopedUi.Refused("invalid_coordinate"); return n;
+    }
+    private void touch(JSONObject q,Reply reply,String owner,BooleanSupplier authority) throws Exception {
+        String action=q.getString("action");
+        if(action.equals("touch_end")){
+            if(touchSession==null||!touchSession.owner.equals(owner)||!touchSession.id.equals(q.getString("touch_id")))throw new ScopedUi.Refused("touch_session_expired");
+            touchSession.end(new TouchSession.Reply(){public void complete(){reply.success(RelayApi.json("accepted",true,"held",false));}public void error(String code){reply.error(code);}});return;
+        }
+        String packageName=q.getString("package");AccessibilityNodeInfo r=root(packageName);
+        if(!q.getString("observation_id").equals(imageId)||!packageName.equals(imagePackage)||r.getWindowId()!=imageWindow||SystemClock.elapsedRealtime()>=imageDeadline||!bounds(r).equals(imageWindowBounds)||!displayBounds().equals(imageBounds)||imageRotation!=service.getSystemService(android.view.WindowManager.class).getDefaultDisplay().getRotation())throw new ScopedUi.Refused("fresh_observation_required");
+        noOwnerWindow();Rect captured=new Rect(imageBounds);int rotation=imageRotation;
+        float x=Math.min(captured.right-1,Math.round(captured.left+coordinate(q,"x")*captured.width()));
+        float y=Math.min(captured.bottom-1,Math.round(captured.top+coordinate(q,"y")*captured.height()));
+        Runnable gate=()->{if(!authority.getAsBoolean())throw new ScopedUi.Refused("permission_denied");root(packageName);noOwnerWindow();if(!captured.equals(displayBounds())||rotation!=service.getSystemService(android.view.WindowManager.class).getDefaultDisplay().getRotation())throw new ScopedUi.Refused("window_changed");};
+        TouchSession.Reply result=new TouchSession.Reply(){public void complete(){reply.success(RelayApi.json("accepted",true,"held",true,"touch_id",touchSession.id,"expires_in_ms",Math.max(0,touchSession.deadline-SystemClock.elapsedRealtime())));}public void error(String code){reply.error(code);}};
+        if(action.equals("touch_begin")){
+            if(touchSession!=null)throw new ScopedUi.Refused("touch_session_busy");
+            touchSession=new TouchSession(service,owner,gate,clean->{touchSession=null;if(!clean)uncertainGesture=true;});
+            clear();touchSession.start(x,y,result);
+        }else{
+            if(touchSession==null||!touchSession.owner.equals(owner)||!touchSession.id.equals(q.getString("touch_id")))throw new ScopedUi.Refused("touch_session_expired");
+            clear();touchSession.move(x,y,q.getInt("duration_ms"),result);
+        }
     }
     private void gesture(JSONObject q, Reply reply, BooleanSupplier commandCurrent) throws Exception {
         String action = q.getString("action"), packageName = q.getString("package");

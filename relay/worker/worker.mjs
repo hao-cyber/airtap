@@ -6,17 +6,18 @@ const HEX32 = /^[a-f0-9]{32}$/;
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
 const ACTIONS = new Set(['ping', 'read_tree', 'screenshot', 'tap_test']);
 const AUDIO_STREAMS = new Set(['music', 'alarm', 'ring', 'notification', 'system', 'voice_call']);
-const CONTROL_ACTIONS = new Set(['set_volume', 'adjust_volume', 'launch', 'open_url', 'click', 'long_click', 'set_text', 'scroll', 'node_action', 'tap', 'long_press', 'swipe', 'drag', 'gesture', 'back', 'home', 'recents', 'system_action', 'focus', 'set_selection', 'select_all', 'copy', 'cut', 'paste', 'insert_text', 'delete_text', 'editor_action']);
+const CONTROL_ACTIONS = new Set(['sim_pin_submit', 'sim_pin_prepare', 'media_capture', 'media_stop', 'touch_begin', 'touch_move', 'touch_end', 'set_volume', 'adjust_volume', 'launch', 'open_url', 'click', 'long_click', 'set_text', 'scroll', 'node_action', 'tap', 'long_press', 'swipe', 'drag', 'gesture', 'back', 'home', 'recents', 'system_action', 'focus', 'set_selection', 'select_all', 'copy', 'cut', 'paste', 'insert_text', 'delete_text', 'editor_action']);
 const FILE_READ_ACTIONS = new Set(['file_roots', 'file_list', 'file_stat', 'file_read', 'file_upload_status']);
-const FILE_WRITE_ACTIONS = new Set(['file_share', 'file_upload_begin', 'file_upload_chunk', 'file_upload_finish', 'file_upload_abort']);
-const FILE_LIMIT = 8 * 1024 * 1024;
-const FILE_CHUNK_LIMIT = 4096;
+const FILE_WRITE_ACTIONS = new Set(['file_mkdir', 'file_rename', 'file_delete', 'file_share', 'file_upload_begin', 'file_upload_chunk', 'file_upload_finish', 'file_upload_abort']);
+const EVENT_ACTIONS = new Set(['event_status', 'event_read']);
+const FILE_LIMIT = 64 * 1024 * 1024;
+const FILE_CHUNK_LIMIT = 32768;
 const SYSTEM_ACTIONS = new Set(['notifications', 'quick_settings', 'dismiss_notification_shade', 'all_apps', 'dpad_up', 'dpad_down', 'dpad_left', 'dpad_right', 'dpad_center', 'power_dialog', 'lock_screen', 'split_screen']);
 const NODE_OPERATIONS = new Set(['accessibility_focus', 'clear_accessibility_focus', 'next_granularity', 'previous_granularity', 'custom', 'select', 'clear_selection', 'clear_focus', 'context_click', 'expand', 'collapse', 'dismiss', 'show_on_screen', 'scroll_up', 'scroll_down', 'scroll_left', 'scroll_right', 'page_up', 'page_down', 'page_left', 'page_right', 'scroll_to_position', 'set_progress', 'drag_start', 'drag_drop', 'drag_cancel']);
 const PACKAGE = /^[A-Za-z_][A-Za-z0-9_]*(?:\.[A-Za-z_][A-Za-z0-9_]*)+$/;
 const IMAGE_LIMIT = 512 * 1024;
 const TEXT_LIMIT = 64 * 1024;
-const COMMAND_LIMIT = 8 * 1024;
+const COMMAND_LIMIT = 64 * 1024;
 const H = { 'Cache-Control': 'no-store, no-cache, no-transform', 'X-Content-Type-Options': 'nosniff', 'X-Airtap-Protocol-Version': '2' };
 const json = (status, data) => new Response(JSON.stringify(data), { status, headers: { ...H, 'Content-Type': 'application/json' } });
 const now = () => Math.floor(Date.now() / 1000);
@@ -50,6 +51,9 @@ const validFileRoot = value => typeof value === 'string' && /^(?:workspace|saf_[
 const fileInteger = value => Number.isSafeInteger(value) && value >= 0 && value <= FILE_LIMIT;
 function fileCommandShape(cmd) {
   const base = ['id', 'action'];
+  if (cmd.action === 'file_mkdir') return exact(cmd,[...base,'root','path']) && cmd.root === 'workspace' && validFilePath(cmd.path);
+  if (cmd.action === 'file_rename') return exact(cmd,[...base,'root','path','destination','version']) && cmd.root === 'workspace' && validFilePath(cmd.path) && validFilePath(cmd.destination) && typeof cmd.version === 'string' && HEX64.test(cmd.version);
+  if (cmd.action === 'file_delete') return exact(cmd,[...base,'root','path','version']) && cmd.root === 'workspace' && validFilePath(cmd.path) && typeof cmd.version === 'string' && HEX64.test(cmd.version);
   if (cmd.action === 'file_roots') return exact(cmd, base);
   if (cmd.action === 'file_share') return exact(cmd, [...base, 'root', 'path', 'version', 'mime_type', 'target_package']) && cmd.root === 'workspace' && validFilePath(cmd.path) && typeof cmd.version === 'string' && HEX64.test(cmd.version) && typeof cmd.mime_type === 'string' && cmd.mime_type.length <= 127 && /^[a-zA-Z0-9!#$&^_.+-]+\/[a-zA-Z0-9!#$&^_.+-]+$/.test(cmd.mime_type) && (cmd.target_package === '' || validPackage(cmd.target_package) && !authorizationSurface(cmd.target_package));
   if (['file_upload_status', 'file_upload_finish', 'file_upload_abort'].includes(cmd.action))
@@ -57,7 +61,7 @@ function fileCommandShape(cmd) {
   if (cmd.action === 'file_upload_chunk') {
     if (!exact(cmd, [...base, 'transfer_id', 'offset', 'data_base64', 'sha256']) || typeof cmd.transfer_id !== 'string' ||
         !HEX32.test(cmd.transfer_id) || !fileInteger(cmd.offset) || typeof cmd.sha256 !== 'string' || !HEX64.test(cmd.sha256) ||
-        typeof cmd.data_base64 !== 'string' || !cmd.data_base64.length || cmd.data_base64.length > 5464) return false;
+        typeof cmd.data_base64 !== 'string' || !cmd.data_base64.length || cmd.data_base64.length > 43692) return false;
     try {
       const bytes = atob(cmd.data_base64);
       return bytes.length > 0 && bytes.length <= FILE_CHUNK_LIMIT && cmd.offset + bytes.length <= FILE_LIMIT && btoa(bytes) === cmd.data_base64;
@@ -101,12 +105,26 @@ function commandShape(cmd, companion = false) {
     const { sequence, ...rest } = cmd; cmd = rest;
   }
   if (!cmd || typeof cmd.id !== 'string' || !UUID.test(cmd.id)) return false;
+  if (companion && cmd.action === 'event_status') return exact(cmd, ['id','action']);
+  if (companion && cmd.action === 'event_read') return exact(cmd, ['id','action','epoch','after','limit']) &&
+    typeof cmd.epoch === 'string' && (cmd.epoch === '' || HEX32.test(cmd.epoch)) && Number.isSafeInteger(cmd.after) && cmd.after >= 0 && Number.isInteger(cmd.limit) && cmd.limit >= 1 && cmd.limit <= 16;
   if (FILE_READ_ACTIONS.has(cmd.action) || FILE_WRITE_ACTIONS.has(cmd.action)) return companion && fileCommandShape(cmd);
   if (ACTIONS.has(cmd.action) && exact(cmd, ['id', 'action'])) return true;
   if (companion && ['apps', 'windows', 'foreground', 'observe', 'back', 'home', 'recents', 'system_actions', 'audio_state'].includes(cmd.action)) return exact(cmd, ['id', 'action']);
   if (companion && cmd.action === 'system_action') return exact(cmd, ['id', 'action', 'name']) && SYSTEM_ACTIONS.has(cmd.name);
   if (companion && cmd.action === 'set_volume') return exact(cmd, ['id', 'action', 'stream', 'level']) && AUDIO_STREAMS.has(cmd.stream) && Number.isInteger(cmd.level) && cmd.level >= 0 && cmd.level <= 2147483647;
   if (companion && cmd.action === 'adjust_volume') return exact(cmd, ['id', 'action', 'stream', 'direction']) && AUDIO_STREAMS.has(cmd.stream) && ['raise', 'lower', 'mute', 'unmute'].includes(cmd.direction);
+  if (companion && cmd.action==='sim_pin_prepare') return exact(cmd,['id','action']);
+  if (companion && cmd.action==='sim_pin_submit') return exact(cmd,['id','action','challenge','pin'])&&typeof cmd.challenge==='string'&&HEX32.test(cmd.challenge)&&typeof cmd.pin==='string'&&/^[0-9]{4,8}$/.test(cmd.pin);
+  if (companion && ['media_status','media_stop'].includes(cmd.action)) return exact(cmd,['id','action','capture_id'])&&typeof cmd.capture_id==='string'&&HEX32.test(cmd.capture_id);
+  if (companion && cmd.action === 'media_capture') return exact(cmd,['id','action','kind','seconds'])&&['photo','video','audio','screen'].includes(cmd.kind)&&Number.isInteger(cmd.seconds)&&cmd.seconds>=1&&cmd.seconds<=60;
+  if (companion && cmd.action === 'touch_end') return exact(cmd,['id','action','touch_id']) && typeof cmd.touch_id === 'string' && HEX32.test(cmd.touch_id);
+  if (companion && ['touch_begin','touch_move'].includes(cmd.action)) {
+    const fields=['id','action','package','observation_id','x','y'];
+    const point=n=>typeof n==='number'&&Number.isFinite(n)&&n>=0&&n<1;
+    return validPackage(cmd.package)&&typeof cmd.observation_id==='string'&&HEX32.test(cmd.observation_id)&&point(cmd.x)&&point(cmd.y)&&
+      (cmd.action==='touch_begin'?exact(cmd,fields):exact(cmd,[...fields,'touch_id','duration_ms'])&&typeof cmd.touch_id==='string'&&HEX32.test(cmd.touch_id)&&Number.isInteger(cmd.duration_ms)&&cmd.duration_ms>=1&&cmd.duration_ms<=5000);
+  }
   if (!validPackage(cmd.package)) return false;
   if (companion && cmd.action === 'gesture') {
     if (!exact(cmd, ['id', 'action', 'package', 'observation_id', 'tracks']) || !HEX32.test(cmd.observation_id ?? '') ||
@@ -899,6 +917,7 @@ export class MultiPairingRelay extends PairingRelay {
     const g = this.state.grants[claimId], t = this.state.task;
     if (!g) return this.json(401, { error: 'unauthorized', admitted: false });
     const fields = 'lease_id' in cmd || 'lease_epoch' in cmd;
+    if (EVENT_ACTIONS.has(cmd.action)) return fields ? this.json(400, { error: 'invalid_command', admitted: false }) : null;
     if (!fields && !g.lease_required && Object.keys(this.state.grants).length === 1 && !t) return null;
     let error;
     if (!h32(cmd.lease_id) || !leaseInteger(cmd.lease_epoch)) error = 'lease_required';

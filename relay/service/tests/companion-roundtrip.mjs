@@ -118,6 +118,11 @@ async function connectPhone() {
     }
     else if (cmd.action === 'read_tree') result = { package: cmd.package ?? observedPackage, snapshot_id: hex(16), expires_in_ms: 30000, nodes: [{ node_id: '1', text: treeText, clickable: true }] };
     else if (cmd.action === 'ping') result = { authorized: true, persistent: true, all_apps: true, ...pingState };
+    else if (cmd.action === 'event_status') result={enabled:true,permission:true,listener_connected:true};
+    else if (cmd.action === 'event_read') result={epoch:'e'.repeat(32),next:1,gap:false,events:[{sequence:1,kind:'notification',text:'synthetic notice'}],status:{listener_connected:true}};
+    else if (['touch_begin','touch_move','touch_end'].includes(cmd.action)) result={accepted:true,held:cmd.action!=='touch_end',touch_id:'f'.repeat(32)};
+    else if (cmd.action==='media_capture'||cmd.action==='media_status'||cmd.action==='media_stop')result={accepted:true,capture_id:'c'.repeat(32),state:cmd.action==='media_stop'?'canceled':'awaiting_system_ui'};
+    else if(cmd.action==='sim_pin_prepare')result={challenge:'d'.repeat(32),expires_in_ms:30000};
     else if (cmd.action === 'apps') result = { apps: [{ name: 'test', package: 'com.example.app' }] };
     else if (cmd.action === 'audio_state') result = { fixed: false, streams: [{ stream: 'music', available: true, volume: { min: 0, max: 15, current: 5, muted: false }, control: 'available_with_platform_policy' }] };
     else if (['set_volume', 'adjust_volume'].includes(cmd.action)) result = { accepted: true, requires_observation: false, verification: 'native_readback', target_observed: true, after: { min: 0, max: 15, current: cmd.level ?? 6, muted: cmd.direction === 'mute' } };
@@ -628,6 +633,26 @@ try {
     const url = 'http://192.168.1.1:8080/#network';
     const result = await (await mcp('tools/call', { name: 'phone_open_url', arguments: { sequence: lastSequence + 1, package: 'com.example.app', url } })).json();
     assert.equal(result.result.isError, false); assert.equal(seenCommands.at(-1).url, url);
+  });
+  await check('new notification touch media and SIM entry tools traverse CLI and strict MCP schemas',async()=>{
+    await python(['status']); // The previous MCP request advanced the shared controller sequence.
+    const event=(await python(['event-read'])).result;assert.equal(event.events[0].text,'synthetic notice');
+    assert.equal(seenCommands.at(-1).action,'event_read');assert.equal('lease_id' in seenCommands.at(-1),false);
+    observedPackage='com.example.app';let image=(await python(['observe'])).result;
+    const held=await python(['touch-begin','--package','com.example.app','--observation-id',image.observation_id,'--x','.3','--y','.3']);assert.equal(held.result.held,true);
+    image=held.observation;
+    const moved=await python(['touch-move','--package','com.example.app','--observation-id',image.observation_id,'--touch-id',held.result.touch_id,'--x','.6','--y','.6']);assert.equal(moved.result.held,true);
+    const ended=await python(['touch-end','--touch-id',held.result.touch_id]);assert.equal(ended.result.held,false);
+    let before=seenCommands.length;const capture=await python(['media-capture','--kind','screen','--seconds','3']);assert.equal(seenCommands.length,before+1);assert.equal(capture.result.state,'awaiting_system_ui');
+    await python(['media-status','--capture-id',capture.result.capture_id]);await python(['media-stop','--capture-id',capture.result.capture_id]);
+    const challenge=(await python(['sim-pin-prepare'])).result.challenge;
+    const pin=await python(['sim-pin-submit','--challenge',challenge,'--pin-stdin'],'91582736');assert.equal(pin.result.accepted,true);
+    assert.equal(JSON.stringify(pin).includes('91582736'),false);assert.equal((await readFile(config,'utf8')).includes('91582736'),false);
+    const tools=(await (await mcp('tools/list',{})).json()).result.tools;
+    for(const name of ['event_status','event_read','touch_begin','touch_move','touch_end','media_capture','media_status','media_stop','sim_pin_prepare','sim_pin_submit','file_mkdir','file_rename','file_delete'])assert.ok(tools.some(t=>t.name==='phone_'+name),name);
+    before=seenCommands.length;
+    for(const [action,fields]of [['event_read',{epoch:'',after:-1,limit:16}],['touch_end',{touch_id:'bad'}],['media_capture',{kind:'call_audio',seconds:3}],['sim_pin_submit',{challenge, pin:'not-a-pin'}],['file_delete',{root:'workspace',path:'../other',version:'a'.repeat(64)}]])assert.equal((await api(action,lastSequence+1,fields)).status,400);
+    assert.equal(seenCommands.length,before);await python(['status']);
   });
   await check('more than 200 commands remain usable; original sequence replay stays rejected', async () => {
     let seq = lastSequence;

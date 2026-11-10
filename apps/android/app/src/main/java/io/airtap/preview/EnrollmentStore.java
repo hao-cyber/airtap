@@ -20,7 +20,7 @@ final class EnrollmentStore {
     private static final String ALIAS = "airtap-preview-enrollment-v1";
     private final AtomicFile file;
     private final String purpose;
-    private int recordLimit() { return purpose.equals("trusted-ai") ? 16384 : 4096; }
+    private int recordLimit() { return purpose.startsWith("events-") ? 262144 : purpose.equals("trusted-ai") ? 16384 : 4096; }
 
     static final class Config {
         final String url;
@@ -56,7 +56,7 @@ final class EnrollmentStore {
     }
 
     EnrollmentStore(Context context, String purpose) {
-        if (!purpose.equals("enrollment") && !purpose.equals("trusted-ai")) throw new IllegalArgumentException();
+        if (!purpose.equals("enrollment") && !purpose.equals("trusted-ai") && !purpose.matches("events-[a-f0-9]{32}") && !purpose.equals("media-pending")) throw new IllegalArgumentException();
         this.purpose = purpose;
         file = new AtomicFile(new File(context.getFilesDir(), purpose + ".aesgcm"));
     }
@@ -93,7 +93,7 @@ final class EnrollmentStore {
         Cipher cipher = Cipher.getInstance("AES/GCM/NoPadding");
         byte[] iv = java.util.Arrays.copyOfRange(data, 1, 13);
         cipher.init(Cipher.DECRYPT_MODE, key(false), new GCMParameterSpec(128, iv));
-        cipher.updateAAD((purpose.equals("enrollment") ? "airtap-preview-enrollment-v1" : "airtap-trusted-ai-v1").getBytes(StandardCharsets.UTF_8));
+        cipher.updateAAD(((purpose.startsWith("events-") || purpose.equals("media-pending")) ? "airtap-"+purpose+"-v1" : purpose.equals("enrollment") ? "airtap-preview-enrollment-v1" : "airtap-trusted-ai-v1").getBytes(StandardCharsets.UTF_8));
         byte[] plain = cipher.doFinal(data, 13, data.length - 13);
         try {
             return new JSONObject(new String(plain, StandardCharsets.UTF_8));
@@ -112,7 +112,7 @@ final class EnrollmentStore {
         try {
             cipher = Cipher.getInstance("AES/GCM/NoPadding");
             cipher.init(Cipher.ENCRYPT_MODE, key(true));
-            cipher.updateAAD((purpose.equals("enrollment") ? "airtap-preview-enrollment-v1" : "airtap-trusted-ai-v1").getBytes(StandardCharsets.UTF_8));
+            cipher.updateAAD(((purpose.startsWith("events-") || purpose.equals("media-pending")) ? "airtap-"+purpose+"-v1" : purpose.equals("enrollment") ? "airtap-preview-enrollment-v1" : "airtap-trusted-ai-v1").getBytes(StandardCharsets.UTF_8));
             sealed = cipher.doFinal(plain);
         }
         finally { java.util.Arrays.fill(plain, (byte) 0); }

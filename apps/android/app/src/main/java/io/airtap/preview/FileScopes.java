@@ -20,7 +20,7 @@ import org.json.JSONObject;
 
 /** Explicit per-pair file scopes. SAF grants and storage paths never cross the wire. */
 final class FileScopes {
-    static final Set<String> ACTIONS = Set.of("file_share", "file_roots", "file_list", "file_stat", "file_read", "file_upload_begin", "file_upload_status", "file_upload_chunk", "file_upload_finish", "file_upload_abort");
+    static final Set<String> ACTIONS = Set.of("file_mkdir", "file_rename", "file_delete", "file_share", "file_roots", "file_list", "file_stat", "file_read", "file_upload_begin", "file_upload_status", "file_upload_chunk", "file_upload_finish", "file_upload_abort");
     private static final Handler MAIN = new Handler(Looper.getMainLooper());
     private static final ExecutorService IO = new ThreadPoolExecutor(2, 2, 0, TimeUnit.MILLISECONDS, new SynchronousQueue<>(), r -> {
         Thread t = new Thread(r, "airtap-files"); t.setDaemon(true); return t;
@@ -123,6 +123,9 @@ final class FileScopes {
                 if(text(q,"mime_type").length()>127||!text(q,"mime_type").matches("[a-zA-Z0-9!#$&^_.+-]+/[a-zA-Z0-9!#$&^_.+-]+"))FileTransferStore.fail("invalid_request");
                 String target=text(q,"target_package");if(!target.isEmpty()&&!AppCatalog.allowed(target))FileTransferStore.fail("protected_package");
                 break;
+            case "file_mkdir": exact(q,"root","path"); if(!"workspace".equals(text(q,"root")))FileTransferStore.fail("file_scope_unavailable");break;
+            case "file_rename": exact(q,"root","path","destination","version");FileTransferStore.validPath(text(q,"destination"),false);FileTransferStore.hash(text(q,"version"));if(!"workspace".equals(text(q,"root")))FileTransferStore.fail("file_scope_unavailable");break;
+            case "file_delete": exact(q,"root","path","version");FileTransferStore.hash(text(q,"version"));if(!"workspace".equals(text(q,"root")))FileTransferStore.fail("file_scope_unavailable");break;
             case "file_roots": exact(q); break;
             case "file_list": exact(q, "root", "path", "offset", "limit"); integer(q, "offset", 0, FileTransferStore.MAX_ENTRIES); integer(q, "limit", 1, 64); break;
             case "file_stat": exact(q, "root", "path"); break;
@@ -130,7 +133,7 @@ final class FileScopes {
             case "file_upload_begin": exact(q, "root", "path", "transfer_id", "size", "sha256"); integer(q, "size", 0, FileTransferStore.MAX_FILE); FileTransferStore.hash(text(q, "sha256")); break;
             case "file_upload_chunk": {
                 exact(q, "transfer_id", "offset", "data_base64", "sha256"); integer(q, "offset", 0, FileTransferStore.MAX_FILE); FileTransferStore.hash(text(q, "sha256"));
-                String data = text(q, "data_base64"); if (data.length() < 4 || data.length() > 5464 || !data.matches("[A-Za-z0-9+/]+={0,2}")) FileTransferStore.fail("invalid_request");
+                String data = text(q, "data_base64"); if (data.length() < 4 || data.length() > 43692 || !data.matches("[A-Za-z0-9+/]+={0,2}")) FileTransferStore.fail("invalid_request");
                 byte[] decoded = Base64.getDecoder().decode(data);
                 if (decoded.length < 1 || decoded.length > FileTransferStore.MAX_CHUNK || !Base64.getEncoder().encodeToString(decoded).equals(data)) FileTransferStore.fail("invalid_request");
                 break;
@@ -242,6 +245,36 @@ final class FileScopes {
             PrivateFileStorage.Usage value=result;String problem=error;MAIN.post(()->reply.complete(value,problem));
         });}catch(RejectedExecutionException e){reply.complete(null,"file_busy");}
     }
+    static void importCapture(Context c,String owner,String id,String extension,Uri uri,java.util.function.BooleanSupplier allowed,CompanionUi.Reply reply) {
+        IN_FLIGHT.incrementAndGet();
+        try{IO.execute(()->{
+            boolean locked=false;JSONObject result=null;String error=null;java.io.File staging=null;
+            Runnable fence=()->onMain(()->{if(!allowed.getAsBoolean())throw new ScopedUi.Refused("permission_denied");});
+            try{
+                if(!(locked=WORKSPACE_IO.tryLock()))throw new FileTransferStore.Failure("file_busy");
+                FileTransferStore.id(owner);FileTransferStore.id(id);fence.run();
+                var root=c.getFilesDir().toPath().resolve("scoped-files");
+                var storage=new PrivateFileStorage(root,fence,directorySync());storage.checkNew(0,c.getFilesDir().getUsableSpace());
+                staging=java.io.File.createTempFile("airtap-capture-",".part",c.getCacheDir());
+                long size=0;var hash=java.security.MessageDigest.getInstance("SHA-256");
+                try(InputStream input=c.getContentResolver().openInputStream(uri);FileOutputStream out=new FileOutputStream(staging)){
+                    if(input==null)throw new IOException();byte[] buffer=new byte[65536];int n;
+                    while((n=input.read(buffer))!=-1){fence.run();size+=n;if(size>MediaCapture.MAX_BYTES)throw new FileTransferStore.Failure("file_too_large");storage.checkNew(size,c.getFilesDir().getUsableSpace());hash.update(buffer,0,n);out.write(buffer,0,n);}out.getFD().sync();
+                }
+                if(size==0)throw new FileTransferStore.Failure("capture_empty");
+                storage.checkNew(size,c.getFilesDir().getUsableSpace());
+                var store=new FileTransferStore(root.resolve(owner),fence,System::currentTimeMillis,directorySync());
+                String name="capture-"+id+"."+extension;store.begin(name,id,size,java.util.HexFormat.of().formatHex(hash.digest()));
+                try(InputStream input=new FileInputStream(staging)){
+                    byte[] buffer=new byte[FileTransferStore.MAX_CHUNK];int n;long offset=0;
+                    while((n=input.read(buffer))!=-1){fence.run();byte[] chunk=java.util.Arrays.copyOf(buffer,n);store.chunk(id,offset,chunk,FileTransferStore.digest(chunk));offset+=n;}
+                }
+                var done=store.finish(id);result=entry("workspace",done.file());
+            }catch(FileTransferStore.Failure e){error=e.code;}catch(ScopedUi.Refused e){error=e.code;}catch(Exception e){error="capture_import_failed";}
+            finally{if(staging!=null)staging.delete();if(locked)WORKSPACE_IO.unlock();IN_FLIGHT.decrementAndGet();}
+            JSONObject value=result;String failure=error;MAIN.post(()->{if(failure==null&&allowed.getAsBoolean())reply.success(value);else reply.error(failure==null?"permission_denied":failure);});
+        });}catch(RejectedExecutionException e){IN_FLIGHT.decrementAndGet();reply.error("file_busy");}
+    }
     private static JSONObject entry(String root, FileTransferStore.Entry e) throws Exception {
         return RelayApi.json("root", root, "path", e.path(), "name", e.name(), "kind", e.kind(), "size", e.size(),
                 "modified_ms", e.modified(), "version", e.version(), "sha256", e.sha256() == null ? JSONObject.NULL : e.sha256());
@@ -260,7 +293,7 @@ final class FileScopes {
         FileTransferStore store = root.equals("workspace") || a.startsWith("file_upload_") ? new FileTransferStore(base, fence, System::currentTimeMillis, directorySync()) : null;
         if (a.equals("file_roots")) {
             JSONArray roots = new JSONArray().put(RelayApi.json("root", "workspace", "name", "Airtap 工作目录", "kind", "workspace", "readable", true,
-                    "writable", true, "publication_atomic", true, "operations", new JSONArray(List.of("list", "stat", "read", "upload", "share"))));
+                    "writable", true, "publication_atomic", true, "operations", new JSONArray(List.of("list", "stat", "read", "upload", "share", "mkdir", "rename", "delete"))));
             SharedPreferences p = prefs(c,owner);
             if (owner.equals(p.getString("owner", ""))) {
                 boolean allowed = hasPermission(c, Uri.parse(p.getString("uri", "")));
@@ -320,6 +353,9 @@ final class FileScopes {
             onMain(()->{try{result[0]=WorkspaceShares.open(c,owner,q.getString("path"),q.getString("mime_type"),q.getString("target_package"),file,fence,shareAuthority);}catch(RuntimeException e){throw e;}catch(Exception e){throw new FileTransferStore.Failure("file_share_target_unavailable");}});
             return result[0];
         }
+        if(a.equals("file_mkdir"))return entry("workspace",store.mkdir(q.getString("path")));
+        if(a.equals("file_rename"))return entry("workspace",store.rename(q.getString("path"),q.getString("destination"),q.getString("version")));
+        if(a.equals("file_delete")){store.delete(q.getString("path"),q.getString("version"));return RelayApi.json("root","workspace","path",q.getString("path"),"deleted",true);}
         String path = q.getString("path"); Saf saf = root.equals("workspace") ? null : new Saf(c, owner, root, fence, signal);
         if (a.equals("file_stat")) return entry(root, saf == null ? store.stat(path, true) : saf.stat(path, true));
         if (a.equals("file_list")) {

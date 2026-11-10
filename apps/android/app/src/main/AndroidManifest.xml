@@ -5,6 +5,9 @@
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PROJECTION" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MICROPHONE" />
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
     <uses-permission android:name="android.permission.WAKE_LOCK" />
     <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />
     <queries>
@@ -19,16 +22,25 @@
         android:usesCleartextTraffic="false" android:supportsRtl="true" android:icon="@drawable/ic_launcher">
         <provider android:name=".WorkspaceShareProvider" android:authorities="${applicationId}.workspace-share"
             android:exported="false" android:grantUriPermissions="true" />
+        <provider android:name=".CaptureOutputProvider" android:authorities="${applicationId}.capture-output"
+            android:exported="false" android:grantUriPermissions="true" />
         <activity android:name=".MainActivity" android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+        <activity android:name=".MediaCaptureActivity" android:exported="false" android:excludeFromRecents="true" />
+        <service android:name=".ScreenCaptureService" android:exported="false" android:foregroundServiceType="mediaProjection" />
+        <service android:name=".AudioCaptureService" android:exported="false" android:foregroundServiceType="microphone" />
         <activity android:name=".FeedbackActivity" android:exported="false" />
         <activity android:name=".ScreenRecoveryActivity" android:exported="false"
             android:theme="@android:style/Theme.NoTitleBar"
             android:taskAffinity="" android:excludeFromRecents="true" android:noHistory="true" />
+        <service android:name=".NotificationEvents" android:label="Airtap 设备事件" android:exported="false"
+            android:permission="android.permission.BIND_NOTIFICATION_LISTENER_SERVICE">
+            <intent-filter><action android:name="android.service.notification.NotificationListenerService" /></intent-filter>
+        </service>
         <service android:name=".SessionService" android:exported="false" android:foregroundServiceType="specialUse">
             <property android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
                 android:value="Owner-approved persistent personal AI connection for phone interaction, with visible stop control." />

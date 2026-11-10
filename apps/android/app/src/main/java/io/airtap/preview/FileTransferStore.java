@@ -9,7 +9,7 @@ import java.util.*;
 
 /** Private per-pair workspace. No Android APIs; tests exercise the real filesystem and crash journal. */
 final class FileTransferStore {
-    static final int MAX_FILE = 8 * 1024 * 1024, MAX_CHUNK = 4096, MAX_ENTRIES = 4096;
+    static final int MAX_FILE = 64 * 1024 * 1024, MAX_CHUNK = 32768, MAX_ENTRIES = 4096;
     static final int MAX_UPLOADS = 4, MAX_RECORDS = 128;
     static final long TTL = 24 * 60 * 60 * 1000L;
     record Entry(String path, String name, String kind, long size, long modified, String version, String sha256) {}
@@ -104,6 +104,30 @@ final class FileTransferStore {
             }
         }
         entries.sort(Comparator.comparing(Entry::name)); return entries;
+    }
+    Entry mkdir(String relative) throws IOException {
+        Path target=path(relative,false); fence.run();
+        if(Files.exists(target,LinkOption.NOFOLLOW_LINKS))fail("file_exists");
+        if(!Files.isDirectory(target.getParent(),LinkOption.NOFOLLOW_LINKS))fail("file_parent_not_found");
+        if(list(target.getParent().equals(workspace)?"":workspace.relativize(target.getParent()).toString()).size()>=MAX_ENTRIES)fail("file_directory_too_large");
+        Files.createDirectory(target);directorySync.sync(target.getParent());return stat(relative,false);
+    }
+    Entry rename(String relative,String destination,String expected) throws IOException {
+        Path source=path(relative,false),target=path(destination,false);hash(expected);
+        Entry current=stat(relative,false);if(!current.version.equals(expected))fail("file_changed");
+        // Keep directory topology explicit. Use mkdir and move individual files instead.
+        if(!current.kind.equals("file"))fail("file_type_unsupported");
+        if(Files.exists(target,LinkOption.NOFOLLOW_LINKS))fail("file_exists");
+        if(!Files.isDirectory(target.getParent(),LinkOption.NOFOLLOW_LINKS))fail("file_parent_not_found");
+        fence.run();Files.move(source,target);directorySync.sync(source.getParent());directorySync.sync(target.getParent());
+        return stat(destination,false);
+    }
+    void delete(String relative,String expected) throws IOException {
+        Path target=path(relative,false);hash(expected);
+        if(!stat(relative,false).version.equals(expected))fail("file_changed");
+        fence.run(); // Files.delete refuses non-empty directories; never recursively remove a tree.
+        try { Files.delete(target); } catch(DirectoryNotEmptyException e) {fail("file_directory_not_empty");}
+        directorySync.sync(target.getParent());
     }
     Chunk read(String relative, long offset, int length, String expected) throws IOException {
         Path p = path(relative, false); Entry before = stat(relative, false);

@@ -52,12 +52,13 @@ public final class PreviewService extends AccessibilityService {
     private boolean grantRefreshInFlight;
     private final TaskLease tasks = new TaskLease(SystemClock::elapsedRealtime, new TaskLease.Effects() {
         public void invalidate() { invalidateTask(); }
-        public boolean quiescent() { return ui.quiescent() && FileScopes.quiescent(); }
+        public boolean quiescent() { return ui.quiescent() && FileScopes.quiescent() && MediaCapture.quiescent(); }
         public boolean approved(String claim) throws Exception { return !OwnerRevocations.allPending(PreviewService.this,config) && !OwnerRevocations.claimsPending(PreviewService.this,config).contains(claim) && remoteGrants.contains(claim) && new TrustedGrant(PreviewService.this).grant(config,claim) != null; }
         public void requireLease(String claim) throws Exception { new TrustedGrant(PreviewService.this).requireLease(config,claim); }
     });
-    private record CommandAuthority(String claim, String grantFence, TaskLease.Ticket ticket, WebSocket socket, int generation, boolean leased) {}
-    private void invalidateTask() { activeCommand=0; recovery.cancel();ui.clear();ui.cancelGestures();WorkspaceShares.revokeAll(this); }
+    private final SimPinInput simPinInput=new SimPinInput(this);
+    private record CommandAuthority(String claim, String grantFence, TaskLease.Ticket ticket, WebSocket socket, int generation, boolean leased, boolean events) {}
+    private void invalidateTask() { activeCommand=0; recovery.cancel();ui.clear();ui.cancelGestures();MediaCapture.invalidate();WorkspaceShares.revokeAll(this); }
     private void disconnectTask() { multiHello=false;if(helloTask!=null)main.removeCallbacks(helloTask);helloTask=null;tasks.disconnect(); }
     private boolean authorityCurrent(CommandAuthority authority) {
         if(authority==null||!current(authority.socket,authority.generation))return false;
@@ -67,6 +68,7 @@ public final class PreviewService extends AccessibilityService {
             if(OwnerRevocations.allPending(this,config)||OwnerRevocations.claimsPending(this,config).contains(authority.claim))return false;
             if(!multiMode)return true;
             if(!multiHello||!remoteGrants.contains(authority.claim))return false;
+            if(authority.events)return true;
             if(authority.leased)return tasks.current(authority.ticket);
             JSONObject grant=trust.grant(config,authority.claim);
             return tasks.idle()&&trust.grants(config).size()==1&&grant!=null&&!ServiceProtocol.bool(grant,"lease_required");
@@ -459,7 +461,7 @@ public final class PreviewService extends AccessibilityService {
                 });
             }
             @Override public void onMessage(WebSocket ws, String text) {
-                if (text.length() > 8192 || text.getBytes(StandardCharsets.UTF_8).length > 8192) {
+                if (text.length() > 66560 || text.getBytes(StandardCharsets.UTF_8).length > 66560) {
                     PreviewDiagnostics.event(PreviewService.this, PreviewDiagnostics.Event.socket_close_requested,
                             PreviewDiagnostics.Reason.request_too_large, 1009, run, socket == ws ? 1 : 0);
                     ws.close(1009, "request too large"); return;
@@ -704,20 +706,36 @@ public final class PreviewService extends AccessibilityService {
             long sequence = ServiceProtocol.integer(request, "sequence");
             if (!current(ws, run)) return;
             String grantFence=trust.grantFence(config,owner);
-            CommandAuthority authority=new CommandAuthority(owner,grantFence,ticket,ws,run,leased);
+            CommandAuthority authority=new CommandAuthority(owner,grantFence,ticket,ws,run,leased, java.util.Set.of("event_status","event_read").contains(request.optString("action")));
             if(grantFence==null||!authorityCurrent(authority))throw new ScopedUi.Refused("task_not_ready");
-            if (activeCommand != 0 || !ui.quiescent() || !FileScopes.quiescent()) { error(ws,id,"busy");return; }
+            if (activeCommand != 0 || !ui.admits(request.optString("action"),owner) || !FileScopes.quiescent()) { error(ws,id,"busy");return; }
             if(multiMode)trust.consume(config,owner,sequence);else trust.consume(config, sequence);
             if(!authorityCurrent(authority))throw new ScopedUi.Refused("task_not_ready");
             request.remove("sequence");
             String action = request.getString("action");
+            if (authority.events) {
+                if (leased) throw new ScopedUi.Refused("invalid_request");
+                if ("event_status".equals(action)) {
+                    if(request.length()!=2)throw new ScopedUi.Refused("invalid_request");
+                    success(ws,id,NotificationEvents.status(this));
+                } else {
+                    MultiAiProtocol.exact(request,"id","action","epoch","after","limit");
+                    String epoch=request.getString("epoch");
+                    long after=ServiceProtocol.integer(request,"after"),limit=ServiceProtocol.integer(request,"limit");
+                    if(!epoch.isEmpty()&&!epoch.matches("[a-f0-9]{32}")||after<0||after>TaskLease.MAX_INTEGER||limit<1||limit>16)throw new ScopedUi.Refused("invalid_request");
+                    JSONObject result=NotificationEvents.read(this,owner,request);
+                    if(!authorityCurrent(authority))throw new ScopedUi.Refused("permission_denied");
+                    success(ws,id,result);
+                }
+                return;
+            }
             if ("ping".equals(action)) {
                 if (request.length() != 2) throw new ScopedUi.Refused("invalid_request");
                 success(ws, id, RelayApi.json("authorized", true, "persistent", true, "all_apps", true, "allow_control", true,
                         "client", RelayApi.json("platform", "android", "version_name", BuildConfig.VERSION_NAME,
                                 "version_code", BuildConfig.VERSION_CODE, "build_type", BuildConfig.BUILD_TYPE),
                         "device_unlocked", ui.unlocked(), "screen_state", ui.screenState().wireName, "auto_wake", true,
-                        "capabilities", new org.json.JSONArray().put("companion_v1").put("paged_tree_v1").put("node_text_v1").put("screen_recovery_v1").put("atomic_input_v1").put("system_actions_v1").put("drag_v1").put("gesture_v1").put("semantic_node_v1").put("windows_v1").put("volume_v1").put("files_v1").put("file_share_v1"),
+                        "capabilities", new org.json.JSONArray().put("companion_v1").put("paged_tree_v1").put("node_text_v1").put("screen_recovery_v1").put("atomic_input_v1").put("system_actions_v1").put("drag_v1").put("gesture_v1").put("semantic_node_v1").put("windows_v1").put("volume_v1").put("files_v1").put("file_share_v1").put("notification_events_v1").put("touch_session_v1").put("media_capture_v1").put("sim_pin_keypad_v1"),
                         "observation_limits", RelayApi.json("max_inspected_nodes", PagedTree.MAX_NODES, "max_capture_bytes", PagedTree.MAX_CAPTURE_BYTES,
                                 "max_page_nodes", PagedTree.MAX_PAGE_NODES, "max_page_bytes", TreeReadBudget.MAX_BYTES, "max_text_chunk_utf16", ObservedText.MAX_CHUNK_UTF16, "snapshot_ttl_ms", 30000),
                         "gesture_limits", RelayApi.json("max_tracks", GesturePlan.trackLimit(android.accessibilityservice.GestureDescription.getMaxStrokeCount()),
@@ -726,7 +744,16 @@ public final class PreviewService extends AccessibilityService {
                 return;
             }
             if (activeCommand != 0) { error(ws, id, "busy"); return; }
-            ui.validateRequest(request);
+            if("media_status".equals(action)||"media_stop".equals(action)){
+                MultiAiProtocol.exact(request,"id","action","capture_id");
+                String captureId=request.getString("capture_id");if(!captureId.matches("[a-f0-9]{32}"))throw new ScopedUi.Refused("invalid_request");
+                success(ws,id,"media_status".equals(action)?MediaCapture.status(owner,captureId):MediaCapture.stop(owner,captureId));return;
+            }
+            if("sim_pin_prepare".equals(action)){
+                MultiAiProtocol.exact(request,"id","action");success(ws,id,simPinInput.prepare(owner));return;
+            }
+            if(!"sim_pin_submit".equals(action))ui.validateRequest(request);
+            else MultiAiProtocol.exact(request,"id","action","challenge","pin");
             long command = ++commandSerial; activeCommand = command;
             String requestId = id;
             java.util.function.BooleanSupplier commandCurrent = () -> authorityCurrent(authority) && activeCommand == command;
@@ -739,6 +766,7 @@ public final class PreviewService extends AccessibilityService {
                 public void success(JSONObject value) { if (finish()) PreviewService.this.success(ws, requestId, value); }
                 public void error(String code) { if (finish()) PreviewService.this.error(ws, requestId, code); }
             };
+            if("sim_pin_submit".equals(action)){try{simPinInput.submit(owner,request,commandCurrent,reply);}catch(ScopedUi.Refused e){reply.error(e.code);}catch(Exception e){reply.error("invalid_request");}return;}
             recovery.prepare(commandCurrent, new ScreenPreparation.Completion() {
                 @Override public void ready(boolean recovered) {
                     if (!commandCurrent.getAsBoolean()) return;

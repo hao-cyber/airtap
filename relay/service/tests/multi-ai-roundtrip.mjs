@@ -264,6 +264,20 @@ try {
     await ok(x.base+'/v1/device/grants/revoke',x.token,{claim_id:controller.claim});
     assert.deepEqual(await ok(x.base+'/v1/device/pairing',x.token),stopped);
   });
+  await check('event reads retain claim isolation and do not acquire or steal another AI lease',async()=>{
+    const x=await enroll(),first=await single(x);await ok(x.base+'/v1/device/multi/enable',x.token,migration(first.claim));const device=await phone(x);
+    const task=await ok(x.base+'/v1/tasks/acquire',first.token,{task_id:hex(16)});
+    const ticket=hex(16);await ok(x.base+'/v1/device/invitations',x.token,{invitation_id:hex(16),invitation_sequence:1,ticket});
+    const other={token:hex(32)};other.claim=(await ok(x.base+'/v1/pair',null,{ticket,controller_token:other.token,name:'Event consumer',capabilities:['task_lease_v1']})).claim_id;
+    await ok(x.base+'/v1/device/grants/approve',x.token,approval(other.claim));
+    const read={id:crypto.randomUUID(),action:'event_read',sequence:1,epoch:'',after:0,limit:16};
+    await ok(x.base+'/v1/command',other.token,read);assert.equal(device.messages.at(-1).claim_id,other.claim);assert.equal(device.messages.at(-1).lease_id,null);
+    assert.equal((await ok(x.base+'/v1/status',first.token)).task.lease_id,task.lease_id);
+    await denied(x.base+'/v1/command',other.token,{...read,id:crypto.randomUUID(),sequence:2,lease_id:task.lease_id,lease_epoch:task.lease_epoch},400,'invalid_command');
+    await denied(x.base+'/v1/command',other.token,{...read,id:crypto.randomUUID(),sequence:2,claim_id:first.claim},400,'invalid_command');
+    await ok(x.base+'/v1/device/grants/revoke',x.token,{claim_id:other.claim});
+    await denied(x.base+'/v1/command',other.token,{...read,id:crypto.randomUUID(),sequence:2},401,'unauthorized');device.ws.close();
+  });
   await check('explicit migration preserves token claim sequence and blocks second invitation before handshake', async () => {
     const s = await ok(d.base + '/v1/device/multi/enable', d.token, migration(a.claim));
     assert.equal(s.grants.length, 1); assert.equal(s.grants[0].claim_id, a.claim); assert.equal(s.grants[0].command_sequence, 7); assert.equal(s.grants[0].lease_required, false);

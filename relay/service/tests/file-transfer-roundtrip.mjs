@@ -44,7 +44,7 @@ const backend = await mf.ready;
 const edge = createServer(async (request, response) => {
   try {
     const chunks = []; let size = 0;
-    for await (const chunk of request) { size += chunk.length; if (size > 8192) throw new Error('test input limit'); chunks.push(chunk); }
+    for await (const chunk of request) { size += chunk.length; if (size > 66560) throw new Error('test input limit'); chunks.push(chunk); }
     const headers = { ...request.headers, 'cf-connecting-ip': '127.0.0.1', connection: 'close' }; delete headers.host; delete headers['transfer-encoding'];
     const upstream = await fetch(new URL(request.url, backend), { method: request.method, headers,
       ...(chunks.length ? { body: Buffer.concat(chunks) } : {}), signal: AbortSignal.timeout(20000) });
@@ -124,15 +124,16 @@ async function mcp(method, params, token = controller, extraHeaders = {}) {
 // This mock validates client/protocol behavior, not Android filesystem guarantees.
 const files = new Map(), transfers = new Map();
 const safRoot='saf_'+hex(16), readOnlyRoot='saf_'+hex(16);
-let corruptChunk = false, dropChunkOnce = false, publicationPause = false, publicationUnknown = false, publicationNameConflict = false, externalCreates = 0;
+let corruptChunk = false, failReadOnce = false, dropChunkOnce = false, publicationPause = false, publicationUnknown = false, publicationNameConflict = false, externalCreates = 0;
 const metadata = (root, path, data) => ({ root, path, name: path.split('/').at(-1), kind:'file', size:data.length, modified_ms:1, version:digest(data), sha256:digest(data) });
 function fileResponse(cmd) {
   const key = cmd.root + '/' + cmd.path;
-  if (cmd.action === 'file_roots') return {roots:[{root:'workspace',name:'Workspace',kind:'workspace',readable:true,writable:true,publication_atomic:true,operations:['list','stat','read','upload']},{root:safRoot,name:'Selected writable directory',kind:'saf',readable:true,writable:true,publication_atomic:false,operations:['list','stat','read','upload']},{root:readOnlyRoot,name:'Selected read-only directory',kind:'saf',readable:true,writable:false,publication_atomic:false,operations:['list','stat','read']}],limits:{max_file_bytes:8388608,max_chunk_bytes:4096,max_list_entries:64,max_uploads:4,upload_ttl_ms:86400000}};
+  if (cmd.action === 'file_roots') return {roots:[{root:'workspace',name:'Workspace',kind:'workspace',readable:true,writable:true,publication_atomic:true,operations:['list','stat','read','upload']},{root:safRoot,name:'Selected writable directory',kind:'saf',readable:true,writable:true,publication_atomic:false,operations:['list','stat','read','upload']},{root:readOnlyRoot,name:'Selected read-only directory',kind:'saf',readable:true,writable:false,publication_atomic:false,operations:['list','stat','read']}],limits:{max_file_bytes:67108864,max_chunk_bytes:32768,max_list_entries:64,max_uploads:4,upload_ttl_ms:86400000}};
   if (cmd.action === 'file_list') return {root:cmd.root,path:cmd.path,entries:[...files].filter(([k])=>k.startsWith(cmd.root+'/')).map(([k,v])=>metadata(cmd.root,k.slice(cmd.root.length+1),v)),next_offset:null,truncated:false};
   if(cmd.action==='file_share'){if(!files.has(key))throw Error('file_not_found');if(digest(files.get(key))!==cmd.version)throw Error('file_changed');return {accepted:true,share_id:hex(16),root:cmd.root,path:cmd.path,mime_type:cmd.mime_type,target_package:cmd.target_package||null,expires_in_ms:300000,read_only:true,chooser_requested:true,delivery_verified:false,requires_observation:true};}
   if (cmd.action === 'file_stat') { if(!files.has(key)) throw Error('file_not_found'); return metadata(cmd.root,cmd.path,files.get(key)); }
   if (cmd.action === 'file_read') {
+    if(failReadOnce&&cmd.offset===32768){failReadOnce=false;throw Error('file_provider_timeout');}
     const data=files.get(key);if(!data) throw Error('file_not_found'); if(digest(data)!==cmd.version) throw Error('file_version_changed');
     const chunk=data.subarray(cmd.offset,cmd.offset+cmd.length);
     return {root:cmd.root,path:cmd.path,offset:cmd.offset,next_offset:cmd.offset+chunk.length,data_base64:chunk.toString('base64'),sha256:corruptChunk?'0'.repeat(64):digest(chunk),eof:cmd.offset+chunk.length===data.length,size:data.length,version:digest(data)};
@@ -202,7 +203,7 @@ try {
       assert.equal(tool.annotations.readOnlyHint,['roots','list','stat','read','upload_status'].includes(action));
     }
   });
-  const bytes=Buffer.concat([randomBytes(9200),Buffer.from('中文 🫶 fixture')]);
+  const bytes=Buffer.concat([randomBytes(92000),Buffer.from('中文 🫶 fixture')]);
   const input=join(temp,'input.bin');await writeFile(input,bytes);
   let transfer;
   await check('real CLI upload/download verify multi-chunk binary with no base64 stdout',async()=>{
@@ -245,10 +246,10 @@ try {
       ['file_roots',{path:''}],['file_stat',{root:'workspace',path:'../private'}],['file_stat',{root:'workspace',path:'/etc/passwd'}],
       ['file_stat',{root:'workspace',path:'a//b'}],['file_stat',{root:'workspace',path:'a\\b'}],['file_stat',{root:'workspace',path:'content://x'}],
       ['file_stat',{root:'private',path:'x'}],['file_stat',{root:'workspace',path:'x/'+'.'.repeat(2)}],['file_list',{root:'workspace',path:'',offset:-1,limit:64}],
-      ['file_list',{root:'workspace',path:'',offset:4097,limit:1}],['file_read',{...read,length:4097}],['file_read',{...read,offset:true}],['file_read',{...read,version:'bad'}],['file_read',{...read,url:'https://example.test/file'}],
-      ['file_upload_begin',{...begin,root:'saf_bad'}],['file_upload_begin',{...begin,size:8388609}],['file_upload_begin',{...begin,overwrite:true}],
+      ['file_list',{root:'workspace',path:'',offset:4097,limit:1}],['file_read',{...read,length:32769}],['file_read',{...read,offset:true}],['file_read',{...read,version:'bad'}],['file_read',{...read,url:'https://example.test/file'}],
+      ['file_upload_begin',{...begin,root:'saf_bad'}],['file_upload_begin',{...begin,size:67108865}],['file_upload_begin',{...begin,overwrite:true}],
       ['file_upload_chunk',{...chunk,data_base64:'YQ'}],['file_upload_chunk',{...chunk,data_base64:'YR=='}],['file_upload_chunk',{...chunk,data_base64:'YQ==\n'}],
-      ['file_upload_chunk',{...chunk,data_base64:Buffer.alloc(4097).toString('base64')}],['file_upload_chunk',{...chunk,offset:8388608}],
+      ['file_upload_chunk',{...chunk,data_base64:Buffer.alloc(32769).toString('base64')}],['file_upload_chunk',{...chunk,offset:67108864}],
       ['file_upload_chunk',{...chunk,sha256:'A'.repeat(64)}],['file_upload_status',{transfer_id:'x'}],['file_upload_finish',{transfer_id:transfer,path:'other'}]
     ];
     const before=seenCommands.length;
@@ -276,7 +277,16 @@ try {
     const saved=JSON.parse(await readFile(config));assert.equal(saved.last_file_upload.transfer_id,failed.transfer_id);
     const stopped=seenCommands.length;assert.deepEqual(seenCommands.slice(before).map(x=>x.action),['file_upload_begin','file_upload_chunk']);
     const resumed=await python(['file-upload','--root','workspace','--path','resume.bin','--input',input]);
-    assert.equal(seenCommands[stopped].action,'file_upload_status');assert.equal(seenCommands[stopped+1].offset,4096);assert.equal(resumed.result.state,'finished');assert.deepEqual(files.get('workspace/resume.bin'),bytes);
+    assert.equal(seenCommands[stopped].action,'file_upload_status');assert.equal(seenCommands[stopped+1].offset,32768);assert.equal(resumed.result.state,'finished');assert.deepEqual(files.get('workspace/resume.bin'),bytes);
+  });
+  await check('a new CLI process resumes a verified download partial without downloading the first chunk again',async()=>{
+    const output=join(temp,'resumed-download.bin');failReadOnce=true;
+    const stopped=await python(['file-download','--root','workspace','--path','sample.bin','--output',output],'',1);
+    assert.equal(stopped.error,'file_provider_timeout');await assert.rejects(stat(output));
+    const before=seenCommands.length;
+    await python(['file-download','--root','workspace','--path','sample.bin','--output',output]);
+    assert.deepEqual(await readFile(output),bytes);
+    assert.equal(seenCommands.slice(before).find(c=>c.action==='file_read').offset,32768);
   });
   await check('empty file and same-transfer abort/finish idempotence',async()=>{
     const empty=join(temp,'empty.bin');await writeFile(empty,Buffer.alloc(0));

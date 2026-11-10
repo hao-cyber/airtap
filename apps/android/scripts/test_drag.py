@@ -54,12 +54,12 @@ def main():
     jdk = Path(os.environ.get('JAVA_HOME', '/Applications/Android Studio.app/Contents/jbr/Contents/Home')) / 'bin'
     with tempfile.TemporaryDirectory(prefix='airtap-drag-') as directory:
         temp = Path(directory)
-        sources = [JAVA / 'DragPlan.java', JAVA / 'GesturePlan.java', JAVA / 'TouchGesture.java', ROOT / 'tests/DragGestureTest.java', ROOT / 'tests/TouchGestureTest.java']
+        sources = [JAVA / 'DragPlan.java', JAVA / 'GesturePlan.java', JAVA / 'TouchGesture.java', JAVA / 'TouchSession.java', ROOT / 'tests/TouchSessionTest.java', ROOT / 'tests/DragGestureTest.java', ROOT / 'tests/TouchGestureTest.java']
         for name, value in FAKES.items():
             path = temp / name; path.parent.mkdir(parents=True, exist_ok=True); path.write_text(value); sources.append(path)
         subprocess.run([str(jdk / 'javac'), '--release', '17', '-d', str(temp), *map(str, sources)], check=True, timeout=30)
         output = ''
-        for test in ('DragGestureTest', 'TouchGestureTest'):
+        for test in ('DragGestureTest', 'TouchGestureTest', 'TouchSessionTest'):
             result = subprocess.run([str(jdk / 'java'), '-cp', str(temp), 'io.airtap.preview.' + test], text=True, capture_output=True, timeout=30)
             if result.returncode:
                 raise SystemExit(result.stdout + result.stderr)

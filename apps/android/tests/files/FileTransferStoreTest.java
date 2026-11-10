@@ -32,6 +32,19 @@ public class FileTransferStoreTest {
             while(at<data.length){var chunk=s.read(done.path(),at,4096,stat.version());output.write(chunk.data());at=chunk.next();}
             eq(hash(output.toByteArray()),hash(data));eq(s.list("").size(),1);
         });
+        test("version-fenced workspace create rename delete and nonempty refusal", () -> {
+            FileTransferStore s=store(fresh());s.mkdir("folder");var file=upload(s,"folder/a",bytes("content"));
+            refused("file_changed",()->s.rename("folder/a","folder/b","a".repeat(64)));
+            var renamed=s.rename("folder/a","folder/b",file.file().version());eq(s.stat("folder/b",true).sha256(),hash(bytes("content")));
+            refused("file_not_found",()->s.stat("folder/a",false));
+            refused("file_directory_not_empty",()->s.delete("folder",s.stat("folder",false).version()));
+            s.delete("folder/b",renamed.version());s.delete("folder",s.stat("folder",false).version());eq(s.list("").size(),0);
+        });
+        test("new file and chunk bounds accept a file above old eight MiB limit",()->{
+            FileTransferStore s=store(fresh());byte[] data=new byte[9*1024*1024+17];new Random(8).nextBytes(data);String id=id();s.begin("large",id,data.length,hash(data));
+            for(int offset=0;offset<data.length;offset+=32768){byte[] chunk=Arrays.copyOfRange(data,offset,Math.min(data.length,offset+32768));s.chunk(id,offset,chunk,hash(chunk));}
+            eq(s.finish(id).file().sha256(),hash(data));refused("invalid_request",()->s.begin("oversize",id(),64L*1024*1024+1,hash(new byte[0])));
+        });
         test("empty upload supports stable repeated finish", () -> {
             FileTransferStore s=store(fresh());var done=upload(s,"empty",new byte[0]);eq(s.finish(done.id()),done);eq(s.stat("empty",true).size(),0L);
         });

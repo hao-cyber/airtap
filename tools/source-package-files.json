@@ -1,8 +1,8 @@
 {
   "allowlist_path": "tools/source-package-files.json",
-  "android_version": "0.4.0-beta.34",
-  "archive_root": "airtap-source-0.4.0-beta.34-code64",
-  "cli_version": "0.4.0-cli.15",
+  "android_version": "0.4.0-beta.35",
+  "archive_root": "airtap-source-0.4.0-beta.35-code65",
+  "cli_version": "0.4.0-cli.16",
   "closure_policy": "airtap-source-closure-v1",
   "files": [
     {
@@ -59,11 +59,19 @@
     },
     {
       "kind": "source",
+      "path": "apps/android/app/src/main/java/io/airtap/preview/AudioCaptureService.java"
+    },
+    {
+      "kind": "source",
       "path": "apps/android/app/src/main/java/io/airtap/preview/AudioVolume.java"
     },
     {
       "kind": "source",
       "path": "apps/android/app/src/main/java/io/airtap/preview/BrowserUrl.java"
+    },
+    {
+      "kind": "source",
+      "path": "apps/android/app/src/main/java/io/airtap/preview/CaptureOutputProvider.java"
     },
     {
       "kind": "source",
@@ -92,6 +100,10 @@
     {
       "kind": "source",
       "path": "apps/android/app/src/main/java/io/airtap/preview/EnrollmentStore.java"
+    },
+    {
+      "kind": "source",
+      "path": "apps/android/app/src/main/java/io/airtap/preview/EventWindow.java"
     },
     {
       "kind": "source",
@@ -159,6 +171,14 @@
     },
     {
       "kind": "source",
+      "path": "apps/android/app/src/main/java/io/airtap/preview/MediaCapture.java"
+    },
+    {
+      "kind": "source",
+      "path": "apps/android/app/src/main/java/io/airtap/preview/MediaCaptureActivity.java"
+    },
+    {
+      "kind": "source",
       "path": "apps/android/app/src/main/java/io/airtap/preview/MigrationRecovery.java"
     },
     {
@@ -176,6 +196,10 @@
     {
       "kind": "source",
       "path": "apps/android/app/src/main/java/io/airtap/preview/NodeFieldSlices.java"
+    },
+    {
+      "kind": "source",
+      "path": "apps/android/app/src/main/java/io/airtap/preview/NotificationEvents.java"
     },
     {
       "kind": "source",
@@ -243,6 +267,10 @@
     },
     {
       "kind": "source",
+      "path": "apps/android/app/src/main/java/io/airtap/preview/ScreenCaptureService.java"
+    },
+    {
+      "kind": "source",
       "path": "apps/android/app/src/main/java/io/airtap/preview/ScreenPreparation.java"
     },
     {
@@ -283,6 +311,10 @@
     },
     {
       "kind": "source",
+      "path": "apps/android/app/src/main/java/io/airtap/preview/SimPinInput.java"
+    },
+    {
+      "kind": "source",
       "path": "apps/android/app/src/main/java/io/airtap/preview/SnapshotDiagnostics.java"
     },
     {
@@ -308,6 +340,10 @@
     {
       "kind": "source",
       "path": "apps/android/app/src/main/java/io/airtap/preview/TouchGesture.java"
+    },
+    {
+      "kind": "source",
+      "path": "apps/android/app/src/main/java/io/airtap/preview/TouchSession.java"
     },
     {
       "kind": "source",
@@ -421,6 +457,14 @@
     },
     {
       "kind": "source",
+      "path": "apps/android/scripts/test_events.py"
+    },
+    {
+      "kind": "source",
+      "path": "apps/android/scripts/test_extensions_emulator.py"
+    },
+    {
+      "kind": "source",
       "path": "apps/android/scripts/test_feedback.py"
     },
     {
@@ -485,6 +529,10 @@
     },
     {
       "kind": "source",
+      "path": "apps/android/scripts/test_sim_pin.py"
+    },
+    {
+      "kind": "source",
       "path": "apps/android/scripts/test_task_lease.py"
     },
     {
@@ -517,11 +565,19 @@
     },
     {
       "kind": "source",
+      "path": "apps/android/tests/SimPinInputTest.java"
+    },
+    {
+      "kind": "source",
       "path": "apps/android/tests/TaskLeaseTest.java"
     },
     {
       "kind": "source",
       "path": "apps/android/tests/TouchGestureTest.java"
+    },
+    {
+      "kind": "source",
+      "path": "apps/android/tests/TouchSessionTest.java"
     },
     {
       "kind": "source",
@@ -554,6 +610,26 @@
     {
       "kind": "source",
       "path": "apps/android/tests/atomicinput/platform_fakes.py"
+    },
+    {
+      "kind": "source",
+      "path": "apps/android/tests/events/EventWindowTest.java"
+    },
+    {
+      "kind": "source",
+      "path": "apps/android/tests/extensions/emulator/AndroidManifest.xml"
+    },
+    {
+      "kind": "source",
+      "path": "apps/android/tests/extensions/emulator/res/values/strings.xml"
+    },
+    {
+      "kind": "source",
+      "path": "apps/android/tests/extensions/emulator/src/test/extensions/ExtensionActivity.java"
+    },
+    {
+      "kind": "source",
+      "path": "apps/android/tests/extensions/emulator/src/test/extensions/ExtensionRunner.java"
     },
     {
       "kind": "source",
@@ -800,6 +876,10 @@
       "path": "docs/companion-upgrade-plan.md"
     },
     {
+      "path": "docs/design/device-capability-expansion.md",
+      "kind": "source"
+    },
+    {
       "kind": "document",
       "path": "docs/feedback-design.md"
     },
@@ -960,20 +1040,20 @@
       "path": "docs/results/beta33-code63-muse-two-devices-20261110.json"
     },
     {
-      "path": "docs/results/beta33-code63-publication-20261110.json",
-      "kind": "result"
+      "kind": "result",
+      "path": "docs/results/beta33-code63-publication-20261110.json"
     },
     {
-      "path": "docs/results/beta33-code63-short-invitations-20261110.json",
-      "kind": "result"
+      "kind": "result",
+      "path": "docs/results/beta33-code63-short-invitations-20261110.json"
     },
     {
       "kind": "result",
       "path": "docs/results/beta34-code64-muse-upgrade-20261110.json"
     },
     {
-      "path": "docs/results/beta34-code64-pairing-journey-20261110.json",
-      "kind": "result"
+      "kind": "result",
+      "path": "docs/results/beta34-code64-pairing-journey-20261110.json"
     },
     {
       "kind": "result",
@@ -986,6 +1066,10 @@
     {
       "kind": "result",
       "path": "docs/results/beta34-code64-two-ai-20261110.json"
+    },
+    {
+      "path": "docs/results/beta35-code65-capabilities-20261110.json",
+      "kind": "source"
     },
     {
       "kind": "result",
@@ -1325,6 +1409,10 @@
     },
     {
       "kind": "source",
+      "path": "relay/service/tests/test_jobs_events.py"
+    },
+    {
+      "kind": "source",
       "path": "relay/service/tests/test_open_url.py"
     },
     {
@@ -1533,6 +1621,6 @@
   "protocol_version": 4,
   "schema": "airtap-source-allowlist-v1",
   "scope": "Reviewed current Android, CLI, relay, site, build, CI and test source closure. No Git history, credentials, private deployment state, APK, or raw phone evidence. Historical acceptance retains its original version and scope; a source ZIP is not public release approval.",
-  "version": "0.4.0-beta.34-code64",
-  "version_code": 64
+  "version": "0.4.0-beta.35-code65",
+  "version_code": 65
 }
