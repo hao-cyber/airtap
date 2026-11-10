@@ -15,7 +15,7 @@ import time
 ROOT = Path(__file__).resolve().parents[1]
 HOST_SCRIPTS = (
     'test_observation_pages', 'test_atomic_input', 'test_drag', 'test_semantic_nodes', 'test_windows', 'test_session_screen', 'test_session_recovery_gate', 'test_screen_recovery_activity',
-    'test_events', 'test_sim_pin', 'test_audio_volume', 'test_file_transfer', 'test_approval_recovery',
+    'test_battery_state', 'test_events', 'test_sim_pin', 'test_audio_volume', 'test_file_transfer', 'test_approval_recovery',
     'test_approval_scheduling', 'test_task_lease', 'test_multi_ai_control', 'test_multi_ai_migration', 'test_multi_file_scopes',
     'test_enrollment_record_limits', 'test_maintenance_diagnostics', 'test_owner_revocations', 'test_setup_recovery', 'test_tls_policy', 'test_feedback', 'test_invitation_feedback',
 )
@@ -96,8 +96,10 @@ def commands(suite, output, install_deps):
         elif not (ROOT / 'relay/worker/node_modules/miniflare/package.json').is_file():
             raise ValueError('Dependencies missing: rerun with --install-deps to use the existing npm lockfile.')
         for name in PROTOCOL_SCRIPTS:
+            # This suite also waits for a real 120s lease and 30s release recovery.
+            timeout = 420 if name == 'multi-ai-roundtrip' else 240
             steps.append((name, ['node', str(ROOT / 'relay/service/tests' / (name + '.mjs')),
-                                '--output', str(output / (name + '.json'))], ROOT, 240))
+                                '--output', str(output / (name + '.json'))], ROOT, timeout))
         steps.append(('multi-ai-state', ['node', '--test', str(ROOT / 'relay/service/tests/multi-ai-state.test.mjs')], ROOT, 60))
     if suite in ('android', 'all'):
         steps.append(('android-compile-lint', ['sh', './gradlew', '--no-daemon', '--console=plain',

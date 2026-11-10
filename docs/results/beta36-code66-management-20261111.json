@@ -1,0 +1,469 @@
+{
+  "schema": "airtap-remote-connections-validation-v1",
+  "date": "2026-11-11",
+  "candidate": {
+    "android_version": "0.4.0-beta.36",
+    "version_code": 66,
+    "cli_version": "0.4.0-cli.17"
+  },
+  "scope": "Local host tests and workerd; not phone, personal-AI or deployed-service acceptance.",
+  "core": {
+    "completed": true,
+    "passed": true,
+    "steps": [
+      {
+        "step": "source-closure",
+        "exit_code": 0,
+        "seconds": 0.077
+      },
+      {
+        "step": "python-source-package",
+        "exit_code": 0,
+        "seconds": 5.066
+      },
+      {
+        "step": "test_observation_pages",
+        "exit_code": 0,
+        "seconds": 0.665
+      },
+      {
+        "step": "test_atomic_input",
+        "exit_code": 0,
+        "seconds": 0.778
+      },
+      {
+        "step": "test_drag",
+        "exit_code": 0,
+        "seconds": 0.831
+      },
+      {
+        "step": "test_semantic_nodes",
+        "exit_code": 0,
+        "seconds": 0.616
+      },
+      {
+        "step": "test_windows",
+        "exit_code": 0,
+        "seconds": 0.612
+      },
+      {
+        "step": "test_session_screen",
+        "exit_code": 0,
+        "seconds": 0.877
+      },
+      {
+        "step": "test_session_recovery_gate",
+        "exit_code": 0,
+        "seconds": 0.551
+      },
+      {
+        "step": "test_screen_recovery_activity",
+        "exit_code": 0,
+        "seconds": 0.772
+      },
+      {
+        "step": "test_battery_state",
+        "exit_code": 0,
+        "seconds": 0.555
+      },
+      {
+        "step": "test_events",
+        "exit_code": 0,
+        "seconds": 0.503
+      },
+      {
+        "step": "test_sim_pin",
+        "exit_code": 0,
+        "seconds": 0.616
+      },
+      {
+        "step": "test_audio_volume",
+        "exit_code": 0,
+        "seconds": 0.67
+      },
+      {
+        "step": "test_file_transfer",
+        "exit_code": 0,
+        "seconds": 3.091
+      },
+      {
+        "step": "test_approval_recovery",
+        "exit_code": 0,
+        "seconds": 0.999
+      },
+      {
+        "step": "test_approval_scheduling",
+        "exit_code": 0,
+        "seconds": 1.0
+      },
+      {
+        "step": "test_task_lease",
+        "exit_code": 0,
+        "seconds": 0.514
+      },
+      {
+        "step": "test_multi_ai_control",
+        "exit_code": 0,
+        "seconds": 1.099
+      },
+      {
+        "step": "test_multi_ai_migration",
+        "exit_code": 0,
+        "seconds": 0.772
+      },
+      {
+        "step": "test_multi_file_scopes",
+        "exit_code": 0,
+        "seconds": 0.776
+      },
+      {
+        "step": "test_enrollment_record_limits",
+        "exit_code": 0,
+        "seconds": 0.727
+      },
+      {
+        "step": "test_maintenance_diagnostics",
+        "exit_code": 0,
+        "seconds": 0.828
+      },
+      {
+        "step": "test_owner_revocations",
+        "exit_code": 0,
+        "seconds": 0.783
+      },
+      {
+        "step": "test_setup_recovery",
+        "exit_code": 0,
+        "seconds": 0.716
+      },
+      {
+        "step": "test_tls_policy",
+        "exit_code": 0,
+        "seconds": 0.729
+      },
+      {
+        "step": "test_feedback",
+        "exit_code": 0,
+        "seconds": 0.661
+      },
+      {
+        "step": "test_invitation_feedback",
+        "exit_code": 0,
+        "seconds": 0.559
+      },
+      {
+        "step": "connection-closing",
+        "exit_code": 0,
+        "seconds": 0.782
+      },
+      {
+        "step": "python-service",
+        "exit_code": 0,
+        "seconds": 11.336
+      },
+      {
+        "step": "python-site",
+        "exit_code": 0,
+        "seconds": 0.346
+      },
+      {
+        "step": "npm-ci",
+        "exit_code": 0,
+        "seconds": 1.087
+      },
+      {
+        "step": "companion-roundtrip",
+        "exit_code": 0,
+        "seconds": 32.535
+      },
+      {
+        "step": "file-transfer-roundtrip",
+        "exit_code": 0,
+        "seconds": 7.052
+      },
+      {
+        "step": "usage-storage",
+        "exit_code": 0,
+        "seconds": 0.613
+      },
+      {
+        "step": "relay-scale",
+        "exit_code": 0,
+        "seconds": 1.694
+      },
+      {
+        "step": "pair-recovery",
+        "exit_code": 0,
+        "seconds": 1.967
+      },
+      {
+        "step": "feedback-roundtrip",
+        "exit_code": 0,
+        "seconds": 1.465
+      },
+      {
+        "step": "invitation-artifacts",
+        "exit_code": 0,
+        "seconds": 0.5
+      },
+      {
+        "step": "invitation-codes",
+        "exit_code": 0,
+        "seconds": 1.733
+      },
+      {
+        "step": "multi-ai-roundtrip",
+        "exit_code": 0,
+        "seconds": 22.072
+      },
+      {
+        "step": "tenant-isolation",
+        "exit_code": 0,
+        "seconds": 0.612
+      },
+      {
+        "step": "multi-ai-state",
+        "exit_code": 0,
+        "seconds": 0.236
+      }
+    ]
+  },
+  "targeted_after_core": {
+    "owner_cancel_control": {
+      "passed": 76,
+      "scope": "Repeat host control suite after owner-side cancellation cleanup change"
+    },
+    "delegator_revocation_control": {
+      "passed": 77
+    },
+    "approval_recovery": {
+      "passed": 142
+    },
+    "source_package": {
+      "passed": 15
+    },
+    "site_copy_tests": {
+      "passed": 35
+    },
+    "relay_state": {
+      "passed": 33
+    },
+    "android_task_lease": {
+      "passed": 54
+    },
+    "workerd_management": {
+      "ok": true,
+      "scope": "local production relay synthetic roundtrip, not Android or personal-AI acceptance",
+      "checks": [
+        {
+          "name": "delegated approval respects inviter revocation: revoked inviter cannot approve",
+          "ok": true,
+          "elapsed_ms": 103
+        },
+        {
+          "name": "delegated approval respects inviter revocation: completed child survives exact recovery",
+          "ok": true,
+          "elapsed_ms": 45
+        },
+        {
+          "name": "pending grant cancellation prevents late approval: revoke then approve",
+          "ok": true,
+          "elapsed_ms": 43
+        },
+        {
+          "name": "pending grant cancellation prevents late approval: approve then revoke",
+          "ok": true,
+          "elapsed_ms": 39
+        },
+        {
+          "name": "remote connection management uses full grants, leases and exact command shapes",
+          "ok": true,
+          "elapsed_ms": 52
+        },
+        {
+          "name": "CLI and MCP expose remote connection management without implicit screen actions",
+          "ok": true,
+          "elapsed_ms": 902
+        },
+        {
+          "name": "credential restore requires a fresh task instead of adopting the same claim old lease",
+          "ok": true,
+          "elapsed_ms": 1335
+        },
+        {
+          "name": "credential restore requires a fresh task after another claim and a lost acquire reply",
+          "ok": true,
+          "elapsed_ms": 1717
+        },
+        {
+          "name": "old single wire and sequence remain unchanged",
+          "ok": true,
+          "elapsed_ms": 16
+        },
+        {
+          "name": "old single owner stop retains empty-body behavior",
+          "ok": true,
+          "elapsed_ms": 14
+        },
+        {
+          "name": "delayed migration and claim-scoped stop cannot change a later single pairing",
+          "ok": true,
+          "elapsed_ms": 30
+        },
+        {
+          "name": "claim-scoped owner stop revokes the matching single and exact retry is harmless",
+          "ok": true,
+          "elapsed_ms": 26
+        },
+        {
+          "name": "event reads retain claim isolation and do not acquire or steal another AI lease",
+          "ok": true,
+          "elapsed_ms": 31
+        },
+        {
+          "name": "explicit migration preserves token claim sequence and blocks second invitation before handshake",
+          "ok": true,
+          "elapsed_ms": 18
+        },
+        {
+          "name": "acquire ACK creates lease and permanently closes unleased path",
+          "ok": true,
+          "elapsed_ms": 10
+        },
+        {
+          "name": "independent invitation opt-in approval leaves A task and credentials intact",
+          "ok": true,
+          "elapsed_ms": 17
+        },
+        {
+          "name": "same-phone feedback remains private to each independent grant",
+          "ok": true,
+          "elapsed_ms": 9
+        },
+        {
+          "name": "other AI and forged lease cannot consume sequence or operate",
+          "ok": true,
+          "elapsed_ms": 4
+        },
+        {
+          "name": "renewal watermark prevents old retry extending later lease",
+          "ok": true,
+          "elapsed_ms": 8
+        },
+        {
+          "name": "negative fence ACK stays fenced and exact retry resolves without new intent",
+          "ok": true,
+          "elapsed_ms": 7
+        },
+        {
+          "name": "lost fence ACK never yields ready; retry uses original deadline and operation",
+          "ok": true,
+          "elapsed_ms": 15015
+        },
+        {
+          "name": "MCP exposes task tools and per-controller sequence",
+          "ok": true,
+          "elapsed_ms": 18
+        },
+        {
+          "name": "handoff uses higher fence and independent sequence; stale A cannot act",
+          "ok": true,
+          "elapsed_ms": 23
+        },
+        {
+          "name": "invitation cancellation watermark rejects replay beyond bounded tombstones",
+          "ok": true,
+          "elapsed_ms": 183
+        },
+        {
+          "name": "connection replacement invalidates old lease without revoking pairing",
+          "ok": true,
+          "elapsed_ms": 9
+        },
+        {
+          "name": "in-flight response lost on connection replacement stays unknown and is never replayed",
+          "ok": true,
+          "elapsed_ms": 9
+        },
+        {
+          "name": "cold workerd restart persists grants sequence and invitation watermark but invalidates old task",
+          "ok": true,
+          "elapsed_ms": 78
+        },
+        {
+          "name": "revoke task holder confirms stop and all-stop retains invitation watermark",
+          "ok": true,
+          "elapsed_ms": 8
+        },
+        {
+          "name": "all-stop retries cannot revoke newly approved grants or bypass generation body",
+          "ok": true,
+          "elapsed_ms": 23
+        },
+        {
+          "name": "terminal unenrollment cannot re-enable multi mode or restore old grants",
+          "ok": true,
+          "elapsed_ms": 8
+        },
+        {
+          "name": "idle waiting and pending single states reject migration without losing the original invitation",
+          "ok": true,
+          "elapsed_ms": 26
+        },
+        {
+          "name": "four-grant limit and simultaneous task acquisition remain bounded",
+          "ok": true,
+          "elapsed_ms": 52
+        },
+        {
+          "name": "real CLI processes recover lost acquire and renewal over production relay without re-pairing",
+          "ok": true,
+          "elapsed_ms": 777
+        },
+        {
+          "name": "real CLI processes keep status-reconciled leases live with clocks 180 seconds ahead and behind",
+          "ok": true,
+          "elapsed_ms": 1144
+        },
+        {
+          "name": "control pause cannot block cancellation release or independent/full revoke",
+          "ok": true,
+          "elapsed_ms": 89
+        }
+      ]
+    },
+    "workerd_expired_fence": {
+      "ok": true,
+      "scope": "local production relay synthetic roundtrip, not Android or personal-AI acceptance",
+      "checks": [
+        {
+          "name": "expired releasing with negative or absent ACK recovers without new consent or action replay",
+          "ok": true,
+          "elapsed_ms": 150092
+        }
+      ]
+    }
+  },
+  "coverage": [
+    "Existing full-device grant and current task authority gate remote connection management",
+    "Same saved invitation survives an unknown POST result",
+    "New AI identity and comparison code must match the intended invitation",
+    "Revoked delegator cannot activate a pending new connection",
+    "Cancellation and revocation clear an in-flight candidate in either relay request ordering",
+    "Remote-only unapproved grants remain visible and removable",
+    "Single-to-multi migration retains the original grant",
+    "Battery readings preserve unknown fields and signed current without waking the display",
+    "Relay atomically rejects delegated approval if its actor was revoked remotely before request arrival",
+    "Expired releasing task gets a persisted 30 second recovery window; old transport retires before a fresh quiescent task handshake"
+  ],
+  "not_verified": [
+    "Phone upgrade to code66",
+    "Remote delegated enrollment between real personal AIs",
+    "Actual battery readings on hardware",
+    "Physical charging control or smart-plug integration"
+  ],
+  "retained_failures": [
+    "Initial core run found a previously linked code65 result absent from the source-package allowlist. The reviewed sanitized result was added; the second core run passed.",
+    "First expired-fence roundtrip asserted an alarm had arrived within 1.2 seconds of expiry and failed. The subsequent test observed the expired releasing state through normal status, then stopped requests and verified autonomous alarm recovery. It retained the production 120 second lease and 30 second recovery deadlines."
+  ]
+}

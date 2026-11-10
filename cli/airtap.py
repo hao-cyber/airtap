@@ -26,7 +26,7 @@ TOKEN = re.compile(r'^[0-9a-f]{64}$')
 TICKET = re.compile(r'^[0-9a-f]{32}$')
 MAX_RESPONSE = 512 * 1024
 MAX_COMMAND = 65536
-VERSION = '0.4.0-cli.16'
+VERSION = '0.4.0-cli.17'
 PAIRING_TTL_SECONDS = 60 * 60
 PAIRING_CLOCK_TOLERANCE_SECONDS = 30
 PACKAGE = re.compile(r'^[A-Za-z_][A-Za-z0-9_]*(?:\.[A-Za-z_][A-Za-z0-9_]*)+$')
@@ -43,6 +43,9 @@ FILE_COMMANDS = ('file-mkdir', 'file-rename', 'file-delete', 'file-share', 'file
 DEFAULT_CONFIG = pathlib.Path.home() / '.config/airtap/preview.json'
 MAX_INTEGER = 9007199254740991
 EVENT_COMMANDS = ('event-status', 'event-read', 'event-wait')
+CONNECTION_COMMANDS = ('connection-status', 'connection-invite', 'connection-approve', 'connection-cancel', 'connection-revoke')
+CONNECTION_ACTIONS = {name.replace('-', '_') for name in CONNECTION_COMMANDS}
+CONNECTION_MUTATIONS = set(CONNECTION_COMMANDS) - {'connection-status'}
 TASK_COMMANDS = ('task-acquire', 'task-renew', 'task-release')
 TASK_ERRORS = {
     'lease_required': 409, 'lease_mismatch': 409, 'lease_renew_required': 409,
@@ -51,9 +54,9 @@ TASK_ERRORS = {
     'client_upgrade_required': 409, 'device_upgrade_required': 409,
     'stale_renewal': 409,
 }
-TASK_BEFORE_OBSERVE = {'ping', 'apps', 'windows', 'foreground', 'system_actions', 'audio_state',
+TASK_BEFORE_OBSERVE = {'ping', 'apps', 'windows', 'foreground', 'system_actions', 'audio_state', 'battery_status',
               'observe', 'read_tree', 'home', 'file_roots', 'file_list', 'file_stat',
-              'file_read', 'file_upload_status', 'media_status', 'media_stop', 'sim_pin_prepare', 'sim_pin_submit'}
+              'file_read', 'file_upload_status', 'media_status', 'media_stop', 'sim_pin_prepare', 'sim_pin_submit', *CONNECTION_ACTIONS}
 
 class Failure(Exception):
     def __init__(self, code, **details):
@@ -1038,7 +1041,9 @@ def command_request(args, config, body, timeout=None):
     if body['action'] in ('event_status', 'event_read'):
         return _command_request(args, config, body, timeout)
     require_restored_task(config)
-    leased = config.get('lease_required') is True or 'task_lease' in config
+    if body['action'] in CONNECTION_ACTIONS and body['action'] != 'connection_invite' and config.get('mode') != 'multi':
+        raise Failure('multi_api_required', retry_action=False)
+    leased = (body['action'] in CONNECTION_ACTIONS and config.get('mode') == 'multi') or config.get('lease_required') is True or 'task_lease' in config
     if not leased:
         return _command_request(args, config, body, timeout)
     try:
@@ -1639,7 +1644,7 @@ def pair_with_code(args):
                 existing.update(status); save_config(args.config, existing)
             else:
                 raise Failure('pairing_not_pending', retry_action=False)
-            return {'ok': True, **status, 'instruction': 'Keep this original identity. Wait for phone approval if pending; do not request another invitation.'}
+            return {'ok': True, **status, 'instruction': 'Keep this original identity. Wait for the owner or their authorized paired AI to approve if pending; do not request another invitation.'}
     result = request(service, '/v1/invitations/resolve', body={'code': code}, method='POST',
                      timeout=args.timeout, local_test=args.allow_local_http)['data']
     required = {'protocol_version', 'device_base_path', 'ticket', 'pairing_expires_at', 'cli_sha256', 'agent_sha256', 'task_lease_required'}
@@ -1749,7 +1754,7 @@ def job_command(args, config):
 
 
 def job_before(args, config, body):
-    if not getattr(args,'job_id',None) or body['action'].replace('_','-') not in CONTROL_COMMANDS: return None
+    if not getattr(args,'job_id',None) or body['action'].replace('_','-') not in CONTROL_COMMANDS | CONNECTION_MUTATIONS: return None
     job=job_load(args,config); step=job_step(args,job)
     if job['state']!='active' or step['state']!='planned':
         raise Failure('job_step_requires_verification', retry_action=False,
@@ -1841,7 +1846,7 @@ def main():
     pair.add_argument('--url', required=True); pair.add_argument('--name', default='My AI')
     pair.add_argument('--ticket-stdin', action='store_true', required=True)
     pair.add_argument('--task-lease', action='store_true', help='Declare task_lease_v1 for a multi-AI invitation; preserve this choice on pairing retries.')
-    by_code = sub.add_parser('pair-code', help='Request pairing from an eight-digit invitation; phone approval is still required.')
+    by_code = sub.add_parser('pair-code', help='Request pairing from an eight-digit invitation; approval by the owner or an already authorized paired AI is still required.')
     by_code.add_argument('--service', required=True, help='Owner-provided HTTPS service root; not a device URL.')
     by_code.add_argument('--name', default='My AI')
     by_code.add_argument('--code-stdin', action='store_true', required=True)
@@ -1852,12 +1857,18 @@ def main():
         task = sub.add_parser(name)
         if name == 'task-acquire': task.add_argument('--task-id', help='Optional32hex task identity; an uncertain acquire reuses its saved identity.')
     pair_status = sub.add_parser('pair-status'); pair_status.add_argument('--wait', action='store_true')
-    for command in ('status', 'wait-ready', 'revoke', 'ping', 'apps', 'windows', 'foreground', 'observe', 'read-tree', 'read-tree-page', 'read-node-text', 'system-actions', 'audio-state', 'media-status', 'sim-pin-prepare', *sorted(CONTROL_COMMANDS)):
+    for command in ('status', 'wait-ready', 'revoke', 'ping', 'apps', 'windows', 'foreground', 'observe', 'read-tree', 'read-tree-page', 'read-node-text', 'system-actions', 'audio-state', 'battery-status', 'media-status', 'sim-pin-prepare', *CONNECTION_COMMANDS, *sorted(CONTROL_COMMANDS)):
         child = sub.add_parser(command)
         if command in ('status', 'wait-ready'):
             child.add_argument('--wait-seconds', type=float, default=60)
         if command not in ('status', 'wait-ready', 'revoke'):
             child.add_argument('--request-id', type=uuid.UUID)
+        if command in ('connection-approve', 'connection-cancel'):
+            child.add_argument('--invitation-id', required=True)
+        if command in ('connection-approve', 'connection-revoke'):
+            child.add_argument('--claim-id', required=True)
+        if command == 'connection-approve':
+            child.add_argument('--code-stdin', required=True, action='store_true', help='Read the intended new AI’s six-digit comparison code from stdin; do not put it in arguments or logs.')
         if command in NODE_COMMANDS or command in ('read-tree', 'read-tree-page', 'read-node-text', 'launch', 'open-url', 'tap', 'long-press', 'swipe', 'drag', 'gesture', 'touch-begin', 'touch-move'):
             child.add_argument('--package', required=command != 'read-tree')
         if command == 'open-url': child.add_argument('--url', required=True)
@@ -1976,7 +1987,7 @@ def main():
         if result.get('data', {}).get('ok') is not True: raise Failure('revocation_not_confirmed')
         config.update(state='revoked'); invalidate_task(config, 'closed'); config.pop('snapshot', None); config.pop('observation', None); save_config(args.config, config)
         return {'ok': True, 'state': 'revoked'}
-    if config.get('state') != 'approved': raise Failure('approval_required', instruction='Run pair-status after the owner approves.')
+    if config.get('state') != 'approved': raise Failure('approval_required', instruction='Run pair-status after the owner or their authorized paired AI approves.')
     safe_scope(config)
     if args.command in EVENT_COMMANDS: return event_command(args, config)
     if args.command != 'task-acquire': require_restored_task(config)
@@ -1985,6 +1996,17 @@ def main():
     request_id = args.request_id or uuid.uuid4()
     if request_id.version != 4 or request_id.variant != uuid.RFC_4122: raise Failure('invalid_request_id')
     body = {'id': str(request_id), 'action': args.command.replace('-', '_')}
+    if args.command in ('connection-approve', 'connection-cancel'):
+        if not TICKET.fullmatch(args.invitation_id): raise Failure('invalid_invitation_id')
+        body['invitation_id'] = args.invitation_id
+    if args.command in ('connection-approve', 'connection-revoke'):
+        if not TICKET.fullmatch(args.claim_id): raise Failure('invalid_claim_id')
+        body['claim_id'] = args.claim_id
+    if args.command == 'connection-approve':
+        try: code = sys.stdin.buffer.read(16).decode('ascii').strip()
+        except UnicodeError: raise Failure('invalid_verification_code')
+        if not re.fullmatch(r'[0-9]{6}', code): raise Failure('invalid_verification_code')
+        body.update(claim_id=args.claim_id, verification_code=code)
     package = getattr(args, 'package', None)
     if package is not None:
         if not valid_package(package): raise Failure('invalid_or_protected_package')
@@ -2105,6 +2127,8 @@ def main():
         job_after(args,job,failure=failure)
         raise
     job_after(args,job,result=result)
+    if args.command == 'connection-invite' and result.get('result', {}).get('state') == 'migration_pending':
+        result['instruction'] = 'Original pairing is preserved. Check status until mode is multi, then task-acquire and resume connection-invite. Do not re-pair or replay an unknown request.'
     if args.command in ('read-tree', 'read-tree-page'): remember_snapshot(args, config, result['result'], result['result'].get('package'), started, continuation=args.command == 'read-tree-page')
     if args.command in CONTROL_COMMANDS and after_action != 'none':
         try:

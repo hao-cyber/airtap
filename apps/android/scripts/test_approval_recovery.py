@@ -4,7 +4,7 @@ import argparse, datetime, hashlib, importlib.util, json, os, subprocess, tempfi
 from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 PRODUCTION = ROOT/'app/src/main/java/io/airtap/preview'
-SOURCES = [PRODUCTION/(name+'.java') for name in ('TrustedGrant', 'ApprovalRecovery', 'ConnectionFeedback', 'ServiceProtocol', 'RelayFailure')]
+SOURCES = [PRODUCTION/(name+'.java') for name in ('TrustedGrant', 'ApprovalRecovery', 'ConnectionFeedback', 'ServiceProtocol', 'RelayFailure', 'OwnerRevocations')]
 TEST = ROOT/'tests/approvalrecovery/ApprovalRecoveryTest.java'
 FAKES = ROOT/'tests/approvalrecovery/platform_fakes.py'
 p = argparse.ArgumentParser()

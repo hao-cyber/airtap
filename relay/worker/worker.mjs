@@ -10,6 +10,7 @@ const CONTROL_ACTIONS = new Set(['sim_pin_submit', 'sim_pin_prepare', 'media_cap
 const FILE_READ_ACTIONS = new Set(['file_roots', 'file_list', 'file_stat', 'file_read', 'file_upload_status']);
 const FILE_WRITE_ACTIONS = new Set(['file_mkdir', 'file_rename', 'file_delete', 'file_share', 'file_upload_begin', 'file_upload_chunk', 'file_upload_finish', 'file_upload_abort']);
 const EVENT_ACTIONS = new Set(['event_status', 'event_read']);
+const CONNECTION_ACTIONS = new Set(['connection_status', 'connection_invite', 'connection_approve', 'connection_cancel', 'connection_revoke']);
 const FILE_LIMIT = 64 * 1024 * 1024;
 const FILE_CHUNK_LIMIT = 32768;
 const SYSTEM_ACTIONS = new Set(['notifications', 'quick_settings', 'dismiss_notification_shade', 'all_apps', 'dpad_up', 'dpad_down', 'dpad_left', 'dpad_right', 'dpad_center', 'power_dialog', 'lock_screen', 'split_screen']);
@@ -105,12 +106,18 @@ function commandShape(cmd, companion = false) {
     const { sequence, ...rest } = cmd; cmd = rest;
   }
   if (!cmd || typeof cmd.id !== 'string' || !UUID.test(cmd.id)) return false;
+  if (companion && ['connection_status', 'connection_invite'].includes(cmd.action)) return exact(cmd, ['id', 'action']);
+  if (companion && cmd.action === 'connection_cancel') return exact(cmd, ['id', 'action', 'invitation_id']) && typeof cmd.invitation_id === 'string' && HEX32.test(cmd.invitation_id);
+  if (companion && cmd.action === 'connection_revoke') return exact(cmd, ['id', 'action', 'claim_id']) && typeof cmd.claim_id === 'string' && HEX32.test(cmd.claim_id);
+  if (companion && cmd.action === 'connection_approve') return exact(cmd, ['id', 'action', 'invitation_id', 'claim_id', 'verification_code']) &&
+    typeof cmd.invitation_id === 'string' && HEX32.test(cmd.invitation_id) && typeof cmd.claim_id === 'string' && HEX32.test(cmd.claim_id) &&
+    typeof cmd.verification_code === 'string' && /^[0-9]{6}$/.test(cmd.verification_code);
   if (companion && cmd.action === 'event_status') return exact(cmd, ['id','action']);
   if (companion && cmd.action === 'event_read') return exact(cmd, ['id','action','epoch','after','limit']) &&
     typeof cmd.epoch === 'string' && (cmd.epoch === '' || HEX32.test(cmd.epoch)) && Number.isSafeInteger(cmd.after) && cmd.after >= 0 && Number.isInteger(cmd.limit) && cmd.limit >= 1 && cmd.limit <= 16;
   if (FILE_READ_ACTIONS.has(cmd.action) || FILE_WRITE_ACTIONS.has(cmd.action)) return companion && fileCommandShape(cmd);
   if (ACTIONS.has(cmd.action) && exact(cmd, ['id', 'action'])) return true;
-  if (companion && ['apps', 'windows', 'foreground', 'observe', 'back', 'home', 'recents', 'system_actions', 'audio_state'].includes(cmd.action)) return exact(cmd, ['id', 'action']);
+  if (companion && ['apps', 'windows', 'foreground', 'observe', 'back', 'home', 'recents', 'system_actions', 'audio_state', 'battery_status'].includes(cmd.action)) return exact(cmd, ['id', 'action']);
   if (companion && cmd.action === 'system_action') return exact(cmd, ['id', 'action', 'name']) && SYSTEM_ACTIONS.has(cmd.name);
   if (companion && cmd.action === 'set_volume') return exact(cmd, ['id', 'action', 'stream', 'level']) && AUDIO_STREAMS.has(cmd.stream) && Number.isInteger(cmd.level) && cmd.level >= 0 && cmd.level <= 2147483647;
   if (companion && cmd.action === 'adjust_volume') return exact(cmd, ['id', 'action', 'stream', 'direction']) && AUDIO_STREAMS.has(cmd.stream) && ['raise', 'lower', 'mute', 'unmute'].includes(cmd.direction);
@@ -474,6 +481,8 @@ export class PairingRelay extends DurableObject {
   async command(cmd) {
     const s = this.state;
     if (!commandShape(cmd, s.persistent === true)) return this.json(400, { error: 'invalid_command' });
+    if (CONNECTION_ACTIONS.has(cmd.action) && cmd.action !== 'connection_invite') return this.json(409, { error: 'multi_api_required', admitted: false });
+    if (cmd.action === 'connection_invite' && (s.allowControl !== true || s.allApps !== true)) return this.json(403, { error: 'control_permission_required', admitted: false });
     if (cmd.package && (authorizationSurface(cmd.package) || !(s.allApps === true || (s.allowedPackages ?? []).includes(cmd.package)))) return this.json(403, { error: 'package_permission_required' });
     if ((CONTROL_ACTIONS.has(cmd.action) || FILE_WRITE_ACTIONS.has(cmd.action)) && s.allowControl !== true) return this.json(403, { error: 'control_permission_required' });
     if (cmd.action === 'tap_test' && !s.allowTap) return this.json(403, { error: 'tap_permission_required' });
@@ -547,6 +556,8 @@ const h32 = n => typeof n === 'string' && HEX32.test(n);
 const sameCaps = (a, b) => Array.isArray(a) && JSON.stringify(a) === JSON.stringify(b);
 const TASK_TTL = 120000;
 const FENCE_WAIT = 15000;
+const RELEASE_RECOVERY_WAIT = 30000;
+const RELEASE_RETRY = 5000;
 export class MultiPairingRelay extends PairingRelay {
   emptyPostBody(path) { return path === '/v1/device/revoke' && this.multi() ? false : super.emptyPostBody(path); }
   multi() { return this.state.mode === 'multi' && this.state.schema_version === 2; }
@@ -589,7 +600,12 @@ export class MultiPairingRelay extends PairingRelay {
     return { ...state, task: null, closedTasks: [...state.closedTasks.filter(t => t.leaseId !== task.leaseId), item].slice(-32) };
   }
   async scheduleMulti() {
-    const deadlines = [this.state.invitation?.expiresAt * 1000, this.state.task?.state !== 'releasing' ? this.state.task?.expiresAtMs : null].filter(n => Number.isFinite(n) && n > Date.now());
+    const time = Date.now(), task = this.state.task;
+    const taskDeadline = task?.state === 'releasing'
+      ? Number.isSafeInteger(task.releaseDeadlineMs) ? Math.min(task.releaseDeadlineMs, time + RELEASE_RETRY) : time + 1
+      : task?.expiresAtMs;
+    const deadlines = [this.state.invitation?.expiresAt * 1000, taskDeadline]
+      .filter(Number.isFinite).map(deadline => Math.max(time + 1, deadline));
     if (deadlines.length) await this.ctx.storage.setAlarm(Math.min(...deadlines));
     else await this.ctx.storage.deleteAlarm();
   }
@@ -604,7 +620,21 @@ export class MultiPairingRelay extends PairingRelay {
       await this.persist(this.closedState(s, s.task)); s = this.state;
     }
     if (s.task && s.task.state !== 'releasing' && s.task.expiresAtMs <= Date.now()) await this.beginRelease(s.task);
-    if (this.state.task?.state === 'releasing') this.sendFence();
+    if (this.state.task?.state === 'releasing') {
+      let releasing = this.state.task;
+      // Existing durable releasing records also receive one fixed recovery window.
+      // Status polls and failed ACKs must never restart or extend this deadline.
+      if (!Number.isSafeInteger(releasing.releaseDeadlineMs)) {
+        releasing = { ...releasing, releaseDeadlineMs: Date.now() + RELEASE_RECOVERY_WAIT };
+        await this.persist({ ...this.state, task: releasing });
+      }
+      if (Date.now() >= releasing.releaseDeadlineMs) {
+        // Retire first: never label an unconfirmed old channel idle/ready. The
+        // reconnected phone still has to ACK a fresh, quiescent task fence.
+        this.disconnect('task_release_recovery_required', 503, 1012);
+        await this.persist(this.closedState(this.state, releasing));
+      } else this.sendFence();
+    }
     await this.scheduleMulti();
   }
   multiState() {
@@ -710,15 +740,33 @@ export class MultiPairingRelay extends PairingRelay {
   invitationResult(i) { return this.json(200, { invitation_id: i.id, invitation_sequence: i.sequence, pairing_expires_at: i.expiresAt,
     expires_at: null, cli_sha256: this.env.CLI_SHA256, agent_sha256: this.env.AGENT_SHA256 }); }
   async approveMulti(body) {
-    const desired = approvalScope(body);
+    // The device remains the authenticated writer. A delegated approval also
+    // binds the already-paired AI's non-reusable claim lifetime, so a request
+    // arriving after that AI was revoked cannot introduce another controller.
+    const delegated = body != null && Object.hasOwn(body, 'delegated_by');
+    let scopeBody = body;
+    if (delegated) {
+      if (!h32(body.delegated_by)) return this.json(400, { error: 'invalid_approval' });
+      const { delegated_by, ...rest } = body; scopeBody = rest;
+    }
+    const desired = approvalScope(scopeBody);
     if (!desired?.persistent || body.allow_tap !== false || !h32(body.claim_id)) return this.json(400, { error: 'invalid_approval' });
     const s = this.state, existing = s.grants[body.claim_id];
     if (existing && (existing.scope.allowTap !== false || existing.scope.allApps !== true || existing.scope.allowControl !== true || existing.scope.allowedPackages.length !== 0)) return this.json(409, { error: 'approval_scope_conflict' });
+    if (existing && delegated && existing.delegated_by !== body.delegated_by) return this.json(409, { error: 'approval_delegation_conflict' });
+    // A completed independent grant survives later revocation of its inviter.
+    // Exact recovery returns the existing grant without recreating it.
     if (existing) return this.json(200, { ok: true, claim_id: existing.id, session_expires_at: null, allow_tap: existing.scope.allowTap, ...scope(existing.scope), command_sequence: existing.sequence });
+    if (delegated) {
+      const actor = s.grants[body.delegated_by];
+      if (!actor) return this.json(403, { error: 'delegator_revoked', admitted: false });
+      if (actor.scope.persistent !== true || actor.scope.allApps !== true || actor.scope.allowControl !== true || !Array.isArray(actor.scope.allowedPackages) || actor.scope.allowedPackages.length !== 0)
+        return this.json(403, { error: 'permission_denied', admitted: false });
+    }
     const i = s.invitation;
     if (!i?.candidate || i.candidate.id !== body.claim_id) return this.json(409, { error: 'stale_claim' });
     const c = i.candidate, legacy = i.origin === 'legacy_v4' && Object.keys(s.grants).length === 0 && !c.capabilities.includes('task_lease_v1');
-    const g = { ...c, state: 'approved', pairingExpires: i.expiresAt, sequence: 0, seen: [], scope: { ...desired, allowTap: false }, lease_required: !legacy, lease_ready: false };
+    const g = { ...c, ...(delegated ? { delegated_by: body.delegated_by } : {}), state: 'approved', pairingExpires: i.expiresAt, sequence: 0, seen: [], scope: { ...desired, allowTap: false }, lease_required: !legacy, lease_ready: false };
     await this.persist({ ...s, grants: { ...s.grants, [g.id]: g }, invitation: null }); await this.scheduleMulti();
     return this.json(200, { ok: true, claim_id: g.id, session_expires_at: null, allow_tap: false, ...scope(g.scope) });
   }
@@ -772,9 +820,13 @@ export class MultiPairingRelay extends PairingRelay {
   }
   async revokeGrant(claimId) {
     const s = this.state, grants = { ...s.grants }; delete grants[claimId];
+    // A delegated approval and cancellation may arrive in either order. Retire
+    // the matching pending candidate in this same write, not only active grants.
+    // Keep the invitation watermark so a delayed create cannot reopen its ticket.
+    const invitation = s.invitation?.candidate?.id === claimId ? null : s.invitation;
     // Invalidate authorization before any storage/network wait. Persist failure
     // is failure, but the revoked controller is never admitted in this process.
-    this.state = { ...s, grants }; await this.persist(this.state);
+    this.state = { ...s, grants, invitation }; await this.persist(this.state); await this.scheduleMulti();
     if (this.pending?.claimId === claimId) this.finish(this.json(410, { error: 'revoked_outcome_unknown' }));
     if (this.state.task?.claimId === claimId) {
       await this.beginRelease(this.state.task);
@@ -858,7 +910,8 @@ export class MultiPairingRelay extends PairingRelay {
     }
     const epoch = this.state.taskEpoch + 1;
     if (!leaseInteger(epoch)) { this.disconnect('epoch_exhausted', 503); await this.persist(this.closedState(this.state, t)); return; }
-    const next = { ...t, state: 'releasing', operationId: randomHex(16), fenceEpoch: epoch, fenceTtlMs: 0 };
+    const next = { ...t, state: 'releasing', operationId: randomHex(16), fenceEpoch: epoch, fenceTtlMs: 0,
+      releaseDeadlineMs: Date.now() + RELEASE_RECOVERY_WAIT };
     // Keep the in-flight marker until the durable fencing state exists. If
     // storage fails, retire the uncertain transport; never restore an idle
     // ready lease while the old native action may still be running.
@@ -918,7 +971,7 @@ export class MultiPairingRelay extends PairingRelay {
     if (!g) return this.json(401, { error: 'unauthorized', admitted: false });
     const fields = 'lease_id' in cmd || 'lease_epoch' in cmd;
     if (EVENT_ACTIONS.has(cmd.action)) return fields ? this.json(400, { error: 'invalid_command', admitted: false }) : null;
-    if (!fields && !g.lease_required && Object.keys(this.state.grants).length === 1 && !t) return null;
+    if (!fields && !CONNECTION_ACTIONS.has(cmd.action) && !g.lease_required && Object.keys(this.state.grants).length === 1 && !t) return null;
     let error;
     if (!h32(cmd.lease_id) || !leaseInteger(cmd.lease_epoch)) error = 'lease_required';
     else if (!t || t.expiresAtMs <= Date.now()) error = 'lease_expired';
@@ -933,6 +986,7 @@ export class MultiPairingRelay extends PairingRelay {
     const { lease_id, lease_epoch, ...raw } = cmd, g = this.state.grants[claimId];
     const deniedLease = this.leaseDenied(cmd, claimId); if (deniedLease) return deniedLease;
     if (!commandShape(raw, true)) return this.json(400, { error: 'invalid_command', admitted: false });
+    if (CONNECTION_ACTIONS.has(raw.action) && (!g.scope.allowControl || !g.scope.allApps)) return this.json(403, { error: 'control_permission_required', admitted: false });
     if (raw.package && (authorizationSurface(raw.package) || !(g.scope.allApps || g.scope.allowedPackages.includes(raw.package)))) return this.json(403, { error: 'package_permission_required', admitted: false });
     if ((CONTROL_ACTIONS.has(raw.action) || FILE_WRITE_ACTIONS.has(raw.action)) && !g.scope.allowControl) return this.json(403, { error: 'control_permission_required', admitted: false });
     if (raw.action === 'tap_test' && !g.scope.allowTap) return this.json(403, { error: 'tap_permission_required', admitted: false });

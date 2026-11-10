@@ -12,6 +12,7 @@ import { createServer } from 'node:http';
 import { spawn } from 'node:child_process';
 const option = k => process.argv.includes(k) ? process.argv[process.argv.indexOf(k) + 1] : undefined;
 const credentialRestoreOnly = process.argv.includes('--credential-restore-only');
+const fenceRecoveryOnly = process.argv.includes('--fence-recovery-only');
 const require = createRequire(new URL('../../worker/package.json', import.meta.url));
 const { Miniflare, convertV4MiniflareOptions } = await import(pathToFileURL(option('--miniflare') ?? require.resolve('miniflare')).href);
 const root = fileURLToPath(new URL('../../../', import.meta.url));
@@ -37,7 +38,7 @@ async function request(path, token, body, method) {
 }
 async function ok(path, token, body, method) { const r = await request(path, token, body, method); assert.equal(r.status, 200, JSON.stringify(r)); return r.data; }
 async function denied(path, token, body, status, error, method) { const r = await request(path, token, body, method); assert.equal(r.status, status, JSON.stringify(r)); assert.equal(r.data.error, error); return r.data; }
-async function check(name, fn, group = 'core') { if (credentialRestoreOnly && group !== 'credential-restore') return; const started = performance.now(); await fn(); const r = { name, ok: true, elapsed_ms: Math.round(performance.now() - started) }; checks.push(r); console.log(JSON.stringify(r)); }
+async function check(name, fn, group = 'core') { if (credentialRestoreOnly && group !== 'credential-restore' || fenceRecoveryOnly && group !== 'fence-recovery') return; const started = performance.now(); await fn(); const r = { name, ok: true, elapsed_ms: Math.round(performance.now() - started) }; checks.push(r); console.log(JSON.stringify(r)); }
 async function enroll() { const d = { id: hex(16), token: hex(32) }; d.base = '/d/' + d.id; await ok('/v1/enroll', null, { device_id: d.id, device_token: d.token }); return d; }
 const caps = ['multi_ai_v1', 'task_lease_v1'];
 const migration = claim => ({ capabilities: caps, expected_claim_id: claim });
@@ -49,10 +50,10 @@ async function single(d) {
   a.claim = (await ok(d.base + '/v1/pair', null, { ticket: invite.ticket, controller_token: a.token, name: a.name })).claim_id;
   await ok(d.base + '/v1/device/approve', d.token, approval(a.claim)); return a;
 }
-async function phone(d, multi = true) {
+async function phone(d, multi = true, initialAck = 'success') {
   const r = await mf.dispatchFetch('http://localhost' + d.base + '/v1/device', { headers: { 'cf-connecting-ip': '127.0.0.1', Authorization: 'Bearer ' + d.token, Upgrade: 'websocket' } });
   assert.equal(r.status, 101); const ws = r.webSocket; ws.accept(); sockets.push(ws);
-  const p = { ws, messages: [], ack: 'success', commands: 'success' };
+  const p = { ws, messages: [], ack: initialAck, commands: 'success' };
   let hello; const ready = new Promise(resolve => { hello = resolve; });
   p.reply = b => ws.send(JSON.stringify(b));
   p.ackFence = f => p.reply({ type: 'task_fence_ack', operation_id: f.operation_id, lease_epoch: f.lease_epoch, ok: true });
@@ -129,6 +130,206 @@ else:
 }
 let d, a, b, p, tA, tB, invite;
 try {
+  await check('expired releasing with negative or absent ACK recovers without new consent or action replay', async () => {
+    await Promise.all(['negative','ignore'].map(async ack => {
+      const device=await enroll(),controller=await single(device);
+      await ok(device.base+'/v1/device/multi/enable',device.token,migration(controller.claim));
+      const original=await phone(device),task=await ok(device.base+'/v1/tasks/acquire',controller.token,{task_id:hex(16)});
+      await ok(device.base+'/v1/command',controller.token,command(1,task));original.ack=ack;
+      const closed=new Promise(resolve=>original.ws.addEventListener('close',resolve,{once:true}));
+      // Keep the real DO warm with ordinary status reads through the actual
+      // 120-second lease. Then stop requests: release retries/recovery must be
+      // driven by its alarm, not by another controller asking to take over.
+      let releasing;
+      do {
+        await new Promise(resolve=>setTimeout(resolve,Math.max(1,Math.min(5000,task.expires_at_ms+100-Date.now()))));
+        releasing=await ok(device.base+'/v1/status',controller.token);
+      } while(Date.now()<task.expires_at_ms);
+      assert.equal(releasing.task.state,'fencing');assert.equal(releasing.task.expires_in_ms,0);assert.equal(releasing.task.lease_id,null);
+      assert.equal(releasing.command_sequence,1);assert.equal(releasing.pending,0);
+      const freshId=hex(16);
+      await denied(device.base+'/v1/tasks/acquire',controller.token,{task_id:freshId},429,'device_busy');
+      let timeout;
+      try { await Promise.race([closed,new Promise((resolve,reject)=>{timeout=setTimeout(()=>reject(new Error('release did not recover in its bounded window')),40000);})]); }
+      finally { clearTimeout(timeout); }
+      const stopped=await ok(device.base+'/v1/status',controller.token);
+      assert.equal(stopped.task.state,'idle');assert.equal(stopped.deviceConnected,false);assert.equal(stopped.command_sequence,1);
+      assert.equal((await ok(device.base+'/v1/pair/status',controller.token)).state,'approved');
+      const replacement=await phone(device,true,'negative');
+      await denied(device.base+'/v1/command',controller.token,command(2,task),410,'lease_expired');
+      // A still-running native action is represented by the real phone protocol's negative ACK.
+      await denied(device.base+'/v1/tasks/acquire',controller.token,{task_id:freshId},503,'task_fence_pending');
+      const freshFence=replacement.messages.at(-1);assert.ok(freshFence.lease_epoch>task.lease_epoch);
+      const newLease={lease_id:freshFence.holder.lease_id,lease_epoch:freshFence.lease_epoch};
+      await denied(device.base+'/v1/command',controller.token,command(2,newLease),503,'task_fence_pending');
+      assert.equal(replacement.messages.filter(message=>message.type==='command').length,0);
+      assert.equal((await ok(device.base+'/v1/status',controller.token)).command_sequence,1);
+      replacement.ack='success';const ready=await ok(device.base+'/v1/tasks/acquire',controller.token,{task_id:freshId});
+      await ok(device.base+'/v1/command',controller.token,command(2,ready));
+      assert.equal(replacement.messages.filter(message=>message.type==='command').length,1);
+      assert.equal(original.messages.filter(message=>message.type==='command').length,1);
+      await ok(device.base+'/v1/tasks/release',controller.token,leaseBody(ready));
+      await stopAll(device);
+    }));
+  },'fence-recovery');
+  for (const approveFirst of [false, true]) await check('delegated approval respects inviter revocation: ' + (approveFirst ? 'completed child survives exact recovery' : 'revoked inviter cannot approve'), async () => {
+    const device = await enroll(), actor = await single(device);
+    await ok(device.base + '/v1/device/multi/enable', device.token, migration(actor.claim));
+    await phone(device);
+    const task = await ok(device.base + '/v1/tasks/acquire', actor.token, { task_id: hex(16) });
+    await ok(device.base + '/v1/tasks/release', actor.token, leaseBody(task));
+    const invitation = { invitation_id: hex(16), invitation_sequence: 1, ticket: hex(16) };
+    await ok(device.base + '/v1/device/invitations', device.token, invitation);
+    const child = { token: hex(32), name: 'Synthetic delegated AI' };
+    child.claim = (await ok(device.base + '/v1/pair', null, { ticket: invitation.ticket, controller_token: child.token, name: child.name, capabilities: ['task_lease_v1'] })).claim_id;
+    const delegated = { ...approval(child.claim), delegated_by: actor.claim };
+    const before = await ok(device.base + '/v1/device/grants', device.token);
+    for (const invalid of [null, 42, '', 'A'.repeat(32), 'a'.repeat(64)])
+      await denied(device.base + '/v1/device/grants/approve', device.token, { ...delegated, delegated_by: invalid }, 400, 'invalid_approval');
+    await denied(device.base + '/v1/device/grants/approve', device.token, { ...delegated, delegator_approval_id: hex(16) }, 400, 'invalid_approval');
+    assert.deepEqual(await ok(device.base + '/v1/device/grants', device.token), before);
+    if (approveFirst) await ok(device.base + '/v1/device/grants/approve', device.token, delegated);
+    // This is the controller's normal revoke route, not an owner-side fixture.
+    await ok(device.base + '/v1/revoke', actor.token, undefined, 'POST');
+    if (approveFirst) {
+      const completed = await ok(device.base + '/v1/device/grants', device.token);
+      assert.equal(completed.grants.length, 1); assert.equal(completed.grants[0].claim_id, child.claim);
+      await ok(device.base + '/v1/device/grants/approve', device.token, delegated);
+      assert.deepEqual(await ok(device.base + '/v1/device/grants', device.token), completed);
+      await denied(device.base + '/v1/device/grants/approve', device.token, { ...delegated, delegated_by: hex(16) }, 409, 'approval_delegation_conflict');
+      assert.equal((await ok(device.base + '/v1/pair/status', child.token)).state, 'approved');
+    } else {
+      const rejected = await denied(device.base + '/v1/device/grants/approve', device.token, delegated, 403, 'delegator_revoked');
+      assert.equal(rejected.admitted, false);
+      const stopped = await ok(device.base + '/v1/device/grants', device.token);
+      assert.equal(stopped.grants.length, 0);
+      assert.equal(stopped.invitation.candidate.claim_id, child.claim);
+      assert.equal((await ok(device.base + '/v1/pair/status', child.token)).state, 'pending');
+      await denied(device.base + '/v1/status', child.token, undefined, 403, 'phone_approval_required');
+    }
+  });
+  for (const approveFirst of [false, true]) await check('pending grant cancellation prevents late approval: ' + (approveFirst ? 'approve then revoke' : 'revoke then approve'), async () => {
+    const device = await enroll(), original = await single(device);
+    await ok(device.base + '/v1/device/multi/enable', device.token, migration(original.claim));
+    await phone(device);
+    const lease = await ok(device.base + '/v1/tasks/acquire', original.token, { task_id: hex(16) });
+    await ok(device.base + '/v1/command', original.token, command(1, lease));
+    const invitation = { invitation_id: hex(16), invitation_sequence: 1, ticket: hex(16) };
+    await ok(device.base + '/v1/device/invitations', device.token, invitation);
+    const candidate = { token: hex(32), name: 'Synthetic canceled candidate' };
+    const pairBody = { ticket: invitation.ticket, controller_token: candidate.token, name: candidate.name, capabilities: ['task_lease_v1'] };
+    candidate.claim = (await ok(device.base + '/v1/pair', null, pairBody)).claim_id;
+    const originalBefore = (await ok(device.base + '/v1/device/grants', device.token)).grants[0];
+    if (approveFirst) await ok(device.base + '/v1/device/grants/approve', device.token, approval(candidate.claim));
+    await ok(device.base + '/v1/device/grants/revoke', device.token, { claim_id: candidate.claim });
+    const canceled = await ok(device.base + '/v1/device/grants', device.token);
+    assert.equal(canceled.invitation, null);
+    assert.equal(canceled.invitation_sequence, 1);
+    assert.deepEqual(canceled.grants, [originalBefore]);
+    await denied(device.base + '/v1/device/grants/approve', device.token, approval(candidate.claim), 409, 'stale_claim');
+    await denied(device.base + '/v1/pair', null, pairBody, 401, 'invalid_or_consumed_ticket');
+    await denied(device.base + '/v1/device/invitations', device.token, invitation, 409, 'stale_invitation');
+    // An old targeted retry and late approval cannot cancel a different invitation.
+    const next = { invitation_id: hex(16), invitation_sequence: 2, ticket: hex(16) };
+    await ok(device.base + '/v1/device/invitations', device.token, next);
+    const newer = await ok(device.base + '/v1/pair', null, { ticket: next.ticket, controller_token: hex(32), name: 'Synthetic later candidate', capabilities: ['task_lease_v1'] });
+    const beforeRetry = await ok(device.base + '/v1/device/grants', device.token);
+    await ok(device.base + '/v1/device/grants/revoke', device.token, { claim_id: candidate.claim });
+    await denied(device.base + '/v1/device/grants/approve', device.token, approval(candidate.claim), 409, 'stale_claim');
+    assert.deepEqual(await ok(device.base + '/v1/device/grants', device.token), beforeRetry);
+    await ok(device.base + '/v1/device/grants/approve', device.token, approval(newer.claim_id));
+    const complete = await ok(device.base + '/v1/device/grants', device.token);
+    assert.deepEqual(complete.grants.find(grant => grant.claim_id === original.claim), originalBefore);
+    assert.ok(complete.grants.some(grant => grant.claim_id === newer.claim_id));
+    assert.equal(complete.grants.some(grant => grant.claim_id === candidate.claim), false);
+    await ok(device.base + '/v1/tasks/release', original.token, leaseBody(lease));
+  });
+  await check('remote connection management uses full grants, leases and exact command shapes', async () => {
+    const device = await enroll(), controller = await single(device);
+    const singlePhone = await phone(device, false);
+    await ok(device.base + '/v1/command', controller.token, { ...command(1), action: 'connection_invite' });
+    assert.equal(singlePhone.messages.at(-1).action, 'connection_invite');
+    await denied(device.base + '/v1/command', controller.token, { ...command(2), action: 'connection_status' }, 409, 'multi_api_required');
+    await ok(device.base + '/v1/device/multi/enable', device.token, migration(controller.claim));
+    const fakePhone = await phone(device);
+    // Even the one migrated grant must acquire a task for connection management.
+    await denied(device.base + '/v1/command', controller.token, { ...command(2), action: 'connection_invite' }, 409, 'lease_required');
+    const lease = await ok(device.base + '/v1/tasks/acquire', controller.token, { task_id: hex(16) });
+    const invitationId = hex(16), candidate = hex(16);
+    let sequence = 2;
+    for (const fields of [
+      { action: 'connection_status' }, { action: 'connection_invite' },
+      { action: 'connection_approve', invitation_id: invitationId, claim_id: candidate, verification_code: '012345' },
+      { action: 'connection_cancel', invitation_id: invitationId }, { action: 'connection_revoke', claim_id: candidate },
+    ]) {
+      const body = { ...command(sequence++, lease), ...fields };
+      await ok(device.base + '/v1/command', controller.token, body);
+      const envelope = fakePhone.messages.at(-1);
+      assert.equal(envelope.claim_id, controller.claim);
+      const { lease_id, lease_epoch, ...raw } = body;
+      assert.deepEqual(envelope.command, raw);
+      await denied(device.base + '/v1/command', controller.token, body, 409, 'sequence_already_admitted');
+    }
+    for (const changed of [
+      { verification_code: 123456 }, { verification_code: '12345' }, { verification_code: '1234567' },
+      { invitation_id: 'not-an-id' }, { claim_id: 'A'.repeat(32) }, { owner_token: hex(32) },
+    ]) await denied(device.base + '/v1/command', controller.token,
+      { ...command(sequence, lease), action: 'connection_approve', invitation_id: invitationId, claim_id: candidate, verification_code: '012345', ...changed },
+      400, 'invalid_command');
+    const before = fakePhone.messages.length;
+    const unauthenticated = await request(device.base + '/v1/command', hex(32), { ...command(sequence, lease), action: 'connection_invite' });
+    assert.equal(unauthenticated.status, 401);
+    const deviceOnly = await request(device.base + '/v1/device/grants/approve', controller.token, approval(candidate));
+    assert.equal(deviceOnly.status, 401);
+    assert.equal(fakePhone.messages.length, before, 'unapproved credentials never reach Android');
+    await ok(device.base + '/v1/tasks/release', controller.token, leaseBody(lease));
+    await denied(device.base + '/v1/command', controller.token, { ...command(sequence, lease), action: 'connection_status' }, 410, 'lease_expired');
+  });
+  await check('CLI and MCP expose remote connection management without implicit screen actions', async () => {
+    const device = await enroll(), controller = await single(device);
+    await ok(device.base + '/v1/device/multi/enable', device.token, migration(controller.claim));
+    const fakePhone = await phone(device), flow = await cliLoopback(device, controller, { profileName: 'remote-connections.json' });
+    const rpc = (method, params) => ok(device.base + '/mcp', controller.token, { jsonrpc: '2.0', id: 1, method, ...(params ? { params } : {}) });
+    try {
+      const listed = (await rpc('tools/list')).result.tools;
+      for (const action of ['connection_status', 'connection_invite', 'connection_approve', 'connection_cancel', 'connection_revoke']) {
+        const spec = listed.find(tool => tool.name === 'phone_' + action);
+        assert.ok(spec, action);
+        for (const field of ['sequence', 'lease_id', 'lease_epoch']) assert.ok(spec.inputSchema.required.includes(field));
+      }
+      assert.equal(listed.find(tool => tool.name === 'phone_ping').annotations.readOnlyHint, true);
+      assert.equal(listed.find(tool => tool.name === 'phone_battery_status').annotations.readOnlyHint, true);
+      assert.equal((await flow.invoke('task-acquire')).code, 0);
+      let saved = await flow.saved();
+      assert.equal(saved.task_needs_observation, true);
+      const invitation = hex(16), claim = hex(16);
+      for (const [name, args, input] of [
+        ['connection-status', [], null], ['connection-invite', [], null], ['battery-status', [], null],
+        ['connection-approve', ['--invitation-id', invitation, '--claim-id', claim, '--code-stdin'], '012345\n'],
+        ['connection-cancel', ['--invitation-id', invitation], null],
+        ['connection-revoke', ['--claim-id', claim], null],
+      ]) {
+        const before = fakePhone.messages.filter(m => m.type === 'command').length;
+        const result = await flow.invoke(name, args, input); assert.equal(result.code, 0, JSON.stringify(result.value));
+        const commands = fakePhone.messages.filter(m => m.type === 'command');
+        assert.equal(commands.length, before + 1);
+        assert.equal(commands.at(-1).command.action, name.replaceAll('-', '_'));
+      }
+      saved = await flow.saved();
+      assert.equal(saved.task_needs_observation, true);
+      assert.equal(JSON.stringify(saved).includes('012345'), false);
+      const lease = saved.task_lease;
+      const status = await ok(device.base + '/v1/status', controller.token);
+      const ping = await rpc('tools/call', { name: 'phone_ping', arguments: { sequence: status.command_sequence + 1, lease_id: lease.lease_id, lease_epoch: lease.lease_epoch } });
+      assert.equal(ping.result.isError, false);
+      assert.equal(fakePhone.messages.at(-1).command.action, 'ping');
+      const current = await ok(device.base + '/v1/status', controller.token);
+      const management = await rpc('tools/call', { name: 'phone_connection_status', arguments: { sequence: current.command_sequence + 1, lease_id: lease.lease_id, lease_epoch: lease.lease_epoch } });
+      assert.equal(management.result.isError, false);
+      assert.equal(fakePhone.messages.at(-1).command.action, 'connection_status');
+      assert.equal((await flow.invoke('task-release')).code, 0);
+    } finally { await flow.close(); }
+  });
   {
     const trace = { ok: false, scope: 'independent production CLI processes and local production workerd with synthetic phone; no real credential store, cloud runtime, Android or personal-AI acceptance', cases: [] };
     try {

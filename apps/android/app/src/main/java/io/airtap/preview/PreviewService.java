@@ -735,7 +735,7 @@ public final class PreviewService extends AccessibilityService {
                         "client", RelayApi.json("platform", "android", "version_name", BuildConfig.VERSION_NAME,
                                 "version_code", BuildConfig.VERSION_CODE, "build_type", BuildConfig.BUILD_TYPE),
                         "device_unlocked", ui.unlocked(), "screen_state", ui.screenState().wireName, "auto_wake", true,
-                        "capabilities", new org.json.JSONArray().put("companion_v1").put("paged_tree_v1").put("node_text_v1").put("screen_recovery_v1").put("atomic_input_v1").put("system_actions_v1").put("drag_v1").put("gesture_v1").put("semantic_node_v1").put("windows_v1").put("volume_v1").put("files_v1").put("file_share_v1").put("notification_events_v1").put("touch_session_v1").put("media_capture_v1").put("sim_pin_keypad_v1"),
+                        "capabilities", new org.json.JSONArray().put("companion_v1").put("paged_tree_v1").put("node_text_v1").put("screen_recovery_v1").put("atomic_input_v1").put("system_actions_v1").put("drag_v1").put("gesture_v1").put("semantic_node_v1").put("windows_v1").put("volume_v1").put("files_v1").put("file_share_v1").put("notification_events_v1").put("touch_session_v1").put("media_capture_v1").put("sim_pin_keypad_v1").put("remote_connections_v1").put("battery_status_v1"),
                         "observation_limits", RelayApi.json("max_inspected_nodes", PagedTree.MAX_NODES, "max_capture_bytes", PagedTree.MAX_CAPTURE_BYTES,
                                 "max_page_nodes", PagedTree.MAX_PAGE_NODES, "max_page_bytes", TreeReadBudget.MAX_BYTES, "max_text_chunk_utf16", ObservedText.MAX_CHUNK_UTF16, "snapshot_ttl_ms", 30000),
                         "gesture_limits", RelayApi.json("max_tracks", GesturePlan.trackLimit(android.accessibilityservice.GestureDescription.getMaxStrokeCount()),
@@ -744,6 +744,9 @@ public final class PreviewService extends AccessibilityService {
                 return;
             }
             if (activeCommand != 0) { error(ws, id, "busy"); return; }
+            if("battery_status".equals(action)){
+                MultiAiProtocol.exact(request,"id","action");success(ws,id,BatteryState.describe(this));return;
+            }
             if("media_status".equals(action)||"media_stop".equals(action)){
                 MultiAiProtocol.exact(request,"id","action","capture_id");
                 String captureId=request.getString("capture_id");if(!captureId.matches("[a-f0-9]{32}"))throw new ScopedUi.Refused("invalid_request");
@@ -752,7 +755,8 @@ public final class PreviewService extends AccessibilityService {
             if("sim_pin_prepare".equals(action)){
                 MultiAiProtocol.exact(request,"id","action");success(ws,id,simPinInput.prepare(owner));return;
             }
-            if(!"sim_pin_submit".equals(action))ui.validateRequest(request);
+            if(RemoteConnections.ACTIONS.contains(action))RemoteConnections.validate(request);
+            else if(!"sim_pin_submit".equals(action))ui.validateRequest(request);
             else MultiAiProtocol.exact(request,"id","action","challenge","pin");
             long command = ++commandSerial; activeCommand = command;
             String requestId = id;
@@ -766,6 +770,9 @@ public final class PreviewService extends AccessibilityService {
                 public void success(JSONObject value) { if (finish()) PreviewService.this.success(ws, requestId, value); }
                 public void error(String code) { if (finish()) PreviewService.this.error(ws, requestId, code); }
             };
+            if(RemoteConnections.ACTIONS.contains(action)){
+                RemoteConnections.execute(this,config,owner,grantFence,request,commandCurrent,reply);return;
+            }
             if("sim_pin_submit".equals(action)){try{simPinInput.submit(owner,request,commandCurrent,reply);}catch(ScopedUi.Refused e){reply.error(e.code);}catch(Exception e){reply.error("invalid_request");}return;}
             recovery.prepare(commandCurrent, new ScreenPreparation.Completion() {
                 @Override public void ready(boolean recovered) {

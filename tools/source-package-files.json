@@ -1,8 +1,8 @@
 {
   "allowlist_path": "tools/source-package-files.json",
-  "android_version": "0.4.0-beta.35",
-  "archive_root": "airtap-source-0.4.0-beta.35-code65",
-  "cli_version": "0.4.0-cli.16",
+  "android_version": "0.4.0-beta.36",
+  "archive_root": "airtap-source-0.4.0-beta.36-code66",
+  "cli_version": "0.4.0-cli.17",
   "closure_policy": "airtap-source-closure-v1",
   "files": [
     {
@@ -64,6 +64,10 @@
     {
       "kind": "source",
       "path": "apps/android/app/src/main/java/io/airtap/preview/AudioVolume.java"
+    },
+    {
+      "kind": "source",
+      "path": "apps/android/app/src/main/java/io/airtap/preview/BatteryState.java"
     },
     {
       "kind": "source",
@@ -248,6 +252,10 @@
     {
       "kind": "source",
       "path": "apps/android/app/src/main/java/io/airtap/preview/RelayFailure.java"
+    },
+    {
+      "kind": "source",
+      "path": "apps/android/app/src/main/java/io/airtap/preview/RemoteConnections.java"
     },
     {
       "kind": "source",
@@ -449,6 +457,10 @@
     },
     {
       "kind": "source",
+      "path": "apps/android/scripts/test_battery_state.py"
+    },
+    {
+      "kind": "source",
       "path": "apps/android/scripts/test_drag.py"
     },
     {
@@ -610,6 +622,14 @@
     {
       "kind": "source",
       "path": "apps/android/tests/atomicinput/platform_fakes.py"
+    },
+    {
+      "kind": "source",
+      "path": "apps/android/tests/battery/BatteryStateTest.java"
+    },
+    {
+      "kind": "source",
+      "path": "apps/android/tests/battery/platform_fakes.py"
     },
     {
       "kind": "source",
@@ -864,6 +884,10 @@
       "path": "docs/atomic-capabilities.md"
     },
     {
+      "kind": "source",
+      "path": "docs/battery-care.md"
+    },
+    {
       "kind": "document",
       "path": "docs/checks.md"
     },
@@ -876,8 +900,8 @@
       "path": "docs/companion-upgrade-plan.md"
     },
     {
-      "path": "docs/design/device-capability-expansion.md",
-      "kind": "source"
+      "kind": "source",
+      "path": "docs/design/device-capability-expansion.md"
     },
     {
       "kind": "document",
@@ -1068,12 +1092,20 @@
       "path": "docs/results/beta34-code64-two-ai-20261110.json"
     },
     {
-      "path": "docs/results/beta35-code65-capabilities-20261110.json",
-      "kind": "source"
+      "kind": "source",
+      "path": "docs/results/beta35-code65-capabilities-20261110.json"
+    },
+    {
+      "kind": "source",
+      "path": "docs/results/beta35-code65-muse-20261110.json"
     },
     {
       "kind": "source",
       "path": "docs/results/beta35-code65-publication-20261110.json"
+    },
+    {
+      "kind": "source",
+      "path": "docs/results/beta36-code66-management-20261111.json"
     },
     {
       "kind": "result",
@@ -1401,6 +1433,10 @@
     },
     {
       "kind": "source",
+      "path": "relay/service/tests/test_connections.py"
+    },
+    {
+      "kind": "source",
       "path": "relay/service/tests/test_deploy.py"
     },
     {
@@ -1629,6 +1665,6 @@
   "protocol_version": 4,
   "schema": "airtap-source-allowlist-v1",
   "scope": "Reviewed current Android, CLI, relay, site, build, CI and test source closure. No Git history, credentials, private deployment state, APK, or raw phone evidence. Historical acceptance retains its original version and scope; a source ZIP is not public release approval.",
-  "version": "0.4.0-beta.35-code65",
-  "version_code": 65
+  "version": "0.4.0-beta.36-code66",
+  "version_code": 66
 }

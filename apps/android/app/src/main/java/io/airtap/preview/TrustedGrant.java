@@ -11,7 +11,7 @@ import java.util.Set;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
-/** Durable owner consent. Remote state never creates a local control grant. */
+/** Durable owner consent, including explicit delegation by an already approved AI. */
 final class TrustedGrant {
     static final long DISPLAY_EXPIRY = 253402300799L;
     private static final long MAX_SEQUENCE = 9007199254740991L;
@@ -302,6 +302,23 @@ final class TrustedGrant {
         return value;
     }
     String beginApproval(EnrollmentStore.Config config, String claim, String name) throws Exception {
+        return beginApproval(config, claim, name, null, null, null);
+    }
+    String beginDelegatedApproval(EnrollmentStore.Config config, String claim, String name,
+                                 String actor, String actorFence, String invitationId) throws Exception {
+        synchronized (LOCK) {
+            requireDelegate(config, actor, actorFence);
+            JSONObject invite = invitation(config);
+            if (invite == null || !invitationId.equals(invite.optString("invitation_id"))
+                    || !actor.equals(invite.optString("delegated_by"))
+                    || !actorFence.equals(invite.optString("delegator_fence")))
+                throw new IllegalStateException("invitation_mismatch");
+            if (actor.equals(claim)) throw new IllegalStateException("self_approval_refused");
+            return beginApproval(config, claim, name, actor, actorFence, invitationId);
+        }
+    }
+    private String beginApproval(EnrollmentStore.Config config, String claim, String name,
+                                 String actor, String actorFence, String invitationId) throws Exception {
         synchronized (LOCK) {
             h32(claim);
             if (multi(config)) {
@@ -319,6 +336,8 @@ final class TrustedGrant {
                 String id = randomId();
                 JSONObject intent = RelayApi.json("identity", identity(config), "claim", claim, "name", name == null ? "我的 AI" : name,
                         "sequence", 0, "phase", "pending", "approval_id", id, "lease_required", !legacy, "lease_ready", false);
+                if (actor != null) intent.put("delegated_by", actor).put("delegator_fence", actorFence)
+                        .put("invitation_id", invitationId).put("approved_at", System.currentTimeMillis()/1000);
                 if (!state.edit().putString("approval_id", id).commit()) throw new IllegalStateException("approval_intent_not_persisted");
                 root.put("pending", intent); store.saveRecord(root); return id;
             }
@@ -343,6 +362,7 @@ final class TrustedGrant {
                     for (JSONObject active : grants(config)) if (id != null && id.equals(active.optString("approval_id"))) return true;
                     return false;
                 }
+                if (!delegationCurrent(config, value)) return false;
                 value.put("phase", "approved"); store.saveRecord(root);
                 if (state.getBoolean("stopped", true) && !state.edit().putBoolean("stopped", false).commit()) {
                     state.edit().putBoolean("stopped", true).commit(); throw new IllegalStateException("grant_activation_not_persisted");
@@ -415,14 +435,39 @@ final class TrustedGrant {
         synchronized (LOCK) { JSONObject root = record(config); return schema2(root) && currentStop(root) ? optional(root, "invitation") : null; }
     }
     JSONObject beginInvitation(EnrollmentStore.Config config, long remoteWatermark) throws Exception {
+        return beginInvitation(config, remoteWatermark, null, null);
+    }
+    private void requireDelegate(EnrollmentStore.Config config, String actor, String fence) throws Exception {
+        h32(actor);
+        if (fence == null || !fence.equals(grantFence(config, actor))) throw new IllegalStateException("grant_unavailable");
+    }
+    boolean delegationCurrent(EnrollmentStore.Config config, JSONObject value) throws Exception {
+        synchronized (LOCK) {
+            if (!value.has("delegated_by")) return true;
+            String actor = value.getString("delegated_by"), fence = value.getString("delegator_fence");
+            return fence.equals(grantFence(config, actor));
+        }
+    }
+    JSONObject beginDelegatedInvitation(EnrollmentStore.Config config, long watermark, String actor, String fence) throws Exception {
+        synchronized (LOCK) {
+            requireDelegate(config, actor, fence);
+            return beginInvitation(config, watermark, actor, fence);
+        }
+    }
+    private JSONObject beginInvitation(EnrollmentStore.Config config, long remoteWatermark, String actor, String fence) throws Exception {
         synchronized (LOCK) {
             number(remoteWatermark, false); JSONObject root = editableMulti(config), current = optional(root, "invitation");
-            if (current != null) return current; // Includes canceled: finish cancellation before any fresh invitation.
+            if (current != null) {
+                if (actor != null && (!actor.equals(current.optString("delegated_by"))
+                        || !fence.equals(current.optString("delegator_fence")))) throw new IllegalStateException("invitation_in_progress");
+                return current; // Finish cancellation before any fresh invitation.
+            }
             if (optional(root, "pending") != null) throw new IllegalStateException("approval_pending");
             JSONArray grants = root.getJSONArray("grants"); if (grants.length() >= 4) throw new IllegalStateException("grant_limit_reached");
             for (int i = 0; i < grants.length(); i++) if (!ServiceProtocol.bool(grants.getJSONObject(i), "lease_ready")) throw new IllegalStateException("client_upgrade_required");
             long sequence = Math.max(root.getLong("invitation_sequence"), remoteWatermark) + 1; number(sequence, true);
             JSONObject invite = RelayApi.json("invitation_id", randomId(), "invitation_sequence", sequence, "ticket", randomId(), "phase", "creating", "origin", "multi_ai_v1", "pairing_expires_at", 0);
+            if (actor != null) invite.put("delegated_by", actor).put("delegator_fence", fence);
             root.put("invitation_sequence", sequence).put("invitation", invite); store.saveRecord(root); return invite;
         }
     }

@@ -45,6 +45,8 @@ final class RelayFailure {
         if (deviceTerminal(status, body)) return true;
         String code = code(body);
         return status == 400 && "invalid_approval".equals(code)
+                || multi && status == 403 && ("delegator_revoked".equals(code) || "permission_denied".equals(code))
+                || multi && status == 409 && "approval_delegation_conflict".equals(code)
                 || status == 409 && ("stale_claim".equals(code)
                     || (multi ? "approval_scope_conflict" : "claim_not_pending").equals(code));
     }

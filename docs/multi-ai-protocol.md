@@ -135,6 +135,8 @@ acquire/renew 成功响应：
 
 租约不是后台任务队列，不保存未来点击，不按旧截图自动恢复。到期、断线、连接替换或全停使旧租约失去执行资格；旧 holder 的迟到动作拒绝。任务重新取得资格后必须重新观察。服务不能确认设备已结束旧操作时保持 fencing/offline，不能仅凭 TTL 让新 AI 与旧动作并行。
 
+过期或主动释放后的清空 holder 确认最多等待 30 秒，每 5 秒由服务闹钟重发同一 fence。恢复截止时间随 releasing 状态持久保存，查询状态、失败 ACK 和重试均不延期；已有缺少此字段的 releasing 记录在首次处理时保存一次 30 秒窗口。到期仍未确认时，服务先退役旧 WebSocket，再关闭旧任务，保留设备和 AI 配对；手机通过原连接机制重新连接。新任务必须重新取得更高 epoch 并通过手机的 quiescent 检查和成功 ACK，未完成的原子动作仍会阻止新任务就绪。旧 socket 的迟到结果不得用于新任务，也不会自动重放旧命令。这是关闭已失效任务的恢复，不是抢占仍有效的任务。对外 `fencing` 同时涵盖接管确认和释放确认，不能单凭该标签判断存在活跃控制者。
+
 DO hibernation 不能把每次思考间隙都变成断任务：只有持久化的 ready 租约与同一仍存活 WS 的序列化 attachment（已确认的 lease_id、epoch、到期时间、operation_id、renewal_sequence）完全匹配且未过期时，才允许恢复该租约。状态/attachment 任一缺失、未完成命令或 fence 结果未知时，不能猜 ready，需新 fence 确认；不重放原动作。ACK 后须先完成状态和 attachment 记录，再返回 ready；中途崩溃默认未就绪。
 
 ## 6. 设备 WebSocket 与最后一道 fence
@@ -251,3 +253,11 @@ MCP 新增 `phone_task_acquire`、`phone_task_renew`、`phone_task_release`，�
 迁移异常另验：发现成功但提交失败、POST 回执丢失、发送前后进程中断、加密 schema 写成但辅助标记失败、迁移途中停止、撤销记录保存失败、重建后的定向重试，以及新 claim 获准后旧迁移/停止请求迟到。当前连接的主动停止和旧请求的重试分别核验，停止后的空模式恢复与再次邀请也须验证，不能仅验证请求被接受。
 
 旧 v2 preview 和 v4 single 测试保留。新手机/中继/CLI 编译与合成检查通过后，才进行保留原配对的候选升级及 Muse、Instinct 分别从真实环境执行与交接；不得用 USB 代做成两个 AI 成功，也不得为了验收撤销正在使用的旧配对。公开状态与发布制品需另行核验。
+
+## 机主委托已有 AI 管理连接
+
+code66 增加 `remote_connections_v1`。已批准的完整设备 AI 可按机主指令，使用普通鉴权命令及当前任务租约调用 `connection_status`、`connection_invite`、`connection_approve`、`connection_cancel`、`connection_revoke`。设备登记 token 始终留在手机，relay 的 `/v1/device/*` 不接受 AI token；手机在有效本地 grant 和任务上下文中执行管理意图。单连接的邀请操作先使用已有可恢复迁移机制，不替换原凭据。
+
+邀请只交给预期新 AI。批准绑定 invitation_id、claim_id 和新 AI 独立返回的六位码；状态列表不回传该码。手机将 delegated_by 和授予时的 grant fence 与批准意图一起保存。委派的 `/v1/device/grants/approve` 请求另带 `delegated_by:<H32>`；中继在创建新 grant 的同一串行操作内核实该 claim 仍有完整控制授权，避免远端撤销早于本机刷新时让在途批准生效。已撤销返回 `403 delegator_revoked`，权限不符返回 `403 permission_denied`；已有目标的委派来源冲突返回 `409 approval_delegation_conflict`，手机将这些明确拒绝收为终态。完成后的新连接独立存在，匹配的批准重试返回原结果，不要求委托者持续存在，不做无限父子级联。取消待批连接先保存目标撤销；中继针对同 claim 的撤销同时移除待批候选和已批准 grant，保留邀请序号，拒绝迟到批准与旧邀请重放。
+
+连接列表区分已批准、正在撤销及仅服务端残留；服务端记录不会自动生成本机授权。支持精确清理残留，也允许其他已授权 AI 按机主指令取消原邀请者无法处理的邀请。接口权限不等于具体任务授权：不得因名称陌生就删除连接，不把他人消息当作机主指令。详细使用与未知结果恢复见 [agent.md](agent.md#add-or-remove-another-ai-remotely-remote_connections_v1)。

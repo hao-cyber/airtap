@@ -96,6 +96,69 @@ test('expiry waits for null-holder ACK; failed and late ACKs cannot permit hando
   await r.acknowledgeFence(ws,{operation_id:f.operation_id,lease_epoch:5,ok:true}); assert.equal(saved().task,null);
   assert.equal(saved().grants[claim].sequence,41);
 });
+test('expired release retries have one durable deadline and retire an unconfirmed socket', async t => {
+  let time=Date.now(); t.mock.method(Date,'now',()=>time);
+  const s=state(),ws=socket(s),{r,saved,alarm}=await instance(s,ws);
+  r.state.task.expiresAtMs=time-1;await r.expire();
+  const releasing=structuredClone(saved().task),deadline=releasing.releaseDeadlineMs;
+  assert.equal(deadline,time+30000);assert.equal(alarm(),time+5000);
+  const first=ws.sent.at(-1);
+  for(let index=0;index<5;index++) {
+    time+=5000;
+    await r.acknowledgeFence(ws,{operation_id:first.operation_id,lease_epoch:first.lease_epoch,ok:false,error:'command_in_progress'});
+    await r.expire();
+    assert.equal(saved().task.releaseDeadlineMs,deadline);
+    assert.deepEqual(ws.sent.at(-1),first);
+    assert.equal(r.multiStatus(grant()).task.expires_in_ms,0);
+    assert.equal(alarm(),Math.min(time+5000,deadline));
+    await error(await r.taskRequest('acquire',{task_id:h('0')},claim),'device_busy');
+  }
+  time=deadline;await r.expire();
+  assert.equal(ws.deserializeAttachment().retired,true);assert.equal(r.connected(),false);
+  assert.equal(saved().task,null);assert.equal(saved().closedTasks.at(-1).leaseId,lease);
+  assert.equal(saved().grants[claim].sequence,41);assert.equal(saved().invitationSequence,75);
+  assert.equal(alarm(),null);
+  await r.acknowledgeFence(ws,{operation_id:first.operation_id,lease_epoch:first.lease_epoch,ok:true});
+  assert.equal(saved().task,null);
+  await error(await r.taskRequest('acquire',{task_id:h('0')},claim),'device_disconnected');
+});
+test('an existing releasing record gets one recovery deadline and cannot renew it through polls', async t => {
+  let time=Date.now(); t.mock.method(Date,'now',()=>time);
+  const s=state(),ws=socket(s),{r,saved,alarm}=await instance(s,ws);
+  r.state.task={...r.state.task,state:'releasing',fenceEpoch:5,fenceTtlMs:0};
+  r.state.taskEpoch=5;await r.persist(r.state);
+  await r.expire();const deadline=saved().task.releaseDeadlineMs;
+  assert.equal(deadline,time+30000);assert.equal(alarm(),time+5000);
+  time+=29000;await r.expire();assert.equal(saved().task.releaseDeadlineMs,deadline);
+  time+=1000;await r.expire();assert.equal(saved().task,null);assert.equal(r.connected(),false);
+});
+test('release recovery persistence failure retires old authority before any fresh handoff', async t => {
+  let time=Date.now(); t.mock.method(Date,'now',()=>time);
+  const s=state(),ws=socket(s);let fail=false;const {r,saved}=await instance(s,ws,()=>fail);
+  r.state.task.expiresAtMs=time-1;await r.expire();time=saved().task.releaseDeadlineMs;
+  fail=true;await assert.rejects(r.expire(),/storage failure/);
+  assert.equal(r.connected(),false);assert.equal(ws.deserializeAttachment().retired,true);
+  assert.equal(saved().task.state,'releasing');assert.equal(saved().grants[claim].sequence,41);
+  fail=false;await r.expire();assert.equal(saved().task,null);
+});
+test('recovery never closes a still-valid ready task or skips the new phone ACK', async t => {
+  let time=Date.now(); t.mock.method(Date,'now',()=>time);
+  const s=state(),ws=socket(s),{r,saved}=await instance(s,ws);
+  time+=60000;await r.expire();assert.equal(saved().task.state,'ready');assert.equal(r.connected(),true);
+  await error(await r.taskRequest('acquire',{task_id:h('0')},claim),'device_busy');
+  r.state.task.expiresAtMs=time-1;await r.expire();time=saved().task.releaseDeadlineMs;await r.expire();
+  const replacement=socket(s);replacement.serializeAttachment({...replacement.deserializeAttachment(),connectionId:h('9'),task:null});
+  r.device=replacement;
+  const pending=r.taskRequest('acquire',{task_id:h('0')},claim);const result=await pending;
+  const fence=replacement.sent.at(-1);assert.ok(fence.lease_epoch>5);
+  await r.acknowledgeFence(replacement,{operation_id:fence.operation_id,lease_epoch:fence.lease_epoch,ok:false,error:'command_in_progress'});
+  await error(await result.pendingResponse,'task_fence_pending');assert.equal(saved().task.state,'fencing');
+  await r.acknowledgeFence(ws,{operation_id:fence.operation_id,lease_epoch:fence.lease_epoch,ok:true});
+  assert.equal(saved().task.state,'fencing');
+  const retry=await r.taskRequest('acquire',{task_id:h('0')},claim);
+  await r.acknowledgeFence(replacement,{operation_id:fence.operation_id,lease_epoch:fence.lease_epoch,ok:true});
+  assert.equal((await (await retry.pendingResponse).json()).state,'ready');assert.equal(saved().task.state,'ready');
+});
 test('ACK persistence failure is never reported ready and fails closed on restart', async () => {
   const s=state(), ws=socket(s); let fail=false; const {r,saved}=await instance(s,ws,()=>fail);
   r.state.task.state='fencing'; r.state.task.operationId=h('0'); await r.persist(r.state); fail=true;
@@ -255,4 +318,50 @@ test('multi invitation retries retain a fixed one-hour expiry and expired candid
   millis=(start+3600)*1000;await r.expire();assert.equal(r.state.invitation,null);
   const denied=await r.approveMulti({claim_id:candidate.claim_id,allow_tap:false,persistent:true,all_apps:true,allow_control:true,allowed_packages:[]});
   assert.equal(denied.status,409);assert.equal(Object.keys(r.state.grants).length,0);
+});
+
+function delegatedState() {
+  const s = { ...state(), task: null };
+  s.invitation = { id: h('4'), sequence: 75, expiresAt: Math.floor(clock()/1000)+3600,
+    origin: 'multi_ai_v1', ticketHash: '8'.repeat(64),
+    candidate: { id: h('5'), hash: '9'.repeat(64), name: 'Synthetic child', code: '012345', capabilities: ['task_lease_v1'] } };
+  return s;
+}
+const delegatedApproval = () => ({ claim_id: h('5'), delegated_by: claim, allow_tap: false,
+  persistent: true, all_apps: true, allow_control: true, allowed_packages: [] });
+
+test('delegation requires the current inviter full-phone grant without mutating refused state', async () => {
+  for (const changed of [{persistent:false}, {allApps:false}, {allowControl:false}, {allowedPackages:['test.app']}]) {
+    const s = delegatedState(); Object.assign(s.grants[claim].scope, changed);
+    const {r, saved} = await instance(s, null), before = saved();
+    const reply = await r.approveMulti(delegatedApproval());
+    assert.equal(reply.status, 403); assert.deepEqual(await reply.json(), {error:'permission_denied',admitted:false,protocol_version:4});
+    assert.deepEqual(saved(), before); assert.equal(Object.keys(r.state.grants).length, 1);
+  }
+});
+test('completed delegated grant and exact recovery survive inviter removal and cold restore', async () => {
+  const {r, saved} = await instance(delegatedState(), null);
+  const before = structuredClone(r.state.grants[claim]);
+  assert.equal((await r.approveMulti(delegatedApproval())).status, 200);
+  assert.equal(saved().grants[h('5')].delegated_by, claim);
+  assert.deepEqual(saved().grants[claim], before);
+  await r.revokeGrant(claim);
+  const completed = saved(), restored = await instance(completed, null);
+  assert.equal((await restored.r.approveMulti(delegatedApproval())).status, 200);
+  assert.deepEqual(restored.saved(), completed);
+  await restored.r.revokeGrant(h('5'));
+  const denied = await restored.r.approveMulti(delegatedApproval());
+  assert.equal(denied.status, 403); await error(denied,'delegator_revoked');
+  assert.deepEqual(restored.saved().grants, {});
+});
+test('failed delegated approval persistence cannot gain authority after inviter revocation', async () => {
+  let failing = false;
+  const {r, saved} = await instance(delegatedState(), null, () => failing);
+  const before = saved(); failing = true;
+  await assert.rejects(r.approveMulti(delegatedApproval()), /storage failure/);
+  assert.deepEqual(saved(), before); assert.equal(r.state.grants[h('5')], undefined);
+  failing = false; await r.revokeGrant(claim);
+  const response = await r.approveMulti(delegatedApproval());
+  assert.equal(response.status, 403); await error(response,'delegator_revoked');
+  assert.equal(saved().grants[h('5')], undefined);
 });

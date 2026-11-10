@@ -31,12 +31,30 @@ final class ApprovalRecovery {
                 || ServiceProtocol.bool(body, "allow_tap") || !body.has("session_expires_at") || !body.isNull("session_expires_at")
                 || body.getJSONArray("allowed_packages").length() != 0) throw new IllegalArgumentException();
     }
+    private static boolean delegationAllowed(Context context, EnrollmentStore.Config config, JSONObject pending) throws Exception {
+        if (!pending.has("delegated_by")) return true;
+        String actor=pending.getString("delegated_by");
+        return new TrustedGrant(context).delegationCurrent(config,pending)
+                &&!OwnerRevocations.allPending(context,config)&&!OwnerRevocations.claimsPending(context,config).contains(actor);
+    }
+    private static void cancelDelegation(Context context, EnrollmentStore.Config config, JSONObject pending) throws Exception {
+        // The original approve POST may already have committed remotely. Persist a targeted
+        // revoke before forgetting local consent; a later retry cannot authorize the candidate.
+        OwnerRevocations.queue(context,config,pending.getString("claim"));
+        new TrustedGrant(context).cancelApproval(config,pending.getString("approval_id"));
+        OwnerRevocations.flush(context,config,null);
+    }
     /** Returns true only when a new request was started; in-flight/backoff callers must wait. */
     static boolean resume(Context context, EnrollmentStore.Config config, Result callback) throws Exception {
         Context app = context.getApplicationContext();
         if (!sameIdentity(config, new EnrollmentStore(app).read())) return false;
         JSONObject pending = new TrustedGrant(app).pending(config);
         if (pending == null) return false;
+        if (!delegationAllowed(app,config,pending)) {
+            cancelDelegation(app,config,pending);
+            if(callback!=null)callback.complete(Outcome.STOPPED);
+            return false;
+        }
         String id = pending.getString("approval_id"), claim = pending.getString("claim");
         boolean multi = new TrustedGrant(app).multi(config);
         final Attempt run;
@@ -47,9 +65,13 @@ final class ApprovalRecovery {
             run.inFlight = true;
         }
         try {
+            JSONObject approval=RelayApi.json("claim_id", claim, "allow_tap", false, "allow_control", true,
+                    "allowed_packages", new JSONArray(), "persistent", true, "all_apps", true);
+            // The relay must check the delegator in the same transaction that creates
+            // the new grant; local consent may lag a controller's remote self-revocation.
+            if(pending.has("delegated_by")) approval.put("delegated_by",pending.getString("delegated_by"));
             RelayApi.requestStatus(config.url, multi ? "/v1/device/grants/approve" : "/v1/device/approve", "POST", config.token,
-                    RelayApi.json("claim_id", claim, "allow_tap", false, "allow_control", true,
-                            "allowed_packages", new JSONArray(), "persistent", true, "all_apps", true), (body, status, error) -> {
+                    approval, (body, status, error) -> {
                 Outcome outcome = Outcome.RETRY;
                 try {
                     TrustedGrant trust = new TrustedGrant(app);
@@ -59,6 +81,8 @@ final class ApprovalRecovery {
                     if (stillPending == null || !id.equals(stillPending.optString("approval_id"))) {
                         // A completed duplicate may report success, but must never rewrite its sequence.
                         outcome = active != null && id.equals(active.optString("approval_id")) ? Outcome.APPROVED : Outcome.SUPERSEDED;
+                    } else if (!delegationAllowed(app,config,stillPending)) {
+                        cancelDelegation(app,config,stillPending);outcome=Outcome.STOPPED;
                     } else if (error != null) {
                         if (RelayFailure.approvalRejected(status, body, multi)) {
                             trust.cancelApproval(config, id); outcome = Outcome.STOPPED;

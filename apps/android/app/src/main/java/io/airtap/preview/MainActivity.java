@@ -203,7 +203,7 @@ public final class MainActivity extends Activity {
             heading("这是你自己的 AI 吗？"); paragraph(candidate + " 请求连接（名称由对方提供）。请与 AI 告诉你的六位数字核对：");
             content.addView(AppUi.text(this, code.substring(0, 3) + " " + code.substring(3), 44)); AppUi.space(content, 20);
             paragraph("有效至 "+new java.text.SimpleDateFormat("HH:mm",java.util.Locale.getDefault()).format(new java.util.Date(invitationExpiry*1000))+"；批准后 AI 会自动核实连接，不用再回复“已点”。");
-            paragraph("确认后，你的 AI 可以持续查看和操作整台手机，包括按需亮屏、切换应用、点击和输入。需要做什么，由你告诉自己的 AI。你随时可以停止并解除连接。");
+            paragraph("确认后，你的 AI 可以持续查看和操作整台手机，包括按需亮屏、切换应用、点击和输入。经你授权，它也可代办添加或解除其他 AI 的连接。需要做什么，由你告诉自己的 AI。你随时可以停止并解除连接。");
             primary(busy ? "正在连接…" : "数字一致，连接我的 AI", v -> approve()); content.addView(button("不是我的 AI，取消", v -> disconnect()));
         } else if (invitationUncertain) {
             heading(busy ? "正在核查邀请" : "继续连接自己的 AI");

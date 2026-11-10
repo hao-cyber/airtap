@@ -82,6 +82,18 @@ public final class TaskLeaseTest {
         renewNow[0] = 123000; renewEffects.onPersist = () -> renewNow[0] += 119000;
         check("stale_fence".equals(timed.apply(fence(D, 2, 1, a, 120000))), "renewal cannot revive lease expiring during persistence");
         check(timed.ticket(A, A, 2) == null, "expired write gives no renewal authority");
+        Effects draining = new Effects(); TaskLease recovered = new TaskLease(() -> renewNow[0], draining);
+        recovered.connected(); check(recovered.apply(fence(A, 1, 0, a, 120000)) == null, "recovery fixture starts ready");
+        var oldTicket = recovered.ticket(A, A, 1); draining.quiet = false;
+        check("command_in_progress".equals(recovered.apply(fence(B, 2, 0, null, 0))), "release cannot acknowledge native IO still running");
+        recovered.disconnect(); recovered.connected();
+        check(!recovered.current(oldTicket), "retired socket cannot restore old native authority");
+        var freshAfterRecovery = fence(C, 3, 0, b, 120000);
+        check("command_in_progress".equals(recovered.apply(freshAfterRecovery)), "fresh connection does not bypass native drain");
+        check(recovered.ticket(B, B, 3) == null, "fresh task has no authority before drain");
+        draining.quiet = true;
+        check(recovered.apply(freshAfterRecovery) == null, "same fresh fence can finish once native work drains");
+        check(recovered.current(recovered.ticket(B, B, 3)) && !recovered.current(oldTicket), "only the newly acknowledged task can act");
         for (long ttl : new long[]{-1,0,120001}) {
             try { fence(A,5,0,a,ttl); throw new AssertionError("bad ttl accepted"); }
             catch (IllegalArgumentException expected) { checks++; }

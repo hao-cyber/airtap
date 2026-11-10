@@ -17,7 +17,72 @@ public final class MultiAiControlTest{
  static OwnerIdentityHarness invitationOwner()throws Exception{trust.requireLease(config,A);OwnerIdentityHarness owner=new OwnerIdentityHarness();owner.bindIdentity(config);return owner;}
  static long invitationPosts(){return RelayApi.requests.stream().filter(r->r.path.equals("/v1/device/invitations")&&r.method.equals("POST")).count();}
  static JSONObject invitationReply(JSONObject request){return RelayApi.json("protocol_version",4,"invitation_id",request.getString("invitation_id"),"invitation_sequence",request.getLong("invitation_sequence"),"pairing_expires_at",System.currentTimeMillis()/1000+300,"expires_at",JSONObject.NULL,"cli_sha256","1".repeat(64),"agent_sha256","2".repeat(64));}
+ static final class ConnectionReply implements CompanionUi.Reply {JSONObject value;String error;public void success(JSONObject v){value=v;}public void error(String c){error=c;}}
+ static ConnectionReply connection(JSONObject request)throws Exception{ConnectionReply reply=new ConnectionReply();RemoteConnections.execute(service,config,A,trust.grantFence(config,A),request,()->true,reply);return reply;}
+ static JSONObject connectionRequest(String action){return RelayApi.json("id",ID,"action",action);}
+ static JSONObject delegatedInvite()throws Exception{trust.requireLease(config,A);JSONObject invite=trust.beginDelegatedInvitation(config,0,A,trust.grantFence(config,A));trust.completeInvitation(config,invite.getString("invitation_id"),invite.getLong("invitation_sequence"),System.currentTimeMillis()/1000+3600,"1".repeat(64),"2".repeat(64));return trust.invitation(config);}
+ static JSONObject pendingRemote(JSONObject invite){return multiState(A).put("invitation_sequence",invite.getLong("invitation_sequence")).put("invitation",RelayApi.json("invitation_id",invite.getString("invitation_id"),"invitation_sequence",invite.getLong("invitation_sequence"),"state","pending","pairing_expires_at",invite.getLong("pairing_expires_at"),"candidate",RelayApi.json("claim_id",B,"name","Synthetic new AI","verification_code","123456")));}
+ static JSONObject approveRequest(JSONObject invite){return connectionRequest("connection_approve").put("invitation_id",invite.getString("invitation_id")).put("claim_id",B).put("verification_code","123456");}
+ static JSONObject approvedReply(){return RelayApi.json("protocol_version",4,"ok",true,"claim_id",B,"persistent",true,"all_apps",true,"allow_control",true,"allow_tap",false,"allowed_packages",new JSONArray(),"session_expires_at",JSONObject.NULL);}
  public static void main(String[]args)throws Exception{
+  test("remote invitation uses original authenticated command lease without screen actions",()->{
+    service.receive(fence(1,A));JSONObject envelope=command(A,1L,1);envelope.getJSONObject("command").put("action","connection_invite");service.receive(envelope);
+    check(RelayApi.requests.size()==1&&service.ui.executions==0);RelayApi.requests.get(0).respond(multiState(A),200,null);
+    JSONObject original=trust.invitation(config);check(A.equals(original.getString("delegated_by"))&&RelayApi.requests.size()==2);
+    RelayApi.requests.get(1).respond(invitationReply(original),200,null);JSONObject result=ws.last().getJSONObject("result");
+    check(ws.last().getBoolean("ok")&&result.getString("ticket").equals(original.getString("ticket"))&&trust.grant(config,A)!=null&&service.ui.executions==0);
+  });
+  test("unknown remote invitation POST retries the same saved identity",()->{
+    trust.requireLease(config,A);ConnectionReply first=connection(connectionRequest("connection_invite"));RelayApi.requests.get(0).respond(multiState(A),200,null);JSONObject original=trust.invitation(config);
+    RelayApi.requests.get(1).respond(null,0,"lost");check("connection_result_unknown".equals(first.error));
+    ConnectionReply next=connection(connectionRequest("connection_invite"));RelayApi.requests.get(2).respond(multiState(A),200,null);
+    check(RelayApi.requests.get(3).body.getString("ticket").equals(original.getString("ticket")));RelayApi.requests.get(3).respond(invitationReply(original),200,null);check(next.value!=null);
+  });
+  test("STOP or task release before invitation read prevents a later creation",()->{
+    for(boolean stop:new boolean[]{false,true}){reset();service.receive(fence(1,A));JSONObject envelope=command(A,1L,1);envelope.getJSONObject("command").put("action","connection_invite");service.receive(envelope);var read=RelayApi.requests.get(0);
+      if(stop)trust.stop();else service.receive(fence(2,null));read.respond(multiState(A),200,null);check(invitationPosts()==0&&trust.invitation(config)==null);}
+  });
+  test("remote approval compares the intended new AI code and status does not reveal it",()->{
+    JSONObject invite=delegatedInvite();ConnectionReply status=connection(connectionRequest("connection_status"));RelayApi.requests.get(0).respond(pendingRemote(invite),200,null);
+    check(!status.value.getJSONObject("invitation").getJSONObject("candidate").has("verification_code"));
+    ConnectionReply wrong=connection(approveRequest(invite).put("verification_code","654321"));RelayApi.requests.get(1).respond(pendingRemote(invite),200,null);
+    check("comparison_code_mismatch".equals(wrong.error)&&trust.pending(config)==null&&trust.grant(config,B)==null);
+    ConnectionReply right=connection(approveRequest(invite));RelayApi.requests.get(2).respond(pendingRemote(invite),200,null);
+    check("approving".equals(right.value.getString("state"))&&trust.pending(config).getString("delegated_by").equals(A));
+    service.resumePending();check(A.equals(RelayApi.requests.get(3).body.getString("delegated_by")));RelayApi.requests.get(3).respond(approvedReply(),200,null);
+    check(trust.grant(config,A)!=null&&trust.grant(config,B)!=null&&trust.grant(config,B).getString("delegated_by").equals(A));
+    trust.revoke(config,A);check(trust.grant(config,B)!=null); // Completed grants are independently revocable.
+  });
+  test("cancel with an unknown committed approval queues exact cleanup before clearing pending",()->{
+    JSONObject invite=delegatedInvite();trust.beginDelegatedApproval(config,B,"Synthetic B",A,trust.grantFence(config,A),invite.getString("invitation_id"));service.resumePending();var approving=RelayApi.requests.get(0);
+    ConnectionReply cancel=connection(connectionRequest("connection_cancel").put("invitation_id",invite.getString("invitation_id")));RelayApi.requests.get(1).respond(multiState(A),200,null);
+    check(OwnerRevocations.revoked.equals(Set.of(B))&&trust.pending(config)==null&&trust.grant(config,A)!=null);
+    RelayApi.requests.get(2).respond(RelayApi.json("protocol_version",4,"ok",true),200,null);approving.respond(approvedReply(),200,null);
+    check("canceled".equals(cancel.value.getString("state"))&&trust.grant(config,B)==null&&OwnerRevocations.revoked.contains(B));
+  });
+  test("delegator revocation during approval denies activation and queues target revoke",()->{
+    JSONObject invite=delegatedInvite();trust.beginDelegatedApproval(config,B,"Synthetic B",A,trust.grantFence(config,A),invite.getString("invitation_id"));service.resumePending();var approving=RelayApi.requests.get(0);
+    trust.revoke(config,A);approving.respond(approvedReply(),200,null);check(trust.grant(config,B)==null&&trust.pending(config)==null&&OwnerRevocations.revoked.contains(B));
+  });
+  test("relay revocation of a delegator terminates pending approval before local refresh",()->{
+    JSONObject invite=delegatedInvite();trust.beginDelegatedApproval(config,B,"Synthetic B",A,trust.grantFence(config,A),invite.getString("invitation_id"));service.resumePending();
+    var approving=RelayApi.requests.get(0);check(A.equals(approving.body.getString("delegated_by")));
+    approving.respond(RelayApi.json("protocol_version",4,"error","delegator_revoked","admitted",false),403,"delegator_revoked");
+    check(trust.grant(config,A)!=null&&trust.grant(config,B)==null&&trust.pending(config)==null&&"canceled".equals(trust.invitation(config).getString("phase")));
+    check(!ApprovalRecovery.resume(service,config,null)&&RelayApi.requests.size()==1);
+  });
+  test("remote-only grant is visible as unapproved and can be explicitly removed",()->{
+    JSONObject remote=multiState(A);remote.getJSONArray("grants").put(multiState(B).getJSONArray("grants").getJSONObject(0));
+    ConnectionReply status=connection(connectionRequest("connection_status"));RelayApi.requests.get(0).respond(remote,200,null);
+    check(status.value.getJSONArray("grants").length()==2&&"not_locally_approved".equals(status.value.getJSONArray("grants").getJSONObject(1).getString("state")));
+    ConnectionReply revoke=connection(connectionRequest("connection_revoke").put("claim_id",B));RelayApi.requests.get(1).respond(remote,200,null);
+    check("revoking".equals(revoke.value.getString("state"))&&OwnerRevocations.revoked.equals(Set.of(B))&&trust.grant(config,A)!=null);
+  });
+  test("single full-device AI can persist migration intent without replacing its identity",()->{
+    singleOwner();String original=trust.grantFence(config,A);ConnectionReply migration=connection(connectionRequest("connection_invite"));
+    check("migration_pending".equals(migration.value.getString("state"))&&trust.migration(config)!=null&&trust.grantFence(config,A).equals(original)&&trust.grant(config,A).getLong("sequence")==7&&service.restores==1);
+  });
+
   test("multi socket waits for protocol acknowledgement before presenting ready",()->{
     service=new PreviewService(config,ws);service.remoteGrants=Set.of(A);
     // Even a stale transport-ready label must not override the missing protocol ACK.
