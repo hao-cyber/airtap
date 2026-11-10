@@ -1,0 +1,110 @@
+{
+  "schema": "airtap-code66-publication-v1",
+  "date": "2026-11-11",
+  "release_commit": "ac6885749545636daff8eedcdb7c9f212fea2fb0",
+  "scope": "Publication and public artifact integrity; device and personal-AI acceptance is recorded separately.",
+  "android": {
+    "application_id": "io.airtap.preview",
+    "version_name": "0.4.0-beta.36",
+    "version_code": 66,
+    "apk_sha256": "916f82d3a22347652bce8a65f2e6ab616bef7d5a88d3021ca0b65e5da334b51e",
+    "apk_bytes": 660941,
+    "signer_sha256": "a2aa0c1b6fdaf1baa37aa20817387524a1318b5dab82bf7c185663141daba60f",
+    "min_sdk": 34,
+    "target_sdk": 36,
+    "debuggable": false,
+    "channel": "beta",
+    "download_path": "/download/android"
+  },
+  "build": {
+    "source_commit": "865a89bc48986139a74f2a11b621cbfdccfbc369",
+    "clean_worktree": true,
+    "source_inputs_unchanged": true,
+    "compile_and_lint_passed": true
+  },
+  "relay": {
+    "revision": 29,
+    "public_artifacts": [
+      {
+        "path": "/cli/airtap.py",
+        "status": 200,
+        "bytes": 131539,
+        "sha256": "c062e538d644a94693e50af6b23ad4569f41000ebcd0f96e3b6c8b83cadd3a47",
+        "matches_frozen_source": true
+      },
+      {
+        "path": "/agent.md",
+        "status": 200,
+        "bytes": 117433,
+        "sha256": "b118417a4db97cd963ea3cc80b3c089de43a670e4786213c0bef4b999ae2949a",
+        "matches_frozen_source": true
+      }
+    ]
+  },
+  "website": {
+    "origin": "https://airtap.memtrix.dev",
+    "deployment_id": "ab58f389-0384-48da-a87d-437cd6cae41e",
+    "passed": true,
+    "local_files_verified": 37,
+    "public_checks_passed": 87,
+    "current_apk_get_head_range_verified": true,
+    "download_redirect_and_update_metadata_verified": true,
+    "reviewed_transformations": [
+      {
+        "path": "/robots.txt",
+        "kind": "reviewed_managed_robots_prefix",
+        "prefix_sha256": "3073d1e371afb3271c7666148766fedc5145f7d8440f7114062db79b7bd58add"
+      }
+    ]
+  },
+  "github": [
+    {
+      "tag": "v0.4.0-cli.17",
+      "release_url": "https://github.com/hao-cyber/airtap/releases/tag/v0.4.0-cli.17",
+      "assets": [
+        {
+          "name": "airtap.py",
+          "bytes": 131539,
+          "sha256": "c062e538d644a94693e50af6b23ad4569f41000ebcd0f96e3b6c8b83cadd3a47",
+          "matched": true
+        },
+        {
+          "name": "agent.md",
+          "bytes": 117433,
+          "sha256": "b118417a4db97cd963ea3cc80b3c089de43a670e4786213c0bef4b999ae2949a",
+          "matched": true
+        },
+        {
+          "name": "CLI-SHA256SUMS",
+          "bytes": 151,
+          "sha256": "3b05c12d3cc66ce5ba230a77f84e71986d972f6928d21ca181244d7bd127fe89",
+          "matched": true
+        }
+      ]
+    },
+    {
+      "tag": "v0.4.0-beta.36",
+      "release_url": "https://github.com/hao-cyber/airtap/releases/tag/v0.4.0-beta.36",
+      "assets": [
+        {
+          "name": "Airtap-0.4.0-beta.36-code66.apk",
+          "bytes": 660941,
+          "sha256": "916f82d3a22347652bce8a65f2e6ab616bef7d5a88d3021ca0b65e5da334b51e",
+          "matched": true
+        },
+        {
+          "name": "66.json",
+          "bytes": 1123,
+          "sha256": "05c2e7a4977f486877c37e4f5313d4e3a7722a9f1301971b6389ecba4679b1b7",
+          "matched": true
+        },
+        {
+          "name": "ANDROID-SHA256SUMS",
+          "bytes": 172,
+          "sha256": "e1f8ce661f5a149640aa85481f09c6e5bdf6c0894d2e0c06016d7f54fd32ad6f",
+          "matched": true
+        }
+      ]
+    }
+  ]
+}
