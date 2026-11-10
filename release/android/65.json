@@ -1,0 +1,22 @@
+{
+  "schema": "airtap-android-update-v1",
+  "application_id": "io.airtap.preview",
+  "version_name": "0.4.0-beta.35",
+  "version_code": 65,
+  "apk_sha256": "224d192021a26dbcd4b6068df7a3747b5b3fc2cde2bc27e506ed945de1e469b0",
+  "apk_bytes": 648653,
+  "signer_sha256": "a2aa0c1b6fdaf1baa37aa20817387524a1318b5dab82bf7c185663141daba60f",
+  "min_sdk": 34,
+  "target_sdk": 36,
+  "debuggable": false,
+  "channel": "beta",
+  "published_at": "2026-11-10",
+  "download_path": "/download/android",
+  "notes": [
+    "新增可选通知事件：手机端主动开启后，AI 可按独立游标等待和读取新通知；不等于短信数据库全量读取。",
+    "支持按住后重新观察并继续拖动；文件上限提高到 64 MiB，增加下载续传、建目录、改名和单项删除。",
+    "支持正常相机拍摄、麦克风授权后的有限录音、每次系统授权后的无声录屏，并将文件回传 AI。",
+    "CLI.16 保存任务进度；结果未知时先核验再续接，避免重复提交。可选 SIM PIN 输入只经过正常系统验证，实卡正向尚未验证。",
+    "升级保留有效配对和手机数据。新增通知与 SIM PIN 选项默认关闭；每项能力的实测范围见公开验收记录。"
+  ]
+}

@@ -20,7 +20,9 @@ code63 将首次及新增 AI 的邀请改为八位数字。数字只定位短期
 
 ## 当前发布身份
 
-官网推荐 Android `0.4.0-beta.34`（code64），[版本资料](android/64.json)固定制品身份。新邀请最长一小时，过期可一次点击重新生成，AI 在手机批准后自行核实。[构建与配对检查](../docs/results/beta34-code64-pairing-journey-20261110.json)与历史个人 AI 实测各自保持验证范围。
+官网推荐 Android `0.4.0-beta.35`（code65），[版本资料](android/65.json)固定制品身份。新增通知事件、持续触控、64 MiB 文件续传、媒体采集及配套 CLI.16 任务记录。新权限按正常系统流程取得，通知和 SIM PIN 选项默认关闭。检查范围见[本版记录](../docs/results/beta35-code65-capabilities-20261110.json)，实体手机新能力另行验证。
+
+此前 code64 延长新邀请至一小时，过期可重新生成，AI 在手机批准后自行核实。[构建与配对检查](../docs/results/beta34-code64-pairing-journey-20261110.json)与[两台手机实测](../docs/results/beta34-code64-two-ai-20261110.json)保持原版本范围。
 
 当前为公开测试渠道，使用长期 RSA 3072 发布密钥，Android `debuggable=false`，最低 Android 14。包名继续使用 `io.airtap.preview`，以保留已安装用户的数据；包名不作为用户界面名称。正式发布签名不代表产品已通过全部机型或普通用户验证。
 

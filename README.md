@@ -42,9 +42,11 @@ AI 可以组合这些动作完成跨 App 任务，不限于计算器等演示应
 
 ## 当前支持情况
 
-当前版本 **0.4.0-beta.34（code64）** 延长新邀请到一小时，过期后可一键重新生成。发给 AI 八位码，在手机核对六位码并批准，AI 会自动继续；已有连接保留。[更新说明](release/android/64.json) · [构建与配对检查](docs/results/beta34-code64-pairing-journey-20261110.json) · [发布核验](docs/results/beta34-code64-publication-20261110.json)。
+当前版本 **0.4.0-beta.35（code65）** 增加可选通知事件、按住后继续观察和拖动、64 MiB 文件续传，以及拍照、录像、录音和录屏回传。配套 CLI.16 可以保存任务进度，结果未知时先核验再续接。[更新说明](release/android/65.json) · [实现与检查](docs/results/beta35-code65-capabilities-20261110.json)。
 
-两台测试手机均已升级到 code64，分别接入 Muse 和 Instinct。Muse 通过一台的原连接完成远程升级；另一台由维护者通过 USB 升级、正常核码后接入。接下来的手机任务由各 AI 自己执行。[升级记录](docs/results/beta34-code64-muse-upgrade-20261110.json) · [两台手机实测](docs/results/beta34-code64-two-ai-20261110.json)
+本版扩展已通过核心检查与 Android 模拟器验证；实体手机的新能力尚待逐项实测。通知事件与 SIM PIN 输入默认关闭，麦克风需系统授权，录屏每次确认。已有邀请仍有效一小时，升级保留有效连接。
+
+最近一轮实体手机验收使用 code64，分别接入 Muse 和 Instinct。Muse 通过一台的原连接完成远程升级；另一台由维护者通过 USB 升级、正常核码后接入。接下来的手机任务由各 AI 自己执行。[升级记录](docs/results/beta34-code64-muse-upgrade-20261110.json) · [两台手机实测](docs/results/beta34-code64-two-ai-20261110.json)
 
 两台魅族 Note 16、Android 15 均完成了[两个 AI 互斥交接与 90 秒息屏后的再次使用](docs/results/beta34-code64-two-ai-20261110.json)：一个 AI 操作时，另一个的申请被拒绝；正常释放后可接手，无需重新配对。Muse 验证一台息屏后的任务，Instinct 验证另一台。更多机型、纯移动网络完整任务、多日后台和独立新用户完整安装仍待验证。目前没有 iOS 客户端。
 
