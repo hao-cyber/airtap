@@ -42,7 +42,7 @@ AI 可以组合这些动作完成跨 App 任务，不限于计算器等演示应
 
 ## 当前支持情况
 
-当前版本 **0.4.0-beta.36（code66）** 让已连接的 AI 按你的指令代办新增 AI 接入，保留各自独立连接；增加电量、温度和接电状态读取。配套 CLI.17 与中继修复过期任务一直显示忙碌的问题，恢复后先核实新任务，不重放旧操作。[更新说明](release/android/66.json) · [发布核验](docs/results/beta36-code66-publication-20261111.json) · [实现与检查](docs/results/beta36-code66-management-20261111.json) · [充电管理](docs/battery-care.md)。
+当前版本 **0.4.0-beta.36（code66）** 让已连接的 AI 按你的指令代办新增 AI 接入，保留各自独立连接；增加电量、温度和接电状态读取。配套 CLI.17 与中继修复过期任务一直显示忙碌的问题，恢复后先核实新任务，不重放旧操作。[更新说明](release/android/66.json) · [发布核验](docs/results/beta36-code66-publication-20261111.json) · [真机与 AI 验收](docs/results/beta36-code66-personal-ai-20261111.json) · [实现与检查](docs/results/beta36-code66-management-20261111.json) · [充电管理](docs/battery-care.md)。
 
 本版沿用通知事件、持续触控、64 MiB 文件续传、媒体采集和任务保存等接口；这些能力的已有实测保持原版本范围，本版新增能力另行验证。
 

@@ -1108,6 +1108,14 @@
       "path": "docs/results/beta36-code66-management-20261111.json"
     },
     {
+      "kind": "source",
+      "path": "docs/results/beta36-code66-personal-ai-20261111.json"
+    },
+    {
+      "kind": "source",
+      "path": "docs/results/beta36-code66-publication-20261111.json"
+    },
+    {
       "kind": "result",
       "path": "docs/results/beta4-clean-install-20261026.json"
     },

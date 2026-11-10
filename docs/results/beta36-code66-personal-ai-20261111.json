@@ -1,0 +1,56 @@
+{
+  "schema": "airtap-personal-ai-validation-v1",
+  "date": "2026-11-11",
+  "android_version": "0.4.0-beta.36",
+  "version_code": 66,
+  "cli_version": "0.4.0-cli.17",
+  "relay_revision": 29,
+  "scope": "Two existing Android phones, remote in-place upgrades by Muse, delegated enrollment of a new Instinct account on one phone, and a bounded real task and credential-restore check by that account.",
+  "evidence": "Sanitized summary of the personal AIs' actual task receipts, reviewed by the maintainer. Original chats, screenshots, credentials and deployment identifiers are not distributed.",
+  "passed": [
+    {
+      "actor": "Muse",
+      "devices": 2,
+      "check": "Upgrade code65 to code66 through the normal installer over the existing Airtap connection, preserving the existing pairing and app data. Actual ping reported code66 and remote_connections_v1 plus battery_status_v1."
+    },
+    {
+      "actor": "Muse",
+      "devices": 2,
+      "check": "Read battery percentage, plugged state, temperature and voltage from actual hardware; inspect existing AI connections; visually verify 51 × 3 = 153 and 54 × 3 = 162 respectively; return HOME and release the task."
+    },
+    {
+      "actor": "Muse and new Instinct account",
+      "devices": 1,
+      "check": "Muse generated a one-hour invitation remotely. The new Instinct account created its own claim and returned its comparison code. Muse approved that exact claim and code, then observed the new approved connection while preserving its original grant. No owner phone action or USB was required."
+    },
+    {
+      "actor": "New Instinct account",
+      "devices": 1,
+      "check": "Use the newly approved independent connection, confirm code66, visually verify 57 × 3 = 171, return HOME and release the task to idle."
+    },
+    {
+      "actor": "New Instinct account",
+      "devices": 1,
+      "check": "Retrieve the actual endpoint and credentials from its Vault into a new private directory and verify the same approved connection online and idle; no copy of the previous temporary phone configuration was used."
+    }
+  ],
+  "retained_failures_and_recovery": [
+    "An old expired releasing task was observed to clear after relay revision29; a fresh task then operated normally. The exact 30-second deadline was tested separately in workerd, not timed on these phones.",
+    "App replacement interrupted active task leases. Muse checked status and acquired fresh leases after reconnection; original pairings remained valid.",
+    "An input result was uncertain during restart. Muse observed the calculator before continuing instead of replaying the action. A truncated observation identifier was rejected before dispatch and replaced with the full identifier.",
+    "A fresh-task observation requirement was resolved by observing before acting.",
+    "During one download flow, Muse accepted an unrelated browser site-storage choice. Follow-up found no isolated revoke control and reported that the browser lacked the corresponding system permission. Broader system access was not granted and site data was not cleared. Exact reversal of that site choice was not achieved."
+  ],
+  "human_intervention": {
+    "owner_phone_actions": 0,
+    "usb_or_old_control_chain_used": false,
+    "maintainer": "Coordinated the existing authorized tasks, relayed the invitation and comparison code, and handled three Allow once Vault prompts in the authenticated desktop session. This was not an independent novice setup test.",
+    "persistent_vault_auto_approval_added": false
+  },
+  "not_verified_by_this_run": [
+    "Physical charging cutoff or smart-plug control",
+    "All remote connection cancellation and revocation races on hardware; those cases have separate host and relay tests",
+    "Every App, mobile-data routing, or long-term unattended stability",
+    "First-time installation by an independent new user"
+  ]
+}
