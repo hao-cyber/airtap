@@ -20,7 +20,9 @@ code63 将首次及新增 AI 的邀请改为八位数字。数字只定位短期
 
 ## 当前发布身份
 
-官网推荐 Android `0.4.0-beta.35`（code65），[版本资料](android/65.json)固定制品身份。新增通知事件、持续触控、64 MiB 文件续传、媒体采集及配套 CLI.16 任务记录。新权限按正常系统流程取得，通知和 SIM PIN 选项默认关闭。检查范围见[本版记录](../docs/results/beta35-code65-capabilities-20261110.json)，实体手机新能力另行验证。
+本版 Android `0.4.0-beta.36`（code66），[版本资料](android/66.json)固定制品身份。新增已有 AI 代办连接管理、电池状态读取及 CLI.17；中继对过期任务释放增加固定恢复期限。构建、协议和恢复检查见[本版记录](../docs/results/beta36-code66-management-20261111.json)，它不代替公网发布、手机覆盖升级或个人 AI 实测。
+
+此前 code65 的通知事件、持续触控、文件续传、媒体采集和任务记录保持原范围，见[实现与检查](../docs/results/beta35-code65-capabilities-20261110.json)及[Muse 两机记录](../docs/results/beta35-code65-muse-20261110.json)。
 
 此前 code64 延长新邀请至一小时，过期可重新生成，AI 在手机批准后自行核实。[构建与配对检查](../docs/results/beta34-code64-pairing-journey-20261110.json)与[两台手机实测](../docs/results/beta34-code64-two-ai-20261110.json)保持原版本范围。
 

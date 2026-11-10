@@ -29,7 +29,7 @@ python3 relay/service/deploy.py --wrangler "$(pwd)/relay/worker/node_modules/.bi
 
 普通用户路径见 `docs/user-guide-v040.md`；AI 获取服务提供的 `agent.md` 和 CLI。接入者校验下载内容摘要，完成邀请／核码后保存私有配置。任务结束不自动撤销连接。
 
-接入说明、手机能力与公开下载须明确各自的实际版本。公共服务现提供 CLI.12 与新版接入说明，见[租约修复与部署核验](results/cli12-lease-recovery-delivery-20261102.json)；工具更新保留已批准连接。CLI.12 的任务状态用相对剩余时间，避免客户端时钟偏差导致误判过期。旧邀请的文件摘要若不匹配，应停止使用下载内容并生成新邀请，不跳过摘要或 TLS 检查。官网当前推荐 Android `0.4.0-beta.21`（code51），复用已签名实测的 APK，见[版本资料](../release/android/51.json)、[制品准备](results/beta21-code51-release-preparation-20261103.json)及[正式发布与公网核验](results/beta21-code51-publication-20261103.json)；实际推荐包以官网更新 JSON 为准。code39 及更早版本的验收保持其原范围。个人 AI 按设备实际返回的能力选择恢复方式，自行使用 CLI、HTTPS 或 MCP，不让普通用户决定技术实现。
+接入说明、手机能力与公开下载须明确各自的实际版本。当前工具和协议见[AI 接入说明](agent.md)，推荐 APK 以官网 `/updates/android.json` 为准；历史验收只覆盖各自版本。工具更新保留已批准连接。任务状态使用相对剩余时间，避免客户端时钟偏差导致误判过期。旧邀请的文件摘要若不匹配，应停止使用该下载内容并生成新邀请，不跳过摘要或 TLS 检查。个人 AI 按设备实际返回的能力选择恢复方式，自行使用 CLI、HTTPS 或 MCP，不让普通用户决定技术实现。
 
 使用自定义域名时，还要从实际 AI 的网络检查 `/v1/service`、`/agent.md`、`/cli/airtap.py` 和安装页的下载资源。Cloudflare 的浏览器检查可能拦截普通 HTTP 工具；HTTP 403 且正文为 `error code: 1010` 时，先按[官方排查说明](https://developers.cloudflare.com/support/troubleshooting/http-status-codes/cloudflare-1xxx-errors/error-1010/)核对 Browser Integrity Check。当前公共服务通过一条 Configuration Rule，仅对中继、原预览下载站和固定官网 `airtap.memtrix.dev` 三个完整主机名设置 `bic: false`；配对、服务端鉴权和 HTTPS 继续保留。自托管提供者需要在自己的域名配置中完成对应检查，不能以关闭整个域名区域的安全保护代替精确配置。Wrangler 的 Workers 部署权限不等于 Configuration Rules 编辑权限。
 
