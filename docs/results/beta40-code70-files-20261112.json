@@ -1,0 +1,35 @@
+{
+  "schema": "airtap-file-performance-candidate-v1",
+  "date": "2026-11-12",
+  "android_version": "0.4.0-beta.40",
+  "version_code": 70,
+  "cli_version": "0.4.0-cli.21",
+  "status": "signed_candidate_device_acceptance_pending",
+  "apk_source_commit": "bfb1bfaeff9cd2dd4f5a9f6ea53c2a0d578332d9",
+  "apk_sha256": "ec114e295feebe03ccc747a89b0c973e1fc85f94f9661a036e4d1115135ca8e0",
+  "apk_bytes": 669133,
+  "changes": [
+    "One file traversal computes both all-pairing storage and owner workspace totals. Reservations, free-space checks and authority checks remain fresh.",
+    "Window package identity reads do not prefetch descendants. Runtime authorization is not cached or relaxed.",
+    "Hex encoding avoids repeated formatting without changing grant or revoke identity bytes.",
+    "ping exposes only the current claim latest file command duration/count metadata; no path, payload or transfer identity."
+  ],
+  "checks": {
+    "signed_build_and_lint": true,
+    "build_inputs_unchanged": true,
+    "file_helpers": 73,
+    "multi_file_scopes": 19,
+    "multi_ai_authority": 77,
+    "owner_revocations": 37,
+    "core_suite": "running"
+  },
+  "synthetic_profile": {
+    "scope": "Same host Java fixture of 24 workspace files and one upload; not phone latency.",
+    "before_fence_calls": 76,
+    "after_fence_calls": 46,
+    "host_ms": 3.563084
+  },
+  "prior_failure_record": "beta39-code69-files-20261111.json",
+  "device_acceptance": null,
+  "privacy": "Synthetic metadata only; no private phone content, identities, credentials or endpoints."
+}
