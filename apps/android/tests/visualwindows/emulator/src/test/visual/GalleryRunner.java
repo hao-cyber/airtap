@@ -19,6 +19,7 @@ import org.json.*;
 /** Isolated real MediaStore + separate-app Photo Picker tests; no real account, network, or private photos. */
 public final class GalleryRunner extends Instrumentation {
     final JSONArray checks = new JSONArray();
+    JSONObject publicationMetadata;
     final String owner = "b".repeat(32), path = "gallery-" + UUID.randomUUID() + ".png";
     final AtomicBoolean allowed = new AtomicBoolean(true), interruptPending = new AtomicBoolean(false);
     int pendingBaseline;
@@ -79,6 +80,14 @@ public final class GalleryRunner extends Instrumentation {
         check("interrupted pending row cleaned without public photo",count(false)==before&&count(true)==pendingBaseline);
         JSONObject result=call(command);
         check("MediaStore publication verifies bytes and metadata",result.getBoolean("published")&&result.getBoolean("readback_verified")&&result.getString("sha256").equals(digest)&&result.getInt("width")==160&&result.getInt("height")==120);
+        try(Cursor indexed=getTargetContext().getContentResolver().query(uri(result.getString("display_name")),
+                new String[]{"width","height","_size","is_pending","datetaken","date_added"},null,null,null)) {
+            check("published media has indexed dimensions for receiving pickers",indexed!=null&&indexed.moveToFirst()
+                    &&indexed.getInt(0)==160&&indexed.getInt(1)==120&&indexed.getLong(2)==data.length&&indexed.getInt(3)==0);
+            publicationMetadata=new JSONObject().put("width",indexed.getInt(0)).put("height",indexed.getInt(1))
+                    .put("bytes",indexed.getLong(2)).put("pending",indexed.getInt(3))
+                    .put("date_taken_present",!indexed.isNull(4)).put("date_added_present",!indexed.isNull(5));
+        }
         check("exactly one new gallery image",count(false)==before+1&&count(true)==pendingBaseline);
         JSONObject retry=call(command);
         check("same request reuses publication without duplicate",retry.getBoolean("reused")&&retry.getString("publication_id").equals(result.getString("publication_id"))&&count(false)==before+1);
@@ -100,6 +109,6 @@ public final class GalleryRunner extends Instrumentation {
     @Override public void onCreate(Bundle b){super.onCreate(b);start();}
     @Override public void onStart(){Bundle result=new Bundle();JSONObject report=new JSONObject();
         try{tests();report.put("complete",true);}catch(Throwable e){try{report.put("complete",false).put("error",e.toString());StringWriter out=new StringWriter();e.printStackTrace(new PrintWriter(out));report.put("stack",out.toString());}catch(Exception ignored){}}
-        try{report.put("checks",checks).put("sdk",Build.VERSION.SDK_INT);}catch(Exception ignored){}result.putString("report",report.toString());finish(report.optBoolean("complete")?-1:0,result);
+        try{report.put("checks",checks).put("sdk",Build.VERSION.SDK_INT).put("publication_metadata",publicationMetadata);}catch(Exception ignored){}result.putString("report",report.toString());finish(report.optBoolean("complete")?-1:0,result);
     }
 }

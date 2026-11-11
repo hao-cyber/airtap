@@ -1,0 +1,94 @@
+{
+  "schema": "airtap-personal-ai-gallery-acceptance-v1",
+  "date": "2026-11-11",
+  "version_code": 68,
+  "agent": "Muse",
+  "transport": "Original approved cloud connections and public relay; no USB, ADB or retired server control for physical tasks.",
+  "gallery_end_to_end_complete": false,
+  "devices": [
+    {
+      "model": "Meizu Note16",
+      "role": "test device A",
+      "upgrade_verified": true,
+      "approved_pairings_preserved": 2,
+      "gallery_capability": true,
+      "synthetic_image": {"mime": "image/png", "width": 320, "height": 240, "bytes": 3607},
+      "published_and_readback_verified": true,
+      "same_request_reused_without_duplicate": true,
+      "visual_result": "File manager recent-image thumbnail inspected; expected green background and white test caption.",
+      "receiving_picker_selection": false,
+      "reason": "Notes requested library access; it was not granted. Gallery first-use agreement was not accepted. A blank test note did not persist.",
+      "recovery": [
+        "Device disconnect and post-install lease expiry recovered through the original connection.",
+        "An upload timeout was reconciled by transfer status; all bytes were already present.",
+        "CLI19 demanded an unnecessary screen observation before file publication; subsequent timeouts and lease state were reconciled before success.",
+        "A tree timeout and a command-name parser error were recovered."
+      ],
+      "final_state": "HOME, quiet, released, idle"
+    },
+    {
+      "model": "Meizu Note16",
+      "role": "test device B",
+      "upgrade_verified": true,
+      "approved_pairings_preserved": 2,
+      "gallery_capability": true,
+      "synthetic_image": {"mime": "image/png", "width": 320, "height": 240, "bytes": 3607},
+      "published_and_readback_verified": true,
+      "same_request_reused_without_duplicate": true,
+      "visual_result": "File manager followed by actual full-screen Gallery preview of the synthetic test image.",
+      "rootless_system_dialog": {
+        "naturally_triggered": true,
+        "kind": "Android photo-library permission dialog opened by Notes",
+        "package_available": false,
+        "actual_screenshot_inspected": true,
+        "visual_tap_without_package": "Deny",
+        "dialog_dismissed": true
+      },
+      "receiving_picker_selection": false,
+      "picker_attempt": {
+        "entry": "System Messages blank compose, empty recipient, image attachment",
+        "opened": true,
+        "new_library_permission": false,
+        "small_synthetic_image_visible": false,
+        "inspected": ["recent", "all photos", "photos tab", "screenshots", "other albums", "storage"],
+        "attachment_preview": false,
+        "blank_draft_cancelled": true,
+        "message_sent": false,
+        "cause": "Not established. The receiving OEM picker omitted an image that file manager and direct Gallery preview could read."
+      },
+      "recovery": [
+        "A coordinator mistakenly cancelled a waiting task and its child; the replacement reconciled status and resumed the completed installation steps.",
+        "CLI19 file-operation observation prerequisite and parser errors were corrected.",
+        "Unknown gesture outcomes were checked with status and new images, without blind replay."
+      ],
+      "final_verified_state": "HOME, quiet, released, idle after the unsuccessful picker attempt"
+    }
+  ],
+  "cli20_regression": {
+    "device": "test device B",
+    "official_artifact_verified": true,
+    "new_lease": true,
+    "observe_calls": 0,
+    "read_tree_calls": 0,
+    "file_stat_succeeded": true,
+    "file_publish_media_succeeded": true,
+    "readback_verified": true,
+    "same_publication_reused": true,
+    "fresh_task_observation_error": false,
+    "final_state": "HOME, quiet, released, idle"
+  },
+  "owner_manual_action": false,
+  "maintainer_intervention": [
+    "Dispatched bounded tests and official artifact identities through the existing Muse chat.",
+    "Handled ordinary official download confirmation.",
+    "Clarified that selecting only the synthetic image is in scope; no new full-library access or Gallery agreement was needed.",
+    "Dispatched a bounded large PNG/JPEG comparison after the actual picker failure; receipt not yet retrieved when the Mac UI became locked."
+  ],
+  "not_verified": [
+    "A successful physical receiving-App picker selection and attachment preview.",
+    "The cause of the OEM picker's omission; lack of EXIF is a hypothesis, not a finding.",
+    "Instinct on this candidate, other devices and all system permission buttons."
+  ],
+  "native_evidence": "beta38-code68-gallery-native-20261111.json",
+  "promotion": "code68 remains a candidate; storage success does not close physical picker acceptance."
+}

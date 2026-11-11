@@ -72,5 +72,83 @@
       "passed": true
     }
   ],
-  "scope": "Synthetic PNG uploaded by production file-transfer methods, published through actual MediaStore, selected and read by a separate App through the system Photo Picker. Device pairing and relay authorization are substituted in this native fixture and verified separately. No private media, accounts or raw screenshots."
+  "scope": "Synthetic PNG uploaded by production file-transfer methods, published through actual MediaStore, selected and read by a separate App through the system Photo Picker. Device pairing and relay authorization are substituted in this native fixture and verified separately. No private media, accounts or raw screenshots.",
+  "follow_up_index_verification": {
+    "complete": true,
+    "checks": [
+      {
+        "name": "exact source version enforced",
+        "passed": true
+      },
+      {
+        "name": "decoded image type checked",
+        "passed": true
+      },
+      {
+        "name": "revoked task cannot publish",
+        "passed": true
+      },
+      {
+        "name": "rejected operations create no gallery file",
+        "passed": true
+      },
+      {
+        "name": "interrupted unpublished write reports failure",
+        "passed": true
+      },
+      {
+        "name": "interrupted pending row cleaned without public photo",
+        "passed": true
+      },
+      {
+        "name": "MediaStore publication verifies bytes and metadata",
+        "passed": true
+      },
+      {
+        "name": "published media has indexed dimensions for receiving pickers",
+        "passed": true
+      },
+      {
+        "name": "exactly one new gallery image",
+        "passed": true
+      },
+      {
+        "name": "same request reuses publication without duplicate",
+        "passed": true
+      },
+      {
+        "name": "wire result contains no content URI or private path",
+        "passed": true
+      },
+      {
+        "name": "separate App system photo picker displays media",
+        "passed": true
+      },
+      {
+        "name": "separate App reads selected image with identical hash",
+        "passed": true
+      },
+      {
+        "name": "published image remains after request completion",
+        "passed": true
+      },
+      {
+        "name": "owner-deleted photo is not recreated by late retry",
+        "passed": true
+      },
+      {
+        "name": "deleted photo remains absent",
+        "passed": true
+      }
+    ],
+    "publication_metadata": {
+      "width": 160,
+      "height": 120,
+      "bytes": 2248,
+      "pending": 0,
+      "date_taken_present": false,
+      "date_added_present": true
+    },
+    "scope": "Same production APK, added readback of actual MediaStore index after an OEM picker omitted a synthetic small PNG. Stock Android15 indexed dimensions, size and pending=0 correctly, and a separate App selected/read the image. DATE_TAKEN was cleared by the normal provider scan; date_added remained. This does not establish why the physical OEM picker omitted the image."
+  }
 }

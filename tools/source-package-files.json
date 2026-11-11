@@ -1149,11 +1149,19 @@
     },
     {
       "kind": "source",
+      "path": "docs/results/beta37-code67-publication-20261111.json"
+    },
+    {
+      "kind": "source",
       "path": "docs/results/beta37-code67-visual-windows-20261111.json"
     },
     {
       "kind": "source",
       "path": "docs/results/beta38-code68-gallery-native-20261111.json"
+    },
+    {
+      "kind": "source",
+      "path": "docs/results/beta38-code68-personal-ai-20261111.json"
     },
     {
       "kind": "result",

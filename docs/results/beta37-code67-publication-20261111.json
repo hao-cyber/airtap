@@ -1,0 +1,79 @@
+{
+  "schema": "airtap-code67-publication-v1",
+  "date": "2026-11-11",
+  "scope": "Verified rootless-window release promoted independently of the unresolved code68 physical gallery-picker candidate.",
+  "android": {
+    "application_id": "io.airtap.preview",
+    "version_name": "0.4.0-beta.37",
+    "version_code": 67,
+    "apk_sha256": "d735bea98088622ada75dc5bd9766bd842cd27082b4590e6f2e43553bac02529",
+    "apk_bytes": 660941,
+    "signer_sha256": "a2aa0c1b6fdaf1baa37aa20817387524a1318b5dab82bf7c185663141daba60f",
+    "min_sdk": 34,
+    "target_sdk": 36,
+    "debuggable": false,
+    "channel": "beta",
+    "download_path": "/download/android"
+  },
+  "build": {
+    "source_commit": "ba00759a7f1b26245d9dcd53828f295df71b26ea",
+    "clean_worktree": true,
+    "source_inputs_unchanged": true,
+    "compile_and_lint_passed": true
+  },
+  "relay": {
+    "revision": 32,
+    "cli_version": "0.4.0-cli.20",
+    "public_artifacts": [
+      {
+        "path": "/cli/airtap.py",
+        "status": 200,
+        "bytes": 133191,
+        "sha256": "0a3bde1f0a3b306a46107258fa51ebe8e088d45c61e833effc407118e9619c4a",
+        "matches": true
+      },
+      {
+        "path": "/agent.md",
+        "status": 200,
+        "bytes": 122213,
+        "sha256": "b212eff56e27ac11ba14fa4f52444572a09e4c5835938a9865230b6341c21e5b",
+        "matches": true
+      }
+    ],
+    "existing_service_identity_preserved": true
+  },
+  "website": {
+    "origin": "https://airtap.memtrix.dev",
+    "deployment_id": "535cb7f4-b62a-41f4-a7b7-8610f7c2ebd4",
+    "passed": true,
+    "local_files_verified": 40,
+    "public_checks_passed": 92,
+    "manifest_sha256": "1b455ede16c7fe6d0afe5fd5d3d3b122343e057f033294320d8a2484137d9a9a",
+    "apk_get_head_range_and_update_metadata_verified": true,
+    "both_existing_videos_preserved": true,
+    "reviewed_transformations": [
+      {
+        "path": "/robots.txt",
+        "kind": "reviewed_managed_robots_prefix",
+        "prefix_bytes": 2676,
+        "prefix_sha256": "3073d1e371afb3271c7666148766fedc5145f7d8440f7114062db79b7bd58add",
+        "source_sha256": "d58c84797c04e430e32b11fffbcb73b63a0afd82b00b5f2134574a52c414306e",
+        "public_sha256": "542678d4397ddd6bf8c14d764a94e7f08d46e73aeb4a3c6751844c3dbb13920f"
+      }
+    ],
+    "verification_transport": "Existing Wi-Fi interface and scoped public DNS address with normal hostname TLS; no persistent network or certificate changes."
+  },
+  "github": {
+    "release_url": "https://github.com/hao-cyber/airtap/releases/tag/v0.4.0-beta.37",
+    "downloaded_apk_matches": true,
+    "cli_release_url": "https://github.com/hao-cyber/airtap/releases/tag/v0.4.0-cli.20"
+  },
+  "physical_evidence": [
+    "beta37-code67-personal-ai-20261111.json",
+    "beta38-code68-personal-ai-20261111.json"
+  ],
+  "candidate_not_promoted": {
+    "version_code": 68,
+    "reason": "Physical receiving-App picker omitted the synthetic small image; comparison result pending. Storage success alone is insufficient."
+  }
+}
