@@ -1,0 +1,22 @@
+{
+  "schema": "airtap-android-update-v1",
+  "application_id": "io.airtap.preview",
+  "version_name": "0.4.0-beta.38",
+  "version_code": 68,
+  "apk_sha256": "2ba123a5b13dfb99260b0960d58b10bf1b0e9ac1edc69a04cffc75e9f3d780d0",
+  "apk_bytes": 665037,
+  "signer_sha256": "a2aa0c1b6fdaf1baa37aa20817387524a1318b5dab82bf7c185663141daba60f",
+  "min_sdk": 34,
+  "target_sdk": 36,
+  "debuggable": false,
+  "channel": "beta",
+  "published_at": "2026-11-11",
+  "download_path": "/download/android",
+  "notes": [
+    "新增相册图片发布：上传到工作目录的JPEG、PNG、WebP可直接保存到Pictures/Airtap，供系统相册和选图器使用。",
+    "发布前核对源文件版本和实际图片格式，并读回核验完整字节；同一文件请求重试复用原图片。",
+    "保留code67无控件树系统弹窗的截图、视觉操作及退出恢复修复；Android16受保护按钮仍按系统规则处理。",
+    "配套CLI.19与gallery_publish_v1；观察截图仍默认保持私有，需要保存时明确上传并发布。",
+    "覆盖升级保留已有连接与数据；停止与撤销阻止后续写入，不能收回已发布或被其他App复制的照片。"
+  ]
+}
