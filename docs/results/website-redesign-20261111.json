@@ -1,0 +1,53 @@
+{
+  "schema": "airtap-site-closeout-verification-v1",
+  "date": "2026-11-11",
+  "source_commit": "d1cda069414944fa461db6245d1b7cb0ece0d99b",
+  "site_version": "da0d2644-10bf-4a38-a63b-e1d3a3eda1ee",
+  "android_version_code": 66,
+  "same_apk_sha256": "916f82d3a22347652bce8a65f2e6ab616bef7d5a88d3021ca0b65e5da334b51e",
+  "changes": [
+    "Separate product homepage, installation guide and searchable help routes.",
+    "Preserve the green identity with a quieter type, spacing and navigation system; expose download and GitHub destinations clearly.",
+    "Explain the phone and AI steps, distinguish invitation and confirmation digits, and provide a copyable first task.",
+    "Update README and public evidence links to the current verified scope; retain the original versions and recording conditions of both videos."
+  ],
+  "verification": {
+    "release_python_tests_passed": 35,
+    "worker_node_tests_passed": 17,
+    "source_package_tests_passed": 15,
+    "frozen_files": 39,
+    "public_http_checks": 89,
+    "public_http_passed": true,
+    "frozen_manifest_sha256": "042be27950f5a3bdc710f4a69afd07425e55d38cb91f476da77285f5ae2df5ab",
+    "existing_reviewed_video_bytes_retained": true,
+    "managed_robots_prefix_sha256": "3073d1e371afb3271c7666148766fedc5145f7d8440f7114062db79b7bd58add",
+    "html_internal_links_and_unique_ids_passed": true,
+    "platform_prompt_logic_cases_passed": 4
+  },
+  "browser": {
+    "source": "Local Worker preview of the deployed page assets; public assets were separately verified against the frozen build.",
+    "pages": ["/", "/install", "/help"],
+    "viewport_widths": [320, 390, 768, 1440],
+    "horizontal_overflow": false,
+    "completed_broken_images": false,
+    "console_errors_or_warnings": false,
+    "interactions_passed": [
+      "Copy first task and inspect clipboard; restore the prior clipboard.",
+      "Help keyword match, no results, clear and deep-link expansion.",
+      "Both existing native videos play and pause without media errors; keyboard seeking verified on the usage video."
+    ]
+  },
+  "failures_and_recovery": [
+    "The initial direct production-browser navigation and normal HTTP verifier timed out on the maintainer network's proxy path.",
+    "Public verification then passed through the existing physical network interface with a current DNS answer scoped to these requests. Normal hostname and certificate validation remained enabled; no persistent network or shared security settings changed.",
+    "Git publication initially failed on the same network path; a request-scoped current DNS answer restored synchronization."
+  ],
+  "limits": [
+    "Responsive browser viewports and synthetic platform prompts do not establish physical iPhone or Android browser acceptance.",
+    "Post-deployment production browser rendering was not completed on the failed proxy path. Local rendering and public byte integrity are separate evidence.",
+    "No independent novice usability study or conversion improvement measurement.",
+    "This site refresh does not add phone, media-capture, SIM or personal-AI runtime acceptance."
+  ],
+  "runtime_scope": "Website and README only; APK, signing identity, relay and AI configurations were not changed by this deployment.",
+  "privacy": "Aggregate release and verification facts only; screenshots, raw logs, personal conversations and deployment credentials remain private."
+}

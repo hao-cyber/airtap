@@ -1348,6 +1348,10 @@
       "path": "docs/results/website-onboarding-20261027.json"
     },
     {
+      "kind": "result",
+      "path": "docs/results/website-redesign-20261111.json"
+    },
+    {
       "kind": "source",
       "path": "docs/short-invitations.md"
     },
