@@ -1,0 +1,20 @@
+{
+  "schema": "airtap-android-update-v1",
+  "application_id": "io.airtap.preview",
+  "version_name": "0.4.0-beta.40",
+  "version_code": 70,
+  "apk_sha256": "ec114e295feebe03ccc747a89b0c973e1fc85f94f9661a036e4d1115135ca8e0",
+  "apk_bytes": 669133,
+  "signer_sha256": "a2aa0c1b6fdaf1baa37aa20817387524a1318b5dab82bf7c185663141daba60f",
+  "min_sdk": 34,
+  "target_sdk": 36,
+  "debuggable": false,
+  "channel": "beta",
+  "published_at": "2026-11-12",
+  "download_path": "/download/android",
+  "notes": [
+    "文件预算统计改为一次遍历，减少每个上传块的重复扫描；配对、租约、停止和撤销检查保留。",
+    "窗口身份检查只读取根节点，避免无用控件预取；ping增加本连接最近文件命令的脱敏耗时。",
+    "升级保留有效AI连接和用户数据；上传性能仍以真机回归结果为准。"
+  ]
+}
