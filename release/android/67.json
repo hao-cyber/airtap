@@ -1,0 +1,22 @@
+{
+  "schema": "airtap-android-update-v1",
+  "application_id": "io.airtap.preview",
+  "version_name": "0.4.0-beta.37",
+  "version_code": 67,
+  "apk_sha256": "d735bea98088622ada75dc5bd9766bd842cd27082b4590e6f2e43553bac02529",
+  "apk_bytes": 660941,
+  "signer_sha256": "a2aa0c1b6fdaf1baa37aa20817387524a1318b5dab82bf7c185663141daba60f",
+  "min_sdk": 34,
+  "target_sdk": 36,
+  "debuggable": false,
+  "channel": "beta",
+  "published_at": "2026-11-11",
+  "download_path": "/download/android",
+  "notes": [
+    "系统弹窗没有可读控件树时，仍可获取真实画面，并使用当前窗口截图执行视觉操作。",
+    "配套CLI.18：点击可从当前截图自动取得目标包名；控件树缺失的弹窗无需猜测包名。",
+    "观察失败后仍可正常返回或打开最近任务，避免普通系统弹窗把AI操作流程卡死。",
+    "Android16可能拦截受保护按钮的模拟触摸；必须看实际结果，不把请求已接受当作点击成功。",
+    "覆盖升级保留已有连接与数据，设备和个人AI验收范围另行记录。"
+  ]
+}
