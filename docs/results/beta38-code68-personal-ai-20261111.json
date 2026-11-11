@@ -4,7 +4,7 @@
   "version_code": 68,
   "agent": "Muse",
   "transport": "Original approved cloud connections and public relay; no USB, ADB or retired server control for physical tasks.",
-  "gallery_end_to_end_complete": false,
+  "gallery_end_to_end_complete": true,
   "devices": [
     {
       "model": "Meizu Note16",
@@ -12,7 +12,12 @@
       "upgrade_verified": true,
       "approved_pairings_preserved": 2,
       "gallery_capability": true,
-      "synthetic_image": {"mime": "image/png", "width": 320, "height": 240, "bytes": 3607},
+      "synthetic_image": {
+        "mime": "image/png",
+        "width": 320,
+        "height": 240,
+        "bytes": 3607
+      },
       "published_and_readback_verified": true,
       "same_request_reused_without_duplicate": true,
       "visual_result": "File manager recent-image thumbnail inspected; expected green background and white test caption.",
@@ -32,7 +37,12 @@
       "upgrade_verified": true,
       "approved_pairings_preserved": 2,
       "gallery_capability": true,
-      "synthetic_image": {"mime": "image/png", "width": 320, "height": 240, "bytes": 3607},
+      "synthetic_image": {
+        "mime": "image/png",
+        "width": 320,
+        "height": 240,
+        "bytes": 3607
+      },
       "published_and_readback_verified": true,
       "same_request_reused_without_duplicate": true,
       "visual_result": "File manager followed by actual full-screen Gallery preview of the synthetic test image.",
@@ -44,13 +54,20 @@
         "visual_tap_without_package": "Deny",
         "dialog_dismissed": true
       },
-      "receiving_picker_selection": false,
+      "receiving_picker_selection": true,
       "picker_attempt": {
         "entry": "System Messages blank compose, empty recipient, image attachment",
         "opened": true,
         "new_library_permission": false,
         "small_synthetic_image_visible": false,
-        "inspected": ["recent", "all photos", "photos tab", "screenshots", "other albums", "storage"],
+        "inspected": [
+          "recent",
+          "all photos",
+          "photos tab",
+          "screenshots",
+          "other albums",
+          "storage"
+        ],
         "attachment_preview": false,
         "blank_draft_cancelled": true,
         "message_sent": false,
@@ -61,7 +78,52 @@
         "CLI19 file-operation observation prerequisite and parser errors were corrected.",
         "Unknown gesture outcomes were checked with status and new images, without blind replay."
       ],
-      "final_verified_state": "HOME, quiet, released, idle after the unsuccessful picker attempt"
+      "final_verified_state": "HOME, quiet, released, idle after successful receiving-App attachment preview and draft cancellation",
+      "comparison_followup": {
+        "cli_version": "0.4.0-cli.20",
+        "images": [
+          {
+            "label": "CT-A",
+            "mime": "image/png",
+            "width": 1280,
+            "height": 960,
+            "bytes": 340265,
+            "synthetic": true,
+            "published_and_readback_verified": true,
+            "visible_in_picker": true
+          },
+          {
+            "label": "CT-B",
+            "mime": "image/jpeg",
+            "width": 1280,
+            "height": 960,
+            "bytes": 399998,
+            "synthetic": true,
+            "published_and_readback_verified": true,
+            "visible_in_picker": true
+          }
+        ],
+        "receiving_app": "System Messages, new blank compose with empty recipient",
+        "picker_package": "com.meizu.media.gallery",
+        "picker_view": "Recent",
+        "selected_image": "CT-A PNG",
+        "selection_count_verified": 1,
+        "actual_attachment_preview_inspected": true,
+        "preview_matches_selected_synthetic_image": true,
+        "new_library_permission": false,
+        "gallery_first_use_agreement_accepted": false,
+        "recipient_empty": true,
+        "message_sent": false,
+        "blank_draft_cancelled": true,
+        "existing_conversations_modified": false,
+        "small_original_image_visible": false,
+        "finding": "Normal-size PNG and JPEG controls were visible and the PNG completed receiving-App selection and preview. The small original PNG remained omitted. Dimensions and byte size changed together; the exact filter or threshold was not isolated.",
+        "failures_and_recovery": [
+          "An initial approximately 2.4 MB synthetic-image upload encountered HTTP 503 and stalled; it was abandoned before the smaller comparison variants were used. Cleanup of that original transfer has not been confirmed.",
+          "Muse reported approximately 2.7 KB/s for the completed uploads. Per-command timing and the cause of this slow sample were not captured; this is not a throughput guarantee."
+        ],
+        "final_state": "HOME, quiet, released, idle"
+      }
     }
   ],
   "cli20_regression": {
@@ -82,13 +144,15 @@
     "Dispatched bounded tests and official artifact identities through the existing Muse chat.",
     "Handled ordinary official download confirmation.",
     "Clarified that selecting only the synthetic image is in scope; no new full-library access or Gallery agreement was needed.",
-    "Dispatched a bounded large PNG/JPEG comparison after the actual picker failure; receipt not yet retrieved when the Mac UI became locked."
+    "Dispatched the bounded PNG/JPEG comparison; Mac lock delayed retrieval of the already-running cloud task. The completed Muse receipt was subsequently inspected. No owner action was required for this comparison."
   ],
   "not_verified": [
-    "A successful physical receiving-App picker selection and attachment preview.",
-    "The cause of the OEM picker's omission; lack of EXIF is a hypothesis, not a finding.",
-    "Instinct on this candidate, other devices and all system permission buttons."
+    "Receiving-App picker selection on test device A.",
+    "The exact reason or threshold for the OEM picker omitting the small PNG; lack of EXIF or a specific dimension/byte cutoff is not established.",
+    "Cleanup of the abandoned approximately 2.4 MB transfer and the cause of the reported slow upload sample.",
+    "Instinct on this candidate, other devices, all receiving Apps and all system permission buttons."
   ],
   "native_evidence": "beta38-code68-gallery-native-20261111.json",
-  "promotion": "code68 remains a candidate; storage success does not close physical picker acceptance."
+  "promotion": "Physical receiving-picker acceptance passed on test device B; publication is recorded separately in the versioned publication record.",
+  "acceptance_scope": "One physical Meizu receiving-App picker and actual attachment preview, driven by Muse through the original approved connection. This is not universal picker or all-device coverage."
 }
