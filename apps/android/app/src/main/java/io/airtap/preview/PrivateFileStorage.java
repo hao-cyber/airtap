@@ -59,9 +59,24 @@ final class PrivateFileStorage {
         }}return total;
     }
     Usage usage(boolean includeReservations)throws IOException {
-        long used=count(root)[0],work=0,files=0,reserved=0;
+        // Count each payload once. The owner-screen workspace totals can be collected
+        // in the same traversal as the all-pairing budget; scanning each workspace
+        // again repeated expensive Android authority/window fences for every chunk.
+        long[] totals={0,0,0};safe(root);
+        if(exists(root))Files.walkFileTree(root,new SimpleFileVisitor<Path>(){
+            public FileVisitResult preVisitDirectory(Path d,BasicFileAttributes a)throws IOException{safe(d);return FileVisitResult.CONTINUE;}
+            public FileVisitResult visitFile(Path f,BasicFileAttributes a)throws IOException{
+                safe(f);totals[0]=Math.addExact(totals[0],a.size());
+                Path relative=root.relativize(f);
+                if(relative.getNameCount()>=2&&relative.getName(0).toString().matches("[a-f0-9]{32}")
+                        &&Set.of("workspace","transfers").contains(relative.getName(1).toString())){
+                    totals[1]=Math.addExact(totals[1],a.size());totals[2]++;
+                }
+                return FileVisitResult.CONTINUE;
+            }
+        });
+        long reserved=0;
         for(Path claim:claims()){
-            for(String name:List.of("workspace","transfers")){long[] n=count(claim.resolve(name));work+=n[0];files+=n[1];}
             if(!includeReservations)continue;
             reserved+=reservations(claim,null);Path saf=claim.resolve("saf"),staging=saf.resolve("staging");safe(saf);safe(staging);reserved+=reservations(staging,saf.resolve("publications"));
             Path publications=saf.resolve("publications");safe(publications);if(!exists(publications))continue;
@@ -83,7 +98,7 @@ final class PrivateFileStorage {
                 long journals=length(m)+length(publications.resolve(id+".pending"))+length(inner)+length(staging.resolve("transfers").resolve(id+".pending"));
                 reserved+=remaining+Math.max(0,JOURNAL_RESERVE-journals);
             }}
-        }return new Usage(used,reserved,work,files);
+        }return new Usage(totals[0],reserved,totals[1],totals[2]);
     }
     Usage ownerUsage()throws IOException {
         try { return usage(true); }

@@ -1,7 +1,7 @@
 {
   "allowlist_path": "tools/source-package-files.json",
-  "android_version": "0.4.0-beta.39",
-  "archive_root": "airtap-source-0.4.0-beta.39-code69",
+  "android_version": "0.4.0-beta.40",
+  "archive_root": "airtap-source-0.4.0-beta.40-code70",
   "cli_version": "0.4.0-cli.21",
   "closure_policy": "airtap-source-closure-v1",
   "files": [
@@ -128,6 +128,10 @@
     {
       "kind": "source",
       "path": "apps/android/app/src/main/java/io/airtap/preview/FeedbackText.java"
+    },
+    {
+      "kind": "source",
+      "path": "apps/android/app/src/main/java/io/airtap/preview/FileCommandMetrics.java"
     },
     {
       "kind": "source",
@@ -662,6 +666,10 @@
     {
       "kind": "source",
       "path": "apps/android/tests/feedback/FeedbackTest.java"
+    },
+    {
+      "kind": "source",
+      "path": "apps/android/tests/files/FileCommandMetricsTest.java"
     },
     {
       "kind": "source",
@@ -1758,5 +1766,5 @@
   "schema": "airtap-source-allowlist-v1",
   "scope": "Reviewed current Android, CLI, relay, site, build, CI and test source closure. No Git history, credentials, private deployment state, APK, or raw phone evidence. Historical acceptance retains its original version and scope; a source ZIP is not public release approval.",
   "version": "0.4.0-beta.39-code69",
-  "version_code": 69
+  "version_code": 70
 }

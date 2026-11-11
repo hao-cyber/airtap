@@ -4,7 +4,7 @@
   "android_version": "0.4.0-beta.39",
   "version_code": 69,
   "cli_version": "0.4.0-cli.21",
-  "status": "candidate_checks_passed_device_acceptance_pending",
+  "status": "physical_recovery_and_small_image_share_passed_upload_performance_failed",
   "apk_source_commit": "eb7b2e1acd5edde6f0a91226f107a8a6d19a63b5",
   "apk_sha256": "841623bdd9418feb4e39b434b5d08f6af8a97803452f54eafd9293e38ec38513",
   "apk_bytes": 665037,
@@ -58,18 +58,82 @@
   "external_review": {
     "requested_model": "Grok",
     "dispatch": "llm-cli grok-research --no-fallback",
-    "attempts": 2,
+    "attempts": 3,
     "outcomes": [
       "idle_timeout_240_seconds",
-      "idle_timeout_180_seconds"
+      "idle_timeout_180_seconds",
+      "completed_with_default_idle600_hard900"
     ],
-    "completed_review": false
+    "completed_review": true,
+    "accepted_findings": [
+      "Full upload completion and same-byte timings still required.",
+      "CLI.21 already persists identity before dispatch and includes transfer_id in failure JSON; preserve tests and actual same-ID recovery.",
+      "Small-image file-share actual preview now passed; OEM picker threshold not established.",
+      "Post-revocation gallery persistence added to SECURITY and website privacy/help source; website deploy remains pending.",
+      "SIM PIN, notification authorization and physical capture remain separate unverified scope."
+    ]
   },
   "remaining": [
-    "Same-transfer physical recovery and before/after timings",
-    "Second phone receiving-App selection and actual preview",
-    "Meizu small-image normal filter/file route investigation",
-    "Current Instinct cloud task using its own original pairing"
+    "Fix repeated 504 and verify full same-byte upload timings",
+    "Current Instinct actual task with its own original pairing",
+    "Normal gallery picker and OEM filtering remain unverified on second phone; working file-share route demonstrated"
   ],
-  "privacy": "Synthetic counts and timings only; no original phone/chat content, endpoint identities, transfers or credentials."
+  "privacy": "Synthetic counts and timings only; no original phone/chat content, endpoint identities, transfers or credentials.",
+  "device_acceptance_20261112": {
+    "agent": "Muse",
+    "device": "second Meizu Android phone",
+    "actual_version_code": 69,
+    "original_connections_retained": 2,
+    "usb_used": false,
+    "owner_intervention": 0,
+    "same_transfer_recovery": {
+      "bytes": 340265,
+      "actual_start_offset": 294912,
+      "remaining_bytes": 45353,
+      "elapsed_ms": 34800,
+      "finished_and_fresh_sha256_verified": true,
+      "published_and_readback_verified": true
+    },
+    "small_image_share": {
+      "bytes": 3607,
+      "dimensions": [
+        320,
+        240
+      ],
+      "original_bytes_and_version_unchanged": true,
+      "recipient": "system Messages, new blank draft",
+      "actual_attachment_preview_seen": true,
+      "sent": false,
+      "test_draft_discarded": true
+    },
+    "same_lease_ping_ms": [
+      1794.3,
+      2007.21
+    ],
+    "completed_file_stat_ms": [
+      4690.96,
+      2705.73
+    ],
+    "new_full_upload": {
+      "bytes": 340265,
+      "http_504_attempts": 3,
+      "same_transfer_retained": true,
+      "last_phone_offset": 98304,
+      "state": "receiving",
+      "slowest_command_ms_per_attempt": [
+        15938.75,
+        15901.32,
+        15945.99
+      ],
+      "attempts_elapsed_ms_approx": 82800,
+      "complete": false
+    },
+    "recovery": {
+      "disconnect_503_recoveries": 4,
+      "unknown_gesture_results_observed_before_continuing": 4,
+      "new_task_acquires": 7,
+      "final_home_quiet_and_released": true
+    },
+    "gallery_picker": "Stopped at first-use agreement; no new terms accepted. Normal picker on this device and small-image filter threshold unverified."
+  }
 }

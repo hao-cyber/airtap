@@ -25,6 +25,8 @@ SIGNATURES = [
     'static void grant(Context c, String owner, Uri uri, int flags) throws Exception',
     'private static int permissionFlags(Context c, Uri tree)',
     'static boolean quiescent()',
+    'static synchronized JSONObject performance(String owner)',
+    'private static synchronized void performance(String owner, String action, FileCommandMetrics timing, String outcome)',
     'private static void exact(JSONObject q, String... names)',
     'private static String text(JSONObject q, String key) throws Exception',
     'private static long integer(JSONObject q, String key, long min, long max) throws Exception',
@@ -32,7 +34,7 @@ SIGNATURES = [
     'static void onMain(Runnable check)',
     'static void execute(Context context, String owner, JSONObject q, java.util.function.BooleanSupplier shareAuthority, Runnable checkOnMain, CompanionUi.Reply reply) throws Exception',
 ]
-FIELDS = ['MAIN', 'WORKSPACE_IO', 'IN_FLIGHT']
+FIELDS = ['MAIN', 'WORKSPACE_IO', 'IN_FLIGHT', 'LAST_PERFORMANCE']
 
 
 def method(source, signature):
@@ -125,10 +127,13 @@ public final class Handler { private static final List<Runnable> delayed=new Arr
 }
 ''',
     'org/json/JSONObject.java': '''package org.json; import java.util.*;
-public final class JSONObject { private final Map<String,Object> values=new LinkedHashMap<>(); public JSONObject put(String key,Object value){values.put(key,value);return this;} public Object get(String key){if(!values.containsKey(key))throw new IllegalArgumentException("missing "+key);return values.get(key);} public boolean has(String key){return values.containsKey(key);} public int length(){return values.size();} }
+public final class JSONObject { private final Map<String,Object> values=new LinkedHashMap<>(); public JSONObject put(String key,Object value){values.put(key,value);return this;} public Object get(String key){if(!values.containsKey(key))throw new IllegalArgumentException("missing "+key);return values.get(key);} public boolean has(String key){return values.containsKey(key);} public String getString(String k){return (String)get(k);} public int length(){return values.size();} }
 ''',
     'io/airtap/preview/AppCatalog.java': '''package io.airtap.preview;
 final class AppCatalog { static boolean allowed(String name){return false;} }
+''',
+    'io/airtap/preview/RelayApi.java': '''package io.airtap.preview; import org.json.JSONObject;
+final class RelayApi {static JSONObject json(Object... fields){JSONObject v=new JSONObject();for(int i=0;i<fields.length;i+=2)v.put((String)fields[i],fields[i+1]);return v;}}
 ''',
     'io/airtap/preview/ScopedUi.java': '''package io.airtap.preview;
 final class ScopedUi { static final class Refused extends RuntimeException { final String code; Refused(String code){super(code);this.code=code;} } }
@@ -170,7 +175,7 @@ def main():
     entry = run_source.split('{', 1)[1].split(';', 1)[0].strip() + ';'
     if entry != 'fence.run();':
         raise ValueError('Re-evaluate fixture: production run entry fence changed')
-    sources = [PRODUCTION / 'FileTransferStore.java', ROOT / 'tests/files/MultiFileScopesTest.java']
+    sources = [PRODUCTION / 'FileTransferStore.java', PRODUCTION / 'FileCommandMetrics.java', ROOT / 'tests/files/MultiFileScopesTest.java']
     hashes = {str(path.relative_to(ROOT)): hashlib.sha256(path.read_bytes()).hexdigest()
               for path in [*sources, Path(__file__)]}
     hashes[str(source_path.relative_to(ROOT))] = hashlib.sha256(source.encode()).hexdigest()

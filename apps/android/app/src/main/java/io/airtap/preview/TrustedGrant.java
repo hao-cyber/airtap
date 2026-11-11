@@ -26,9 +26,7 @@ final class TrustedGrant {
     }
     private static String digest(String input) throws Exception {
         byte[] bytes = MessageDigest.getInstance("SHA-256").digest(input.getBytes(StandardCharsets.UTF_8));
-        StringBuilder value = new StringBuilder(64);
-        for (byte b : bytes) value.append(String.format(java.util.Locale.ROOT, "%02x", b & 255));
-        return value.toString();
+        return java.util.HexFormat.of().formatHex(bytes);
     }
     private String identity(EnrollmentStore.Config config) throws Exception {
         if (config == null || !config.publicService() || !config.enrolled()) throw new IllegalArgumentException();

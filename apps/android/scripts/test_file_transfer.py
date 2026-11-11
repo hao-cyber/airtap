@@ -8,7 +8,8 @@ jdk=Path(os.environ.get('JAVA_HOME','/Applications/Android Studio.app/Contents/j
 with tempfile.TemporaryDirectory(prefix='airtap-file-classes-') as d:
     subprocess.run([str(jdk/'javac'),'--release','17','-d',d,str(root/'app/src/main/java/io/airtap/preview/FileTransferStore.java'),str(root/'app/src/main/java/io/airtap/preview/SafPublicationStore.java'),str(root/'app/src/main/java/io/airtap/preview/SafStagingCleanup.java'),str(root/'app/src/main/java/io/airtap/preview/FileMaintenanceFence.java'),str(root/'app/src/main/java/io/airtap/preview/SharedFileIo.java'),str(root/'app/src/main/java/io/airtap/preview/FileGrantAttempt.java'),str(root/'app/src/main/java/io/airtap/preview/PrivateFileStorage.java'),str(root/'tests/files/FileTransferStoreTest.java'),str(root/'tests/files/SafPublicationStoreTest.java'),str(root/'tests/files/PrivateFileStorageTest.java')],check=True)
     all_tests=[]
-    for suite in ['FileTransferStoreTest','SafPublicationStoreTest','PrivateFileStorageTest']:
+    subprocess.run([str(jdk/'javac'),'--release','17','-d',d,str(root/'app/src/main/java/io/airtap/preview/FileCommandMetrics.java'),str(root/'tests/files/FileCommandMetricsTest.java')],check=True)
+    for suite in ['FileTransferStoreTest','SafPublicationStoreTest','PrivateFileStorageTest','FileCommandMetricsTest']:
         r=subprocess.run([str(jdk/'java'),'-Djava.io.tmpdir='+d,'-cp',d,'io.airtap.preview.'+suite],text=True,capture_output=True,timeout=45)
         print(r.stdout,end='')
         if r.returncode: print(r.stderr,end='');raise SystemExit(r.returncode)

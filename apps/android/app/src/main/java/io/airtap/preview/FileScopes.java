@@ -27,6 +27,16 @@ final class FileScopes {
     });
     private static final java.util.concurrent.locks.ReentrantLock WORKSPACE_IO = new java.util.concurrent.locks.ReentrantLock();
     private static final java.util.concurrent.atomic.AtomicInteger IN_FLIGHT = new java.util.concurrent.atomic.AtomicInteger();
+    private static final Map<String,JSONObject> LAST_PERFORMANCE = new LinkedHashMap<>();
+    static synchronized JSONObject performance(String owner) { return LAST_PERFORMANCE.get(owner); }
+    private static synchronized void performance(String owner, String action, FileCommandMetrics timing, String outcome) {
+        FileCommandMetrics.Snapshot s = timing.snapshot();
+        LAST_PERFORMANCE.remove(owner);
+        LAST_PERFORMANCE.put(owner, RelayApi.json("action",action,"outcome",outcome,
+                "elapsed_ms",s.elapsedMs(),"check_count",s.checkCount(),"main_check_ms",s.checkMs(),
+                "io_elapsed_ms",s.ioMs(),"io_finished",s.ioFinished()));
+        while(LAST_PERFORMANCE.size()>8)LAST_PERFORMANCE.remove(LAST_PERFORMANCE.keySet().iterator().next());
+    }
     static boolean quiescent() { return IN_FLIGHT.get() == 0 && !WORKSPACE_IO.isLocked(); }
     private static SharedPreferences prefs(Context c, String owner) {
         FileTransferStore.id(owner);
@@ -164,22 +174,28 @@ final class FileScopes {
         execute(context, owner(context), q, () -> PreviewService.instance != null && PreviewService.instance.isAuthorized(), checkOnMain, reply);
     }
     static void execute(Context context, String owner, JSONObject q, java.util.function.BooleanSupplier shareAuthority, Runnable checkOnMain, CompanionUi.Reply reply) throws Exception {
-        validate(q); checkOnMain.run();
+        validate(q);
+        FileCommandMetrics timing = new FileCommandMetrics();
+        String action = q.getString("action");
+        timing.check(checkOnMain);
         if (owner == null || new TrustedGrant(context).grant(new EnrollmentStore(context).read(),owner) == null) throw new ScopedUi.Refused("permission_denied");
         Context c = context.getApplicationContext(); long epoch = prefs(c).getLong("epoch", 0), scopeEpoch = scopeEpoch(c,owner);
         AtomicBoolean done = new AtomicBoolean(); CancellationSignal signal = new CancellationSignal();
         Runnable fence = () -> onMain(() -> {
             if (done.get()) throw new ScopedUi.Refused("permission_denied");
-            checkOnMain.run();
+            timing.check(checkOnMain);
             if (prefs(c).getLong("epoch", 0) != epoch || scopeEpoch(c,owner) != scopeEpoch) throw new ScopedUi.Refused("file_scope_changed");
         });
-        Runnable timeout = () -> { if (done.compareAndSet(false, true)) { signal.cancel(); reply.error("file_provider_timeout"); } };
+        Runnable timeout = () -> { if (done.compareAndSet(false, true)) {
+            signal.cancel(); performance(owner,action,timing,"timeout"); reply.error("file_provider_timeout");
+        } };
         MAIN.postDelayed(timeout, 12000);
         IN_FLIGHT.incrementAndGet();
         try {
             IO.execute(() -> {
                 JSONObject result = null; String error = null;
                 boolean locked = false;
+                timing.beginIo();
                 try {
                     if (!(locked = WORKSPACE_IO.tryLock())) throw new FileTransferStore.Failure("file_busy");
                     result = run(c, owner, q, fence, signal, shareAuthority); fence.run();
@@ -189,12 +205,14 @@ final class FileScopes {
                 catch (SecurityException f) { error = "file_scope_revoked"; }
                 catch (FileNotFoundException f) { error = "file_not_found"; }
                 catch (Exception f) { error = "file_storage_or_provider_failure"; }
-                finally { if (locked) WORKSPACE_IO.unlock(); IN_FLIGHT.decrementAndGet(); }
+                finally { timing.endIo(); if (locked) WORKSPACE_IO.unlock(); IN_FLIGHT.decrementAndGet(); }
                 JSONObject finalResult = result; String finalError = error;
                 MAIN.post(() -> { MAIN.removeCallbacks(timeout); if (done.compareAndSet(false, true)) {
-                    if (prefs(c).getLong("epoch", 0) != epoch || scopeEpoch(c,owner) != scopeEpoch) reply.error("file_scope_changed");
+                    boolean scopeChanged = prefs(c).getLong("epoch", 0) != epoch || scopeEpoch(c,owner) != scopeEpoch;
+                    performance(owner,action,timing,finalError==null&&!scopeChanged?"completed":"refused");
+                    if (scopeChanged) reply.error("file_scope_changed");
                     else if (finalError == null) reply.success(finalResult); else reply.error(finalError);
-                } });
+                } else { performance(owner,action,timing,"canceled"); } });
             });
         } catch (RejectedExecutionException busy) { IN_FLIGHT.decrementAndGet(); MAIN.removeCallbacks(timeout); done.set(true); reply.error("file_busy"); }
     }

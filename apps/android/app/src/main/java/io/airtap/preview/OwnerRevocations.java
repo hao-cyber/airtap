@@ -29,9 +29,7 @@ final class OwnerRevocations {
     private static String identity(EnrollmentStore.Config config) throws Exception {
         if (config == null || !config.publicService() || !config.enrolled()) throw new IllegalArgumentException("enrollment_required");
         byte[] hash = MessageDigest.getInstance("SHA-256").digest(("airtap-owner-revocations-v1\n" + config.url + "\n" + config.token).getBytes(StandardCharsets.UTF_8));
-        StringBuilder output = new StringBuilder(64);
-        for (byte value : hash) output.append(String.format(java.util.Locale.ROOT, "%02x", value & 255));
-        return output.toString();
+        return java.util.HexFormat.of().formatHex(hash);
     }
     private static String target(String claim) {
         if (claim == null) return ALL;

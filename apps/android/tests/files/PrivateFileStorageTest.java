@@ -27,6 +27,19 @@ public final class PrivateFileStorageTest {
     public static void main(String[]args)throws Exception{
         test("unpaired empty storage is inspectable and clearable",()->{var s=storage(fresh(),1048576);check(s.usage(false).usedBytes()==0);check(s.clearWorkspaces().workspaceBytes()==0);});
         test("all claims and SAF local bytes count while external files do not",()->{Path r=fresh();file(r.resolve(A+"/workspace/old"),100);file(r.resolve(B+"/workspace/new"),200);file(r.resolve(A+"/saf/staging/workspace/blob"),300);var u=storage(r,10000).usage(true);check(u.usedBytes()==600&&u.workspaceBytes()==300);});
+        test("single accounting pass preserves nested workspace, orphan and reservation totals",()->{
+            Path r=fresh();file(r.resolve(A+"/workspace/nested/a"),123);file(r.resolve(B+"/workspace/b"),321);
+            file(r.resolve(A+"/saf/staging/workspace/blob"),400);file(r.resolve("orphan.bin"),70);
+            file(r.resolve("not-a-claim/workspace/stray"),90);begin(r,B,ID,10000);
+            var u=storage(r,200000).usage(true);
+            long actual;try(var all=Files.walk(r)){actual=all.filter(Files::isRegularFile).mapToLong(p->{try{return Files.size(p);}catch(IOException e){throw new UncheckedIOException(e);}}).sum();}
+            check(u.usedBytes()==actual&&u.workspaceFiles()==4&&u.usedBytes()+u.reservedBytes()==123+321+400+70+90+10000+PrivateFileStorage.JOURNAL_RESERVE);
+        });
+        test("single accounting pass still refuses nested symlinks before budget approval",()->{
+            Path r=fresh();Path other=Files.createTempFile("airtap-outside-", ".txt");Files.writeString(other,"keep");
+            file(r.resolve(A+"/workspace/nested/ok"),10);Files.createSymbolicLink(r.resolve(A+"/workspace/nested/link"),other);
+            refused("file_symlink_refused",()->storage(r,200000).checkNew(1,100000000));check(Files.readString(other).equals("keep"));
+        });
         test("new transfer reservation blocks another claim before allocation",()->{Path r=fresh();var s=storage(r,200000);s.checkNew(100000,100000000);begin(r,A,ID,100000);refused("file_private_storage_budget",()->s.checkNew(100000,100000000));});
         test("partial chunk moves bytes from reserved to used without double count",()->{Path r=fresh();var s=storage(r,200000);begin(r,A,ID,10000);long before=charged(s);FileTransferStore f=new FileTransferStore(r.resolve(A),()->{});byte[] chunk=new byte[4096];s.check(0,100000000);f.chunk(ID,0,chunk,FileTransferStore.digest(chunk));check(charged(s)==before);});
         test("same ID begin does not reserve twice and zero byte still reserves journal",()->{Path r=fresh();var s=storage(r,200000);s.checkNew(0,100000000);begin(r,A,ID,0);long before=charged(s);begin(r,A,ID,0);check(charged(s)==before&&before==PrivateFileStorage.JOURNAL_RESERVE);});

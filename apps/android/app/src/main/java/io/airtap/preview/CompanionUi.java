@@ -90,7 +90,9 @@ final class CompanionUi {
     }
     private void noOwnerWindow() {
         for (AccessibilityWindowInfo window : service.getWindows()) {
-            AccessibilityNodeInfo node = window.getRoot();
+            // Only package identity is needed here, never descendants. On API 33+
+            // the no-argument call also prefetches the hierarchy on every IO fence.
+            AccessibilityNodeInfo node = window.getRoot(0);
             if (node != null && (pkg(node).equals(BuildConfig.APPLICATION_ID) || pkg(node).equals("io.airtap.preview") || pkg(node).startsWith("io.airtap.preview.")))
                 throw new ScopedUi.Refused("protected_airtap_window");
         }

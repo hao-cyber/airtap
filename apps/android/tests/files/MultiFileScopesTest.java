@@ -241,6 +241,10 @@ public final class MultiFileScopesTest {
             check(inFlight() == 1 && HostIo.effects == 0 && a.errors.equals(List.of("file_scope_changed")));
             join(ControlledExecutor.startNext()); check(HostIo.effects == 1 && b.results.size() == 1 && b.errors.isEmpty());
             check(B.equals(b.results.get(0).get("owner")));
+            JSONObject aTiming=FileScopes.performance(A), bTiming=FileScopes.performance(B);
+            check(aTiming.get("outcome").equals("refused")&&bTiming.get("outcome").equals("completed"));
+            check(aTiming.length()==7&&bTiming.length()==7&&!bTiming.has("owner")&&!bTiming.has("path"));
+            check(FileScopes.performance("e".repeat(32))==null);
         });
         test("timeout before executor starts blocks late provider effect and settles count only after execution", () -> {
             Host host = new Host(); Reply reply = new Reply();
