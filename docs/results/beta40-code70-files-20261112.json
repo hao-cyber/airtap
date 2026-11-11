@@ -21,7 +21,8 @@
     "multi_file_scopes": 19,
     "multi_ai_authority": 77,
     "owner_revocations": 37,
-    "core_suite": "running"
+    "core_suite": "passed",
+    "core_steps": 42
   },
   "synthetic_profile": {
     "scope": "Same host Java fixture of 24 workspace files and one upload; not phone latency.",
