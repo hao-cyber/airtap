@@ -1632,7 +1632,7 @@
       "path": "release/android/69.json"
     },
     {
-      "kind": "document",
+      "kind": "source",
       "path": "release/android/70.json"
     },
     {
