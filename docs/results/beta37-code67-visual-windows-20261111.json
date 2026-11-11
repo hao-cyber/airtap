@@ -6,7 +6,7 @@
     "android_version": "0.4.0-beta.37",
     "cli_version": "0.4.0-cli.18"
   },
-  "scope": "Local host/workerd checks and Android16 isolated emulator; not phone, personal-AI or deployment acceptance.",
+  "scope": "Local host/workerd checks and Android15/16 isolated emulators; not phone, personal-AI or deployment acceptance.",
   "change": [
     "Capture real display without requiring an accessibility root; bind coordinates to the actual observed window and geometry.",
     "Never invent the underlying app package for an unreadable dialog; unknown-package gestures require full-phone authorization.",
@@ -320,8 +320,76 @@
     "Expanded multi-AI test enrollment exhausted its synthetic20-device quota; isolated fixture capacity and per-device caller addresses were adjusted. Production quotas were unchanged."
   ],
   "not_verified": [
-    "Android15 native media permission tap",
     "Flyme permission dialog on physical phones",
     "Code67 remote in-place upgrade and real personal-AI task"
-  ]
+  ],
+  "android15": {
+    "checks": [
+      {
+        "name": "native normal app screenshot",
+        "passed": true
+      },
+      {
+        "name": "normal app still receives production visual tap",
+        "passed": true
+      },
+      {
+        "name": "real Android media permission dialog captured",
+        "passed": true
+      },
+      {
+        "name": "native dialog screenshot contains actual image bytes",
+        "passed": true
+      },
+      {
+        "name": "rootless image advertises actual window without underlying app",
+        "passed": true
+      },
+      {
+        "name": "tree cannot substitute underlying fixture",
+        "passed": true
+      },
+      {
+        "name": "rootless dialog is not mistaken for wake recovery window",
+        "passed": true
+      },
+      {
+        "name": "rootless coordinates outside actual window rejected",
+        "passed": true
+      },
+      {
+        "name": "revocation prevents visual tap",
+        "passed": true
+      },
+      {
+        "name": "production visual tap dismisses real media permission dialog",
+        "passed": true
+      },
+      {
+        "name": "dialog action reports accepted or unknown requiring observation",
+        "passed": true
+      },
+      {
+        "name": "old dialog image cannot target resumed app",
+        "passed": true
+      },
+      {
+        "name": "Back leaves real system permission dialog without a UI tree",
+        "passed": true
+      },
+      {
+        "name": "Android secure window content remains unavailable",
+        "passed": true
+      },
+      {
+        "name": "stopped command prevents visual dispatch",
+        "passed": true
+      }
+    ],
+    "root_available": false,
+    "screenshot_captured": true,
+    "permission_tap_dismissed": true,
+    "back_dismissed": true,
+    "oracle": "UiAutomation only supplied test target bounds and independent result; actual click and Back used production CompanionUi."
+  }
 }
