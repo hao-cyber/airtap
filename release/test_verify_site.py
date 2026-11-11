@@ -33,7 +33,7 @@ class FrozenSiteVerification(unittest.TestCase):
                          'Link':'</install>; rel="alternate"'}, b'' if method == 'HEAD' else b'<a href="/install">Update</a>'
         if path == '/download/android':
             return 302, {'Location': apk_path, 'Cache-Control': 'no-store'}, b''
-        path = {'/': '/index.html', '/install': '/index.html', '/help': '/index.html',
+        path = {'/': '/index.html', '/install': '/install.html', '/help': '/help.html',
                 '/privacy': '/privacy.html', '/release-notes': '/release-notes.html'}.get(path, path)
         data = (self.build / 'site' / path.lstrip('/')).read_bytes()
         headers = {'X-Content-Type-Options': 'nosniff', 'Referrer-Policy': 'no-referrer',

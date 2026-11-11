@@ -6,7 +6,7 @@ Airtap 让你的个人 AI 查看手机屏幕、点击、输入和切换 App。�
 
 手机可以留在家中，保持供电和联网。日常使用不需要插 USB、常开电脑或自建服务器，也不用另外购买模型 API；操作仍会消耗你原有 AI 的套餐额度。
 
-**[下载 Android App](https://airtap.memtrix.dev/install)** · [使用指南](docs/user-guide-v040.md) · [自行部署](docs/reproduce-v040.md) · [反馈问题](https://github.com/hao-cyber/airtap/issues)
+**[下载 Android App](https://airtap.memtrix.dev/install)** · [安装与接入](https://airtap.memtrix.dev/install#start) · [使用帮助](https://airtap.memtrix.dev/help) · [自行部署](docs/reproduce-v040.md) · [反馈问题](https://github.com/hao-cyber/airtap/issues)
 
 Android 14+ · 公开测试版 · 需要能调用工具的个人 AI
 
@@ -20,7 +20,7 @@ Android 14+ · 公开测试版 · 需要能调用工具的个人 AI
 
 ## 开始使用
 
-[观看 70 秒安装与接入指南](https://airtap.memtrix.dev/install#start)。真机演示官网下载和系统设置，邀请与核码配合步骤说明。视频使用 beta.9／beta.10 的旧版界面；示例手机已接入，并非首次安装全程实录。
+[观看 70 秒安装与接入指南](https://airtap.memtrix.dev/install#install-demo)。真机演示官网下载和系统设置，邀请与核码配合步骤说明。视频使用 beta.9／beta.10 的旧版界面；示例手机已接入，并非首次安装全程实录。
 
 1. 在 Android 14 或更新的手机上安装 Airtap。
 2. 打开 App，按引导完成操作权限、通知和后台运行设置。
@@ -56,8 +56,8 @@ AI 可以组合这些动作完成跨 App 任务，不限于计算器等演示应
 
 | 个人 AI | 已有测试 |
 | --- | --- |
-| Muse | code65／CLI.16：两台原连接远程升级、持续触控、任务保存、文件往返、短时息屏后自主唤醒和计算器视觉核验。 |
-| Instinct | code64／CLI.15：两台各自接入，完成计算器、短信 App 发送方与日期核对、浏览器阅读，并再次取得控制完成任务。 |
+| Muse | code66／CLI.17：两台原连接远程升级、电池状态读取、计算器视觉核验；代办另一位 AI 的远程接入。code65 另有持续触控、任务保存、文件往返与短时息屏恢复记录。 |
+| Instinct | code66／CLI.17：新账号由已有 AI 协助接入一台手机，完成计算器任务和 Vault 配置恢复；code64 另有两台手机的短信 App、浏览器和再次使用记录。 |
 
 Instinct 已将两份完整连接信息存入自己的 Vault，再从中取回并恢复到两个新的私有配置，实际查询均通过。这验证了保存与恢复流程；真正更换云端虚拟机仍未验证。上述任务与失败恢复见[本轮记录](docs/results/beta34-code64-two-ai-20261110.json)。一台测试手机的 SIM PIN 仍开启，重启后仍需系统验证；普通息屏唤醒通过不等于重启后无需人参与。
 

@@ -131,7 +131,7 @@ export default {
       if (!/^[a-f0-9]{64}$/.test(release.apk_sha256)) return new Response('Invalid release', {status:503});
       return new Response(null, {status:302, headers:{Location:'/downloads/' + release.apk_sha256 + '.apk', 'Cache-Control':'no-store'}});
     }
-    const pages = {'/':'/index.html','/install':'/index.html','/help':'/index.html','/privacy':'/privacy.html','/release-notes':'/release-notes.html'};
+    const pages = {'/':'/index.html','/install':'/install.html','/help':'/help.html','/privacy':'/privacy.html','/release-notes':'/release-notes.html'};
     const path = pages[url.pathname.replace(/\/$/, '') || '/'] || url.pathname;
     let response = await asset(path);
     // Some ASSETS implementations ignore Range. Slice only when needed, without

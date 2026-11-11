@@ -103,7 +103,7 @@ def verify(build, base_url=None, fetch=request, managed_robots_prefix=None):
             except (OSError, ValueError) as failure:
                 # Only the public relative route and failure type enter diagnostics.
                 raise ValueError('Public request failed: ' + method + ' ' + path + ' (' + type(failure).__name__ + ')') from None
-        paths = {'/': 'site/index.html', '/install': 'site/index.html', '/help': 'site/index.html',
+        paths = {'/': 'site/index.html', '/install': 'site/install.html', '/help': 'site/help.html',
                  '/privacy': 'site/privacy.html', '/release-notes': 'site/release-notes.html'}
         # Includes CSS, JS, QR code, the update JSON, and retained immutable APKs.
         paths.update({'/' + name.removeprefix('site/'): name for name in contents if name.startswith('site/')})

@@ -1,6 +1,6 @@
 # 固定入口与内部版本管理
 
-用户只需记住 https://airtap.memtrix.dev 。`/install` 用于二维码与分享，`/download/android` 总是临时跳转到推荐 APK，`/help` 提供使用帮助。主流程不要求用户挑选版本、协议、部署环境或下载某个 GitHub 附件。APK 下载文件名固定为 `Airtap.apk`。
+用户只需记住 https://airtap.memtrix.dev 。`/install` 是独立安装与接入页，用于二维码与分享；`/download/android` 总是临时跳转到推荐 APK，`/help` 按类别和关键词提供使用帮助。首页保留用途、真机演示与实际验证范围，不要求用户先读完整技术记录。主流程不要求用户挑选版本、协议、部署环境或下载某个 GitHub 附件。APK 下载文件名固定为 `Airtap.apk`。
 
 推荐版本是发布团队的责任。推荐安装包升级时将官网、`/updates/android.json` 和安装包一次部署；仅更新网站也使用同一冻结构建流程，无需虚增 Android 版本；APK 存在 `/downloads/<sha256>.apk`，字节不可覆盖。网站和推荐信息不长期缓存，APK 可永久缓存。正常升级时保留未退役的旧 APK；经审核需停止公开分发的包写入 `retired-apks.json`，旧地址返回 410 与当前安装页链接，不把原地址替换成新 APK 字节。私有历史原件与冻结构建保留。App、CLI 与协议各自管理内部版本，不要求用户理解或配对其编号。
 

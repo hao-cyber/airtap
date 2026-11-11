@@ -34,9 +34,9 @@ cp -R /private/frozen-site /private/site-preview
 wrangler dev --local --config /private/site-preview/wrangler.json
 ```
 
-1. 首页下载入口、二维码、Android 最低版本清楚，网页没有横向溢出。
-2. `/help` 直接到四步接入；`/help#operation-help` 展开系统授权步骤；`/help#pair-help` 和 `/help#offline-help` 能分别直达相应答案。
-3. 首次任务可直接复制给 AI，用户知道应看到什么结果、之后在哪里继续提任务。
+1. 首页“开始使用”到安装页，安装页下载入口、二维码、Android 最低版本清楚，网页没有横向溢出。
+2. `/install` 直接展示下载与接入步骤，`/help` 展示分类帮助并支持关键词筛选；`/help#operation-help` 展开系统授权步骤；`/help#pair-help` 和 `/help#offline-help` 能分别直达相应答案。
+3. 首次任务可直接复制给 AI，成功与剪贴板不可用时都有反馈；用户知道应看到什么结果、之后在哪里继续提任务。帮助搜索检查命中、无结果、清除和筛选后的分类跳转，键盘焦点清晰。
 4. `/help#remote-help` 提醒首次完成后台准备、息屏与断网后用原连接实测，而不是一律要求用户重新配对。
 5. `/privacy`、`/release-notes`、版本详情、下载和更新 JSON 均能访问。普通首页没有开发版本选择器。
 6. iPhone 暂不提供安装包，不能暗示此 APK 可以装到 iOS。检查新手流程与系统权限实际按钮是否一致。

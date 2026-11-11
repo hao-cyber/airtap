@@ -1583,11 +1583,19 @@
     },
     {
       "kind": "source",
+      "path": "release/site/help.html"
+    },
+    {
+      "kind": "source",
       "path": "release/site/index.html"
     },
     {
       "kind": "source",
       "path": "release/site/install-qr.svg"
+    },
+    {
+      "kind": "source",
+      "path": "release/site/install.html"
     },
     {
       "kind": "source",
