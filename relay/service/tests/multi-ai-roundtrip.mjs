@@ -20,7 +20,7 @@ const temp = await realpath(await mkdtemp(join(tmpdir(), 'airtap-multi-')));
 await mkdir(join(temp, 'assets'));
 const hex = n => randomBytes(n).toString('hex');
 const bindings = { SERVICE_ID: hex(16), SERVICE_LABEL: 'Synthetic multi AI test', IP_HASH_SALT: hex(32), REGISTRATION_OPEN: 'true', CONTROL_OPEN: 'true',
-  FEEDBACK_ADMIN_SHA256: 'c'.repeat(64), CLI_SHA256: 'a'.repeat(64), AGENT_SHA256: 'b'.repeat(64), ARTIFACT_VERSION: 'candidate', MAX_DEVICES: '20', DAILY_REGISTRATIONS: '20', IP_DAILY_REGISTRATIONS: '20' };
+  FEEDBACK_ADMIN_SHA256: 'c'.repeat(64), CLI_SHA256: 'a'.repeat(64), AGENT_SHA256: 'b'.repeat(64), ARTIFACT_VERSION: 'candidate', MAX_DEVICES: '100', DAILY_REGISTRATIONS: '100', IP_DAILY_REGISTRATIONS: '20' };
 const options = { host: '127.0.0.1', port: 0, cf: false, durableObjectsPersist: join(temp, 'do'), resourcePersistencePath: join(temp, 'state'), workers: [{ name: 'multi-ai-test', modulesRoot: join(root, 'relay'),
   modules: await Promise.all(['service/service.mjs', 'worker/worker.mjs', 'service/feedback.mjs'].map(async f => ({ type: 'ESModule', path: join(root, 'relay', f), contents: await readFile(join(root, 'relay', f), 'utf8') }))),
   compatibilityDate: '2026-10-01', durableObjects: { ADMISSION: { className: 'AdmissionRegistry', useSQLite: true }, DEVICES: { className: 'ServiceDeviceRelay', useSQLite: true } },
@@ -30,9 +30,10 @@ let mf;
 async function start() { mf = new Miniflare(convertV4MiniflareOptions ? { ...convertV4MiniflareOptions(options), telemetry: { enabled: false } } : options); await mf.ready; }
 await start();
 const checks = [], sockets = [];
+let syntheticEnrollmentIp = 0; // One independent caller per fixture device; quota behavior has dedicated tests.
 async function request(path, token, body, method) {
   const response = await mf.dispatchFetch('http://localhost' + path, { method: method ?? (body === undefined ? 'GET' : 'POST'),
-    headers: { 'cf-connecting-ip': '127.0.0.1', ...(token ? { Authorization: 'Bearer ' + token } : {}), ...(body === undefined ? {} : { 'Content-Type': 'application/json' }) },
+    headers: { 'cf-connecting-ip': path === '/v1/enroll' ? `192.0.2.${++syntheticEnrollmentIp}` : '127.0.0.1', ...(token ? { Authorization: 'Bearer ' + token } : {}), ...(body === undefined ? {} : { 'Content-Type': 'application/json' }) },
     ...(body === undefined ? {} : { body: JSON.stringify(body) }) });
   return { status: response.status, data: await response.json() };
 }

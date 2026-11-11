@@ -26,11 +26,12 @@ TOKEN = re.compile(r'^[0-9a-f]{64}$')
 TICKET = re.compile(r'^[0-9a-f]{32}$')
 MAX_RESPONSE = 512 * 1024
 MAX_COMMAND = 65536
-VERSION = '0.4.0-cli.17'
+VERSION = '0.4.0-cli.18'
 PAIRING_TTL_SECONDS = 60 * 60
 PAIRING_CLOCK_TOLERANCE_SECONDS = 30
 PACKAGE = re.compile(r'^[A-Za-z_][A-Za-z0-9_]*(?:\.[A-Za-z_][A-Za-z0-9_]*)+$')
 NODE = re.compile(r'^[1-9][0-9]{0,3}$')
+VISUAL_COMMANDS = {'tap', 'long-press', 'swipe', 'drag', 'gesture', 'touch-begin', 'touch-move'}
 NODE_COMMANDS = {'click', 'long-click', 'set-text', 'scroll', 'node-action', 'focus', 'set-selection', 'select-all', 'copy', 'cut', 'paste', 'insert-text', 'delete-text', 'editor-action'}
 SYSTEM_ACTIONS = ('notifications', 'quick_settings', 'dismiss_notification_shade', 'all_apps', 'dpad_up', 'dpad_down', 'dpad_left', 'dpad_right', 'dpad_center', 'power_dialog', 'lock_screen', 'split_screen')
 AUDIO_STREAMS = ('music', 'alarm', 'ring', 'notification', 'system', 'voice_call')
@@ -55,7 +56,7 @@ TASK_ERRORS = {
     'stale_renewal': 409,
 }
 TASK_BEFORE_OBSERVE = {'ping', 'apps', 'windows', 'foreground', 'system_actions', 'audio_state', 'battery_status',
-              'observe', 'read_tree', 'home', 'file_roots', 'file_list', 'file_stat',
+              'observe', 'read_tree', 'home', 'back', 'recents', 'file_roots', 'file_list', 'file_stat',
               'file_read', 'file_upload_status', 'media_status', 'media_stop', 'sim_pin_prepare', 'sim_pin_submit', *CONNECTION_ACTIONS}
 
 class Failure(Exception):
@@ -517,6 +518,14 @@ def json_bytes(value):
 def valid_package(value):
     return (isinstance(value, str) and len(value) <= 200 and (value == 'android' or PACKAGE.fullmatch(value))
             and value != 'io.airtap.preview' and not value.startswith('io.airtap.preview.'))
+
+def valid_observed_package(value):
+    if valid_package(value.get('package')):
+        return True
+    return ('package' in value and value['package'] is None and value.get('target_mode') == 'visual_window_v1'
+            and value.get('root_available') is False and type(value.get('window_id')) is int
+            and value['window_id'] >= 0 and type(value.get('display_id')) is int and value['display_id'] == 0)
+
 
 def valid_node(value):
     return isinstance(value, str) and NODE.fullmatch(value) and int(value) <= 2048
@@ -1118,7 +1127,7 @@ def _command_request(args, config, body, timeout=None):
             try:
                 raw = base64.b64decode(value.pop('image_base64'), validate=True)
                 observation = value['observation_id']
-                if not TICKET.fullmatch(observation) or not valid_package(value['package']) or value.get('coordinate_space') != 'normalized_image':
+                if not TICKET.fullmatch(observation) or not valid_observed_package(value) or value.get('coordinate_space') != 'normalized_image':
                     raise ValueError()
                 if not raw.startswith(b'\xff\xd8') or not raw.endswith(b'\xff\xd9') or len(raw) > 360000:
                     raise ValueError()
@@ -1870,7 +1879,7 @@ def main():
         if command == 'connection-approve':
             child.add_argument('--code-stdin', required=True, action='store_true', help='Read the intended new AI’s six-digit comparison code from stdin; do not put it in arguments or logs.')
         if command in NODE_COMMANDS or command in ('read-tree', 'read-tree-page', 'read-node-text', 'launch', 'open-url', 'tap', 'long-press', 'swipe', 'drag', 'gesture', 'touch-begin', 'touch-move'):
-            child.add_argument('--package', required=command != 'read-tree')
+            child.add_argument('--package', required=command != 'read-tree' and command not in VISUAL_COMMANDS)
         if command == 'open-url': child.add_argument('--url', required=True)
         if command == 'read-tree-page':
             child.add_argument('--snapshot-id', required=True); child.add_argument('--offset', type=int, required=True); child.add_argument('--limit', type=int, default=128)
@@ -2008,6 +2017,8 @@ def main():
         if not re.fullmatch(r'[0-9]{6}', code): raise Failure('invalid_verification_code')
         body.update(claim_id=args.claim_id, verification_code=code)
     package = getattr(args, 'package', None)
+    if args.command in VISUAL_COMMANDS and package is None:
+        package = config.get('observation', {}).get('package')
     if package is not None:
         if not valid_package(package): raise Failure('invalid_or_protected_package')
         body['package'] = package
@@ -2096,7 +2107,7 @@ def main():
     if args.command == 'system-action': body['name'] = args.name
     if args.command in ('tap', 'long-press', 'swipe', 'drag', 'gesture', 'touch-begin', 'touch-move'):
         observation = config.get('observation', {})
-        if (observation.get('observation_id') != args.observation_id or observation.get('package') != package
+        if (not valid_observed_package(observation) or observation.get('observation_id') != args.observation_id or observation.get('package') != package
                 or not observation.get('issued_at', 0) <= time.time() < observation.get('expires_at', 0)):
             raise Failure('fresh_observation_required')
         fields = () if args.command == 'gesture' else ('x', 'y', 'end_x', 'end_y') if args.command == 'swipe' else ('x', 'y')

@@ -7,6 +7,7 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{1
 const ACTIONS = new Set(['ping', 'read_tree', 'screenshot', 'tap_test']);
 const AUDIO_STREAMS = new Set(['music', 'alarm', 'ring', 'notification', 'system', 'voice_call']);
 const CONTROL_ACTIONS = new Set(['sim_pin_submit', 'sim_pin_prepare', 'media_capture', 'media_stop', 'touch_begin', 'touch_move', 'touch_end', 'set_volume', 'adjust_volume', 'launch', 'open_url', 'click', 'long_click', 'set_text', 'scroll', 'node_action', 'tap', 'long_press', 'swipe', 'drag', 'gesture', 'back', 'home', 'recents', 'system_action', 'focus', 'set_selection', 'select_all', 'copy', 'cut', 'paste', 'insert_text', 'delete_text', 'editor_action']);
+const VISUAL_ACTIONS = new Set(['tap', 'long_press', 'swipe', 'drag', 'gesture', 'touch_begin', 'touch_move']);
 const FILE_READ_ACTIONS = new Set(['file_roots', 'file_list', 'file_stat', 'file_read', 'file_upload_status']);
 const FILE_WRITE_ACTIONS = new Set(['file_mkdir', 'file_rename', 'file_delete', 'file_share', 'file_upload_begin', 'file_upload_chunk', 'file_upload_finish', 'file_upload_abort']);
 const EVENT_ACTIONS = new Set(['event_status', 'event_read']);
@@ -127,14 +128,15 @@ function commandShape(cmd, companion = false) {
   if (companion && cmd.action === 'media_capture') return exact(cmd,['id','action','kind','seconds'])&&['photo','video','audio','screen'].includes(cmd.kind)&&Number.isInteger(cmd.seconds)&&cmd.seconds>=1&&cmd.seconds<=60;
   if (companion && cmd.action === 'touch_end') return exact(cmd,['id','action','touch_id']) && typeof cmd.touch_id === 'string' && HEX32.test(cmd.touch_id);
   if (companion && ['touch_begin','touch_move'].includes(cmd.action)) {
-    const fields=['id','action','package','observation_id','x','y'];
+    const fields=['id','action','observation_id','x','y', ...('package' in cmd ? ['package'] : [])];
     const point=n=>typeof n==='number'&&Number.isFinite(n)&&n>=0&&n<1;
-    return validPackage(cmd.package)&&typeof cmd.observation_id==='string'&&HEX32.test(cmd.observation_id)&&point(cmd.x)&&point(cmd.y)&&
+    return (!('package' in cmd)||validPackage(cmd.package))&&typeof cmd.observation_id==='string'&&HEX32.test(cmd.observation_id)&&point(cmd.x)&&point(cmd.y)&&
       (cmd.action==='touch_begin'?exact(cmd,fields):exact(cmd,[...fields,'touch_id','duration_ms'])&&typeof cmd.touch_id==='string'&&HEX32.test(cmd.touch_id)&&Number.isInteger(cmd.duration_ms)&&cmd.duration_ms>=1&&cmd.duration_ms<=5000);
   }
-  if (!validPackage(cmd.package)) return false;
+  const visual = companion && ['tap','long_press','swipe','drag','gesture'].includes(cmd.action);
+  if ((!visual || 'package' in cmd) && !validPackage(cmd.package)) return false;
   if (companion && cmd.action === 'gesture') {
-    if (!exact(cmd, ['id', 'action', 'package', 'observation_id', 'tracks']) || !HEX32.test(cmd.observation_id ?? '') ||
+    if (!exact(cmd, ['id', 'action', 'observation_id', 'tracks', ...('package' in cmd ? ['package'] : [])]) || !HEX32.test(cmd.observation_id ?? '') ||
         !Array.isArray(cmd.tracks) || cmd.tracks.length < 1 || cmd.tracks.length > 10) return false;
     const point = n => typeof n === 'number' && Number.isFinite(n) && n >= 0 && n < 1;
     for (const track of cmd.tracks) {
@@ -151,7 +153,7 @@ function commandShape(cmd, companion = false) {
     return true;
   }
   if (companion && ['tap', 'long_press', 'swipe', 'drag'].includes(cmd.action)) {
-    const fields = ['id', 'action', 'package', 'observation_id', 'x', 'y'];
+    const fields = ['id', 'action', 'observation_id', 'x', 'y', ...('package' in cmd ? ['package'] : [])];
     const point = value => typeof value === 'number' && Number.isFinite(value) && value >= 0 && value < 1;
     if (!HEX32.test(cmd.observation_id ?? '') || !point(cmd.x) || !point(cmd.y)) return false;
     if (cmd.action === 'drag') {
@@ -484,6 +486,7 @@ export class PairingRelay extends DurableObject {
     if (CONNECTION_ACTIONS.has(cmd.action) && cmd.action !== 'connection_invite') return this.json(409, { error: 'multi_api_required', admitted: false });
     if (cmd.action === 'connection_invite' && (s.allowControl !== true || s.allApps !== true)) return this.json(403, { error: 'control_permission_required', admitted: false });
     if (cmd.package && (authorizationSurface(cmd.package) || !(s.allApps === true || (s.allowedPackages ?? []).includes(cmd.package)))) return this.json(403, { error: 'package_permission_required' });
+    if (VISUAL_ACTIONS.has(cmd.action) && !cmd.package && s.allApps !== true) return this.json(403, { error: 'package_permission_required', admitted: false });
     if ((CONTROL_ACTIONS.has(cmd.action) || FILE_WRITE_ACTIONS.has(cmd.action)) && s.allowControl !== true) return this.json(403, { error: 'control_permission_required' });
     if (cmd.action === 'tap_test' && !s.allowTap) return this.json(403, { error: 'tap_permission_required' });
     if (s.persistent && cmd.sequence <= (s.sequence ?? 0)) return this.json(409, { error: 'sequence_already_admitted', admitted: false });
@@ -988,6 +991,7 @@ export class MultiPairingRelay extends PairingRelay {
     if (!commandShape(raw, true)) return this.json(400, { error: 'invalid_command', admitted: false });
     if (CONNECTION_ACTIONS.has(raw.action) && (!g.scope.allowControl || !g.scope.allApps)) return this.json(403, { error: 'control_permission_required', admitted: false });
     if (raw.package && (authorizationSurface(raw.package) || !(g.scope.allApps || g.scope.allowedPackages.includes(raw.package)))) return this.json(403, { error: 'package_permission_required', admitted: false });
+    if (VISUAL_ACTIONS.has(raw.action) && !raw.package && !g.scope.allApps) return this.json(403, { error: 'package_permission_required', admitted: false });
     if ((CONTROL_ACTIONS.has(raw.action) || FILE_WRITE_ACTIONS.has(raw.action)) && !g.scope.allowControl) return this.json(403, { error: 'control_permission_required', admitted: false });
     if (raw.action === 'tap_test' && !g.scope.allowTap) return this.json(403, { error: 'tap_permission_required', admitted: false });
     if (raw.sequence <= g.sequence) return this.json(409, { error: 'sequence_already_admitted', admitted: false });

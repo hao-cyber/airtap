@@ -1,0 +1,9 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android" package="io.airtap.fixture.visual">
+ <uses-sdk android:minSdkVersion="34" android:targetSdkVersion="36"/>
+ <uses-permission android:name="android.permission.READ_MEDIA_IMAGES"/>
+ <uses-permission android:name="android.permission.READ_MEDIA_VIDEO"/>
+ <application android:theme="@android:style/Theme.Material.Light.NoActionBar" android:label="Airtap Visual Window Fixture" android:debuggable="true">
+  <activity android:name="test.visual.VisualActivity" android:exported="true"/>
+ </application>
+ <instrumentation android:name="test.visual.VisualRunner" android:targetPackage="io.airtap.preview" android:label="Private visual window tests"/>
+</manifest>

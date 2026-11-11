@@ -105,7 +105,7 @@ async function connectPhone() {
       observedPackage = afterClickPackage; afterClickPackage = null;
     }
     let result;
-    if (cmd.action === 'observe') result = { package: observedPackage, observation_id: hex(16), expires_in_ms: 30000,
+    if (cmd.action === 'observe') result = { package: observedPackage, root_available: observedPackage !== null, target_mode: 'visual_window_v1', observation_id: hex(16), expires_in_ms: 30000,
       coordinate_space: 'normalized_image', width: 720, height: 1600, display_id: 0, window_id: 3, rotation: 0, capture_scope: 'display', window_bounds: [0,40,1080,2200],
       mime_type: 'image/jpeg', image_base64: Buffer.from([255,216,255,217]).toString('base64') };
     else if (pagedMode && ['read_tree', 'read_tree_page'].includes(cmd.action)) {
@@ -222,6 +222,24 @@ try {
     const mcpResult = await (await mcp('tools/call', { name: 'phone_read_tree', arguments: { sequence: lastSequence + 1, package: 'android' } })).json();
     assert.equal(mcpResult.result.isError, false); assert.equal(seenCommands.at(-1).package, 'android');
     observedPackage = 'com.example.app'; await python(['status']);
+  });
+  await check('rootless dialog image traverses real CLI and MCP without a guessed package', async () => {
+    observedPackage = null;
+    try {
+      const observed = (await python(['observe'])).result;
+      assert.equal(observed.package, null); assert.equal(observed.root_available, false);
+      const tap = await python(['tap', '--observation-id', observed.observation_id, '--x', '.5', '--y', '.7', '--no-observe']);
+      assert.equal(tap.result.accepted, true); assert.equal('package' in seenCommands.at(-1), false);
+      const list = await (await mcp('tools/list', {})).json();
+      for (const name of ['tap','long_press','swipe','drag','gesture','touch_begin','touch_move']) {
+        const schema = list.result.tools.find(tool => tool.name === 'phone_' + name).inputSchema;
+        assert.equal(schema.required.includes('package'), false);
+      }
+      const result = await (await mcp('tools/call', {name:'phone_tap',arguments:{sequence:lastSequence+1,observation_id:observed.observation_id,x:.5,y:.7}})).json();
+      assert.equal(result.result.isError, false); assert.equal('package' in seenCommands.at(-1), false);
+      assert.equal((await api('click',lastSequence+1,{snapshot_id:hex(16),node_id:'1'})).status,400);
+      assert.equal((await api('tap',lastSequence+1,{package:null,observation_id:observed.observation_id,x:.5,y:.7})).status,400);
+    } finally { observedPackage = 'com.example.app'; await python(['status']); }
   });
   await check('framework exception rejects other single labels and retains owner surface protection', async () => {
     const before = seenCommands.length;

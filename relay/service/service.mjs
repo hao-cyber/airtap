@@ -84,6 +84,11 @@ const toolSpecs = {
   editor_action: { description: 'Submit a focused editor action such as search/send/done. Requires owner authorization for its concrete effect. default uses the app action. Observe the actual outcome.', properties: { ...nodeTarget, editor_action: { type: 'string', enum: ['default', 'done', 'go', 'next', 'previous', 'search', 'send'] } } },
   recents: { description: 'Open recent apps. Observe afterwards.', properties: { sequence: seq } },
 };
+// An unreadable root does not erase the active window's identity.
+for (const action of ['tap','long_press','swipe','drag','gesture','touch_begin','touch_move']) {
+  toolSpecs[action].optional = ['package'];
+  toolSpecs[action].description += ' Copy package from the observation when present; omit it only when observe returns package:null and target_mode:visual_window_v1. Never substitute the app underneath a dialog.';
+}
 const mcpTools = Object.entries(toolSpecs).map(([action, spec]) => ({ name: 'phone_' + action, description: spec.description,
   inputSchema: { type: 'object', properties: spec.properties, required: Object.keys(spec.properties).filter(k => !spec.optional?.includes(k)), additionalProperties: false },
   annotations: { readOnlyHint: ['battery_status', 'ping', 'event_status', 'event_read', 'status', 'apps', 'windows', 'foreground', 'observe', 'read_tree', 'read_tree_page', 'read_node_text', 'system_actions', 'audio_state', 'file_roots', 'file_list', 'file_stat', 'file_read', 'file_upload_status'].includes(action), openWorldHint: true } }));

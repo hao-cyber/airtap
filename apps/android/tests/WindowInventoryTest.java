@@ -52,6 +52,27 @@ public final class WindowInventoryTest {
             var install = window(3, 0, true, false, null); var browser = window(2, 0, false, true, "com.android.browser");
             var i = inventory(install, browser); refused("window_root_unavailable", () -> i.root(null)); equal(install, i.select().entry().window());
         });
+        check("rootless visual target binds actual dialog without borrowing underlying package", () -> {
+            var dialog = window(3,0,true,false,null); var browser = window(2,0,false,true,"com.android.browser");
+            var i = inventory(dialog,browser); var visual = i.visual();
+            equal(3,visual.windowId()); equal(null,visual.packageName()); equal(false,visual.rootAvailable());
+            equal(0,visual.displayId()); equal(40,visual.bounds().top);
+            refused("window_root_unavailable", () -> i.root(null));
+            equal(visual,inventory(dialog,browser).visual());
+            dialog.top=400; equal(false,visual.equals(inventory(dialog,browser).visual()));
+            dialog.top=40; dialog.id=4; equal(false,visual.equals(inventory(dialog,browser).visual()));
+            dialog.id=3; dialog.focused=true; equal(false,visual.equals(inventory(dialog,browser).visual()));
+            dialog.focused=false; dialog.root=node("com.android.permissioncontroller",3);
+            equal(false,visual.equals(inventory(dialog,browser).visual()));
+        });
+        check("visual path preserves ambiguous, protected, missing and secondary window refusals", () -> {
+            refused("window_root_unavailable", () -> inventory().visual());
+            refused("window_selection_ambiguous", () -> inventory(window(1,0,true,true,null),window(2,0,true,true,null)).visual());
+            refused("unsupported_display", () -> inventory(window(1,5,true,true,null)).visual());
+            refused("protected_airtap_window", () -> inventory(window(1,0,true,true,BuildConfig.APPLICATION_ID)).visual());
+            var empty=window(1,0,true,true,null); empty.right=0;
+            refused("window_unavailable", () -> inventory(empty).visual());
+        });
         check("active root retrieval failure is unavailable, not protected", () -> {
             var w = window(3, 0, true, true, "com.android.packageinstaller"); w.fail = true;
             refused("window_root_unavailable", () -> inventory(w).root(null));
@@ -135,7 +156,7 @@ public final class WindowInventoryTest {
         });
         check("recovery guidance requires fresh observation and never automatically navigates back", () -> {
             String guidance=WindowInventory.nextStep("window_root_unavailable");
-            equal(true,guidance.contains("fresh observe/read_tree")); equal(true,guidance.contains("no automatic Back"));
+            equal(true,guidance.contains("Run windows and observe")); equal(true,guidance.contains("no automatic Back"));
             equal(null,WindowInventory.nextStep("permission_denied"));
         });
     }

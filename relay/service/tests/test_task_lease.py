@@ -280,7 +280,7 @@ class TaskTest(unittest.TestCase):
             return {'data': {'id': body['id'], 'ok': True, 'result': {'accepted': True}}, 'elapsed_ms': 5}
         with patch.object(cli, 'request', side_effect=send):
             cli.command_request(self.args, self.config, {'id': 'id', 'action': 'home'})
-            cli.command_request(self.args, self.config, {'id': 'id2', 'action': 'back'})
+            cli.command_request(self.args, self.config, {'id': 'id2', 'action': 'launch', 'package': 'example.app'})
         self.assertEqual([p for p, _ in sent], ['/v1/tasks/renew', '/v1/command', '/v1/command'])
         for _, body in sent[1:]: self.assertEqual((body['lease_id'], body['lease_epoch']), (LEASE, 2))
         self.assertEqual(self.saved()['command_sequence'], 43)
@@ -310,7 +310,7 @@ class TaskTest(unittest.TestCase):
             return {'data': {'id': body['id'], 'ok': True, 'result': {}}, 'elapsed_ms': 1}
         with patch.object(cli, 'request', side_effect=send) as request:
             cli.command_request(self.args, self.config, {'id': 'id', 'action': 'ping'})
-            self.failure('fresh_task_observation_required', lambda: cli.command_request(self.args, self.config, {'id': 'id2', 'action': 'back'}))
+            self.failure('fresh_task_observation_required', lambda: cli.command_request(self.args, self.config, {'id': 'id2', 'action': 'launch', 'package': 'example.app'}))
         self.assertEqual(request.call_count, 1)
         value = {'snapshot_id': 'd' * 32, 'package': 'example.app', 'expires_in_ms': 30000, 'nodes': []}
         cli.remember_snapshot(self.args, self.config, value, 'example.app', self.now)

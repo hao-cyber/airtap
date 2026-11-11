@@ -17,6 +17,9 @@ import org.json.JSONObject;
 final class WindowInventory {
     record Entry(AccessibilityWindowInfo window, AccessibilityNodeInfo root) {}
     record Selection(AccessibilityNodeInfo root, Entry entry, String source, String error) {}
+    /** A visible window can exist even when Android does not expose its accessibility nodes. */
+    record VisualTarget(int windowId, int displayId, int type, int layer, boolean active,
+                        boolean focused, Rect bounds, String packageName, boolean rootAvailable) {}
     final AccessibilityNodeInfo activeRoot;
     final List<Entry> entries;
     private WindowInventory(AccessibilityNodeInfo activeRoot, List<Entry> entries) {
@@ -88,6 +91,21 @@ final class WindowInventory {
         if (expected != null && !expected.equals(packageName(selection.root))) throw new ScopedUi.Refused("not_foreground");
         return selection.root;
     }
+    VisualTarget visual() {
+        Selection selected = select();
+        // This is not a fallback to the underlying app. Keep the actual selected window,
+        // and leave the package unknown when the platform withheld its root.
+        if (selected.error != null && !("window_root_unavailable".equals(selected.error) && selected.entry != null))
+            throw new ScopedUi.Refused(selected.error);
+        Entry entry = selected.entry;
+        if (entry == null) throw new ScopedUi.Refused("window_metadata_unavailable");
+        AccessibilityWindowInfo window = entry.window;
+        if (window.getDisplayId() != Display.DEFAULT_DISPLAY) throw new ScopedUi.Refused("unsupported_display");
+        Rect bounds = new Rect(); window.getBoundsInScreen(bounds);
+        if (bounds.isEmpty()) throw new ScopedUi.Refused("window_unavailable");
+        return new VisualTarget(window.getId(), window.getDisplayId(), window.getType(), window.getLayer(),
+                window.isActive(), window.isFocused(), bounds, packageName(entry.root), entry.root != null);
+    }
     private static JSONArray rect(Rect rect) { return new JSONArray().put(rect.left).put(rect.top).put(rect.right).put(rect.bottom); }
     private static String type(int type) {
         return switch (type) {
@@ -137,7 +155,7 @@ final class WindowInventory {
     static String nextStep(String code) {
         if (code == null) return null;
         return switch (code) {
-            case "window_root_unavailable", "window_package_unavailable" -> "Run windows to inspect the active window, then obtain a fresh observe/read_tree after it settles. Do not reuse the underlying app's targets. Decide from the current task whether to wait, go back or reopen the authorized item; no automatic Back is performed.";
+            case "window_root_unavailable", "window_package_unavailable" -> "Run windows and observe. A readable UI tree is not required for visual observation when the active window metadata is available. Use only the new image and its observation_id; do not substitute the underlying app's package or targets. Normal Back/Home may leave the dialog; no automatic Back is performed.";
             case "window_inventory_unavailable", "window_metadata_unavailable", "window_selection_ambiguous", "window_changed" -> "Run windows again after the transition settles. Use a fresh observe/read_tree when the active default-display window is identifiable; do not guess a window or reuse old coordinates.";
             case "unsupported_display" -> "Run windows to identify the active display. This client currently operates the default display only; do not apply a secondary display's coordinates to it.";
             case "protected_airtap_window" -> "Airtap's own authorization surface is protected. Do not read or operate its controls. For an already-authorized task, normal HOME or BACK may leave it; obtain a fresh observation afterwards.";

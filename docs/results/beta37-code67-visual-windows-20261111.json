@@ -1,0 +1,327 @@
+{
+  "schema": "airtap-visual-window-validation-v1",
+  "date": "2026-11-11",
+  "candidate": {
+    "version_code": 67,
+    "android_version": "0.4.0-beta.37",
+    "cli_version": "0.4.0-cli.18"
+  },
+  "scope": "Local host/workerd checks and Android16 isolated emulator; not phone, personal-AI or deployment acceptance.",
+  "change": [
+    "Capture real display without requiring an accessibility root; bind coordinates to the actual observed window and geometry.",
+    "Never invent the underlying app package for an unreadable dialog; unknown-package gestures require full-phone authorization.",
+    "CLI Back/Home/Recents can recover an already-authorized task when observation failed.",
+    "A visible rootless dialog does not keep normal wake recovery waiting for a UI tree."
+  ],
+  "core": {
+    "completed": true,
+    "passed": true,
+    "steps": [
+      {
+        "step": "source-closure",
+        "exit_code": 0,
+        "seconds": 0.13
+      },
+      {
+        "step": "python-source-package",
+        "exit_code": 0,
+        "seconds": 5.634
+      },
+      {
+        "step": "test_observation_pages",
+        "exit_code": 0,
+        "seconds": 0.722
+      },
+      {
+        "step": "test_atomic_input",
+        "exit_code": 0,
+        "seconds": 1.062
+      },
+      {
+        "step": "test_drag",
+        "exit_code": 0,
+        "seconds": 0.881
+      },
+      {
+        "step": "test_semantic_nodes",
+        "exit_code": 0,
+        "seconds": 0.845
+      },
+      {
+        "step": "test_windows",
+        "exit_code": 0,
+        "seconds": 0.712
+      },
+      {
+        "step": "test_session_screen",
+        "exit_code": 0,
+        "seconds": 1.209
+      },
+      {
+        "step": "test_session_recovery_gate",
+        "exit_code": 0,
+        "seconds": 0.511
+      },
+      {
+        "step": "test_screen_recovery_activity",
+        "exit_code": 0,
+        "seconds": 0.869
+      },
+      {
+        "step": "test_battery_state",
+        "exit_code": 0,
+        "seconds": 0.564
+      },
+      {
+        "step": "test_events",
+        "exit_code": 0,
+        "seconds": 0.661
+      },
+      {
+        "step": "test_sim_pin",
+        "exit_code": 0,
+        "seconds": 0.609
+      },
+      {
+        "step": "test_audio_volume",
+        "exit_code": 0,
+        "seconds": 0.568
+      },
+      {
+        "step": "test_file_transfer",
+        "exit_code": 0,
+        "seconds": 3.34
+      },
+      {
+        "step": "test_approval_recovery",
+        "exit_code": 0,
+        "seconds": 0.988
+      },
+      {
+        "step": "test_approval_scheduling",
+        "exit_code": 0,
+        "seconds": 1.217
+      },
+      {
+        "step": "test_task_lease",
+        "exit_code": 0,
+        "seconds": 0.515
+      },
+      {
+        "step": "test_multi_ai_control",
+        "exit_code": 0,
+        "seconds": 1.144
+      },
+      {
+        "step": "test_multi_ai_migration",
+        "exit_code": 0,
+        "seconds": 0.883
+      },
+      {
+        "step": "test_multi_file_scopes",
+        "exit_code": 0,
+        "seconds": 0.716
+      },
+      {
+        "step": "test_enrollment_record_limits",
+        "exit_code": 0,
+        "seconds": 0.825
+      },
+      {
+        "step": "test_maintenance_diagnostics",
+        "exit_code": 0,
+        "seconds": 0.826
+      },
+      {
+        "step": "test_owner_revocations",
+        "exit_code": 0,
+        "seconds": 0.733
+      },
+      {
+        "step": "test_setup_recovery",
+        "exit_code": 0,
+        "seconds": 0.732
+      },
+      {
+        "step": "test_tls_policy",
+        "exit_code": 0,
+        "seconds": 0.666
+      },
+      {
+        "step": "test_feedback",
+        "exit_code": 0,
+        "seconds": 0.671
+      },
+      {
+        "step": "test_invitation_feedback",
+        "exit_code": 0,
+        "seconds": 0.605
+      },
+      {
+        "step": "connection-closing",
+        "exit_code": 0,
+        "seconds": 0.786
+      },
+      {
+        "step": "python-service",
+        "exit_code": 0,
+        "seconds": 11.996
+      },
+      {
+        "step": "python-site",
+        "exit_code": 0,
+        "seconds": 0.349
+      },
+      {
+        "step": "npm-ci",
+        "exit_code": 0,
+        "seconds": 0.978
+      },
+      {
+        "step": "companion-roundtrip",
+        "exit_code": 0,
+        "seconds": 32.251
+      },
+      {
+        "step": "file-transfer-roundtrip",
+        "exit_code": 0,
+        "seconds": 7.032
+      },
+      {
+        "step": "usage-storage",
+        "exit_code": 0,
+        "seconds": 0.614
+      },
+      {
+        "step": "relay-scale",
+        "exit_code": 0,
+        "seconds": 1.672
+      },
+      {
+        "step": "pair-recovery",
+        "exit_code": 0,
+        "seconds": 1.969
+      },
+      {
+        "step": "feedback-roundtrip",
+        "exit_code": 0,
+        "seconds": 1.255
+      },
+      {
+        "step": "invitation-artifacts",
+        "exit_code": 0,
+        "seconds": 0.506
+      },
+      {
+        "step": "invitation-codes",
+        "exit_code": 0,
+        "seconds": 1.614
+      },
+      {
+        "step": "multi-ai-roundtrip",
+        "exit_code": 0,
+        "seconds": 172.336
+      },
+      {
+        "step": "tenant-isolation",
+        "exit_code": 0,
+        "seconds": 0.612
+      },
+      {
+        "step": "multi-ai-state",
+        "exit_code": 0,
+        "seconds": 0.18
+      }
+    ]
+  },
+  "android": {
+    "assemble_debug": true,
+    "lint_debug": true
+  },
+  "android16": {
+    "checks": [
+      {
+        "name": "native normal app screenshot",
+        "passed": true
+      },
+      {
+        "name": "normal app still receives production visual tap",
+        "passed": true
+      },
+      {
+        "name": "real Android media permission dialog captured",
+        "passed": true
+      },
+      {
+        "name": "native dialog screenshot contains actual image bytes",
+        "passed": true
+      },
+      {
+        "name": "rootless image advertises actual window without underlying app",
+        "passed": true
+      },
+      {
+        "name": "tree cannot substitute underlying fixture",
+        "passed": true
+      },
+      {
+        "name": "rootless dialog is not mistaken for wake recovery window",
+        "passed": true
+      },
+      {
+        "name": "rootless coordinates outside actual window rejected",
+        "passed": true
+      },
+      {
+        "name": "revocation prevents visual tap",
+        "passed": true
+      },
+      {
+        "name": "Android16 protected media dialog remains unchanged after injected touch",
+        "passed": true
+      },
+      {
+        "name": "Back recovers from platform-blocked dialog touch",
+        "passed": true
+      },
+      {
+        "name": "dialog action reports accepted or unknown requiring observation",
+        "passed": true
+      },
+      {
+        "name": "old dialog image cannot target resumed app",
+        "passed": true
+      },
+      {
+        "name": "Back leaves real system permission dialog without a UI tree",
+        "passed": true
+      },
+      {
+        "name": "Android secure window content remains unavailable",
+        "passed": true
+      },
+      {
+        "name": "stopped command prevents visual dispatch",
+        "passed": true
+      }
+    ],
+    "root_available": false,
+    "screenshot_captured": true,
+    "permission_tap_dismissed": false,
+    "tap_callback_accepted": true,
+    "back_dismissed": true,
+    "platform_limitation": "Android16 protects sensitive views from injected accessibility gestures. Accepted dispatch is not proof of a UI change.",
+    "reference": "https://developer.android.com/privacy-and-security/risks/tapjacking"
+  },
+  "retained_failures": [
+    "Initial fixture lookup did not match Android button capitalization; fixed the independent test oracle, not the product.",
+    "A test recaptured before the platform screenshot interval; test observations now wait400ms.",
+    "A naive test expected Android16 media permission touch to succeed; actual gesture callback returned accepted but the protected dialog stayed unchanged. Recovery via production Back succeeded.",
+    "Expanded multi-AI test enrollment exhausted its synthetic20-device quota; isolated fixture capacity and per-device caller addresses were adjusted. Production quotas were unchanged."
+  ],
+  "not_verified": [
+    "Android15 native media permission tap",
+    "Flyme permission dialog on physical phones",
+    "Code67 remote in-place upgrade and real personal-AI task"
+  ]
+}

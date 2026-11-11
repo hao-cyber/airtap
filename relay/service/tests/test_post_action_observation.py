@@ -116,6 +116,51 @@ class PostActionObservationTest(unittest.TestCase):
                                   'recorded_at': 999, 'local_expires_at': self.now + remaining})
         cli.save_config(self.path, config)
 
+    def rootless_transport(self, *args, **kwargs):
+        result = self.transport(*args, **kwargs)
+        if kwargs.get('body', {}).get('action') == 'observe':
+            result['data']['result'].update(package=None, target_mode='visual_window_v1',
+                                          root_available=False, window_id=199, display_id=0)
+        return result
+
+    def test_rootless_visual_observation_and_tap_do_not_borrow_app_package(self):
+        image = self.run_cli('observe', send=self.rootless_transport)['result']
+        self.assertIsNone(image['package'])
+        self.assertEqual(self.saved()['observation']['window_id'], 199)
+        with self.assertRaisesRegex(cli.Failure, 'fresh_observation_required'):
+            self.run_cli('tap', '--package', 'old.app', '--observation-id', IMAGE, '--x', '.5', '--y', '.7')
+        result = self.run_cli('tap', '--observation-id', IMAGE, '--x', '.5', '--y', '.7', '--no-observe')
+        self.assertTrue(result['result']['accepted'])
+        self.assertNotIn('package', self.sent[-1][1])
+        with self.assertRaisesRegex(cli.Failure, 'fresh_observation_required'):
+            self.run_cli('tap', '--observation-id', IMAGE, '--x', '.5', '--y', '.7')
+
+    def test_visual_package_can_be_inferred_only_from_current_observation(self):
+        self.run_cli('observe')
+        self.run_cli('tap', '--observation-id', IMAGE, '--x', '.5', '--y', '.7', '--no-observe')
+        self.assertEqual(self.sent[-1][1]['package'], 'new.app')
+
+    def test_unknown_package_requires_complete_visual_window_identity(self):
+        good = dict(package=None, target_mode='visual_window_v1', root_available=False, window_id=199, display_id=0)
+        self.assertTrue(cli.valid_observed_package(good))
+        for field in good:
+            incomplete = dict(good); incomplete.pop(field)
+            self.assertFalse(cli.valid_observed_package(incomplete), field)
+        for field, value in [('window_id', True), ('window_id', -1), ('display_id', False), ('display_id', 1),
+                             ('root_available', True), ('package', 'io.airtap.preview')]:
+            self.assertFalse(cli.valid_observed_package({**good, field: value}), (field,value))
+
+    def test_back_and_recents_recover_failed_observation_without_unlocking_other_actions(self):
+        self.give_lease()
+        for command in ('back', 'recents'):
+            config = self.saved(); config['task_needs_observation'] = True
+            config.pop('observation', None); config.pop('snapshot', None); cli.save_config(self.path, config)
+            result = self.run_cli(command, '--no-observe')
+            self.assertTrue(result['result']['accepted'])
+            self.assertTrue(self.saved()['task_needs_observation'])
+            with self.assertRaisesRegex(cli.Failure, 'fresh_observation_required'):
+                self.run_cli('tap', '--observation-id', IMAGE, '--x', '.5', '--y', '.7')
+
     def test_default_image_retains_output_and_consumes_two_sequences(self):
         output = self.path.parent / 'result.jpg'
         result = self.run_cli('home', '--output', str(output))
