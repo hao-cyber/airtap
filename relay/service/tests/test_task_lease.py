@@ -324,6 +324,23 @@ class TaskTest(unittest.TestCase):
             cli.command_request(self.args, self.config, {'id': 'id', 'action': 'home'})
         self.assertTrue(self.saved()['task_needs_observation'])
 
+    def test_exact_file_operations_do_not_depend_on_a_screen_but_keep_task_and_ui_fences(self):
+        for action in ('file_upload_begin', 'file_upload_chunk', 'file_upload_finish', 'file_upload_abort',
+                       'file_mkdir', 'file_rename', 'file_delete', 'file_publish_media'):
+            with self.subTest(action=action):
+                self.give_lease(); self.config['task_needs_observation'] = True
+                def send(*unused, body=None, **kwargs):
+                    self.assertEqual((body['lease_id'], body['lease_epoch']), (LEASE, 2))
+                    return {'data': {'id': body['id'], 'ok': True, 'result': {}}, 'elapsed_ms': 1}
+                with patch.object(cli, 'request', side_effect=send) as request:
+                    cli.command_request(self.args, self.config, {'id': 'file', 'action': action})
+                    self.assertTrue(self.saved()['task_needs_observation'])
+                    self.failure('fresh_task_observation_required', lambda: cli.command_request(self.args, self.config, {'id': 'ui', 'action': 'launch', 'package': 'example.app'}))
+                    self.failure('fresh_task_observation_required', lambda: cli.command_request(self.args, self.config, {'id': 'share', 'action': 'file_share'}))
+                    self.config['task_lease']['state'] = 'uncertain'
+                    self.failure('task_status_required', lambda: cli.command_request(self.args, self.config, {'id': 'retry', 'action': action}))
+                self.assertEqual(request.call_count, 1)
+
     def test_direct_renew_expiration_clears_cached_targets(self):
         self.give_lease()
         with patch.object(cli, 'request', side_effect=cli.Failure('lease_expired')):

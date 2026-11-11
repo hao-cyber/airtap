@@ -26,7 +26,7 @@ TOKEN = re.compile(r'^[0-9a-f]{64}$')
 TICKET = re.compile(r'^[0-9a-f]{32}$')
 MAX_RESPONSE = 512 * 1024
 MAX_COMMAND = 65536
-VERSION = '0.4.0-cli.19'
+VERSION = '0.4.0-cli.20'
 PAIRING_TTL_SECONDS = 60 * 60
 PAIRING_CLOCK_TOLERANCE_SECONDS = 30
 PACKAGE = re.compile(r'^[A-Za-z_][A-Za-z0-9_]*(?:\.[A-Za-z_][A-Za-z0-9_]*)+$')
@@ -57,7 +57,9 @@ TASK_ERRORS = {
 }
 TASK_BEFORE_OBSERVE = {'ping', 'apps', 'windows', 'foreground', 'system_actions', 'audio_state', 'battery_status',
               'observe', 'read_tree', 'home', 'back', 'recents', 'file_roots', 'file_list', 'file_stat',
-              'file_read', 'file_upload_status', 'media_status', 'media_stop', 'sim_pin_prepare', 'sim_pin_submit', *CONNECTION_ACTIONS}
+              'file_read', 'file_upload_status', 'file_upload_begin', 'file_upload_chunk', 'file_upload_finish', 'file_upload_abort',
+              'file_mkdir', 'file_rename', 'file_delete', 'file_publish_media',
+              'media_status', 'media_stop', 'sim_pin_prepare', 'sim_pin_submit', *CONNECTION_ACTIONS}
 
 class Failure(Exception):
     def __init__(self, code, **details):
