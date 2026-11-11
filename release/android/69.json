@@ -1,0 +1,20 @@
+{
+  "schema": "airtap-android-update-v1",
+  "application_id": "io.airtap.preview",
+  "version_name": "0.4.0-beta.39",
+  "version_code": 69,
+  "apk_sha256": "841623bdd9418feb4e39b434b5d08f6af8a97803452f54eafd9293e38ec38513",
+  "apk_bytes": 665037,
+  "signer_sha256": "a2aa0c1b6fdaf1baa37aa20817387524a1318b5dab82bf7c185663141daba60f",
+  "min_sdk": 34,
+  "target_sdk": 36,
+  "debuggable": false,
+  "channel": "beta",
+  "published_at": "2026-11-11",
+  "download_path": "/download/android",
+  "notes": [
+    "减少文件操作中无用的重复存储扫描；全局存储预算、文件版本、停止和撤销检查保留。",
+    "CLI.21显示上传进度、最后确认位置和耗时；超时保留原传输身份，续传前核对手机状态。",
+    "保留相册发布与无控件树窗口操作，升级保留原有AI连接和用户数据。"
+  ]
+}

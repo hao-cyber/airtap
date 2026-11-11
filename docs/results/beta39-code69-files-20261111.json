@@ -1,0 +1,75 @@
+{
+  "schema": "airtap-file-performance-candidate-v1",
+  "date": "2026-11-11",
+  "android_version": "0.4.0-beta.39",
+  "version_code": 69,
+  "cli_version": "0.4.0-cli.21",
+  "status": "candidate_checks_passed_device_acceptance_pending",
+  "apk_source_commit": "eb7b2e1acd5edde6f0a91226f107a8a6d19a63b5",
+  "apk_sha256": "841623bdd9418feb4e39b434b5d08f6af8a97803452f54eafd9293e38ec38513",
+  "apk_bytes": 665037,
+  "changes": [
+    "Skip unused owner-storage reports on each file command; all-pairing current budget checks and per-operation authorization fences remain.",
+    "Upload progress goes to stderr; final stdout stays JSON. Acknowledged staging bytes are not completion; only finish and current full-hash stat emit verified.",
+    "Unknown outcomes retain the same transfer identity; resumptions use the phone-reported offset."
+  ],
+  "checks": {
+    "signed_release_build_and_lint": true,
+    "build_inputs_unchanged": true,
+    "android_file_helper_checks": 69,
+    "cli_file_tests": 24,
+    "protocol_suite": "passed after updating the stderr expectations for progress; early local-input refusals still have no transfer progress",
+    "core_other_checks": "All pre-protocol stages in core-checks-v2 passed; source version metadata mismatch was corrected before that run.",
+    "apk_native_identity_and_original_signer_verified": true
+  },
+  "synthetic_profile": {
+    "scope": "Host Java helper, 24 synthetic workspace files and one active upload; expiry cleanup followed by current budget check. Not real-phone timing.",
+    "before_fence_calls": 212,
+    "after_fence_calls": 76,
+    "before_host_ms": 6.230625,
+    "after_host_ms": 3.26975,
+    "runtime_authorization_cached": false
+  },
+  "actual_device_failure_before_fix": {
+    "device": "second Meizu phone",
+    "code": 68,
+    "image_bytes": 340265,
+    "image_dimensions": [
+      1280,
+      960
+    ],
+    "upload_http_504_attempts": 3,
+    "same_transfer_preserved": true,
+    "last_confirmed_staging_offset": 229376,
+    "offset_after_third_attempt_known": false,
+    "ping_elapsed_ms": [
+      2741.5,
+      1676.95
+    ],
+    "file_stat_elapsed_ms": [
+      7919.17,
+      6697.62
+    ],
+    "file_stat_outcome": "file_not_found; target not yet committed",
+    "failed_upload_cause": "Not yet established; public GET timing does not isolate phone processing or command network path.",
+    "receiving_app_selection_completed": false,
+    "owner_intervention": 0
+  },
+  "external_review": {
+    "requested_model": "Grok",
+    "dispatch": "llm-cli grok-research --no-fallback",
+    "attempts": 2,
+    "outcomes": [
+      "idle_timeout_240_seconds",
+      "idle_timeout_180_seconds"
+    ],
+    "completed_review": false
+  },
+  "remaining": [
+    "Same-transfer physical recovery and before/after timings",
+    "Second phone receiving-App selection and actual preview",
+    "Meizu small-image normal filter/file route investigation",
+    "Current Instinct cloud task using its own original pairing"
+  ],
+  "privacy": "Synthetic counts and timings only; no original phone/chat content, endpoint identities, transfers or credentials."
+}

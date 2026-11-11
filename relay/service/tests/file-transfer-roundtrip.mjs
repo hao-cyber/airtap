@@ -73,7 +73,8 @@ async function python(args, stdin = '', expectedExit = 0) {
       clearTimeout(timer);
       try {
         assert.equal(code, expectedExit, 'CLI exit mismatch: ' + stdout);
-        if (args.includes('file-upload')) {
+        const result = JSON.parse(stdout);
+        if (args.includes('file-upload') && (expectedExit === 0 || result.transfer_metrics)) {
           const records = stderr.trim().split('\n').map(line => {
             assert.ok(line.startsWith('Airtap upload: '));
             const record = JSON.parse(line.slice('Airtap upload: '.length));
@@ -85,7 +86,7 @@ async function python(args, stdin = '', expectedExit = 0) {
         } else assert.equal(stderr, '');
         assert.equal((stdout + stderr).includes(d.token), false);
         if (controller) assert.equal((stdout + stderr).includes(controller), false);
-        resolve(JSON.parse(stdout));
+        resolve(result);
       }
       catch (error) { reject(error); }
     }); child.stdin.end(stdin);
