@@ -20,7 +20,7 @@ import org.json.JSONObject;
 
 /** Explicit per-pair file scopes. SAF grants and storage paths never cross the wire. */
 final class FileScopes {
-    static final Set<String> ACTIONS = Set.of("file_mkdir", "file_rename", "file_delete", "file_share", "file_roots", "file_list", "file_stat", "file_read", "file_upload_begin", "file_upload_status", "file_upload_chunk", "file_upload_finish", "file_upload_abort");
+    static final Set<String> ACTIONS = Set.of("file_publish_media", "file_mkdir", "file_rename", "file_delete", "file_share", "file_roots", "file_list", "file_stat", "file_read", "file_upload_begin", "file_upload_status", "file_upload_chunk", "file_upload_finish", "file_upload_abort");
     private static final Handler MAIN = new Handler(Looper.getMainLooper());
     private static final ExecutorService IO = new ThreadPoolExecutor(2, 2, 0, TimeUnit.MILLISECONDS, new SynchronousQueue<>(), r -> {
         Thread t = new Thread(r, "airtap-files"); t.setDaemon(true); return t;
@@ -116,6 +116,12 @@ final class FileScopes {
     static void validate(JSONObject q) throws Exception {
         String a = text(q, "action");
         switch (a) {
+            case "file_publish_media":
+                exact(q,"root","path","version","mime_type");
+                if(!"workspace".equals(text(q,"root")))FileTransferStore.fail("file_scope_unavailable");
+                FileTransferStore.hash(text(q,"version"));
+                if(!GalleryPublisher.MIME_TYPES.contains(text(q,"mime_type")))FileTransferStore.fail("media_type_unsupported");
+                break;
             case "file_share":
                 exact(q,"root","path","version","mime_type","target_package");
                 if(!"workspace".equals(text(q,"root")))FileTransferStore.fail("file_scope_unavailable");
@@ -293,7 +299,7 @@ final class FileScopes {
         FileTransferStore store = root.equals("workspace") || a.startsWith("file_upload_") ? new FileTransferStore(base, fence, System::currentTimeMillis, directorySync()) : null;
         if (a.equals("file_roots")) {
             JSONArray roots = new JSONArray().put(RelayApi.json("root", "workspace", "name", "Airtap 工作目录", "kind", "workspace", "readable", true,
-                    "writable", true, "publication_atomic", true, "operations", new JSONArray(List.of("list", "stat", "read", "upload", "share", "mkdir", "rename", "delete"))));
+                    "writable", true, "publication_atomic", true, "operations", new JSONArray(List.of("list", "stat", "read", "upload", "share", "publish_media", "mkdir", "rename", "delete"))));
             SharedPreferences p = prefs(c,owner);
             if (owner.equals(p.getString("owner", ""))) {
                 boolean allowed = hasPermission(c, Uri.parse(p.getString("uri", "")));
@@ -345,6 +351,7 @@ final class FileScopes {
                 default -> throw new FileTransferStore.Failure("unsupported_action");
             });
         }
+        if(a.equals("file_publish_media")) return GalleryPublisher.publish(c,owner,store,q.getString("path"),q.getString("version"),q.getString("mime_type"),fence);
         if(a.equals("file_share")) {
             FileTransferStore.Entry file=store.stat(q.getString("path"),false);
             if(!file.kind().equals("file")||file.size()>FileTransferStore.MAX_FILE)throw new FileTransferStore.Failure("file_type_unsupported");

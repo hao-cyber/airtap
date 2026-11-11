@@ -130,6 +130,7 @@ function fileResponse(cmd) {
   const key = cmd.root + '/' + cmd.path;
   if (cmd.action === 'file_roots') return {roots:[{root:'workspace',name:'Workspace',kind:'workspace',readable:true,writable:true,publication_atomic:true,operations:['list','stat','read','upload']},{root:safRoot,name:'Selected writable directory',kind:'saf',readable:true,writable:true,publication_atomic:false,operations:['list','stat','read','upload']},{root:readOnlyRoot,name:'Selected read-only directory',kind:'saf',readable:true,writable:false,publication_atomic:false,operations:['list','stat','read']}],limits:{max_file_bytes:67108864,max_chunk_bytes:32768,max_list_entries:64,max_uploads:4,upload_ttl_ms:86400000}};
   if (cmd.action === 'file_list') return {root:cmd.root,path:cmd.path,entries:[...files].filter(([k])=>k.startsWith(cmd.root+'/')).map(([k,v])=>metadata(cmd.root,k.slice(cmd.root.length+1),v)),next_offset:null,truncated:false};
+  if(cmd.action==='file_publish_media'){if(!files.has(key))throw Error('file_not_found');if(digest(files.get(key))!==cmd.version)throw Error('file_changed');return {published:true,publication_id:digest(files.get(key)),album:'Pictures/Airtap/',mime_type:cmd.mime_type,readback_verified:true,picker_selection_verified:false};}
   if(cmd.action==='file_share'){if(!files.has(key))throw Error('file_not_found');if(digest(files.get(key))!==cmd.version)throw Error('file_changed');return {accepted:true,share_id:hex(16),root:cmd.root,path:cmd.path,mime_type:cmd.mime_type,target_package:cmd.target_package||null,expires_in_ms:300000,read_only:true,chooser_requested:true,delivery_verified:false,requires_observation:true};}
   if (cmd.action === 'file_stat') { if(!files.has(key)) throw Error('file_not_found'); return metadata(cmd.root,cmd.path,files.get(key)); }
   if (cmd.action === 'file_read') {
@@ -228,6 +229,18 @@ try {
       const before=seenCommands.length;assert.equal((await api('file_share',lastSequence+1,{root:'workspace',path:'sample.bin',version:info.version,mime_type:'text/plain',target_package:'',...bad})).status,400);assert.equal(seenCommands.length,before);
     }
     const stale=await python(['file-share','--root','workspace','--path','sample.bin','--version','0'.repeat(64),'--mime-type','text/plain'],'',1);assert.equal(stale.error,'file_changed');
+  });
+  await check('gallery publication reaches CLI/MCP and rejects scope/type/shape changes before dispatch',async()=>{
+    const info=(await python(['file-stat','--root','workspace','--path','sample.bin'])).result;
+    // This is a transport fixture. Real image decoding, MediaStore and picker are tested on Android separately.
+    const published=await python(['file-publish-media','--root','workspace','--path','sample.bin','--version',info.version,'--mime-type','image/png']);
+    assert.equal(published.result.published,true);assert.equal(published.result.picker_selection_verified,false);
+    const m=(await(await mcp('tools/call',{name:'phone_file_publish_media',arguments:{sequence:lastSequence+1,root:'workspace',path:'sample.bin',version:info.version,mime_type:'image/png'}})).json()).result;
+    assert.equal(m.isError,false);await python(['status']);
+    for(const bad of [{root:safRoot},{path:'../private'},{mime_type:'image/*'},{mime_type:'text/plain'},{mime_type:'video/mp4'},{version:'bad'},{uri:'content://media/1'},{target_package:'com.example.receiver'}]){
+      const before=seenCommands.length;assert.equal((await api('file_publish_media',lastSequence+1,{root:'workspace',path:'sample.bin',version:info.version,mime_type:'image/png',...bad})).status,400);assert.equal(seenCommands.length,before);
+    }
+    const stale=await python(['file-publish-media','--root','workspace','--path','sample.bin','--version','0'.repeat(64),'--mime-type','image/png'],'',1);assert.equal(stale.error,'file_changed');
   });
   await check('read chunk and MCP binary resource retain authenticated metadata without base64 text',async()=>{
     const info=(await python(['file-stat','--root','workspace','--path','sample.bin'])).result;

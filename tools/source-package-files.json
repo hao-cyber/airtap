@@ -1,8 +1,8 @@
 {
   "allowlist_path": "tools/source-package-files.json",
-  "android_version": "0.4.0-beta.37",
-  "archive_root": "airtap-source-0.4.0-beta.37-code67",
-  "cli_version": "0.4.0-cli.18",
+  "android_version": "0.4.0-beta.38",
+  "archive_root": "airtap-source-0.4.0-beta.38-code68",
+  "cli_version": "0.4.0-cli.19",
   "closure_policy": "airtap-source-closure-v1",
   "files": [
     {
@@ -144,6 +144,10 @@
     {
       "kind": "source",
       "path": "apps/android/app/src/main/java/io/airtap/preview/FileTransferStore.java"
+    },
+    {
+      "kind": "source",
+      "path": "apps/android/app/src/main/java/io/airtap/preview/GalleryPublisher.java"
     },
     {
       "kind": "source",
@@ -865,6 +869,10 @@
     },
     {
       "kind": "source",
+      "path": "apps/android/tests/visualwindows/emulator/src/test/visual/GalleryRunner.java"
+    },
+    {
+      "kind": "source",
       "path": "apps/android/tests/visualwindows/emulator/src/test/visual/VisualActivity.java"
     },
     {
@@ -1138,6 +1146,10 @@
     {
       "kind": "source",
       "path": "docs/results/beta37-code67-visual-windows-20261111.json"
+    },
+    {
+      "kind": "source",
+      "path": "docs/results/beta38-code68-gallery-native-20261111.json"
     },
     {
       "kind": "result",
@@ -1717,6 +1729,6 @@
   "protocol_version": 4,
   "schema": "airtap-source-allowlist-v1",
   "scope": "Reviewed current Android, CLI, relay, site, build, CI and test source closure. No Git history, credentials, private deployment state, APK, or raw phone evidence. Historical acceptance retains its original version and scope; a source ZIP is not public release approval.",
-  "version": "0.4.0-beta.37-code67",
-  "version_code": 67
+  "version": "0.4.0-beta.38-code68",
+  "version_code": 68
 }

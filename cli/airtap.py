@@ -26,7 +26,7 @@ TOKEN = re.compile(r'^[0-9a-f]{64}$')
 TICKET = re.compile(r'^[0-9a-f]{32}$')
 MAX_RESPONSE = 512 * 1024
 MAX_COMMAND = 65536
-VERSION = '0.4.0-cli.18'
+VERSION = '0.4.0-cli.19'
 PAIRING_TTL_SECONDS = 60 * 60
 PAIRING_CLOCK_TOLERANCE_SECONDS = 30
 PACKAGE = re.compile(r'^[A-Za-z_][A-Za-z0-9_]*(?:\.[A-Za-z_][A-Za-z0-9_]*)+$')
@@ -40,7 +40,7 @@ CONTROL_COMMANDS = {'sim-pin-submit', 'media-capture', 'media-stop', 'touch-begi
 NODE_OPERATIONS = ('accessibility_focus', 'clear_accessibility_focus', 'next_granularity', 'previous_granularity', 'custom', 'select', 'clear_selection', 'clear_focus', 'context_click', 'expand', 'collapse', 'dismiss', 'show_on_screen', 'scroll_up', 'scroll_down', 'scroll_left', 'scroll_right', 'page_up', 'page_down', 'page_left', 'page_right', 'scroll_to_position', 'set_progress', 'drag_start', 'drag_drop', 'drag_cancel')
 FILE_LIMIT = 64 * 1024 * 1024
 FILE_CHUNK_LIMIT = 32768
-FILE_COMMANDS = ('file-mkdir', 'file-rename', 'file-delete', 'file-share', 'file-roots', 'file-list', 'file-stat', 'file-read', 'file-download', 'file-upload', 'file-upload-status', 'file-upload-finish', 'file-upload-abort')
+FILE_COMMANDS = ('file-publish-media', 'file-mkdir', 'file-rename', 'file-delete', 'file-share', 'file-roots', 'file-list', 'file-stat', 'file-read', 'file-download', 'file-upload', 'file-upload-status', 'file-upload-finish', 'file-upload-abort')
 DEFAULT_CONFIG = pathlib.Path.home() / '.config/airtap/preview.json'
 MAX_INTEGER = 9007199254740991
 EVENT_COMMANDS = ('event-status', 'event-read', 'event-wait')
@@ -1453,6 +1453,9 @@ def file_command(args, config):
             fields['version']=args.version
         if command=='file-rename': fields['destination']=file_path(args.destination)
         return file_call(args,config,command.replace('-','_'),**fields)
+    if command == 'file-publish-media':
+        if args.root != 'workspace' or not TOKEN.fullmatch(args.version) or args.mime_type not in ('image/jpeg', 'image/png', 'image/webp'): raise Failure('invalid_media_publication')
+        return file_call(args, config, 'file_publish_media', root=args.root, path=args.path, version=args.version, mime_type=args.mime_type)
     if command == 'file-share':
         if args.root != 'workspace' or not re.fullmatch(r'[a-f0-9]{64}', args.version) or len(args.mime_type) > 127 or not re.fullmatch(r'[a-zA-Z0-9!#$&^_.+-]+/[a-zA-Z0-9!#$&^_.+-]+', args.mime_type): raise Failure('invalid_file_share')
         if args.target_package and (args.target_package != 'android' and not re.fullmatch(r'[A-Za-z_][A-Za-z0-9_]*(?:\.[A-Za-z_][A-Za-z0-9_]*)+', args.target_package) or args.target_package == 'io.airtap.preview' or args.target_package.startswith('io.airtap.preview.')): raise Failure('invalid_file_share_target')
@@ -1947,11 +1950,14 @@ def main():
         if command == 'event-wait': child.add_argument('--wait-seconds', type=float, default=60)
     for command in FILE_COMMANDS:
         child = sub.add_parser(command)
-        if command in ('file-mkdir','file-rename','file-delete','file-share', 'file-list', 'file-stat', 'file-read', 'file-download', 'file-upload'):
+        if command in ('file-publish-media','file-mkdir','file-rename','file-delete','file-share', 'file-list', 'file-stat', 'file-read', 'file-download', 'file-upload'):
             child.add_argument('--root', required=True)
-            child.add_argument('--path', default='', required=command in ('file-mkdir','file-rename','file-delete','file-share', 'file-read', 'file-download', 'file-upload'))
+            child.add_argument('--path', default='', required=command in ('file-publish-media','file-mkdir','file-rename','file-delete','file-share', 'file-read', 'file-download', 'file-upload'))
         if command in ('file-rename','file-delete'): child.add_argument('--version',required=True)
         if command == 'file-rename': child.add_argument('--destination',required=True)
+        if command == 'file-publish-media':
+            child.add_argument('--version', required=True)
+            child.add_argument('--mime-type', required=True, choices=('image/jpeg', 'image/png', 'image/webp'), help='Publish this exact image to Pictures/Airtap. Same file/version reuses the existing photo.')
         if command == 'file-share':
             child.add_argument('--version', required=True); child.add_argument('--mime-type', required=True)
             child.add_argument('--target-package', default='', help='Optional App package; empty opens the normal system share chooser. Not proof of sending.')

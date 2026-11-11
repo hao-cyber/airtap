@@ -9,7 +9,7 @@ const AUDIO_STREAMS = new Set(['music', 'alarm', 'ring', 'notification', 'system
 const CONTROL_ACTIONS = new Set(['sim_pin_submit', 'sim_pin_prepare', 'media_capture', 'media_stop', 'touch_begin', 'touch_move', 'touch_end', 'set_volume', 'adjust_volume', 'launch', 'open_url', 'click', 'long_click', 'set_text', 'scroll', 'node_action', 'tap', 'long_press', 'swipe', 'drag', 'gesture', 'back', 'home', 'recents', 'system_action', 'focus', 'set_selection', 'select_all', 'copy', 'cut', 'paste', 'insert_text', 'delete_text', 'editor_action']);
 const VISUAL_ACTIONS = new Set(['tap', 'long_press', 'swipe', 'drag', 'gesture', 'touch_begin', 'touch_move']);
 const FILE_READ_ACTIONS = new Set(['file_roots', 'file_list', 'file_stat', 'file_read', 'file_upload_status']);
-const FILE_WRITE_ACTIONS = new Set(['file_mkdir', 'file_rename', 'file_delete', 'file_share', 'file_upload_begin', 'file_upload_chunk', 'file_upload_finish', 'file_upload_abort']);
+const FILE_WRITE_ACTIONS = new Set(['file_publish_media', 'file_mkdir', 'file_rename', 'file_delete', 'file_share', 'file_upload_begin', 'file_upload_chunk', 'file_upload_finish', 'file_upload_abort']);
 const EVENT_ACTIONS = new Set(['event_status', 'event_read']);
 const CONNECTION_ACTIONS = new Set(['connection_status', 'connection_invite', 'connection_approve', 'connection_cancel', 'connection_revoke']);
 const FILE_LIMIT = 64 * 1024 * 1024;
@@ -53,6 +53,7 @@ const validFileRoot = value => typeof value === 'string' && /^(?:workspace|saf_[
 const fileInteger = value => Number.isSafeInteger(value) && value >= 0 && value <= FILE_LIMIT;
 function fileCommandShape(cmd) {
   const base = ['id', 'action'];
+  if (cmd.action === 'file_publish_media') return exact(cmd,[...base,'root','path','version','mime_type']) && cmd.root === 'workspace' && validFilePath(cmd.path) && typeof cmd.version === 'string' && HEX64.test(cmd.version) && ['image/jpeg','image/png','image/webp'].includes(cmd.mime_type);
   if (cmd.action === 'file_mkdir') return exact(cmd,[...base,'root','path']) && cmd.root === 'workspace' && validFilePath(cmd.path);
   if (cmd.action === 'file_rename') return exact(cmd,[...base,'root','path','destination','version']) && cmd.root === 'workspace' && validFilePath(cmd.path) && validFilePath(cmd.destination) && typeof cmd.version === 'string' && HEX64.test(cmd.version);
   if (cmd.action === 'file_delete') return exact(cmd,[...base,'root','path','version']) && cmd.root === 'workspace' && validFilePath(cmd.path) && typeof cmd.version === 'string' && HEX64.test(cmd.version);

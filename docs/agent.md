@@ -165,6 +165,20 @@ MCP exposes the corresponding `phone_file_*` tools. `phone_file_read` places the
 
 For `commit_unknown`, use `file-list` on the original authorized directory, then `file-stat` on the expected path to compare current size and complete SHA-256. A match proves the current content, not which upload created it, and does not turn the unknown transfer receipt into a confirmed commit. Preserve ambiguity if the provider renamed the document, several candidates exist or verification fails. Do not recreate or delete a guessed target.
 
+### Save an image to the phone gallery (`gallery_publish_v1`)
+
+Uploading to `workspace` keeps a file private to Airtap. Other Apps' photo pickers do not see it. For an owner-authorized JPEG, PNG or WebP image, check the phone's `gallery_publish_v1`, upload it, obtain `file-stat`, then call:
+
+```sh
+python3 "$AIRTAP_CLI" --config "$AIRTAP_CONFIG" file-publish-media --root workspace --path image.png --version <file-stat-version> --mime-type image/png
+```
+
+This copies the exact image into Android MediaStore under `Pictures/Airtap/`, checks its decoded type/dimensions and verifies the written bytes. It uses the current control lease, without a share-sheet detour, new broad photo-library permission, SAF folder selection, or computer connection. The private original remains. Only the specified image is published; camera/observation output stays private by default. To save an observation intentionally, upload its actual returned JPEG and publish that file. Do not publish screenshots containing unrelated private information.
+
+The result gives `publication_id`, `display_name`, `album`, size, dimensions and SHA256. `published:true` and `readback_verified:true` confirm storage; `picker_selection_verified:false` means you must still open/refresh the receiving App's picker, find the actual image and inspect its preview. A successful API response does not prove that another App selected or sent it. Sending remains part of the owner's actual task.
+
+After a lost reply, repeat the same pairing/path/version/MIME with a fresh command sequence. The existing photo is verified and reused (`reused:true`); an interrupted unpublished write resumes the same owned row. Do not rename/re-upload merely to retry. If the owner deleted or changed a completed photo, `media_publication_removed` or `media_publication_changed` stops instead of silently recreating or overwriting it. An intentional new publication uses a new workspace file. Stop/revoke fences further writes; it cannot recall photos already published or copied by another App. Video/audio and arbitrary public filesystem paths are not part of this image-publishing operation.
+
 ### Hand a workspace file to another App (`file_share_v1`)
 
 After an authorized upload, obtain a fresh `file-stat` version, then use `file-share --root workspace --path example.txt --version <version> --mime-type text/plain --target-package <installed.app.package>` or MCP `phone_file_share`. Omit the CLI target option (MCP uses an empty string) for the normal system chooser. Check the phone's `file_share_v1`; a relay capability does not upgrade an old APK. Only concrete MIME types are accepted, not `*/*` or arbitrary Intent extras. The URI never crosses the agent protocol.

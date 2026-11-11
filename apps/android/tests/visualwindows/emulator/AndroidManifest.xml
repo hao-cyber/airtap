@@ -6,4 +6,5 @@
   <activity android:name="test.visual.VisualActivity" android:exported="true"/>
  </application>
  <instrumentation android:name="test.visual.VisualRunner" android:targetPackage="io.airtap.preview" android:label="Private visual window tests"/>
+ <instrumentation android:name="test.visual.GalleryRunner" android:targetPackage="io.airtap.preview" android:label="Private MediaStore and picker tests"/>
 </manifest>

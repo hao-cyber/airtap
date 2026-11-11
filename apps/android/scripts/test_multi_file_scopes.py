@@ -174,10 +174,16 @@ def main():
     hashes = {str(path.relative_to(ROOT)): hashlib.sha256(path.read_bytes()).hexdigest()
               for path in [*sources, Path(__file__)]}
     hashes[str(source_path.relative_to(ROOT))] = hashlib.sha256(source.encode()).hexdigest()
+    gallery_source = (PRODUCTION / 'GalleryPublisher.java').read_text()
+    gallery_types = [line for line in gallery_source.splitlines() if line.startswith('    static final Set<String> MIME_TYPES = ')]
+    if len(gallery_types) != 1:
+        raise ValueError('Re-evaluate gallery MIME validation fixture')
+    hashes[str((PRODUCTION / 'GalleryPublisher.java').relative_to(ROOT))] = hashlib.sha256(gallery_source.encode()).hexdigest()
     jdk = Path(os.environ.get('JAVA_HOME', '/Applications/Android Studio.app/Contents/jbr/Contents/Home')) / 'bin'
     with tempfile.TemporaryDirectory(prefix='airtap-multi-file-scopes-') as temporary:
         temporary = Path(temporary)
         generated = dict(FAKES)
+        generated['io/airtap/preview/GalleryPublisher.java'] = 'package io.airtap.preview; import java.util.Set; final class GalleryPublisher {\n' + gallery_types[0] + '\n}\n'
         generated['io/airtap/preview/FileScopes.java'] = (
             'package io.airtap.preview; import android.content.*; import android.net.Uri; '
             'import android.provider.DocumentsContract; import android.os.*; import java.io.*; '
