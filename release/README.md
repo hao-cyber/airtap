@@ -20,7 +20,11 @@ code63 将首次及新增 AI 的邀请改为八位数字。数字只定位短期
 
 ## 当前发布身份
 
-本版 Android `0.4.0-beta.36`（code66），[版本资料](android/66.json)固定制品身份。新增已有 AI 代办连接管理、电池状态读取及 CLI.17；中继 revision29 对过期任务释放增加固定恢复期限。[发布核验](../docs/results/beta36-code66-publication-20261111.json)记录官网 37 个冻结文件、中继公开工具和 GitHub 六个附件的内容核对；[构建与恢复检查](../docs/results/beta36-code66-management-20261111.json)保留各自范围。手机覆盖升级与个人 AI 实测另行记录。
+当前官网推荐 Android `0.4.0-beta.38`（code68），[版本资料](android/68.json)固定制品身份。图片可从工作目录发布到系统相册，保留原文件并校验写入内容；重复发布核对同一照片。CLI.20 去掉确定性文件操作之前无关的屏幕观察。[发布核验](../docs/results/beta38-code68-publication-20261111.json)与[Muse 真机验收](../docs/results/beta38-code68-personal-ai-20261111.json)分别记录制品和实际任务；一台手机完成接收 App 选图与附件预览，另一台尚未完成该步骤。
+
+code69／CLI.21 已在 GitHub 发布候选，改进文件处理开销和上传进度，尚未切换官网推荐版本。[候选检查与待验事项](../docs/results/beta39-code69-files-20261111.json)。
+
+此前 code66 增加已有 AI 代办连接管理、电池状态及过期任务恢复，见[发布核验](../docs/results/beta36-code66-publication-20261111.json)与[实际任务记录](../docs/results/beta36-code66-personal-ai-20261111.json)。
 
 此前 code65 的通知事件、持续触控、文件续传、媒体采集和任务记录保持原范围，见[实现与检查](../docs/results/beta35-code65-capabilities-20261110.json)及[Muse 两机记录](../docs/results/beta35-code65-muse-20261110.json)。
 
