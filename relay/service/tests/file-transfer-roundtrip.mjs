@@ -71,7 +71,22 @@ async function python(args, stdin = '', expectedExit = 0) {
     child.stdout.on('data', bytes => { stdout += bytes; }); child.stderr.on('data', bytes => { stderr += bytes; });
     child.on('error', reject); child.on('close', code => {
       clearTimeout(timer);
-      try { assert.equal(code, expectedExit, 'CLI exit mismatch: ' + stdout); assert.equal(stderr, ''); assert.equal(stdout.includes(d.token), false); if (controller) assert.equal(stdout.includes(controller), false); resolve(JSON.parse(stdout)); }
+      try {
+        assert.equal(code, expectedExit, 'CLI exit mismatch: ' + stdout);
+        if (args.includes('file-upload')) {
+          const records = stderr.trim().split('\n').map(line => {
+            assert.ok(line.startsWith('Airtap upload: '));
+            const record = JSON.parse(line.slice('Airtap upload: '.length));
+            assert.deepEqual(Object.keys(record).sort(), ['stage', 'elapsed_ms', 'file_commands', 'file_command_ms', 'slowest_file_command_ms', 'last_confirmed_offset', 'initial_offset', 'total_bytes'].sort());
+            return record;
+          });
+          assert.equal(records[0].stage, 'checking_transfer');
+          assert.equal(records.at(-1).stage, expectedExit === 0 ? 'verified' : 'stopped_check_status');
+        } else assert.equal(stderr, '');
+        assert.equal((stdout + stderr).includes(d.token), false);
+        if (controller) assert.equal((stdout + stderr).includes(controller), false);
+        resolve(JSON.parse(stdout));
+      }
       catch (error) { reject(error); }
     }); child.stdin.end(stdin);
   });

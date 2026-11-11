@@ -86,9 +86,11 @@ final class PrivateFileStorage {
         }return new Usage(used,reserved,work,files);
     }
     Usage ownerUsage()throws IOException {
-        Usage actual=usage(false);
         try { return usage(true); }
-        catch (IOException|RuntimeException invalidReservation) { return new Usage(actual.usedBytes,-1,actual.workspaceBytes,actual.workspaceFiles); }
+        catch (IOException|RuntimeException invalidReservation) {
+            Usage actual=usage(false);
+            return new Usage(actual.usedBytes,-1,actual.workspaceBytes,actual.workspaceFiles);
+        }
     }
     void check(long newBytes, long availableBytes)throws IOException {
         if(newBytes<0||newBytes>FileTransferStore.MAX_FILE)FileTransferStore.fail("invalid_request");
@@ -107,11 +109,16 @@ final class PrivateFileStorage {
         return reclaimSaf(currentOwner == null ? Set.of() : Set.of(currentOwner), now, includeInactive);
     }
     Usage reclaimSaf(Set<String> currentOwners,long now,boolean includeInactive)throws IOException {
+        reclaimSafPayloads(currentOwners,now,includeInactive);
+        return ownerUsage();
+    }
+    // Commands need expiry cleanup, not the owner screen's full usage report.
+    // Budget checks still read current all-pairing usage under the same IO lock.
+    void reclaimSafPayloads(Set<String> currentOwners,long now,boolean includeInactive)throws IOException {
         for(Path claim:claims()) {
             fence.run();
             SafStagingCleanup.reclaim(claim.resolve("saf"),now,includeInactive&&!currentOwners.contains(claim.getFileName().toString()),fence,sync);
         }
-        return ownerUsage();
     }
     Usage clearWorkspaces()throws IOException {
         List<Path> targets=new ArrayList<>();for(Path claim:claims())for(String child:List.of("workspace","transfers"))targets.add(claim.resolve(child));

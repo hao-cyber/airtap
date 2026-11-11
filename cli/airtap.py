@@ -26,7 +26,7 @@ TOKEN = re.compile(r'^[0-9a-f]{64}$')
 TICKET = re.compile(r'^[0-9a-f]{32}$')
 MAX_RESPONSE = 512 * 1024
 MAX_COMMAND = 65536
-VERSION = '0.4.0-cli.20'
+VERSION = '0.4.0-cli.21'
 PAIRING_TTL_SECONDS = 60 * 60
 PAIRING_CLOCK_TOLERANCE_SECONDS = 30
 PACKAGE = re.compile(r'^[A-Za-z_][A-Za-z0-9_]*(?:\.[A-Za-z_][A-Za-z0-9_]*)+$')
@@ -1531,6 +1531,55 @@ def file_command(args, config):
     raise Failure('unknown_file_command')
 
 
+class UploadProgress:
+    """Staging acknowledgements are progress; only final stat proves completion."""
+    def __init__(self, size):
+        self.started = time.monotonic()
+        self.last_report = None
+        self.size = size
+        self.confirmed = None
+        self.initial_offset = None
+        self.commands = 0
+        self.command_ms = 0
+        self.slowest_ms = 0
+
+    def metrics(self):
+        return {'elapsed_ms': round((time.monotonic() - self.started) * 1000, 2),
+                'file_commands': self.commands, 'file_command_ms': round(self.command_ms, 2),
+                'slowest_file_command_ms': round(self.slowest_ms, 2),
+                'last_confirmed_offset': self.confirmed, 'initial_offset': self.initial_offset,
+                'total_bytes': self.size}
+
+    def report(self, stage, force=False):
+        now = time.monotonic()
+        if not force and self.last_report is not None and now - self.last_report < 2:
+            return
+        self.last_report = now
+        # No paths, input bytes, tokens or device/transfer identifiers in progress.
+        # A consumer closing stderr must not interrupt an otherwise valid upload.
+        try:
+            print('Airtap upload: ' + json.dumps({'stage': stage, **self.metrics()}), file=sys.stderr, flush=True)
+        except (OSError, ValueError):
+            pass
+
+    def acknowledged(self, offset):
+        self.confirmed = offset
+        if self.initial_offset is None:
+            self.initial_offset = offset
+        self.report('staging')
+
+    def call(self, args, config, action, **fields):
+        self.report(action.removeprefix('file_upload_').removeprefix('file_'))
+        started = time.monotonic()
+        self.commands += 1
+        try:
+            return file_call(args, config, action, **fields)
+        finally:
+            elapsed = (time.monotonic() - started) * 1000
+            self.command_ms += elapsed
+            self.slowest_ms = max(self.slowest_ms, elapsed)
+
+
 def file_upload_stream(args,config,stream,before):
     digest=stream_hash(stream);stable_file(stream,before)
     spec={'root':args.root,'path':args.path,'size':before.st_size,'sha256':digest}
@@ -1545,42 +1594,48 @@ def file_upload_stream(args,config,stream,before):
     spec['transfer_id'] = transfer
     # Persist identity BEFORE dispatch so an uncertain begin is resumable.
     config['last_file_upload'] = spec; save_config(args.config, config)
+    progress = UploadProgress(before.st_size)
+    progress.report('checking_transfer', force=True)
     try:
         if prior == spec:
             try:
-                state = checked_upload(file_call(args, config, 'file_upload_status', transfer_id=transfer)['result'], spec)
+                state = checked_upload(progress.call(args, config, 'file_upload_status', transfer_id=transfer)['result'], spec)
             except Failure as failure:
                 if failure.result.get('error') != 'file_transfer_not_found': raise
                 if args.root != 'workspace':
                     raise Failure('file_external_transfer_not_found', instruction='This external-directory transfer has no retained receipt. Inspect the authorized directory before intentionally starting a new upload; do not assume no file was created.')
-                state = checked_upload(file_call(args, config, 'file_upload_begin', **spec)['result'], spec)
+                state = checked_upload(progress.call(args, config, 'file_upload_begin', **spec)['result'], spec)
         else:
-            state = checked_upload(file_call(args, config, 'file_upload_begin', **spec)['result'], spec)
+            state = checked_upload(progress.call(args, config, 'file_upload_begin', **spec)['result'], spec)
         if state['state'] == 'expired': raise Failure('file_transfer_expired', instruction='Internal staging was reclaimed. Inspect the original folder; do not recreate an uncertain provider document. A recorded known document may still be explicitly aborted under the current folder permission.')
         if state['state'] == 'aborted': raise Failure('file_transfer_aborted')
         if state['state'] == 'commit_unknown': raise Failure('file_commit_unknown', instruction='The file provider may have created a file before its identity was saved. Inspect the authorized directory; do not retry finish, begin or abort to guess the result.')
         if state.get('cleanup_required'): raise Failure('file_cleanup_required', instruction='The provider created a document with a conflicting name. Inspect status; explicitly abort this transfer to remove only its recorded created document, then decide a new destination.')
+        progress.acknowledged(state['offset'])
         while state['state'] == 'receiving' and state['offset'] < before.st_size:
             offset = state['offset']; stable_file(stream,before); stream.seek(offset); chunk = stream.read(min(FILE_CHUNK_LIMIT,before.st_size-offset))
             if not chunk: raise Failure('input_changed_during_read')
-            state = checked_upload(file_call(args, config, 'file_upload_chunk', transfer_id=transfer, offset=offset,
+            state = checked_upload(progress.call(args, config, 'file_upload_chunk', transfer_id=transfer, offset=offset,
                 data_base64=base64.b64encode(chunk).decode('ascii'), sha256=hashlib.sha256(chunk).hexdigest())['result'], spec)
             if state['state'] != 'receiving' or state['offset'] != offset + len(chunk):
                 raise Failure('invalid_upload_progress')
+            progress.acknowledged(state['offset'])
         stable_file(stream,before)
         if state['state'] != 'finished':
-            state = checked_upload(file_call(args, config, 'file_upload_finish', transfer_id=transfer)['result'], spec)
+            state = checked_upload(progress.call(args, config, 'file_upload_finish', transfer_id=transfer)['result'], spec)
         if state['state'] == 'commit_unknown': raise Failure('file_commit_unknown', instruction='The file provider may have created a file before its identity was saved. Inspect the authorized directory; do not retry finish, begin or abort to guess the result.')
         if state.get('cleanup_required'): raise Failure('file_cleanup_required', instruction='The provider created a document with a conflicting name. Inspect status; explicitly abort this transfer to remove only its recorded created document, then decide a new destination.')
         if state['state'] != 'finished': raise Failure('upload_not_finished')
         # A durable completion receipt does not prove that another app has not changed the target later.
-        current = file_call(args, config, 'file_stat', root=args.root, path=args.path)['result']
+        current = progress.call(args, config, 'file_stat', root=args.root, path=args.path)['result']
         if (current.get('root') != args.root or current.get('path') != args.path or current.get('kind') != 'file'
                 or current.get('size') != spec['size'] or current.get('sha256') != spec['sha256']):
             raise Failure('finished_file_changed', retry_action=False)
-        return {'ok': True, 'result': {**state, 'verification': 'current_stat_sha256'}}
+        progress.report('verified', force=True)
+        return {'ok': True, 'result': {**state, 'verification': 'current_stat_sha256'}, 'transfer_metrics': progress.metrics()}
     except Failure as failure:
-        failure.result.update(transfer_id=transfer, retry_action=False)
+        progress.report('stopped_check_status', force=True)
+        failure.result.update(transfer_id=transfer, retry_action=False, transfer_metrics=progress.metrics())
         failure.result.setdefault('instruction', 'Keep this transfer ID and the same input bytes. After reconnection inspect file-upload-status. A receiving or publishing transfer can resume with the same spec; commit_unknown requires checking the authorized directory. Do not create a new transfer for an unknown outcome.')
         raise
 

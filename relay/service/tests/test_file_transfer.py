@@ -3,10 +3,14 @@
 import base64
 import hashlib
 import importlib.util
+import io
+import json
 import os
 from pathlib import Path
 import tempfile
+import types
 import unittest
+from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parents[3]
 spec = importlib.util.spec_from_file_location('airtap', ROOT / 'cli/airtap.py')
@@ -67,5 +71,89 @@ class FilesTest(unittest.TestCase):
         link=self.root/'link';link.symlink_to(file)
         with self.assertRaises(cli.Failure): cli.private_write(link,b'new',replace=False)
         self.assertEqual(file.read_bytes(),b'keep')
+
+    def upload_fixture(self, data):
+        source = self.root / 'input'; source.write_bytes(data)
+        args = types.SimpleNamespace(root='workspace', path='private-name-not-for-progress.png',
+                                     transfer_id=None, config=self.root/'config.json', command='file-upload')
+        state = {}
+        calls = []
+        def server(args, config, action, **fields):
+            calls.append((action, fields))
+            if action == 'file_upload_begin':
+                state.update(fields, state='receiving', offset=0, expires_at=100, publication_atomic=True)
+            elif action == 'file_upload_chunk':
+                self.assertEqual(fields['offset'], state['offset'])
+                chunk = base64.b64decode(fields['data_base64'])
+                self.assertEqual(fields['sha256'], hashlib.sha256(chunk).hexdigest())
+                state['offset'] += len(chunk)
+            elif action == 'file_upload_finish':
+                state.update(state='finished', file={'root':args.root, 'path':args.path, 'kind':'file',
+                             'size':len(data), 'sha256':hashlib.sha256(data).hexdigest(), 'version':'c'*64})
+            elif action == 'file_stat':
+                return {'ok':True, 'result':dict(state['file'])}
+            elif action != 'file_upload_status':
+                self.fail('unexpected action')
+            return {'ok':True, 'result':dict(state)}
+        return source, args, state, calls, server
+
+    def test_upload_unknown_chunk_retains_identity_and_resumes_from_server_ack(self):
+        data = b'x' * (cli.FILE_CHUNK_LIMIT * 2)
+        source, args, state, calls, server = self.upload_fixture(data)
+        config = {'controller_token':'secret-not-for-progress'}
+        stderr, stdout = io.StringIO(), io.StringIO()
+        def lost_reply(*a, **kw):
+            result = server(*a, **kw)
+            if a[2] == 'file_upload_chunk' and state['offset'] == len(data):
+                raise cli.Failure('total_deadline_exceeded', outcome='unknown')
+            return result
+        with patch.object(cli, 'file_call', side_effect=lost_reply), \
+             patch.object(cli.sys, 'stderr', stderr), patch.object(cli.sys, 'stdout', stdout):
+            with source.open('rb') as stream, self.assertRaises(cli.Failure) as caught:
+                cli.file_upload_stream(args, config, stream, os.fstat(stream.fileno()))
+        failure = caught.exception.result
+        self.assertEqual(failure['transfer_metrics']['last_confirmed_offset'], cli.FILE_CHUNK_LIMIT)
+        self.assertEqual(state['offset'], len(data))  # The lost response did not undo the accepted chunk.
+        self.assertFalse(failure['retry_action'])
+        self.assertEqual(config['last_file_upload']['transfer_id'], failure['transfer_id'])
+        self.assertNotIn('"stage": "verified"', stderr.getvalue())
+        for private in [args.path, config['controller_token'], failure['transfer_id']]:
+            self.assertNotIn(private, stderr.getvalue())
+        self.assertEqual(stdout.getvalue(), '')
+        with patch.object(cli, 'file_call', side_effect=server), patch.object(cli.sys, 'stderr', stderr):
+            with source.open('rb') as stream:
+                result = cli.file_upload_stream(args, config, stream, os.fstat(stream.fileno()))
+        self.assertTrue(result['ok'])
+        self.assertEqual(result['transfer_metrics']['initial_offset'], len(data))
+        self.assertEqual(result['transfer_metrics']['file_commands'], 3)  # status, finish, current stat
+        self.assertEqual([x[0] for x in calls].count('file_upload_begin'), 1)
+        self.assertEqual([x[0] for x in calls].count('file_upload_chunk'), 2)
+        progress = [json.loads(line.removeprefix('Airtap upload: ')) for line in stderr.getvalue().splitlines()]
+        self.assertEqual(progress[-1]['stage'], 'verified')
+        self.assertEqual(progress[-1]['last_confirmed_offset'], len(data))
+
+    def test_full_staging_is_not_reported_as_verified_if_current_file_changed(self):
+        source, args, state, calls, server = self.upload_fixture(b'abc')
+        def changed(*a, **kw):
+            result = server(*a, **kw)
+            if a[2] == 'file_stat': result['result']['sha256'] = '0'*64
+            return result
+        stderr = io.StringIO()
+        with patch.object(cli, 'file_call', side_effect=changed), patch.object(cli.sys, 'stderr', stderr):
+            with source.open('rb') as stream, self.assertRaises(cli.Failure) as caught:
+                cli.file_upload_stream(args, {}, stream, os.fstat(stream.fileno()))
+        self.assertEqual(caught.exception.result['error'], 'finished_file_changed')
+        self.assertEqual(caught.exception.result['transfer_metrics']['last_confirmed_offset'], 3)
+        self.assertNotIn('"stage": "verified"', stderr.getvalue())
+
+    def test_empty_upload_and_closed_progress_stream_do_not_break_completion(self):
+        source, args, state, calls, server = self.upload_fixture(b'')
+        stderr = io.StringIO(); stderr.close()
+        with patch.object(cli, 'file_call', side_effect=server), patch.object(cli.sys, 'stderr', stderr):
+            with source.open('rb') as stream:
+                result = cli.file_upload_stream(args, {}, stream, os.fstat(stream.fileno()))
+        self.assertTrue(result['ok'])
+        self.assertEqual(result['transfer_metrics']['last_confirmed_offset'], 0)
+        self.assertEqual([x[0] for x in calls], ['file_upload_begin', 'file_upload_finish', 'file_stat'])
 
 if __name__ == '__main__': unittest.main()

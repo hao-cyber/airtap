@@ -295,7 +295,7 @@ final class FileScopes {
         java.nio.file.Path privateRoot = c.getFilesDir().toPath().resolve("scoped-files");
         java.nio.file.Path base = privateRoot.resolve(owner);
         PrivateFileStorage storage = new PrivateFileStorage(privateRoot, fence, directorySync());
-        storage.reclaimSaf(owner,System.currentTimeMillis(),false);
+        storage.reclaimSafPayloads(Set.of(owner),System.currentTimeMillis(),false);
         FileTransferStore store = root.equals("workspace") || a.startsWith("file_upload_") ? new FileTransferStore(base, fence, System::currentTimeMillis, directorySync()) : null;
         if (a.equals("file_roots")) {
             JSONArray roots = new JSONArray().put(RelayApi.json("root", "workspace", "name", "Airtap 工作目录", "kind", "workspace", "readable", true,
