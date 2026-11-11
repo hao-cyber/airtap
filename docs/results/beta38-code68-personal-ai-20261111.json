@@ -119,10 +119,35 @@
         "small_original_image_visible": false,
         "finding": "Normal-size PNG and JPEG controls were visible and the PNG completed receiving-App selection and preview. The small original PNG remained omitted. Dimensions and byte size changed together; the exact filter or threshold was not isolated.",
         "failures_and_recovery": [
-          "An initial approximately 2.4 MB synthetic-image upload encountered HTTP 503 and stalled; it was abandoned before the smaller comparison variants were used. Cleanup of that original transfer has not been confirmed.",
-          "Muse reported approximately 2.7 KB/s for the completed uploads. Per-command timing and the cause of this slow sample were not captured; this is not a throughput guarantee."
+          "An initial 2,454,161-byte synthetic-image upload encountered HTTP 503 and its background process was later terminated. Follow-up status found 1,081,344 bytes received (33 full 32 KiB chunks), despite an empty client result file. The exact original transfer was normally aborted and status rechecked as aborted with offset 0; completed images were retained.",
+          "Completed upload wall times were 127 seconds for 340,265 bytes and 151 seconds for 399,998 bytes (about 2.7 KB/s). Existing logs did not contain per-chunk timing; the cause was not isolated and no new speed test was run."
         ],
-        "final_state": "HOME, quiet, released, idle"
+        "final_state": "HOME, quiet, released, idle",
+        "cleanup": {
+          "original_transfer_identified_by_saved_id_and_spec": true,
+          "state_before": "receiving",
+          "declared_bytes": 2454161,
+          "received_bytes_before_abort": 1081344,
+          "normal_abort_succeeded": true,
+          "state_rechecked": "aborted",
+          "received_bytes_after_abort": 0,
+          "completed_publications_retained": true,
+          "unrelated_paths_deleted": false,
+          "final_state": "HOME, quiet, released, idle"
+        },
+        "upload_log_observations": {
+          "source": "Existing logs; no new upload or benchmark",
+          "chunk_limit_bytes_from_cli_source": 32768,
+          "png_wall_seconds": 127,
+          "jpeg_wall_seconds": 151,
+          "per_chunk_timing_available": false,
+          "status_abort_status_elapsed_ms": [
+            6120.86,
+            6320.11,
+            5935.0
+          ],
+          "cause": "Not isolated; do not infer server processing or network-only latency from whole-request timing."
+        }
       }
     }
   ],
@@ -144,12 +169,13 @@
     "Dispatched bounded tests and official artifact identities through the existing Muse chat.",
     "Handled ordinary official download confirmation.",
     "Clarified that selecting only the synthetic image is in scope; no new full-library access or Gallery agreement was needed.",
-    "Dispatched the bounded PNG/JPEG comparison; Mac lock delayed retrieval of the already-running cloud task. The completed Muse receipt was subsequently inspected. No owner action was required for this comparison."
+    "Dispatched the bounded PNG/JPEG comparison; Mac lock delayed retrieval of the already-running cloud task. The completed Muse receipt was subsequently inspected. No owner action was required for this comparison.",
+    "Requested bounded cleanup and timing inspection from existing logs. Muse reconciled the original saved transfer before aborting only its confirmed disposable test staging; no repeated phone acceptance or speed test."
   ],
   "not_verified": [
     "Receiving-App picker selection on test device A.",
     "The exact reason or threshold for the OEM picker omitting the small PNG; lack of EXIF or a specific dimension/byte cutoff is not established.",
-    "Cleanup of the abandoned approximately 2.4 MB transfer and the cause of the reported slow upload sample.",
+    "The cause of the slow upload sample; individual chunk timings were not logged.",
     "Instinct on this candidate, other devices, all receiving Apps and all system permission buttons."
   ],
   "native_evidence": "beta38-code68-gallery-native-20261111.json",

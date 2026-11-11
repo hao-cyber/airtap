@@ -1164,6 +1164,10 @@
       "path": "docs/results/beta38-code68-personal-ai-20261111.json"
     },
     {
+      "kind": "source",
+      "path": "docs/results/beta38-code68-publication-20261111.json"
+    },
+    {
       "kind": "result",
       "path": "docs/results/beta4-clean-install-20261026.json"
     },

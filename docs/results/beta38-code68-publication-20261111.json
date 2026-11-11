@@ -1,0 +1,102 @@
+{
+  "schema": "airtap-code68-publication-v1",
+  "date": "2026-11-11",
+  "scope": "Gallery image publication promoted after a physical receiving-App picker selected the synthetic PNG and its actual attachment preview was inspected. Other phones/Apps retain their separately stated limits.",
+  "android": {
+    "application_id": "io.airtap.preview",
+    "version_name": "0.4.0-beta.38",
+    "version_code": 68,
+    "apk_sha256": "2ba123a5b13dfb99260b0960d58b10bf1b0e9ac1edc69a04cffc75e9f3d780d0",
+    "apk_bytes": 665037,
+    "signer_sha256": "a2aa0c1b6fdaf1baa37aa20817387524a1318b5dab82bf7c185663141daba60f",
+    "min_sdk": 34,
+    "target_sdk": 36,
+    "debuggable": false,
+    "channel": "beta",
+    "download_path": "/download/android"
+  },
+  "build": {
+    "source_commit": "1d13d67f1e42470a1517026428826735fd965277",
+    "clean_worktree": true,
+    "source_inputs_unchanged": true,
+    "compile_and_lint_passed": true,
+    "existing_signed_artifact_preserved": true
+  },
+  "relay": {
+    "revision": 33,
+    "cli_version": "0.4.0-cli.20",
+    "public_artifacts": [
+      {
+        "path": "/cli/airtap.py",
+        "status": 200,
+        "bytes": 133191,
+        "sha256": "0a3bde1f0a3b306a46107258fa51ebe8e088d45c61e833effc407118e9619c4a",
+        "matches": true
+      },
+      {
+        "path": "/agent.md",
+        "status": 200,
+        "bytes": 123023,
+        "sha256": "2c50e6833497a5cab2059f2b0b054137058e6f60fb00516a355fd2ecc37081eb",
+        "matches": true
+      }
+    ],
+    "existing_service_identity_and_settings_preserved": true,
+    "change": "Agent-guide recovery instructions only; worker code and CLI bytes unchanged from revision32.",
+    "guide_source_commit": "bcce3e5"
+  },
+  "website": {
+    "origin": "https://airtap.memtrix.dev",
+    "deployment_id": "76e4b9d8-8053-4373-a4e8-c21cea26cd3d",
+    "passed": true,
+    "local_files_verified": 41,
+    "public_checks_passed": 95,
+    "manifest_sha256": "f79cb6c244768cf45f82aa4c391532a18cfb975c1758a46cf7478b385083043d",
+    "apk_get_head_range_and_update_metadata_verified": true,
+    "previous_version_code": 67,
+    "prior_code67_download_preserved": true,
+    "reviewed_videos": [
+      {
+        "filename": "airtap-usage-code39-20261029.mp4",
+        "sha256": "ffa11c4e893f22c7ba96ebb12bf72a390574134bb57e02cf5a434d7ea80c3fd0",
+        "unchanged": true
+      },
+      {
+        "filename": "airtap-install-guide-20261030-r2.mp4",
+        "sha256": "7d5fe76f511bb95784c546663bef83070ecb3f5d280db87741f4eda4841bc8ad",
+        "unchanged": true
+      }
+    ],
+    "reviewed_transformations": [
+      {
+        "path": "/robots.txt",
+        "kind": "reviewed_managed_robots_prefix",
+        "prefix_bytes": 2676,
+        "prefix_sha256": "3073d1e371afb3271c7666148766fedc5145f7d8440f7114062db79b7bd58add",
+        "source_sha256": "d58c84797c04e430e32b11fffbcb73b63a0afd82b00b5f2134574a52c414306e",
+        "public_sha256": "542678d4397ddd6bf8c14d764a94e7f08d46e73aeb4a3c6751844c3dbb13920f"
+      }
+    ],
+    "verification_transport": "Existing Wi-Fi interface and scoped Cloudflare edge with normal hostname TLS; no persistent network or certificate changes."
+  },
+  "github": {
+    "release_url": "https://github.com/hao-cyber/airtap/releases/tag/v0.4.0-beta.38",
+    "downloaded_apk_matches": true,
+    "readback_scope": "Previously downloaded and verified code68 APK; the same signed asset was preserved during this promotion.",
+    "cli_release_url": "https://github.com/hao-cyber/airtap/releases/tag/v0.4.0-cli.20",
+    "immutable_assets_overwritten": false
+  },
+  "physical_evidence": [
+    "beta38-code68-personal-ai-20261111.json"
+  ],
+  "native_evidence": [
+    "beta38-code68-gallery-native-20261111.json",
+    "beta37-code67-visual-windows-20261111.json"
+  ],
+  "limits": [
+    "Only test device B completed receiving-App selection and attachment preview; device A picker and Instinct on this candidate remain unverified.",
+    "The Meizu picker omitted the original tiny synthetic PNG; the exact filter/threshold was not isolated. Normal-size PNG/JPEG appeared and the PNG was selected.",
+    "Completed upload samples were about 2.7 KB/s; timing cause was not isolated. The abandoned initial test transfer was reconciled, normally aborted and rechecked.",
+    "Protected Android system buttons remain subject to OS restrictions; acceptance of a gesture is not proof of its effect."
+  ]
+}
