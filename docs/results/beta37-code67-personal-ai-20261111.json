@@ -1,0 +1,45 @@
+{
+  "schema": "airtap-personal-ai-acceptance-v1",
+  "date": "2026-11-11",
+  "version_code": 67,
+  "cli_version": "0.4.0-cli.18",
+  "agent": "Muse",
+  "transport": "existing approved cloud connection through public relay; no USB/ADB for physical tasks",
+  "devices": [
+    {
+      "model": "Meizu Note16",
+      "role": "test device A",
+      "upgrade": true,
+      "pairings_before": 2,
+      "pairings_after": 2,
+      "cross_app": "Public browser page, calculator 67*3=201, Back to browser; actual images inspected",
+      "final_state": "home, quiet, lease released, idle",
+      "recovery": [
+        "First browser navigation rejected by CLI for missing package; corrected before dispatch.",
+        "Lease expired during replacement installation; original connection recovered after approximately50 seconds."
+      ]
+    },
+    {
+      "model": "Meizu Note16",
+      "role": "test device B",
+      "upgrade": true,
+      "pairings_before": 2,
+      "pairings_after": 2,
+      "cross_app": "Public browser page, calculator 68*3=204, Back to browser; actual images inspected",
+      "final_state": "home, quiet, lease released, idle",
+      "recovery": [
+        "An installation gesture returned unknown; status and fresh observation confirmed it had taken effect, without replay.",
+        "Lease recovered after replacement installation.",
+        "A calculator key was mis-targeted; visual check found the incorrect result and the calculation was corrected."
+      ],
+      "additional_change": "Agent reported an extra browser website storage permission. This was not considered necessary for installation, was retained in the receipt, and subsequent candidate instructions prohibit unrelated new site permissions."
+    }
+  ],
+  "owner_manual_action": false,
+  "not_verified": [
+    "No naturally occurring rootless Flyme window in these two physical regressions.",
+    "Back/Recents after an observation failure not triggered on these devices."
+  ],
+  "separate_native_evidence": "beta37-code67-visual-windows-20261111.json",
+  "scope": "Physical upgrade/connection and ordinary task regression. Rootless permission clicking was separately verified on a real Android15 system dialog in an isolated emulator; Android16 protected-touch failure is preserved. No claim that every security dialog is clickable."
+}
