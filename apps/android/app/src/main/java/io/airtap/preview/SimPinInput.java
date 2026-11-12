@@ -27,6 +27,25 @@ final class SimPinInput {
         if(!c.getSharedPreferences("sim-pin-entry",0).edit().putBoolean("enabled",enabled).putBoolean("attempt_pending",false).commit())throw new IllegalStateException();
     }
     private android.content.SharedPreferences prefs(){return service.getSharedPreferences("sim-pin-entry",0);}
+    /** No PIN, SIM identifier, screen access, challenge creation, or wake-up. */
+    JSONObject status(){
+        Object pinSlots=JSONObject.NULL,pukSlots=JSONObject.NULL,deviceSecure=JSONObject.NULL,statesKnown=JSONObject.NULL;
+        try{
+            TelephonyManager telephony=service.getSystemService(TelephonyManager.class);
+            int pins=0,puks=0;boolean known=true;
+            for(int i=0;i<telephony.getActiveModemCount();i++){
+                int state=telephony.getSimState(i);
+                if(state==TelephonyManager.SIM_STATE_PIN_REQUIRED)pins++;
+                if(state==TelephonyManager.SIM_STATE_PUK_REQUIRED)puks++;
+                if(state==TelephonyManager.SIM_STATE_UNKNOWN||state==TelephonyManager.SIM_STATE_NOT_READY)known=false;
+            }
+            pinSlots=pins;pukSlots=puks;statesKnown=known;
+        }catch(RuntimeException unavailable){}
+        try{deviceSecure=service.getSystemService(KeyguardManager.class).isDeviceSecure();}catch(RuntimeException unavailable){}
+        return RelayApi.json("enabled",enabled(service),"attempt_pending",prefs().getBoolean("attempt_pending",false),
+                "pin_locked_slots",pinSlots,"puk_locked_slots",pukSlots,"sim_states_known",statesKnown,"device_secure",deviceSecure,
+                "keypad_verified",false,"stores_pin",false);
+    }
     private int sim(int index){return service.getSystemService(TelephonyManager.class).getSimState(index);}
     private AccessibilityNodeInfo node(AccessibilityNodeInfo root,String id,boolean click){
         var matches=root.findAccessibilityNodeInfosByViewId(PREFIX+id);AccessibilityNodeInfo found=null;

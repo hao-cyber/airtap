@@ -745,6 +745,7 @@ public final class PreviewService extends AccessibilityService {
                                 "version_code", BuildConfig.VERSION_CODE, "build_type", BuildConfig.BUILD_TYPE),
                         "device_unlocked", ui.unlocked(), "screen_state", ui.screenState().wireName, "auto_wake", true,
                         "network_transport", network(), "last_file_command", fileCommandPerformance(owner),
+                        "readiness", RelayApi.json("notifications",NotificationEvents.status(this),"media",MediaCapture.readiness(this),"sim_pin",simPinInput.status()),
                         "last_file_performance", FileScopes.performance(owner) == null ? JSONObject.NULL : FileScopes.performance(owner),
                         "capabilities", new org.json.JSONArray().put("companion_v1").put("paged_tree_v1").put("node_text_v1").put("screen_recovery_v1").put("atomic_input_v1").put("system_actions_v1").put("drag_v1").put("gesture_v1").put("semantic_node_v1").put("windows_v1").put("visual_window_v1").put("volume_v1").put("files_v1").put("file_share_v1").put("gallery_publish_v1").put("notification_events_v1").put("touch_session_v1").put("media_capture_v1").put("sim_pin_keypad_v1").put("remote_connections_v1").put("battery_status_v1"),
                         "observation_limits", RelayApi.json("max_inspected_nodes", PagedTree.MAX_NODES, "max_capture_bytes", PagedTree.MAX_CAPTURE_BYTES,

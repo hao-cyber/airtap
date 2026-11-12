@@ -31,6 +31,19 @@ final class MediaCapture {
     private MediaCapture(Context c,String owner,String kind,int seconds,BooleanSupplier authority){this.context=c.getApplicationContext();this.owner=owner;this.kind=kind;this.seconds=seconds;this.authority=authority;}
     boolean active(){return state.equals("awaiting_system_ui")||state.equals("recording")||state.equals("importing");}
     static boolean quiescent(){return current==null||!current.active();}
+    /** Readiness only: never opens an Activity, asks for consent, or starts a recorder. */
+    static JSONObject readiness(Context context){
+        Object microphone=JSONObject.NULL;
+        try{microphone=context.checkSelfPermission(android.Manifest.permission.RECORD_AUDIO)==android.content.pm.PackageManager.PERMISSION_GRANTED;}catch(RuntimeException ignored){}
+        return RelayApi.json("busy",!quiescent(),"photo_handler_available",handlerAvailable(context,android.provider.MediaStore.ACTION_IMAGE_CAPTURE),
+                "video_handler_available",handlerAvailable(context,android.provider.MediaStore.ACTION_VIDEO_CAPTURE),
+                "camera_permission","external_camera_app","microphone_permission",microphone,
+                "screen_consent","required_each_session","starts_capture",false);
+    }
+    private static Object handlerAvailable(Context context,String action){
+        try{return new Intent(action).resolveActivity(context.getPackageManager())!=null;}
+        catch(RuntimeException unavailable){return JSONObject.NULL;}
+    }
     static void invalidate(){if(current!=null&&current.active())current.cancel("capture_authorization_lost");}
     static MediaCapture get(String id){return current!=null&&current.id.equals(id)?current:null;}
     static JSONObject start(Context c,String owner,JSONObject q,BooleanSupplier authority)throws Exception{

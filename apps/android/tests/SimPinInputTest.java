@@ -43,6 +43,18 @@ public final class SimPinInputTest {
         Reply submit()throws Exception{String challenge=pin.prepare(OWNER).getString("challenge");Reply reply=new Reply();JSONObject q=input(challenge);pin.submit(OWNER,q,()->permit,reply);check(!q.has("pin"));return reply;}
     }
     public static void main(String[] args)throws Exception{
+        Fixture readOnly=new Fixture();readOnly.power.interactive=false;readOnly.telephony.slots=new int[]{2,3};
+        JSONObject readiness=readOnly.pin.status();
+        check(Boolean.FALSE.equals(readiness.get("enabled"))&&Integer.valueOf(1).equals(readiness.get("pin_locked_slots"))&&Integer.valueOf(1).equals(readiness.get("puk_locked_slots")));
+        check(!readOnly.power.interactive&&readOnly.digits==0&&readOnly.enters==0&&Handler.queue.isEmpty());
+        check(!readiness.has("challenge")&&!readiness.has("pin")&&Boolean.FALSE.equals(readiness.get("stores_pin")));
+        pass("readiness_reports_disabled_locked_slots_without_waking_or_input");
+        readOnly.telephony.slots=new int[]{TelephonyManager.SIM_STATE_UNKNOWN};readiness=readOnly.pin.status();
+        check(Integer.valueOf(0).equals(readiness.get("pin_locked_slots"))&&Boolean.FALSE.equals(readiness.get("sim_states_known")));
+        pass("unknown_sim_state_not_reported_as_known_unlocked");
+        readOnly.service.systems.remove(TelephonyManager.class);readOnly.service.systems.remove(KeyguardManager.class);
+        readiness=readOnly.pin.status();check(readiness.get("pin_locked_slots")==JSONObject.NULL&&readiness.get("puk_locked_slots")==JSONObject.NULL&&readiness.get("device_secure")==JSONObject.NULL);
+        pass("unavailable_readiness_stays_unknown_not_false_success");
         Fixture disabled=new Fixture();refuses("sim_pin_entry_not_enabled",()->disabled.pin.prepare(OWNER));check(disabled.digits==0);pass("disabled_by_default_no_input");
         Fixture puk=new Fixture();puk.enable();puk.telephony.slots[0]=3;refuses("sim_puk_requires_owner",()->puk.pin.prepare(OWNER));puk.telephony.slots=new int[]{2,2};refuses("sim_pin_multiple_locked_slots",()->puk.pin.prepare(OWNER));pass("puk_and_ambiguous_slot_refused");
         Fixture secure=new Fixture();secure.enable();secure.keyguard.secure=true;refuses("sim_pin_ui_unsupported",()->secure.pin.prepare(OWNER));secure.keyguard.secure=false;secure.root.pkg="com.example.spoof";refuses("sim_pin_ui_unsupported",()->secure.pin.prepare(OWNER));pass("device_password_and_non_system_window_refused");

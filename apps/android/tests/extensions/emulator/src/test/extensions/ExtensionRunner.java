@@ -50,6 +50,9 @@ public final class ExtensionRunner extends Instrumentation {
   return root.getPackageName()+":"+out;
  }
  void captureTest()throws Exception{
+  JSONObject readiness=(JSONObject)call(null,type("MediaCapture"),"readiness",new Class[]{Context.class},getTargetContext());
+  check("capture readiness is side-effect-free and declares per-session screen consent",!readiness.getBoolean("starts_capture")&&!readiness.getBoolean("busy")&&readiness.getString("screen_consent").equals("required_each_session"));
+  check("capture readiness matches Android microphone permission",readiness.getBoolean("microphone_permission")== (getTargetContext().checkSelfPermission(android.Manifest.permission.RECORD_AUDIO)==android.content.pm.PackageManager.PERMISSION_GRANTED));
   launch(false);JSONObject start=request(q("media_capture").put("kind","screen").put("seconds",3));check("screen capture requests system consent",start.optString("state").equals("awaiting_system_ui"));String id=start.getString("capture_id");
   // The host driver accepts the normal system dialog on this explicitly isolated emulator.
   java.util.Set<String> diagnostics=new java.util.LinkedHashSet<>();JSONObject status=null;for(int i=0;i<120;i++){
