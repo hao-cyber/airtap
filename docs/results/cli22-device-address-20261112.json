@@ -2,7 +2,7 @@
   "schema": "airtap-cli-device-address-v1",
   "date": "2026-11-12",
   "cli_version": "0.4.0-cli.22",
-  "status": "checks_passed_pending_publication",
+  "status": "github_and_relay_published_personal_ai_status_passed",
   "trigger": "An existing personal-AI credential store retained a service origin but dropped the original /d/device path. Status returned an exact public-service route 404; it did not establish phone offline or revocation.",
   "change": "Classify only the exact protocol-4 root-route not_found response for authenticated /v1 requests as device_address_missing, with a fixed nonsecret recovery instruction. No automatic retry, path guessing, identity replacement or new pairing. Other 404 responses remain uncertain.",
   "guidance": [
@@ -35,5 +35,48 @@
     },
     "scope": "Existing connection configuration repair and fresh-process readback, not a replaced-VM test or CLI.22 device test. Permission approvals occurred outside the inspected execution; no zero-human-intervention claim."
   },
-  "scope": "No APK changes, data clearing, new device authorization, or protocol-capability expansion."
+  "scope": "No APK changes, data clearing, new device authorization, or protocol-capability expansion.",
+  "publication": {
+    "github_release": "https://github.com/hao-cyber/airtap/releases/tag/v0.4.0-cli.22",
+    "release_commit": "d650b36cd9bacbf710fa244a8da9cd0202fe05b9",
+    "downloaded_assets_byte_equal": [
+      "airtap.py",
+      "agent.md",
+      "SHA256SUMS"
+    ],
+    "relay_revision": 35,
+    "relay_deployed": true,
+    "relay_verified_at": "2026-11-12T08:31:15.749403+00:00",
+    "relay_assets_match_frozen": true,
+    "relay_control_code_and_settings_changed": false
+  },
+  "personal_ai_use": {
+    "agent": "Instinct",
+    "receipt_at": "2026-11-12T16:08:00+08:00",
+    "actual_runner_cli_version": "0.4.0-cli.22",
+    "cli_and_guide_bytes_and_hashes_verified": true,
+    "persistent_tool_entry_selected": true,
+    "original_credentials_and_complete_addresses_preserved": true,
+    "read_only_status": [
+      {
+        "device": "Meizu test phone A",
+        "at": "2026-11-12T16:07:57+08:00",
+        "connected": true,
+        "approved": true,
+        "task_state": "busy",
+        "elapsed_ms": 560.01
+      },
+      {
+        "device": "Meizu test phone B",
+        "at": "2026-11-12T16:07:57+08:00",
+        "connected": true,
+        "approved": true,
+        "task_state": "idle",
+        "elapsed_ms": 803.31
+      }
+    ],
+    "requests": 2,
+    "acquired_task_or_woke_screen": false,
+    "scope": "Actual new CLI status requests with existing identities; no new pairing or screen task, not a replacement-VM test."
+  }
 }
