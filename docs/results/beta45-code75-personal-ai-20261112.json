@@ -1,0 +1,137 @@
+{
+  "schema": "airtap-code75-personal-ai-readiness-capture-v1",
+  "date": "2026-11-12",
+  "android_code": 75,
+  "android_version": "0.4.0-beta.45",
+  "scope": "Original-pair remote upgrades and read-only readiness on two Meizu Android 15 phones; silent screen-capture flow and private file return on one phone. This is not acceptance of all sensitive permissions or exact recording wall-clock duration.",
+  "muse": {
+    "phone": "A",
+    "cli": "0.4.0-cli.21",
+    "start_cst": "2026-11-12T19:33:05+08:00",
+    "end_cst": "2026-11-12T19:44:30+08:00",
+    "network": "vpn",
+    "original_pairing_preserved": true,
+    "actual_code": 75,
+    "readiness": {
+      "notifications": {
+        "enabled": false,
+        "permission": false,
+        "listener_connected": false,
+        "storage_ok": true,
+        "retention_hours": 24,
+        "max_events": 64,
+        "history_complete": false,
+        "content_visibility": "platform_filtered",
+        "sms_database": false,
+        "requires_agent_polling": true
+      },
+      "media": {
+        "busy": false,
+        "photo_handler_available": true,
+        "video_handler_available": true,
+        "camera_permission": "external_camera_app",
+        "microphone_permission": false,
+        "screen_consent": "required_each_session",
+        "starts_capture": false
+      },
+      "sim_pin": {
+        "enabled": false,
+        "attempt_pending": false,
+        "pin_locked_slots": 0,
+        "puk_locked_slots": 0,
+        "sim_states_known": true,
+        "device_secure": false,
+        "keypad_verified": false,
+        "stores_pin": false
+      }
+    },
+    "reported_recovery_incidents": [
+      "Initially offline; recovered after 60s status wait",
+      "Stale download-sheet observation required fresh tree",
+      "503/disconnect during read-tree; recovered after 60s and new task lease",
+      "First download stalled about 68s; reopened then completed about 22s later",
+      "Download-sheet semantic click rejected as stale; fresh visible normalized tap worked",
+      "Installer chooser semantic click rejected as stale; fresh visible normalized tap worked",
+      "Final observe 503/disconnect; recovered after 60s and new lease; HOME then release"
+    ],
+    "final": {
+      "device_connected": true,
+      "task": "idle",
+      "home": true,
+      "muted": true
+    },
+    "owner_phone_interventions": 0,
+    "usb_used": false
+  },
+  "instinct": {
+    "phone": "B",
+    "cli": "0.4.0-cli.22",
+    "original_pairing_preserved": true,
+    "actual_code": 75,
+    "network": "wifi",
+    "upgrade_completed_cst": "2026-11-12T19:42:00+08:00",
+    "upgrade_incident": "First browser download stalled about 90 seconds; normal back/reopen/retry completed, then the ordinary installer updated the existing App.",
+    "readiness_summary": {
+      "notifications_enabled": false,
+      "media_busy": false,
+      "microphone_permission": false,
+      "screen_consent": "required_each_session",
+      "sim_pin_enabled": false
+    },
+    "capture": {
+      "requested_seconds": 8,
+      "bytes": 847680,
+      "sha256": "6beec08a8da1da8613c875ccc2561e572a6a58e23102e5d34e39a45bf7292675",
+      "format_start_time": 0,
+      "format_duration_seconds": 11.372,
+      "stream_duration_seconds": 11.372022,
+      "time_base": "1/90000",
+      "video_frames": 73,
+      "first_packet_pts_seconds": 0,
+      "last_packet_pts_seconds": 7.534378,
+      "last_packet_duration_seconds": 3.837644,
+      "audio_streams": 0,
+      "codec": "h264",
+      "width": 720,
+      "height": 1640,
+      "result": "19×23=437",
+      "maintainer_viewed_actual_frame": true,
+      "persisted_private_attachment": true,
+      "exact_wall_clock_duration_verified": false
+    },
+    "capture_incidents": [
+      "An earlier request lost task authorization while waiting for consent and was canceled without a recording.",
+      "An earlier completed recording contained the launcher because a rejected calculator launch was not resolved. It was retained as a failed task.",
+      "That earlier download disappeared with a temporary child workspace; the same phone file was downloaded again and retained as a private attachment.",
+      "Calculator taps initially reused an invalid observation identifier; the agent corrected this using each fresh response.",
+      "The single consent tap returned gesture_interrupted_outcome_unknown; the agent reconciled media-status rather than tapping again, and the capture finished."
+    ],
+    "final": {
+      "home": true,
+      "muted": true,
+      "device_connected": true,
+      "pending": 0,
+      "task": "idle"
+    },
+    "end_cst": "2026-11-12T19:46:00+08:00",
+    "owner_phone_interventions": 0,
+    "usb_used": false,
+    "consent": "Owner explicitly approved this silent calculator recording; the normal system confirmation was clicked by an authorized delegate, not the owner personally."
+  },
+  "interpretation": [
+    "The actual returned frame shows 19×23=437 in the calculator; no audio stream was present.",
+    "The MP4 duration is not eight seconds: the last frame is at 7.534378 seconds and its 3.837644-second duration extends playback to 11.372 seconds.",
+    "This packet evidence does not establish the exact wall-clock moment when the recorder stopped; it is not evidence of capture before permission.",
+    "Permission readiness is not positive notification delivery, actual SIM PIN input, camera capture or microphone acceptance.",
+    "The three disconnect recoveries observed on phone A do not establish continuous availability; the underlying network cause is not isolated."
+  ],
+  "not_verified": [
+    "Physical notification delivery",
+    "Real SIM PIN entry",
+    "Physical camera and microphone capture",
+    "Exact recording wall-clock stop time",
+    "Multi-day background operation",
+    "Additional OEMs and independent new-user installation"
+  ],
+  "privacy": "Raw phone images, videos, file paths, pairing data and private chat content are not included."
+}
