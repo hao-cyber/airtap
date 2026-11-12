@@ -8,7 +8,7 @@ Airtap 让你的个人 AI 查看手机屏幕、点击、输入和切换 App。�
 
 **[下载 Android App](https://airtap.memtrix.dev/install)** · [安装与接入](https://airtap.memtrix.dev/install#start) · [使用帮助](https://airtap.memtrix.dev/help) · [自行部署](docs/reproduce-v040.md) · [反馈问题](https://github.com/hao-cyber/airtap/issues)
 
-Android 14+ · 公开测试版 · 需要能调用工具的个人 AI
+Android 14+ · 公开测试版 · Muse、Instinct 已有实测
 
 ## 已经做过的任务
 
@@ -27,9 +27,15 @@ Android 14+ · 公开测试版 · 需要能调用工具的个人 AI
 3. 点「邀请我的 AI」，把八位邀请码告诉自己的 AI。第一次用 Airtap 时，点「复制给我的 AI」一并带上接入地址。
 4. AI 返回另一组六位核对码；与手机上显示的一致，就确认连接。
 
-发给 AI 的是 **App 生成的邀请**，不是这个 GitHub 链接。普通用户不需要安装命令行工具或配置 MCP。
+第一次发给 AI 的是 **App 生成的接入短句**，里面有邀请码和地址。安装、接入和日常使用都无需 USB 或电脑；普通用户不用运行命令或配置 MCP。
 
-连接后，可以试试：“打开浏览器查一下明天的天气，整理到便签里，保存后重新打开确认。”手机需要已有相应 App；首次使用某个 App 时，可能还需要登录或完成它的设置。
+使用其他 AI 时，[让它先检查当前入口的工具能力](https://airtap.memtrix.dev/install#ai-check)。网页不会自动替 AI 验证通过；普通聊天模式也不会因为收到邀请就获得操作能力。
+
+连接后，交给它一件完整的事。例如：
+
+> 打开手机浏览器查三个值得去的西湖景点，整理到便签。保存后重新打开，确认景点和来源都在，再告诉我保存在哪里。不要覆盖原内容。
+
+让 AI 使用手机已有的同类 App，完成后核对实际结果。配对成功只是接上手机；这件事做完才算体验过 Airtap。下次回到原来的 AI 对话继续用。
 
 ## 能做什么
 
@@ -42,30 +48,34 @@ AI 可以组合这些动作完成跨 App 任务，不限于计算器等演示应
 
 ## 当前支持情况
 
-当前官网推荐 **0.4.0-beta.45（code75）**。AI 可以先查询通知、媒体采集和 SIM PIN 的准备状态，再处理任务。Muse 与 Instinct 已分别保留原连接远程升级，Instinct 还完成了计算器无声录屏及文件回传。系统明确保护的页面和按钮仍可能无法操作。[更新说明](release/android/75.json) · [两位 AI 实测](docs/results/beta45-code75-personal-ai-20261112.json) · [发布核验](docs/results/beta45-code75-publication-20261112.json)
+官网推荐 **0.4.0-beta.45（code75）**，目前提供 Android 客户端。Muse 和 Instinct 已分别保留原连接远程升级；两台魅族 Note 16 / Android 15 有跨 App、双 AI 交接、短时息屏恢复和系统选图实测。一台还完成了无声录屏与文件回传。各记录注明实际版本和条件，不能由一次成功推断所有设备都可用。
 
-| 个人 AI | 已有测试 |
+- 系统保护的画面、按钮和身份验证仍有边界。普通弹窗应先由 AI 看清并尝试正常操作。
+- 通知实际投递、实卡 SIM PIN、实体相机／麦克风、多日无人值守和纯移动网络完整任务仍有未验项。通知与 SIM PIN 功能默认关闭。
+- 更多机型、其他 AI 和独立新用户首装尚未验证；目前没有 iOS 客户端。
+
+[完整能力与验证范围](docs/atomic-capabilities.md) · [当前版两位 AI 实测](docs/results/beta45-code75-personal-ai-20261112.json) · [更新说明](release/android/75.json)
+
+<details>
+<summary>查看具体任务与恢复记录</summary>
+
+| 记录 | 实际范围 |
 | --- | --- |
-| Muse | code75：保留原连接远程升级，读回准备状态；自行处理短时掉线后回桌面。code74 已完成系统文件列表选图与 Gmail 附件预览。 |
-| Instinct | code75／CLI.22：保留原 Vault 连接升级，经正常系统确认完成计算器无声录屏，取回文件并核验。code74 已完成信息 App 选图与附件预览。 |
+| [code74 系统选图](docs/results/beta44-code74-personal-ai-picker-20261112.json) | Muse 将图片选入 Gmail；Instinct 在信息 App 查看附件预览，均未发送。 |
+| [code64 两位 AI 交接](docs/results/beta34-code64-two-ai-20261110.json) | 两机互斥交接，90 秒息屏后再次使用；准备阶段有维护者操作。 |
+| [code65 持续操作与文件](docs/results/beta35-code65-muse-20261110.json) | 持续触控、任务保存、文件往返与短时息屏恢复。 |
+| [code66 连接管理](docs/results/beta36-code66-personal-ai-20261111.json) | 电池状态和已有 AI 代办新增连接。 |
+| [code51 短时断网](docs/results/beta21-code51-network-recovery-20261102.json) / [60 分钟观察](docs/results/beta21-code51-idle-20261103.json) | 原连接恢复与供电状态下的限定观察，不代表多日后台通过。 |
 
-两台魅族 Note 16 / Android 15 曾完成[两个 AI 互斥交接与 90 秒息屏后的再次使用](docs/results/beta34-code64-two-ai-20261110.json)。[code65 实测](docs/results/beta35-code65-muse-20261110.json)覆盖持续触控、任务保存、文件往返与短时息屏恢复；[code66 实测](docs/results/beta36-code66-personal-ai-20261111.json)覆盖电池状态和已有 AI 代办新增连接。各项证据保留原版本与条件。
+部分图库会隐藏小图，可检查过滤项或使用文件／分享入口，见[实际排查](docs/results/beta39-code69-files-20261111.json)。无声录屏每次需要系统确认，成品时长差异见当前版实测。上述旧版本记录保留其原范围。
 
-目前的几个限制：
-
-- 图库可能隐藏小图：一台魅族已发现开启“隐藏小于 20KB 的照片”，这是该版图库的设置，不是所有选图器的统一阈值。可以检查过滤项，或使用文件／分享入口；正常尺寸图片已完成选图预览。[排查记录](docs/results/beta39-code69-files-20261111.json)
-- 通知事件与 SIM PIN 输入默认关闭；实际事件投递、实卡 PIN 输入、相机和麦克风采集仍待真机验收。无声录屏与回传已在一台手机实测；每次录屏需要系统确认，成品播放时长可能与请求秒数不同。
-- 更多机型、纯移动网络完整任务、多日无人值守和独立新用户安装仍待验证。普通息屏唤醒不等于重启后无需验证，手机开启 SIM PIN 时仍须处理系统验证。目前没有 iOS 客户端。
-
-其他 AI 尚未确认兼容。它至少需要能执行网络工具调用；用截图定位和操作时，还需要实际读取图片的能力。普通聊天入口不一定具备这些能力。[AI 接入说明](docs/agent.md)
+</details>
 
 ## 连接与控制
 
 链路是 **你的 AI ⇄ 中继 ⇄ 手机**。手机主动连接中继，因此 AI 和手机不用在同一个 Wi-Fi 下。默认公共中继运行在 Cloudflare Workers 与 Durable Objects，也可以[自行部署](docs/reproduce-v040.md)。公共中继由项目维护，有运行成本。
 
 有效配对会保留，正常断网后会尝试自动重连；建立连接长时间没有响应时也会自动重试。恢复后让 AI 先查看手机状态，再继续任务，避免重复操作。你可以在手机上随时停止或撤销控制。系统要求密码或生物识别时，Airtap 不能绕过；系统强制停止 App 或关闭权限后，可能需要你重新开启。
-
-code51 已完成一次[短时断网恢复](docs/results/beta21-code51-network-recovery-20261102.json)和[供电状态下 60 分钟静置观察](docs/results/beta21-code51-idle-20261103.json)，不代表所有网络或多日后台均已通过。旧版曾因手机原有 VPN 分流影响连接，保留[历史排查记录](docs/results/beta9-code39-network-route-20261029.json)。
 
 连接使用 HTTPS，**目前不是端到端加密，中继能够接触经过它的画面与操作内容**。默认不保存截图和操作正文，会保存配对及必要连接信息。请只把邀请交给自己的 AI。[权限与隐私说明](SECURITY.md)
 
@@ -75,6 +85,7 @@ code51 已完成一次[短时断网恢复](docs/results/beta21-code51-network-re
 
 - [构建与自托管](docs/reproduce-v040.md)
 - [运行检查与每夜构建](docs/checks.md)
+- [体验评审与用户测试方法](docs/design/product-experience.md)
 - [AI 接入与命令说明](docs/agent.md)
 - [发布与更新](release/README.md)
 

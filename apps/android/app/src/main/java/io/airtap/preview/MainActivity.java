@@ -166,8 +166,10 @@ public final class MainActivity extends Activity {
         long now = System.currentTimeMillis() / 1000;
         if (ticket != null && invitationExpiry <= now) { ticket = null; invitationArtifacts = null; claim = null; code = null; message = "邀请已过期，点下面按钮重新生成即可。"; }
         RecoveryStatus recovery = service == null ? RecoveryStatus.WAITING_FOR_AI : service.recoveryStatus();
+        String activeAi = service == null ? null : service.activeControllerName();
         String key = recovery + ":" + invitationUncertain + ":" + setupExhausted + ":" + enrolled + ":" + accessibility + ":" + operationConfigured + ":" + notifications + ":" + (trusted != null) + ":" + (pending == null ? "" : pending.optString("approval_id")) + ":" + (ticket != null) + ":" + claim + ":" + busy + ":" + (service != null && service.isConnected()) + ":" + multiOwner.enabled(config) + ":" + multiOwner.migrationPending(config);
         renderTouchFeedback();
+        key += ":" + activeAi;
         if (key.equals(renderKey)) return; renderKey = key; content.removeAllViews();
         if (upgrade || !enrolled || (accessibility && notifications)) {
             content.addView(AppUi.deviceIdentity(this)); AppUi.space(content, 24);
@@ -183,15 +185,16 @@ public final class MainActivity extends Activity {
             permissions(accessibility, operationConfigured);
             if (trusted != null || pending != null) paragraph("原 AI 连接已保留。恢复上面这一项后会继续连接，无需重新配对。");
         } else if (multiOwner.enabled(config)) {
-            multiOwner.bindIdentity(config);multiOwner.render(content);
+            multiOwner.bindIdentity(config);multiOwner.render(content, recovery, activeAi);
             content.addView(button("远程使用准备", v -> remotePreparation()));
             content.addView(button("回到手机桌面", v -> startActivity(new Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_HOME).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))));
         } else if (trusted != null) {
-            heading(recoveryTitle(recovery));
-            paragraph(recoveryDetail(recovery));
-            paragraph("回到自己的 AI 对话，直接告诉它你想做什么。已保留整台手机的授权，无需每次重新配对。你随时可以停止并解除连接。");
+            heading(OwnerStatus.title(recovery, activeAi));
+            paragraph(OwnerStatus.detail(recovery));
+            if (OwnerStatus.canStartTask(recovery)) content.addView(FirstTask.button(this));
+            paragraph("也可以直接交代自己的任务。有效连接会保留，换 App 不用重新批准 Airtap。");
             content.addView(button("远程使用准备", v -> remotePreparation()));
-            primary("回到手机桌面", v -> startActivity(new Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_HOME).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)));
+            content.addView(button("回到手机桌面", v -> startActivity(new Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_HOME).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))));
             if(multiOwner.migrationPending(config))paragraph("正在核实多 AI 连接。原授权已保留，服务端确认完成后才会切换；结果未知时不会自动重配。");
             content.addView(button(multiOwner.migrationPending(config)?"继续核实多 AI 连接":"连接多个自己的 AI", v -> multiOwner.enable(config)));
             content.addView(button("停止并解除 AI 连接", v -> disconnect()));
@@ -608,34 +611,6 @@ public final class MainActivity extends Activity {
                     try { startActivity(new Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS)); }
                     catch (Exception unavailable) { change("请在系统设置里搜索电池优化，找到 Airtap 并允许后台使用。" + backgroundInstructions()); }
                 }).setNegativeButton("返回", null).show();
-    }
-    private static String recoveryTitle(RecoveryStatus status) {
-        return switch (status) {
-            case CONNECTED -> "你的 AI 已连接";
-            case SCREEN_PREPARABLE -> "已连接，任务到来时唤醒";
-            case SYSTEM_AUTH_REQUIRED -> "请完成手机或 SIM 卡验证";
-            case SECURE_CONNECTION_REQUIRED -> "请检查安全连接更新";
-            case NOTIFICATIONS_REQUIRED -> "请开启连接通知";
-            case STORAGE_UNAVAILABLE -> "暂时无法读取原连接";
-            case NOTIFICATION_START_RETRY -> "正在恢复连接通知";
-            case NETWORK_RECONNECTING -> "网络恢复后自动连接";
-            case SCREEN_UNAVAILABLE -> "已连接，屏幕暂不可用";
-            case WAITING_FOR_AI, VERIFYING_CONNECTION -> "正在核实原 AI 连接";
-        };
-    }
-    private static String recoveryDetail(RecoveryStatus status) {
-        return switch (status) {
-            case CONNECTED -> "连接正常，可以让自己的 AI 开始使用。";
-            case SCREEN_PREPARABLE -> "手机正在息屏或显示系统允许退出的锁屏。任务到来时会尝试自动唤醒，你不用一直点亮屏幕。";
-            case SYSTEM_AUTH_REQUIRED -> "系统当前要求手机解锁或 SIM 卡验证。请在手机上按提示完成；原 AI 连接会保留，随后让 AI 查看屏幕继续。";
-            case SECURE_CONNECTION_REQUIRED -> "无法验证服务的安全连接。原 AI 配对已保留，请检查 Airtap 和系统更新；不要关闭证书校验或重新配对来绕过这个问题。";
-            case STORAGE_UNAVAILABLE -> "暂时无法读取或保存本机的连接记录，手机操作已暂停。请检查存储后重试；无需先删除记录或重新配对。";
-            case NOTIFICATIONS_REQUIRED -> "连接记录仍在。开启 Airtap 的系统通知后会自动继续，无需重新配对。";
-            case NOTIFICATION_START_RETRY -> "系统暂时没有启动连接通知，Airtap 正在自动重试。原 AI 授权已保留；持续未恢复时，可查看后台运行设置。";
-            case NETWORK_RECONNECTING -> "当前网络或服务连接中断，Airtap 会自动重连。保持手机联网即可，无需重新发送邀请。";
-            case SCREEN_UNAVAILABLE -> "连接已经建立，但系统暂时无法准备屏幕。AI 会收到具体状态；可查看远程使用准备中的系统检查。";
-            case WAITING_FOR_AI, VERIFYING_CONNECTION -> "正在读取并核实已保存的连接，完成后会自动继续，不需要再次核码。";
-        };
     }
     private RemoteReadiness.Snapshot readiness() {
         RemoteReadiness.Network network = RemoteReadiness.Network.UNKNOWN;

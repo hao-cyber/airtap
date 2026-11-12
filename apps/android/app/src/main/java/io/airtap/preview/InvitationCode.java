@@ -74,7 +74,8 @@ final class InvitationCode {
             changed.run(); return null;
         }
         return "用 Airtap 连接我的手机，邀请码 " + code.substring(0, 4) + " " + code.substring(4)
-                + "。接入说明：" + config.origin() + "/connect 。申请后告诉我六位核对码，等我在手机确认。";
+                + "。接入说明：" + config.origin() + "/connect 。先用实际工具检查能否接入并保留连接，"
+                + "申请后告诉我六位核对码。等我在手机确认后自行查状态，不用等我再回复。连接后继续我已交代的任务；还没有任务时告诉我已经可以使用。";
     }
 
     private void request(EnrollmentStore.Config config, String ticket, long expires, String key) {

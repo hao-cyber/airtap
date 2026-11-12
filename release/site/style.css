@@ -133,9 +133,15 @@ footer { border-top: 1px solid var(--line); padding: 28px 0 30px; }
 .setup-steps .step-context { font-size: 12px; margin: 0; color: var(--green); }
 .setup-steps .step-note { font-size: 13px; }
 .setup-steps a { display: inline-block; color: var(--green); font-size: 14px; padding-block: 8px; }
+.ai-check { max-width: 820px; margin-inline: auto; padding-top: 28px; }
+.ai-check details { border-top: 0; }
+.ai-check .prompt-example { margin-top: 20px; }
+.ai-check .prompt-example > p { font-size: 15px; margin: 0 0 18px; color: var(--ink); }
+.ai-check strong { color: var(--ink); font-weight: 550; }
+.task-outcome { grid-column: 1 / -1; color: var(--muted); margin: -32px 0 0; font-size: 14px; }
 .first-task { display: grid; grid-template-columns: 1fr 1fr; gap: 72px; align-items: center; border-block: 1px solid var(--line); }
 .prompt-example { padding: 32px; border-radius: 20px; background: var(--wash); }
-.prompt-example > p { font-size: 20px; line-height: 1.85; }
+.prompt-example > p { overflow-wrap: anywhere; font-size: 17px; line-height: 1.85; }
 .copy-prompt { cursor: pointer; padding: 10px 18px; border: 1px solid #b8c6bd; border-radius: 100px; background: transparent; color: var(--green); font-size: 13px; min-height: 44px; }
 .copy-prompt:hover { background: #e8ede8; }
 .copy-status { display: block; font-size: 12px; color: var(--muted); margin-top: 10px; }
@@ -265,3 +271,5 @@ footer { border-top: 1px solid var(--line); padding: 28px 0 30px; }
   .nav nav { gap: 12px; }
 }
 @media (prefers-reduced-motion:reduce) { html { scroll-behavior: auto; } }
+
+@media (max-width: 700px) { .task-outcome { margin-top: 0; } }

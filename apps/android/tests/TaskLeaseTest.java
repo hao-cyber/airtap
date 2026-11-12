@@ -29,9 +29,11 @@ public final class TaskLeaseTest {
         check(lease.apply(first) == null, "same intent completes after drain");
         check(effects.invalidations == invalidations, "retry does not invalidate a second time");
         var ticket = lease.ticket(A, A, 1); check(lease.current(ticket), "approved ticket current");
+        check(A.equals(lease.claim()), "current holder can be shown to owner");
         check(lease.ticket(B, A, 1) == null && lease.ticket(A, B, 1) == null && lease.ticket(A, A, 2) == null, "identity tuple required");
         now[0] = 120999; check(lease.apply(first) == null, "duplicate ACK before deadline");
         now[0] = 121000; check(!lease.current(ticket), "retry did not extend original deadline");
+        check(lease.claim() == null, "expired holder is not displayed as active");
         check("stale_fence".equals(lease.apply(first)), "expired duplicate cannot revive");
         check("stale_fence".equals(lease.apply(fence(B, 1, 1, a, 120000))), "renew cannot revive expired lease");
         var next = fence(B, 2, 0, a, 120000); check(lease.apply(next) == null, "new epoch recovers");
@@ -55,6 +57,7 @@ public final class TaskLeaseTest {
         check(lease.ticket(B, B, 3) == null, "storage failure not ready");
         effects.storage = true; check(lease.apply(transfer) == null, "same intent can retry storage");
         var beforeDisconnect = lease.ticket(B, B, 3); lease.disconnect();
+        check(lease.claim() == null, "disconnected holder is not displayed as active");
         check(!lease.current(beforeDisconnect), "disconnect revokes authority");
         lease.connected(); check("stale_fence".equals(lease.apply(transfer)), "same epoch cannot revive after reconnect");
         var release = fence(A, 4, 0, null, 0); check(lease.apply(release) == null && lease.idle(), "higher clear fence ready");

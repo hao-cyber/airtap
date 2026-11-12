@@ -1,7 +1,7 @@
 {
   "allowlist_path": "tools/source-package-files.json",
-  "android_version": "0.4.0-beta.46",
-  "archive_root": "airtap-source-0.4.0-beta.46-code76",
+  "android_version": "0.4.0-beta.47",
+  "archive_root": "airtap-source-0.4.0-beta.47-code77",
   "cli_version": "0.4.0-cli.23",
   "closure_policy": "airtap-source-closure-v1",
   "files": [
@@ -155,6 +155,10 @@
     },
     {
       "kind": "source",
+      "path": "apps/android/app/src/main/java/io/airtap/preview/FirstTask.java"
+    },
+    {
+      "kind": "source",
       "path": "apps/android/app/src/main/java/io/airtap/preview/GalleryPublisher.java"
     },
     {
@@ -224,6 +228,10 @@
     {
       "kind": "source",
       "path": "apps/android/app/src/main/java/io/airtap/preview/OwnerRevocations.java"
+    },
+    {
+      "kind": "source",
+      "path": "apps/android/app/src/main/java/io/airtap/preview/OwnerStatus.java"
     },
     {
       "kind": "source",
@@ -485,6 +493,10 @@
     },
     {
       "kind": "source",
+      "path": "apps/android/scripts/test_experience_emulator.py"
+    },
+    {
+      "kind": "source",
       "path": "apps/android/scripts/test_extensions_emulator.py"
     },
     {
@@ -650,6 +662,18 @@
     {
       "kind": "source",
       "path": "apps/android/tests/events/EventWindowTest.java"
+    },
+    {
+      "kind": "source",
+      "path": "apps/android/tests/experience/AndroidManifest.xml"
+    },
+    {
+      "kind": "source",
+      "path": "apps/android/tests/experience/src/io/airtap/preview/ExperienceActivity.java"
+    },
+    {
+      "kind": "source",
+      "path": "apps/android/tests/experience/src/io/airtap/preview/ExperienceRunner.java"
     },
     {
       "kind": "source",
@@ -958,6 +982,10 @@
     {
       "kind": "document",
       "path": "docs/design/event-task-workflow.md"
+    },
+    {
+      "kind": "document",
+      "path": "docs/design/product-experience.md"
     },
     {
       "kind": "document",
@@ -1827,6 +1855,10 @@
     },
     {
       "kind": "source",
+      "path": "tools/experience_review.py"
+    },
+    {
+      "kind": "source",
       "path": "tools/package_download.py"
     },
     {
@@ -1843,12 +1875,16 @@
     },
     {
       "kind": "source",
+      "path": "tools/tests/test_experience_review.py"
+    },
+    {
+      "kind": "source",
       "path": "tools/tests/test_package_source.py"
     }
   ],
   "protocol_version": 4,
   "schema": "airtap-source-allowlist-v1",
   "scope": "Reviewed current Android, CLI, relay, site, build, CI and test source closure. No Git history, credentials, private deployment state, APK, or raw phone evidence. Historical acceptance retains its original version and scope; a source ZIP is not public release approval.",
-  "version": "0.4.0-beta.46-code76",
-  "version_code": 76
+  "version": "0.4.0-beta.47-code77",
+  "version_code": 77
 }

@@ -228,6 +228,16 @@ public final class PreviewService extends AccessibilityService {
     }
     boolean isAuthorized() { return authorized; }
     boolean isConnected() { return connected && (!multiMode || multiHello); }
+    /** Local current lease only; expired, disconnected or unverified ownership is never shown as active. */
+    String activeControllerName() {
+        if (!isConnected() || !executionAllowed()) return null;
+        String claim = tasks.claim();
+        if (claim == null) return null;
+        try {
+            JSONObject grant = new TrustedGrant(this).grant(config, claim);
+            return grant == null ? null : grant.optString("name", "一位 AI");
+        } catch (Exception unavailable) { return null; }
+    }
     /** Called by the Activity dump on the main thread; reads fields only, never restores work. */
     JSONObject diagnostics(EnrollmentStore.Config expected) {
         boolean same = expected != null && config != null && expected.url.equals(config.url) && expected.token.equals(config.token);
