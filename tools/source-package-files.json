@@ -948,6 +948,10 @@
       "path": "docs/companion-upgrade-plan.md"
     },
     {
+      "kind": "document",
+      "path": "docs/design/ai-phone-capability-map.md"
+    },
+    {
       "kind": "source",
       "path": "docs/design/device-capability-expansion.md"
     },
