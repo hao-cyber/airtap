@@ -4,6 +4,8 @@
 
 本表描述 code65／Android 0.4.0-beta.35、CLI.16 的扩展实现。通知事件、任务进度、文件续传、跨请求持续触控和媒体采集的实现与检查见[本轮记录](results/beta35-code65-capabilities-20261110.json)。[公网发布核验](results/beta35-code65-publication-20261110.json)与[Muse 两台真机验收](results/beta35-code65-muse-20261110.json)分别记录发布和实际任务；后者覆盖持续触控、任务保存、96 KiB 文件操作与短时息屏恢复，不覆盖全部新增接口。当前发布身份见[发布说明](../release/README.md#当前发布身份)。历史实测保持原有版本和范围。
 
+code75 增加 `ping.readiness`：不启动录制、不弹授权页、不创建 PIN 输入挑战，就能查询通知、媒体采集和 SIM PIN 的准备状态。未知状态明确返回未知；有接口不等于已获权限，有权限也不等于任务已经成功。[实现与检查](results/beta45-code75-readiness-checks-20261112.json)记录 43 个核心检查阶段及 28 项 Android 原生模拟器检查，真机结果另行记录。
+
 连续触摸、语义控件、文本编辑、系统导航、音量、窗口、分页观察、长文本、范围内文件传输与分享，以及多 AI 连接和任务租约已有实现。历史 code51 在一台已配置的魅族 Android 15 手机上分别完成 [Muse 息屏任务](results/beta21-code51-muse-cli12-wake-20261103.json)、[Instinct 息屏任务](results/beta21-code51-instinct-cli12-wake-20261103.json)和[双 AI 互斥与交接](results/beta21-code51-two-ai-handoff-20261103.json)；[短时断网恢复](results/beta21-code51-network-recovery-20261102.json)与[供电静置观察](results/beta21-code51-idle-20261103.json)是另行记录的维护者检查。原子能力实测仍保留各自版本、任务和失败范围，详见后文。
 
 主机 helper、实际 workerd / CLI / MCP 协议、Android 模拟器、实体手机和个人 AI 是不同验收层次，不能互相代替。独立新用户、更多机型、多日后台、真正新运行环境中的原配置保留及其他设备迁移，不能由上述限定通过推定完成。

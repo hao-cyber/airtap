@@ -1,0 +1,163 @@
+{
+  "schema": "airtap-code75-readiness-checks-v1",
+  "date": "2026-11-12",
+  "source_commit": "dbac88b8f106a663605966b810f2327e5a776369",
+  "android_version": "0.4.0-beta.45",
+  "android_code": 75,
+  "change": "ping.readiness reports notification, media and SIM prerequisites without opening a permission dialog, starting capture, creating a PIN challenge or waking the screen.",
+  "permission_change": "No new permission enabled by upgrade; photo/video intent visibility declarations only.",
+  "validation": {
+    "core_passed": true,
+    "core_steps_passed": 43,
+    "debug_build_lint_passed": true,
+    "release_build_lint_passed": true,
+    "release_signature_verified": true,
+    "native_android_checks": {
+      "complete": true,
+      "checks": [
+        {
+          "name": "real Android notification delivered through listener",
+          "passed": true
+        },
+        {
+          "name": "event content encrypted at rest",
+          "passed": true
+        },
+        {
+          "name": "other grant has no historical event content",
+          "passed": true
+        },
+        {
+          "name": "owner opt out deletes recorded events",
+          "passed": true
+        },
+        {
+          "name": "native screenshot for continued touch",
+          "passed": true
+        },
+        {
+          "name": "held native pointer acknowledged",
+          "passed": true
+        },
+        {
+          "name": "screenshot while pointer stays down",
+          "passed": true
+        },
+        {
+          "name": "native continuation keeps same pointer",
+          "passed": true
+        },
+        {
+          "name": "one native down and one up across observe/move",
+          "passed": true
+        },
+        {
+          "name": "capture readiness is side-effect-free and declares per-session screen consent",
+          "passed": true
+        },
+        {
+          "name": "capture readiness matches Android microphone permission",
+          "passed": true
+        },
+        {
+          "name": "screen capture requests system consent",
+          "passed": true
+        },
+        {
+          "name": "system-consented recording imported into workspace",
+          "passed": true
+        },
+        {
+          "name": "recording has nonempty verified hash",
+          "passed": true
+        },
+        {
+          "name": "media output available to normal file transport",
+          "passed": true
+        },
+        {
+          "name": "recording bytes accessible through normal scoped file read",
+          "passed": true
+        },
+        {
+          "name": "completed capture clears its encrypted pending-output marker",
+          "passed": true
+        },
+        {
+          "name": "task invalidation cancels pending consent without recording",
+          "passed": true
+        },
+        {
+          "name": "normal photo camera is observable by Airtap",
+          "passed": true
+        },
+        {
+          "name": "normal Android photo capture imports a nonempty workspace file",
+          "passed": true
+        },
+        {
+          "name": "completed photo output URI no longer opens",
+          "passed": true
+        },
+        {
+          "name": "normal video camera is observable by Airtap",
+          "passed": true
+        },
+        {
+          "name": "normal Android video capture imports a nonempty workspace file",
+          "passed": true
+        },
+        {
+          "name": "completed video output URI no longer opens",
+          "passed": true
+        },
+        {
+          "name": "runtime-consented bounded microphone recording returns M4A",
+          "passed": true
+        },
+        {
+          "name": "authorized microphone session starts",
+          "passed": true
+        },
+        {
+          "name": "authority loss stops microphone service and discards partial capture",
+          "passed": true
+        },
+        {
+          "name": "SIM PIN entry disabled by default",
+          "passed": true
+        }
+      ],
+      "evidence": "Production extension classes in the installed debug APK. Real Android notification listener, Keystore, continued touch, MediaProjection, system camera, microphone runtime consent and file import; synthetic local grants and BooleanSuppliers. Test presses normal system recording consent using UiAutomation with FLAG_DONT_SUPPRESS_ACCESSIBILITY_SERVICES. No physical phone, live SIM PIN, network pairing, OEM or personal-AI acceptance.",
+      "apk_sha256": "53c5ceea8713e333d0396f4f99f54a47e31716220904a85fecb109cf28d161c0",
+      "physical_phone": false,
+      "personal_ai": false
+    },
+    "host_sim_readiness_cases_passed": 11
+  },
+  "contract": [
+    "Capability presence is separate from permission/readiness.",
+    "Missing fields or null readings mean unknown.",
+    "Photo/video handler availability does not establish permission within the external camera App.",
+    "Microphone permission does not override the system microphone privacy control.",
+    "Screen consent is required for each recording.",
+    "SIM counts do not reveal a PIN; unknown/not-ready slots prevent a claim that all SIMs are unlocked.",
+    "Keypad verification and owner-provided correct PIN remain prerequisites for actual input."
+  ],
+  "external_review": {
+    "backend": "Grok",
+    "usable_review": false,
+    "attempts": [
+      {
+        "status": "failed",
+        "error_kind": "hard_timeout"
+      },
+      {
+        "status": "failed",
+        "error_kind": "idle_timeout"
+      }
+    ],
+    "note": "First attempt encountered a large-file read limit; the reduced inline attempt also timed out without a final answer. Tests are not attributed to Grok."
+  },
+  "physical_acceptance": "Recorded separately after actual personal-AI results; emulator checks are not physical capture or real SIM evidence."
+}

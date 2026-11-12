@@ -1,0 +1,19 @@
+{
+  "schema": "airtap-android-update-v1",
+  "application_id": "io.airtap.preview",
+  "version_name": "0.4.0-beta.45",
+  "version_code": 75,
+  "apk_sha256": "fb60e7b3d99520106ea8ce002d308fad8186e2e83d902234cda5beb6e992e7a9",
+  "apk_bytes": 677325,
+  "signer_sha256": "a2aa0c1b6fdaf1baa37aa20817387524a1318b5dab82bf7c185663141daba60f",
+  "min_sdk": 34,
+  "target_sdk": 36,
+  "debuggable": false,
+  "channel": "beta",
+  "published_at": "2026-11-12",
+  "download_path": "/download/android",
+  "notes": [
+    "AI 可以先检查通知、录音录屏和 SIM PIN 的准备状态，避免为了试探权限启动操作。",
+    "正常升级保留已有 AI 连接与用户数据，不自动开启权限。"
+  ]
+}

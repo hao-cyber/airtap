@@ -1249,6 +1249,10 @@
     },
     {
       "kind": "result",
+      "path": "docs/results/beta45-code75-readiness-checks-20261112.json"
+    },
+    {
+      "kind": "result",
       "path": "docs/results/beta5-atomic-development-20261026.json"
     },
     {
@@ -1685,6 +1689,10 @@
     },
     {
       "kind": "source",
+      "path": "release/android/75.json"
+    },
+    {
+      "kind": "source",
       "path": "release/build_android.py"
     },
     {
@@ -1817,6 +1825,6 @@
   "protocol_version": 4,
   "schema": "airtap-source-allowlist-v1",
   "scope": "Reviewed current Android, CLI, relay, site, build, CI and test source closure. No Git history, credentials, private deployment state, APK, or raw phone evidence. Historical acceptance retains its original version and scope; a source ZIP is not public release approval.",
-  "version": "0.4.0-beta.44-code74",
+  "version": "0.4.0-beta.45-code75",
   "version_code": 75
 }
