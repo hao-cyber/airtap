@@ -1,0 +1,90 @@
+{
+  "schema": "airtap-product-experience-review-v1",
+  "date": "2026-11-13",
+  "source_commit": "9d19d209bdcb1925210078cf8a1da69c7d4423a8",
+  "scope": "First-use and owner-facing presentation changes; Android candidate and website refresh. Not a complete product, novice-user or physical-device acceptance.",
+  "android_candidate": {
+    "version_code": 77,
+    "version_name": "0.4.0-beta.47",
+    "apk_sha256": "32b4b4a16c472c16ea681316c9572bec02bd4eaf9d32bfa4a86016b2e45d1921",
+    "apk_bytes": 677325,
+    "signer_sha256": "a2aa0c1b6fdaf1baa37aa20817387524a1318b5dab82bf7c185663141daba60f",
+    "source_clean": true,
+    "source_inputs_unchanged": true,
+    "debug_build_and_lint": "passed",
+    "release_build_and_lint": "passed",
+    "v3_signature": "passed",
+    "min_sdk": 34,
+    "target_sdk": 36,
+    "debuggable": false,
+    "physical_phone_installation": false,
+    "recommended": false
+  },
+  "checks": {
+    "first_setup_recovery": 30,
+    "multi_ai_migration": 23,
+    "task_lease": 57,
+    "invitation_feedback": 13,
+    "native_emulator_presentation": 27,
+    "experience_summary_cases": 7,
+    "source_tools_tests": 22,
+    "release_python_tests": 35,
+    "website_worker_tests": 17
+  },
+  "source_export": {
+    "preflight": "passed",
+    "files": 472,
+    "markdown_local_links": 317,
+    "configured_scan_findings": 0,
+    "failure_and_correction": "The new JSON evidence file was initially classified as a Markdown document in the export allowlist; the package validator rejected it. Corrected to result and reran all 22 source-tool tests and export preflight successfully.",
+    "scope": "Allowlisted source and configured heuristic scans only; not a guarantee that every possible sensitive datum is absent."
+  },
+  "emulator_scope": {
+    "system": "Android 16 emulator",
+    "components": [
+      "AppUi",
+      "FirstTask",
+      "OwnerStatus",
+      "RecoveryStatus"
+    ],
+    "checks": "All recovery states render; only ready states offer the example; opening/cancel does not copy; explicit copy matches the full task; offline disposable package removed. TaskLease checks separately cover expired/disconnected holder display.",
+    "full_main_activity_or_live_multi_ai": "not tested by this fixture",
+    "original_phones_touched": false,
+    "fixture_failures_preserved": [
+      "Initial run did not initialize the accessibility root before reading it; bounded readiness fixed.",
+      "Foreground assertion used the wrong Android dump field; corrected to observed topResumedActivity.",
+      "A screenshot review caught reused Activity content; fresh fixture-only launches now precede each state capture."
+    ],
+    "final_native_run": "passed; connected, reconnecting and system-authentication screenshots visually reviewed"
+  },
+  "website": {
+    "url": "https://airtap.memtrix.dev/install",
+    "deployed": true,
+    "deployment_kind": "site_refresh",
+    "recommended_android_code": 75,
+    "apk_changed": false,
+    "relay_changed": false,
+    "local_files_verified": 43,
+    "public_http_checks": 101,
+    "public_http_passed": true,
+    "responsive_widths": [
+      320,
+      390,
+      768,
+      1440
+    ],
+    "overflow_or_broken_images": false,
+    "keyboard_disclosure": "passed",
+    "help_search": "passed",
+    "browser_console_errors": 0,
+    "copy_feedback": "Clipboard write promise resolved and feedback displayed; in-app browser clipboard readback was unavailable/mismatched, so browser byte-level clipboard correctness is not claimed. Native Android copy was verified separately.",
+    "videos_changed": false
+  },
+  "remaining": [
+    "Original long observation and task21 physical notification/media/business acceptance continue on their original plan.",
+    "Candidate code77 must receive its own affected real-device/AI UI check after the original observation; source merge or emulator pass is not phone promotion.",
+    "Current-version real phone plus real AI installation/use videos have not replaced the existing older videos.",
+    "No independent novice participants or matched human/AI task timings were collected; protocol and content-free local analysis are ready."
+  ],
+  "privacy": "No new telemetry endpoint. Experience summary reads manual content-free local samples; original phone recordings, conversations, credentials and deployment state are excluded."
+}

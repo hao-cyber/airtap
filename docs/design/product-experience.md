@@ -79,7 +79,7 @@ Android 用隔离模拟器检查真实组件：连接、恢复、系统验证、
 }
 ```
 
-`journey` 为 `first_use` 或 `returning`；后者的 `last_setup_stage` 用 `null`。首次阶段依次为 `arrived / installed / permissions_ready / invitation_sent / approved`，只填实际到达的一步，不能由复制按钮推断邀请已送达。`ai` 为 `muse / instinct / other`。时间只填实测正秒数，未知用 `null`；不要填 0 冒充瞬时完成。`required_confirmations` 统计初始授权及真正系统验证，`remedial_interventions` 统计为了救回任务额外叫人帮助的次数。
+`journey` 为 `first_use` 或 `returning`；后者的 `last_setup_stage` 用 `null`。首次阶段依次为 `arrived / installed / permissions_ready / invitation_sent / approved`，只填实际到达的一步，不能由复制按钮推断邀请已送达。`ai` 为 `muse / instinct / other`。`version_code` 记录实际版本；尚未安装或未读到时用 `null`，这些样本仍保留，不能用官网推荐版本冒充实测版本。时间只填实测正秒数，未知用 `null`；不要填 0 冒充瞬时完成。`required_confirmations` 统计初始授权及真正系统验证，`remedial_interventions` 统计为了救回任务额外叫人帮助的次数。
 
 核心计数是“结果已核对且无需补救性人工介入的任务数 / 实际开始的任务数”。未完成、失败和仍未知的已开始任务留在分母；另报在接入阶段退出的人数。没有样本时返回 0/0，不宣传 100%。人工对照仅统计双方结果均已核对且计时存在的配对样本，报告中位时间差。默认不提供夸大的总体成功率结论。
 

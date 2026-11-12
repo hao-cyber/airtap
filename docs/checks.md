@@ -4,6 +4,10 @@
 
 ## 本地运行
 
+[code77 体验改动检查](results/product-experience-20261113.json)记录连接状态、首件任务、网站和本地体验统计的本轮范围。Android 候选与官网当前推荐版本分开记录，不用界面夹具替代真机验收。
+
+隔离界面检查可运行 `python3 apps/android/scripts/test_experience_emulator.py --serial emulator-XXXX --output-dir /private/new-experience-check`，需设置 `JAVA_HOME` 和 `ANDROID_HOME`。只接受真实模拟器，使用无网络权限的独立包，复用生产显示组件；不会连接中继或改动正式 Airtap。输出目录必须新建，结束后移除夹具。原手机长时观察期间无需重复运行手机任务。
+
 准备 Python 3.12+、Node.js 22+（包含 npm）、JDK 17+；`JAVA_HOME` 指向实际 JDK。停用的云端模板记录 Node 22、Temurin 17、Python 3.12，当前不执行。主机 Java 测试以 `--release 17` 编译。无需模型 key、Cloudflare 登录、SSH、手机、USB 或正式签名。
 
 ```sh

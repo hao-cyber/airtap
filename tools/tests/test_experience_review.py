@@ -58,3 +58,11 @@ class ExperienceReviewTest(unittest.TestCase):
         result = summary()
         self.assertEqual(result["verified_without_remedial_help"], {"count": 0, "of_task_attempts": 0})
         self.assertIsNone(result["median_ai_minus_manual_seconds"])
+
+    def test_dropouts_before_install_are_kept_with_unknown_version(self):
+        result = summary(sample(version_code=None, last_setup_stage="arrived", task_started=False,
+                                result_verified=False, task_seconds=None, manual_seconds=None, manual_verified=False))
+        self.assertEqual(result["first_use_count"], 1)
+        self.assertEqual(result["setup_funnel"]["installed"], 0)
+        self.assertEqual(result["unknown_version_samples"], 1)
+        self.assertEqual(result["observed_version_codes"], [])

@@ -26,11 +26,11 @@ def summarize(data):
         ids.add(row["id"])
         if row["journey"] not in ("first_use", "returning") or row["ai"] not in ("muse", "instinct", "other"):
             raise ValueError("Unknown journey or AI category")
-        for field in ("version_code", "required_confirmations", "remedial_interventions"):
+        for field in ("required_confirmations", "remedial_interventions"):
             if type(row[field]) is not int or not 0 <= row[field] <= 100000:
                 raise ValueError("Invalid count")
-        if row["version_code"] == 0:
-            raise ValueError("Record the actual tested version")
+        if row["version_code"] is not None and (type(row["version_code"]) is not int or not 1 <= row["version_code"] <= 100000):
+            raise ValueError("Record the actual tested version, or null if unobserved")
         for field in ("task_started", "result_verified", "manual_verified"):
             if type(row[field]) is not bool:
                 raise ValueError("Outcome flags must be explicit booleans")
@@ -59,6 +59,8 @@ def summarize(data):
     return {
         "schema": "airtap-experience-summary-v1", "synthetic": data["synthetic"],
         "sample_count": len(rows), "first_use_count": len(first),
+        "observed_version_codes": sorted({r["version_code"] for r in rows if r["version_code"] is not None}),
+        "unknown_version_samples": sum(r["version_code"] is None for r in rows),
         "setup_funnel": {s: sum(STAGES.index(r["last_setup_stage"]) >= i for r in first) for i, s in enumerate(STAGES)},
         "first_verified_task_count": sum(r["result_verified"] for r in first),
         "task_attempt_count": len(tasks), "verified_task_count": len(verified),
