@@ -57,8 +57,9 @@ public final class PreviewService extends AccessibilityService {
         public void requireLease(String claim) throws Exception { new TrustedGrant(PreviewService.this).requireLease(config,claim); }
     });
     private final SimPinInput simPinInput=new SimPinInput(this);
+    private final CommandTimeline fileCommandTimeline = new CommandTimeline();
     private record CommandAuthority(String claim, String grantFence, TaskLease.Ticket ticket, WebSocket socket, int generation, boolean leased, boolean events) {}
-    private void invalidateTask() { activeCommand=0; recovery.cancel();ui.clear();ui.cancelGestures();MediaCapture.invalidate();WorkspaceShares.revokeAll(this); }
+    private void invalidateTask() { activeCommand=0; fileCommandTimeline.interrupt(); recovery.cancel();ui.clear();ui.cancelGestures();MediaCapture.invalidate();WorkspaceShares.revokeAll(this); }
     private void disconnectTask() { multiHello=false;if(helloTask!=null)main.removeCallbacks(helloTask);helloTask=null;tasks.disconnect(); }
     private boolean authorityCurrent(CommandAuthority authority) {
         if(authority==null||!current(authority.socket,authority.generation))return false;
@@ -461,12 +462,17 @@ public final class PreviewService extends AccessibilityService {
                 });
             }
             @Override public void onMessage(WebSocket ws, String text) {
+                long receivedNanos = System.nanoTime();
                 if (text.length() > 66560 || text.getBytes(StandardCharsets.UTF_8).length > 66560) {
                     PreviewDiagnostics.event(PreviewService.this, PreviewDiagnostics.Event.socket_close_requested,
                             PreviewDiagnostics.Reason.request_too_large, 1009, run, socket == ws ? 1 : 0);
                     ws.close(1009, "request too large"); return;
                 }
-                main.post(() -> { if (current(ws, run)) { if(multiMode)multiMessage(ws,run,text);else command(ws,run,text); } });
+                main.post(() -> { if (current(ws, run)) {
+                    long mainStartedNanos = System.nanoTime();
+                    if(multiMode)multiMessage(ws,run,text,receivedNanos,mainStartedNanos);
+                    else command(ws,run,text,receivedNanos,mainStartedNanos);
+                } });
             }
             @Override public void onMessage(WebSocket ws, ByteString bytes) {
                 PreviewDiagnostics.event(PreviewService.this, PreviewDiagnostics.Event.socket_close_requested,
@@ -673,7 +679,7 @@ public final class PreviewService extends AccessibilityService {
         scheduleConnect(run, 500);
     }
 
-    private void multiMessage(WebSocket ws,int run,String text) {
+    private void multiMessage(WebSocket ws,int run,String text,long receivedNanos,long mainStartedNanos) {
         try{
             JSONObject message=new JSONObject(text);String type=message.getString("type");
             if("hello_ack".equals(type)){
@@ -690,11 +696,12 @@ public final class PreviewService extends AccessibilityService {
                 return;
             }
             if(!"command".equals(type))throw new IllegalArgumentException();
-            command(ws,run,text);
+            command(ws,run,text,receivedNanos,mainStartedNanos);
         }catch(Exception malformed){disconnectTask();ws.close(1008,"invalid_multi_message");}
     }
-    private void command(WebSocket ws, int run, String text) {
+    private void command(WebSocket ws, int run, String text, long receivedNanos, long mainStartedNanos) {
         String id = null;
+        CommandTimeline.Span timing = null;
         try {
             JSONObject request = new JSONObject(text);TrustedGrant trust=new TrustedGrant(this);String owner;TaskLease.Ticket ticket=null;boolean leased=false;
             if(multiMode){
@@ -709,6 +716,8 @@ public final class PreviewService extends AccessibilityService {
             CommandAuthority authority=new CommandAuthority(owner,grantFence,ticket,ws,run,leased, java.util.Set.of("event_status","event_read").contains(request.optString("action")));
             if(grantFence==null||!authorityCurrent(authority))throw new ScopedUi.Refused("task_not_ready");
             if (activeCommand != 0 || !ui.admits(request.optString("action"),owner) || !FileScopes.quiescent()) { error(ws,id,"busy");return; }
+            if(FileScopes.ACTIONS.contains(request.optString("action")))
+                timing = fileCommandTimeline.begin(owner,request.optString("action"),sequence,receivedNanos,mainStartedNanos);
             if(multiMode)trust.consume(config,owner,sequence);else trust.consume(config, sequence);
             if(!authorityCurrent(authority))throw new ScopedUi.Refused("task_not_ready");
             request.remove("sequence");
@@ -735,6 +744,7 @@ public final class PreviewService extends AccessibilityService {
                         "client", RelayApi.json("platform", "android", "version_name", BuildConfig.VERSION_NAME,
                                 "version_code", BuildConfig.VERSION_CODE, "build_type", BuildConfig.BUILD_TYPE),
                         "device_unlocked", ui.unlocked(), "screen_state", ui.screenState().wireName, "auto_wake", true,
+                        "network_transport", network(), "last_file_command", fileCommandPerformance(owner),
                         "last_file_performance", FileScopes.performance(owner) == null ? JSONObject.NULL : FileScopes.performance(owner),
                         "capabilities", new org.json.JSONArray().put("companion_v1").put("paged_tree_v1").put("node_text_v1").put("screen_recovery_v1").put("atomic_input_v1").put("system_actions_v1").put("drag_v1").put("gesture_v1").put("semantic_node_v1").put("windows_v1").put("visual_window_v1").put("volume_v1").put("files_v1").put("file_share_v1").put("gallery_publish_v1").put("notification_events_v1").put("touch_session_v1").put("media_capture_v1").put("sim_pin_keypad_v1").put("remote_connections_v1").put("battery_status_v1"),
                         "observation_limits", RelayApi.json("max_inspected_nodes", PagedTree.MAX_NODES, "max_capture_bytes", PagedTree.MAX_CAPTURE_BYTES,
@@ -761,15 +771,23 @@ public final class PreviewService extends AccessibilityService {
             else MultiAiProtocol.exact(request,"id","action","challenge","pin");
             long command = ++commandSerial; activeCommand = command;
             String requestId = id;
+            CommandTimeline.Span commandTiming = timing;
+            if(commandTiming != null) commandTiming.preparing();
             java.util.function.BooleanSupplier commandCurrent = () -> authorityCurrent(authority) && activeCommand == command;
             JSONObject actionRequest=request;
             CompanionUi.Reply reply = new CompanionUi.Reply() {
                 private boolean finish() {
-                    if (!commandCurrent.getAsBoolean()) return false;
+                    if (!commandCurrent.getAsBoolean()) {
+                        if(commandTiming != null) commandTiming.finish(CommandTimeline.Phase.authority_lost);
+                        return false;
+                    }
                     activeCommand = 0; return true;
                 }
-                public void success(JSONObject value) { if (finish()) PreviewService.this.success(ws, requestId, value); }
-                public void error(String code) { if (finish()) PreviewService.this.error(ws, requestId, code); }
+                private void sent(boolean queued) {
+                    if(commandTiming != null) commandTiming.finish(queued ? CommandTimeline.Phase.reply_enqueued : CommandTimeline.Phase.reply_rejected);
+                }
+                public void success(JSONObject value) { if (finish()) sent(PreviewService.this.success(ws, requestId, value)); }
+                public void error(String code) { if (finish()) sent(PreviewService.this.error(ws, requestId, code)); }
             };
             if(RemoteConnections.ACTIONS.contains(action)){
                 RemoteConnections.execute(this,config,owner,grantFence,request,commandCurrent,reply);return;
@@ -777,32 +795,50 @@ public final class PreviewService extends AccessibilityService {
             if("sim_pin_submit".equals(action)){try{simPinInput.submit(owner,request,commandCurrent,reply);}catch(ScopedUi.Refused e){reply.error(e.code);}catch(Exception e){reply.error("invalid_request");}return;}
             recovery.prepare(commandCurrent, new ScreenPreparation.Completion() {
                 @Override public void ready(boolean recovered) {
-                    if (!commandCurrent.getAsBoolean()) return;
+                    if (!commandCurrent.getAsBoolean()) {
+                        if(commandTiming != null) commandTiming.finish(CommandTimeline.Phase.authority_lost);
+                        return;
+                    }
                     if (recovered && actionRequest.has("snapshot_id")) { reply.error("fresh_snapshot_required"); return; }
                     if (recovered && actionRequest.has("observation_id")) { reply.error("fresh_observation_required"); return; }
+                    if(commandTiming != null) commandTiming.executing();
                     ui.execute(actionRequest, reply, commandCurrent, authority.claim, () -> authorityCurrent(authority));
                 }
                 @Override public void error(String code) { reply.error(code); }
                 @Override public void error(String code, String detail) {
-                    if (!commandCurrent.getAsBoolean()) return;
+                    if (!commandCurrent.getAsBoolean()) {
+                        if(commandTiming != null) commandTiming.finish(CommandTimeline.Phase.authority_lost);
+                        return;
+                    }
                     activeCommand = 0;
-                    ws.send(RelayApi.json("id", requestId, "ok", false,
+                    boolean queued = ws.send(RelayApi.json("id", requestId, "ok", false,
                             "error", RelayApi.json("code", code, "next_step", detail)).toString());
+                    if(commandTiming != null) commandTiming.finish(queued ? CommandTimeline.Phase.reply_enqueued : CommandTimeline.Phase.reply_rejected);
                 }
             });
-        } catch (ScopedUi.Refused failure) { if (id != null) error(ws, id, failure.code); }
+        } catch (ScopedUi.Refused failure) {
+            boolean queued = id != null && error(ws, id, failure.code);
+            if(timing != null) timing.finish(queued ? CommandTimeline.Phase.reply_enqueued : CommandTimeline.Phase.reply_rejected);
+        }
         catch (Exception failure) {
             // Storage failure must stop execution; never proceed without persisted replay protection.
-            if (id != null) error(ws, id, "request_or_storage_failure");
+            boolean queued = id != null && error(ws, id, "request_or_storage_failure");
+            if(timing != null) timing.finish(queued ? CommandTimeline.Phase.reply_enqueued : CommandTimeline.Phase.reply_rejected);
         }
     }
-    private void success(WebSocket ws, String id, JSONObject value) { ws.send(RelayApi.json("id", id, "ok", true, "result", value).toString()); }
-    private void error(WebSocket ws, String id, String code) {
+    private JSONObject fileCommandPerformance(String owner) {
+        CommandTimeline.Snapshot s = fileCommandTimeline.snapshot(owner);
+        return s == null ? null : RelayApi.json("sequence",s.sequence(),"action",s.action(),"phase",s.phase().name(),
+                "elapsed_ms",s.elapsedMs(),"main_queue_ms",s.mainQueueMs(),"admission_ms",s.admissionMs(),
+                "preparation_ms",s.preparationMs(),"execution_reply_ms",s.executionReplyMs());
+    }
+    private boolean success(WebSocket ws, String id, JSONObject value) { return ws.send(RelayApi.json("id", id, "ok", true, "result", value).toString()); }
+    private boolean error(WebSocket ws, String id, String code) {
         String next = AtomicInput.nextStep(code);
         if (next == null) next = FileScopes.recoveryHint(code);
         if (next == null) next = WindowInventory.nextStep(code);
         JSONObject details = next == null ? RelayApi.json("code", code) : RelayApi.json("code", code, "next_step", next);
-        ws.send(RelayApi.json("id", id, "ok", false, "error", details).toString());
+        return ws.send(RelayApi.json("id", id, "ok", false, "error", details).toString());
     }
     private String network() {
         ConnectivityManager manager = getSystemService(ConnectivityManager.class);

@@ -63,10 +63,10 @@ final class PreviewService {
   private void restore(){if(!pendingMigration&&!multiRecord)throw new AssertionError("unexpected migration restore in single fixture");migrationRestores++;}
   private void storageUnavailable(){throw new AssertionError("unexpected storage failure in single fixture");}
   // Single-mode fixture: multi dispatch must never silently become a no-op.
-  private void multiMessage(WebSocket ws,int run,String text){throw new AssertionError("unexpected multi dispatch in single fixture");}
+  private void multiMessage(WebSocket ws,int run,String text,long receivedNanos,long mainStartedNanos){throw new AssertionError("unexpected multi dispatch in single fixture");}
   private void scheduleRestore(int run,long delay){main.postDelayed(()->{if(run==generation)verificationRequests++;},delay);}
   private void disconnectTask(){if(multiMode)throw new AssertionError("unexpected multi task in single fixture");}
-  private void command(WebSocket ws,int run,String text){executed++;}
+  private void command(WebSocket ws,int run,String text,long receivedNanos,long mainStartedNanos){executed++;}
   // Existing closure cases begin with a transport that has completed its actual onOpen callback.
   WebSocketListener connect(WebSocket ws, int run) {
     socket=null; connected=false; generation=run; authorized=true; client.next=ws; activeCommand++;
