@@ -1,0 +1,57 @@
+{
+  "schema": "airtap-dynamic-tree-and-file-diagnostics-v1",
+  "date": "2026-11-12",
+  "android_version": "0.4.0-beta.42",
+  "version_code": 72,
+  "cli_version": "0.4.0-cli.22",
+  "status": "published_candidate_pending_phone_acceptance",
+  "source_commit": "2d530dae3e970303f2dbac0cab5da4b27f0e717c",
+  "apk_sha256": "3cd1cdef68a61c55ff653599ae8023094353d81f02bbcc6fd32be169270836d3",
+  "apk_bytes": 673229,
+  "changes": [
+    "First read_tree captures once with final live window and authority checks; changing counters no longer need two identical full scans. Continuation and target action checks remain.",
+    "Per-controller latest file command includes sequence and separate main-queue, admission, screen-preparation and execution/reply-enqueue durations. Late callbacks do not replace a newer command record.",
+    "ping reports the application default network transport category without IP, SSID, subscription or credentials."
+  ],
+  "checks": {
+    "code71_core_baseline_steps": 43,
+    "code71_core_baseline_passed": true,
+    "authority_host_tests": 80,
+    "file_helper_host_tests": 76,
+    "incremental_observation_host_tests": 20,
+    "previous_initial_read_reproduced_failure": true,
+    "signed_build_lint": true,
+    "build_inputs_unchanged": true,
+    "source_preflight": "passed; 306 required files; no heuristic findings",
+    "emulator_upgrade": {
+      "at": "2026-11-12T08:56:53.237571+00:00",
+      "previous_version_code": 71,
+      "version_code": 72,
+      "install_success": true,
+      "process_started": true,
+      "own_android_runtime_error_in_inspected_buffer": false,
+      "first_immediate_pid_check": "not_ready; later readback found process without reinstall or clearing data",
+      "scope": "Same-signed APK emulator upgrade and process smoke only; no phone or upload acceptance."
+    }
+  },
+  "publication": {
+    "release": "https://github.com/hao-cyber/airtap/releases/tag/v0.4.0-beta.42",
+    "downloaded_assets_byte_equal": true,
+    "code71_diagnostic_prerelease": "https://github.com/hao-cyber/airtap/releases/tag/v0.4.0-beta.41",
+    "code71_phone_installation": "not performed; combined candidate goes directly from code70 to code72",
+    "website_recommended_version_code": 68
+  },
+  "limits": [
+    "No throughput improvement or proxy cause established by these checks.",
+    "reply_enqueued means local send queue accepted bytes, not cloud delivery or a successful file operation.",
+    "Timings start after a complete WebSocket message reaches the phone; earlier network transfer is outside this measurement.",
+    "Default transport is app-specific, not proof of other app routing or external exit address.",
+    "Native capture/window/authorization in the incremental host regression are explicit synthetic effects; real-device acceptance remains separate."
+  ],
+  "focused_external_review": {
+    "model": "Grok",
+    "attempts": 2,
+    "result": "No usable output; both actual dispatches ended with idle timeout, exit 124. No substitute model attributed as Grok."
+  },
+  "privacy": "Public record contains synthetic test metadata only; no phone content, personal AI addresses, pairing data or deployment endpoints."
+}
