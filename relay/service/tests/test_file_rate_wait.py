@@ -16,6 +16,36 @@ spec.loader.exec_module(cli)
 
 
 class RateWaitTest(unittest.TestCase):
+    def test_missing_device_address_has_specific_recovery_without_echoing_secrets(self):
+        result = {'status': 404, 'content_type': 'application/json',
+                  'body': base64.b64encode(b'{"protocol_version":4,"error":"not_found"}').decode()}
+        with patch.object(cli.subprocess, 'run', return_value=SimpleNamespace(returncode=0, stdout=json.dumps(result).encode())) as transport:
+            with self.assertRaises(cli.Failure) as failed:
+                cli.request('https://relay.example/', '/v1/status', 'b' * 64)
+        error = failed.exception.result
+        self.assertEqual(error['error'], 'device_address_missing')
+        self.assertEqual(error['outcome'], 'not_dispatched')
+        self.assertFalse(error['retry_action'])
+        self.assertIn('/d/<device-id>', error['next_step'])
+        self.assertNotIn('b' * 64, json.dumps(error))
+        self.assertNotIn('relay.example', json.dumps(error))
+        self.assertEqual(transport.call_count, 1)
+
+    def test_other_404_responses_do_not_claim_missing_device_address(self):
+        for url, path, body in [
+                ('https://relay.example/d/' + 'a' * 32, '/v1/status', {'protocol_version': 4, 'error': 'not_found'}),
+                ('https://relay.example', '/v1/status', {'protocol_version': 4, 'error': 'device_not_found'}),
+                ('https://relay.example', '/v1/status', {'protocol_version': 4, 'error': 'not_found', 'private': 'secret'}),
+                ('https://relay.example', '/v1/status', {'protocol_version': 3, 'error': 'not_found'}),
+                ('https://relay.example', '/agent.md', {'protocol_version': 4, 'error': 'not_found'})]:
+            result = {'status': 404, 'content_type': 'application/json',
+                      'body': base64.b64encode(json.dumps(body).encode()).decode()}
+            with self.subTest(url=url, body=body), patch.object(cli.subprocess, 'run', return_value=SimpleNamespace(returncode=0, stdout=json.dumps(result).encode())):
+                with self.assertRaises(cli.Failure) as failed:
+                    cli.request(url, path, 'b' * 64)
+                self.assertEqual(failed.exception.result['error'], 'http_error')
+                self.assertNotIn('secret', json.dumps(failed.exception.result))
+
     def args(self, command='file-upload', budget=120):
         return SimpleNamespace(command=command, _file_rate_wait_remaining=budget,
                                config=Path('/unused'), timeout=25, allow_local_http=False)

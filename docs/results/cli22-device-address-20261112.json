@@ -1,0 +1,39 @@
+{
+  "schema": "airtap-cli-device-address-v1",
+  "date": "2026-11-12",
+  "cli_version": "0.4.0-cli.22",
+  "status": "checks_passed_pending_publication",
+  "trigger": "An existing personal-AI credential store retained a service origin but dropped the original /d/device path. Status returned an exact public-service route 404; it did not establish phone offline or revocation.",
+  "change": "Classify only the exact protocol-4 root-route not_found response for authenticated /v1 requests as device_address_missing, with a fixed nonsecret recovery instruction. No automatic retry, path guessing, identity replacement or new pairing. Other 404 responses remain uncertain.",
+  "guidance": [
+    "Persist and read back the complete device URL alongside the same credential without exposing the credential.",
+    "Retain numeric HTTP status and fixed CLI errors in sanitized reports.",
+    "Correct obsolete SMS guidance: optional notification_events_v1 queue is not a complete SMS receiver."
+  ],
+  "cli_sha256": "fce5863973bf54bac4d064c781931a54b2ff69e9e482dd0afa2bc7b8af05bafd",
+  "agent_guide_sha256": "c502c1b215c6fb05e25911c807ba9561c1f06216ddfb21d10ba3dcaf2784c558",
+  "checks": {
+    "bounded_recovery_unit_tests": 16,
+    "exact_public_service_root_404": "device_address_missing; not_dispatched; retry_action false",
+    "live_probe_used_real_controller_token": false,
+    "protocol_suite": "passed",
+    "protocol_steps": 11,
+    "source_preflight": "passed; reviewed current-source closure, no heuristic scan findings"
+  },
+  "live_configuration_repair": {
+    "agent": "Instinct",
+    "receipt_at": "2026-11-12T06:20:38+08:00",
+    "cli_version": "0.4.0-cli.21",
+    "result": "Complete device address saved in a durable field retaining its path, then read back by a fresh process with matching hash; original control credential preserved.",
+    "read_only_status": {
+      "http_success": true,
+      "device_connected": true,
+      "approval": "approved",
+      "task_state": "idle",
+      "protocol_version": 4,
+      "elapsed_ms": 772.14
+    },
+    "scope": "Existing connection configuration repair and fresh-process readback, not a replaced-VM test or CLI.22 device test. Permission approvals occurred outside the inspected execution; no zero-human-intervention claim."
+  },
+  "scope": "No APK changes, data clearing, new device authorization, or protocol-capability expansion."
+}

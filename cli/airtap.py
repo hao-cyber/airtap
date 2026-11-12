@@ -26,7 +26,7 @@ TOKEN = re.compile(r'^[0-9a-f]{64}$')
 TICKET = re.compile(r'^[0-9a-f]{32}$')
 MAX_RESPONSE = 512 * 1024
 MAX_COMMAND = 65536
-VERSION = '0.4.0-cli.21'
+VERSION = '0.4.0-cli.22'
 PAIRING_TTL_SECONDS = 60 * 60
 PAIRING_CLOCK_TOLERANCE_SECONDS = 30
 PACKAGE = re.compile(r'^[A-Za-z_][A-Za-z0-9_]*(?:\.[A-Za-z_][A-Za-z0-9_]*)+$')
@@ -506,6 +506,14 @@ def request(url, path, token=None, body=None, method='GET', timeout=25, local_te
             raise Failure(code, status=result['status'], elapsed_ms=result['elapsed_ms'],
                           outcome='not_dispatched' if data.get('admitted') is False else 'unknown',
                           retry_action=False, **details)
+        # A password manager may retain the service host but drop the device
+        # path. Diagnose only the exact public-service root-route response;
+        # never invent a device ID or infer revocation from a generic 404.
+        if (result['status'] == 404 and data == {'protocol_version': 4, 'error': 'not_found'}
+                and not urllib.parse.urlsplit(url).path and path.startswith('/v1/') and token is not None):
+            raise Failure('device_address_missing', status=404, elapsed_ms=result['elapsed_ms'],
+                          outcome='not_dispatched', retry_action=False,
+                          next_step='The saved URL is only the service root. Restore the complete original device URL, including /d/<device-id>, from this pairing\'s private backup or an already-authorized AI for the same device. Keep your own credential. Do not guess the path, create a new pairing, or treat this routing error as phone offline or revoked.')
         # Do not echo arbitrary relay content: it could reflect credentials.
         raise Failure('http_error', status=result['status'], elapsed_ms=result['elapsed_ms'],
                       outcome='unknown' if method == 'POST' else 'not_available', retry_action=False)

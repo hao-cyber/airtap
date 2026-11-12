@@ -4,7 +4,7 @@
   "android_version": "0.4.0-beta.40",
   "version_code": 70,
   "cli_version": "0.4.0-cli.21",
-  "status": "signed_candidate_device_acceptance_pending",
+  "status": "device_upgrade_passed_upload_performance_failed_not_recommended",
   "apk_source_commit": "bfb1bfaeff9cd2dd4f5a9f6ea53c2a0d578332d9",
   "apk_sha256": "ec114e295feebe03ccc747a89b0c973e1fc85f94f9661a036e4d1115135ca8e0",
   "apk_bytes": 669133,
@@ -22,7 +22,8 @@
     "multi_ai_authority": 77,
     "owner_revocations": 37,
     "core_suite": "passed",
-    "core_steps": 42
+    "core_steps": 42,
+    "source_distribution_preflight": "Passed after correcting the result JSON allowlist kind; 303 required files, no missing files or heuristic scan findings."
   },
   "synthetic_profile": {
     "scope": "Same host Java fixture of 24 workspace files and one upload; not phone latency.",
@@ -31,6 +32,102 @@
     "host_ms": 3.563084
   },
   "prior_failure_record": "beta39-code69-files-20261111.json",
-  "device_acceptance": null,
-  "privacy": "Synthetic metadata only; no private phone content, identities, credentials or endpoints."
+  "device_acceptance": {
+    "agent": "Muse",
+    "device": "Meizu test phone A",
+    "actual_version_code": 70,
+    "original_connections_preserved": 2,
+    "usb_used": false,
+    "repaired_pairing": false,
+    "data_cleared": false,
+    "upgrade_reconnect_seconds_approx": 110,
+    "file_sample_bytes": 340265,
+    "original_upload": {
+      "initial_confirmed_offset": 98304,
+      "last_confirmed_offset": 229376,
+      "state": "receiving",
+      "attempts": 2,
+      "http_504_count": 2
+    },
+    "second_upload": {
+      "last_confirmed_offset": 65536,
+      "state": "receiving",
+      "attempts": 2,
+      "http_504_count": 2,
+      "deviation": "Started before the original upload had finished, contrary to the planned ordering. Both original IDs and inputs retained privately; no further blind retries."
+    },
+    "failed_command_roundtrip_ms_range": [
+      15850,
+      15940
+    ],
+    "last_file_metrics_observed_after_reconnect": [
+      {
+        "action": "file_upload_chunk",
+        "outcome": "completed",
+        "elapsed_ms": 2952,
+        "check_count": 71,
+        "main_check_ms": 2683,
+        "io_elapsed_ms": 2891,
+        "io_finished": true
+      },
+      {
+        "action": "file_upload_chunk",
+        "outcome": "completed",
+        "elapsed_ms": 2851,
+        "check_count": 71,
+        "main_check_ms": 2628,
+        "io_elapsed_ms": 2796,
+        "io_finished": true
+      },
+      {
+        "action": "file_upload_chunk",
+        "outcome": "completed",
+        "elapsed_ms": 3417,
+        "check_count": 80,
+        "main_check_ms": 2955,
+        "io_elapsed_ms": 3359,
+        "io_finished": true
+      },
+      {
+        "action": "file_upload_chunk",
+        "outcome": "completed",
+        "elapsed_ms": 3376,
+        "check_count": 80,
+        "main_check_ms": 3082,
+        "io_elapsed_ms": 3322,
+        "io_finished": true
+      }
+    ],
+    "metric_limit": "These last-file metrics have no request sequence or ID. They may describe the preceding successful chunk; they do not establish the duration of the timed-out chunk. Each first ping after a 504 failed with task_status_required. Do not subtract unrelated file timings from CLI round trips.",
+    "recovery_after_bounded_stop": {
+      "at": "2026-11-11T17:04:08Z",
+      "http_success": true,
+      "device_connected": true,
+      "task_state": "idle",
+      "home": true,
+      "silent": true,
+      "lease_released": true,
+      "further_file_commands": false
+    },
+    "evidence_type": "Transcribed original Muse conversation receipt; private full logs are held by Muse. No fabricated local raw-log capture."
+  },
+  "privacy": "Synthetic metadata only; no private phone content, identities, credentials or endpoints.",
+  "emulator_upgrade": {
+    "api_level": 36,
+    "previous_version_code": 67,
+    "same_signed_apk": true,
+    "actual_version_code": 70,
+    "process_and_accessibility_service_started": true,
+    "own_app_crash_in_inspected_buffer": false,
+    "scope": "Upgrade/runtime smoke check only; no real-phone or upload-performance acceptance."
+  },
+  "candidate_delivery": {
+    "github_prerelease": "https://github.com/hao-cyber/airtap/releases/tag/v0.4.0-beta.40",
+    "apk_downloaded_and_digest_matched": true,
+    "website_recommended_version_code": 68
+  },
+  "follow_up": {
+    "network_route_difference": "VPN versus per-app bypass is an unverified hypothesis, not an established cause. A bounded same-transfer route test was sent on 2026-11-12.",
+    "focused_grok_review": "No usable result: real Grok dispatch ended with idle timeout (exit 124). Earlier completed general capability review remains separate."
+  }
 }
