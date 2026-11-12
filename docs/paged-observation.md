@@ -4,6 +4,8 @@ The Android companion adds two read-only commands, advertised by the **phone** a
 
 `read_tree` creates a snapshot and returns its first page. `nodes` is bounded to 128 entries and 56,000 serialized node bytes; the byte limit may produce fewer entries. `total_nodes` is the exact number of visible, same-package nodes in the completed capture; `total_inspected_nodes` also counts hidden nodes. `traversal_complete:true` means the bounded native traversal completed, **not** that a virtualized list exposes offscreen content. Follow `next_offset` until it is null. `offset`, `returned_nodes` and `truncated` describe this page. IDs are stable within this snapshot, including later pages.
 
+Starting with code72, the first page uses one bounded capture followed by a live window and authorization check. A changing timer or counter no longer has to match a second complete capture before the agent can read anything. This is not an atomic freeze of the app: values are collected during the capture. Continuing an existing snapshot still requires the full-page consistency check, and actions still refresh and validate the selected target before dispatch.
+
 ```sh
 python3 airtap.py read-tree
 python3 airtap.py read-tree-page --package com.example.app --snapshot-id SNAPSHOT --offset NEXT_OFFSET --limit 128

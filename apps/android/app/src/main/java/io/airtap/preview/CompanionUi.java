@@ -267,8 +267,10 @@ final class CompanionUi {
             long started = SystemClock.elapsedRealtime(), capturedRevision = revision;
             AccessibilityNodeInfo r = root(expected); String packageName = pkg(r); int window = r.getWindowId();
             PagedTree<AccessibilityNodeInfo> first = scan(r, packageName, window, started, capturedRevision, true, commandCurrent);
-            PagedTree<AccessibilityNodeInfo> repeated = scan(root(packageName), packageName, window, started, capturedRevision, false, commandCurrent);
-            if (!first.same(repeated)) throw new ScopedUi.Refused("fresh_snapshot_required");
+            // A new observation is one bounded capture, not a demand that the entire
+            // page stop changing. Timers otherwise make read_tree impossible. Keep the
+            // live window/authority fence here; continuation and target actions still
+            // perform their own stability and refreshed target checks.
             if (root(packageName).getWindowId() != window || revision != capturedRevision) throw new ScopedUi.Refused("window_changed");
             if (!commandCurrent.getAsBoolean()) throw new ScopedUi.Refused("permission_denied");
             snapshot = java.util.UUID.randomUUID().toString().replace("-", "");
