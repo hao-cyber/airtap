@@ -1,0 +1,120 @@
+{
+  "schema": "airtap-code74-publication-v1",
+  "date": "2026-11-12",
+  "scope": "Recommended public beta after original-pair Muse and Instinct physical upgrade and actual receiving-App selection/preview. Historical tests keep their own scope.",
+  "android": {
+    "schema": "airtap-android-update-v1",
+    "application_id": "io.airtap.preview",
+    "version_name": "0.4.0-beta.44",
+    "version_code": 74,
+    "apk_sha256": "a09441176dc8be8c02a3670b5328390170c0c4fc0e14cab85b1b18a53591ae2f",
+    "apk_bytes": 673229,
+    "signer_sha256": "a2aa0c1b6fdaf1baa37aa20817387524a1318b5dab82bf7c185663141daba60f",
+    "min_sdk": 34,
+    "target_sdk": 36,
+    "debuggable": false,
+    "channel": "beta",
+    "published_at": "2026-11-12",
+    "download_path": "/download/android",
+    "notes": [
+      "修复部分系统文件列表中“图片看得见，却点不动”的问题。",
+      "改进文件上传与图片保存；传输中断时可核对进度并继续。",
+      "正常升级保留已有 AI 连接与用户数据，无需重新配对。"
+    ]
+  },
+  "build": {
+    "source_commit": "18709a4c6671f39d7501c25b4e0df1cf84988726",
+    "clean_worktree": true,
+    "source_inputs_unchanged": true,
+    "debug_and_release_compile_lint_passed": true,
+    "release_signature_verified": true,
+    "core_steps_passed": 43,
+    "semantic_helper_cases_passed": 15,
+    "native_documentsui_cases_passed": 21,
+    "native_visual_cases_passed": 16,
+    "site_python_tests_passed": 35,
+    "site_worker_tests_passed": 17
+  },
+  "relay": {
+    "revision": 36,
+    "cli_version": "0.4.0-cli.22",
+    "public_artifacts": [
+      {
+        "path": "/cli/airtap.py",
+        "bytes": 136528,
+        "sha256": "fce5863973bf54bac4d064c781931a54b2ff69e9e482dd0afa2bc7b8af05bafd",
+        "matches": true
+      },
+      {
+        "path": "/agent.md",
+        "bytes": 125307,
+        "sha256": "46ed6e01721ec2fe77be5cf580ade19ed976d62b91f1136293d0ca8686948c4a",
+        "matches": true
+      }
+    ],
+    "same_identity_and_settings": true,
+    "worker_and_cli_unchanged": true,
+    "change": "Agent guide only: normal declared click actions in current system file rows."
+  },
+  "website": {
+    "origin": "https://airtap.memtrix.dev",
+    "deployment_id": "c67c7e83-a7c2-4c85-9132-f8d20420bcc6",
+    "version_code": 74,
+    "previous_version_code": 68,
+    "passed": true,
+    "local_files_verified": 42,
+    "public_checks_passed": 98,
+    "manifest_sha256": "c60776dfaea35cd475ad858cb7c563199d3b42849ad52168ce1b29f56b22c18b",
+    "apk_get_head_range_and_update_metadata_verified": true,
+    "prior_nonretired_apks_preserved": true,
+    "retired_apk_responses_preserved": true,
+    "reviewed_videos": [
+      {
+        "filename": "airtap-usage-code39-20261029.mp4",
+        "sha256": "ffa11c4e893f22c7ba96ebb12bf72a390574134bb57e02cf5a434d7ea80c3fd0",
+        "unchanged": true
+      },
+      {
+        "filename": "airtap-install-guide-20261030-r2.mp4",
+        "sha256": "7d5fe76f511bb95784c546663bef83070ecb3f5d280db87741f4eda4841bc8ad",
+        "unchanged": true
+      }
+    ],
+    "reviewed_transformations": [
+      {
+        "path": "/robots.txt",
+        "kind": "reviewed_managed_robots_prefix",
+        "prefix_bytes": 2676,
+        "prefix_sha256": "3073d1e371afb3271c7666148766fedc5145f7d8440f7114062db79b7bd58add",
+        "source_sha256": "d58c84797c04e430e32b11fffbcb73b63a0afd82b00b5f2134574a52c414306e",
+        "public_sha256": "542678d4397ddd6bf8c14d764a94e7f08d46e73aeb4a3c6751844c3dbb13920f"
+      }
+    ],
+    "verification_transport": "Mac existing en0; previously verified Cloudflare edge pinned for this readback only; local proxy DNS returns a virtual address; normal hostname TLS verification; no network configuration changed.",
+    "browser_check": "Public install details show beta.44 and exact APK hash; homepage actual-AI evidence rendered and visually inspected."
+  },
+  "github": {
+    "release_url": "https://github.com/hao-cyber/airtap/releases/tag/v0.4.0-beta.44",
+    "downloaded_apk_and_checksum_match": true,
+    "immutable_assets_overwritten": false
+  },
+  "physical_evidence": [
+    "beta44-code74-personal-ai-picker-20261112.json"
+  ],
+  "native_evidence": [
+    "beta44-code74-documentsui-native-20261112.json"
+  ],
+  "prior_file_performance_evidence": [
+    "beta43-code73-personal-ai-files-20261112.json"
+  ],
+  "limits": [
+    "Two phones and two receiving Apps do not establish all Apps, OEMs or protected system buttons.",
+    "Both upgrades included ordinary browser-download retries; Muse also recovered a transient disconnect. Exact external-network cause was not isolated.",
+    "Notification delivery, real SIM PIN input, physical media capture, more phone models and multi-day background use remain outside this acceptance."
+  ],
+  "external_review": {
+    "backend": "Grok",
+    "usable_review": false,
+    "reason": "Focused dispatch timed out without usable output; local review and tests are not attributed to Grok."
+  }
+}

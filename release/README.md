@@ -20,11 +20,11 @@ code63 将首次及新增 AI 的邀请改为八位数字。数字只定位短期
 
 ## 当前发布身份
 
-当前官网推荐 Android `0.4.0-beta.38`（code68），[版本资料](android/68.json)固定制品身份。图片可从工作目录发布到系统相册，保留原文件并校验写入内容；重复发布核对同一照片。CLI.20 去掉确定性文件操作之前无关的屏幕观察。[发布核验](../docs/results/beta38-code68-publication-20261111.json)与[Muse 真机验收](../docs/results/beta38-code68-personal-ai-20261111.json)分别记录制品和实际任务；一台手机完成接收 App 选图与附件预览，另一台尚未完成该步骤。
+当前官网推荐 Android `0.4.0-beta.44`（code74），[版本资料](android/74.json)固定制品身份。它修正部分系统文件列表声明点击动作却未设置 View 点击属性时的识别与执行，保留 code73 文件 IO 改善。[两位 AI 真机回归](../docs/results/beta44-code74-personal-ai-picker-20261112.json)分别完成原连接远程升级、Gmail／信息 App 的选图与实际附件预览；两台最终回桌面、静音、释放任务，无机主或 USB 介入。[发布核验](../docs/results/beta44-code74-publication-20261112.json)记录 GitHub、官网、中继指南及制品校验。
 
 code73 已在 GitHub 发布候选，Muse 与 Instinct 分别经两台原连接完成远程升级及 96 KiB 完整上传。小红走 VPN 的一次同样本对照由 code72 超时改善为 28.17 秒完成；小黑走 Wi-Fi 的独立样本为 14.93 秒，不能把两台设备当作同条件测速。小黑完成实际选图附件预览，小红完成文件分享预览，但系统文件选择器仍未选中，见[实际记录](../docs/results/beta43-code73-personal-ai-files-20261112.json)。
 
-code74 修正系统文件列表声明点击动作却未设置 View 点击属性时的识别与执行；[真实 DocumentsUI 模拟器验证](../docs/results/beta44-code74-documentsui-native-20261112.json)已通过，实体手机与推荐切换另行核验。
+[真实 DocumentsUI 模拟器验证](../docs/results/beta44-code74-documentsui-native-20261112.json)使用生产点击选中文件，再由独立接收 App 核验完整 SHA；它与上述实体手机的视觉附件核对分别记录。
 
 此前 code66 增加已有 AI 代办连接管理、电池状态及过期任务恢复，见[发布核验](../docs/results/beta36-code66-publication-20261111.json)与[实际任务记录](../docs/results/beta36-code66-personal-ai-20261111.json)。
 
