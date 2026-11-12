@@ -1,0 +1,149 @@
+{
+  "schema": "airtap-code74-personal-ai-picker-v1",
+  "date": "2026-11-12",
+  "version_code": 74,
+  "version_name": "0.4.0-beta.44",
+  "apk_sha256": "a09441176dc8be8c02a3670b5328390170c0c4fc0e14cab85b1b18a53591ae2f",
+  "apk_bytes": 673229,
+  "source_commit": "18709a4c6671f39d7501c25b4e0df1cf84988726",
+  "relay_revision": 36,
+  "actual_ai_runs": [
+    {
+      "agent": "Muse",
+      "device": "test-device-A",
+      "cli_version": "0.4.0-cli.21",
+      "window_cst": [
+        "2026-11-12T18:35:47+08:00",
+        "2026-11-12T18:47:25+08:00"
+      ],
+      "steps": 71,
+      "stages_cst": {
+        "upgrade": [
+          "18:35:47",
+          "18:43:13"
+        ],
+        "picker": [
+          "18:43:16",
+          "18:46:16"
+        ],
+        "cleanup": [
+          "18:46:18",
+          "18:47:25"
+        ]
+      },
+      "upgrade": {
+        "from": 73,
+        "to": 74,
+        "ping_verified": true,
+        "network_transport": "vpn",
+        "apk_download_sha_verified": true,
+        "independent_cloud_certificate_check": false,
+        "pairing_preserved": true
+      },
+      "selection": {
+        "receiving_app": "Gmail empty draft",
+        "picker": "Android DocumentsUI",
+        "file_bytes": 340265,
+        "image_dimensions": [
+          1280,
+          960
+        ],
+        "file_sha256": "f1fd6b9e8dadb17800ea67e60bd4b3eee29ffc390e69b269178878022f6d4ca2",
+        "sha_basis": "Existing synthetic file verified in the preceding code73 run; this round did not re-upload or issue file commands.",
+        "current_row_clickable": true,
+        "previous_code73_row_clickable": false,
+        "filename_text_clickable": false,
+        "normal_action": "one click on freshly observed row container",
+        "selected": true,
+        "actual_preview_viewed": true,
+        "preview_content": "Airtap control test / 1280 PNG / CT-A 1280x960",
+        "attachment_filename_and_size_checked": true,
+        "gallery_first_use_agreement_accepted": false,
+        "file_share_substitution": false,
+        "sent": false,
+        "draft_discarded": true
+      },
+      "failures_and_recovery": [
+        "First download click was followed by observe HTTP503/disconnection; bounded wait and original-pair status/reacquire restored control.",
+        "Initial browser download stalled; a retry of the same official asset with a query parameter completed in about 12 seconds. A gesture outcome was unknown; fresh observation confirmed its effect before proceeding.",
+        "Upgrade retired the old task; status, a bounded wait and a new own lease recovered.",
+        "A stale task observation and a stale snapshot were resolved by fresh observation/tree before the next action."
+      ],
+      "final": {
+        "home": true,
+        "muted": true,
+        "connected": true,
+        "task": "idle",
+        "sequence": 2185
+      },
+      "owner_interventions": 0
+    },
+    {
+      "agent": "Instinct",
+      "device": "test-device-B",
+      "cli_version": "0.4.0-cli.22",
+      "window_cst_approx": [
+        "2026-11-12T18:36:00+08:00",
+        "2026-11-12T18:45:00+08:00"
+      ],
+      "time_basis": "Reported minute-level start/end, not second-level instrumentation.",
+      "upgrade": {
+        "from": 73,
+        "to": 74,
+        "ping_verified": true,
+        "network_transport": "wifi",
+        "cli_and_apk_bytes_sha_verified": true,
+        "certificate_extracted_and_compared": true,
+        "full_cloud_signature_verification": false,
+        "pairing_preserved": true
+      },
+      "selection": {
+        "receiving_app": "Messages empty draft",
+        "file_bytes": 154491,
+        "existing_file_sha_verified": true,
+        "reuploaded": false,
+        "republished": false,
+        "normal_action": "click current clickable checkbox, then confirm selection",
+        "selected": true,
+        "actual_preview_viewed": true,
+        "maintainer_preview_image_reviewed": true,
+        "preview_content": "Instinct test / Airtap code69 gallery closure 20261111",
+        "sent": false,
+        "draft_discarded": true,
+        "new_blank_draft_checked_empty": true
+      },
+      "failures_and_recovery": [
+        "First browser download stayed downloading for about 90 seconds; one ordinary retry completed.",
+        "After installation the original connection recovered and a new own lease was acquired.",
+        "An immediate read-tree occasionally returned inspection_incomplete; fresh observation recovered without replaying the accepted click."
+      ],
+      "final": {
+        "home": true,
+        "muted": true,
+        "connected": true,
+        "task": "idle",
+        "temporary_config_cleaned_original_vault_preserved": true
+      },
+      "owner_interventions": 0
+    }
+  ],
+  "common": {
+    "usb_used": false,
+    "pairing_reset": false,
+    "user_data_cleared": false,
+    "network_settings_changed": false,
+    "maintainer_phone_substitution": false,
+    "maintainer_role": "Published candidate, coordinated accepted tasks through original chats and reviewed results.",
+    "private_content_published": false
+  },
+  "limits": [
+    "These two phones and receiving Apps do not prove every App/OEM or protected system button is supported.",
+    "Gmail/Message previews are visual confirmation, not independent byte reads by those receiving Apps. Native Android16 independent receiving-App SHA verification is recorded separately.",
+    "Browser download stalls and transient disconnection remained in both real upgrade flows and recovered without owner intervention. Their exact external network cause was not isolated.",
+    "No new long-duration background, pure mobile-network, notification-delivery, SIM-PIN or camera/microphone/screen-capture acceptance is claimed."
+  ],
+  "references": [
+    "beta43-code73-personal-ai-files-20261112.json",
+    "beta44-code74-documentsui-native-20261112.json"
+  ]
+}

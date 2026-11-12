@@ -1240,6 +1240,10 @@
       "path": "docs/results/beta44-code74-documentsui-native-20261112.json"
     },
     {
+      "kind": "source",
+      "path": "docs/results/beta44-code74-personal-ai-picker-20261112.json"
+    },
+    {
       "kind": "result",
       "path": "docs/results/beta5-atomic-development-20261026.json"
     },
