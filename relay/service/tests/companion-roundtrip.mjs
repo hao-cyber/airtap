@@ -83,7 +83,7 @@ async function check(name, fn) {
   console.log(JSON.stringify(checks.at(-1))); assert.equal(checks.at(-1).ok, true);
 }
 let controller, lastSequence = 0, candidate;
-let pagedMode = false, pagedSnapshot = null, afterClickPackage = null, readTreeError = null, treeText = 'test';
+let pagedMode = false, pagedSnapshot = null, afterClickPackage = null, readTreeError = null, treeText = 'test', eventRows = null;
 const longText = ('文字🚀e\u0301').repeat(2000);
 async function api(command, sequence, extra = {}) {
   return http('/d/' + d.id + '/v1/command', { token: controller, body: { id: crypto.randomUUID(), action: command, sequence, ...extra } });
@@ -119,7 +119,10 @@ async function connectPhone() {
     else if (cmd.action === 'read_tree') result = { package: cmd.package ?? observedPackage, snapshot_id: hex(16), expires_in_ms: 30000, nodes: [{ node_id: '1', text: treeText, clickable: true }] };
     else if (cmd.action === 'ping') result = { authorized: true, persistent: true, all_apps: true, ...pingState };
     else if (cmd.action === 'event_status') result={enabled:true,permission:true,listener_connected:true};
-    else if (cmd.action === 'event_read') result={epoch:'e'.repeat(32),next:1,gap:false,events:[{sequence:1,kind:'notification',text:'synthetic notice'}],status:{listener_connected:true}};
+    else if (cmd.action === 'event_read') result=eventRows === null
+      ? {epoch:'e'.repeat(32),next:1,gap:false,events:[{sequence:1,kind:'notification',text:'synthetic notice'}],status:{listener_connected:true}}
+      : {epoch:'e'.repeat(32),next:eventRows.at(-1)?.sequence ?? 0,gap:false,
+         events:eventRows.filter(e=>e.sequence>cmd.after).slice(0,cmd.limit),status:{enabled:true,listener_connected:true}};
     else if (['touch_begin','touch_move','touch_end'].includes(cmd.action)) result={accepted:true,held:cmd.action!=='touch_end',touch_id:'f'.repeat(32)};
     else if (cmd.action==='media_capture'||cmd.action==='media_status'||cmd.action==='media_stop')result={accepted:true,capture_id:'c'.repeat(32),state:cmd.action==='media_stop'?'canceled':'awaiting_system_ui'};
     else if(cmd.action==='sim_pin_prepare')result={challenge:'d'.repeat(32),expires_in_ms:30000};
@@ -656,6 +659,10 @@ try {
     await python(['status']); // The previous MCP request advanced the shared controller sequence.
     const event=(await python(['event-read'])).result;assert.equal(event.events[0].text,'synthetic notice');
     assert.equal(seenCommands.at(-1).action,'event_read');assert.equal('lease_id' in seenCommands.at(-1),false);
+    let setupBefore=seenCommands.length;
+    await python(['event-configure','--enable']);
+    assert.equal(seenCommands.length,setupBefore+1); assert.equal(seenCommands.at(-1).action,'event_configure'); assert.equal(seenCommands.at(-1).enabled,true);
+    await python(['event-configure','--disable']); assert.equal(seenCommands.at(-1).enabled,false);
     observedPackage='com.example.app';let image=(await python(['observe'])).result;
     const held=await python(['touch-begin','--package','com.example.app','--observation-id',image.observation_id,'--x','.3','--y','.3']);assert.equal(held.result.held,true);
     image=held.observation;
@@ -667,10 +674,46 @@ try {
     const pin=await python(['sim-pin-submit','--challenge',challenge,'--pin-stdin'],'91582736');assert.equal(pin.result.accepted,true);
     assert.equal(JSON.stringify(pin).includes('91582736'),false);assert.equal((await readFile(config,'utf8')).includes('91582736'),false);
     const tools=(await (await mcp('tools/list',{})).json()).result.tools;
-    for(const name of ['event_status','event_read','touch_begin','touch_move','touch_end','media_capture','media_status','media_stop','sim_pin_prepare','sim_pin_submit','file_mkdir','file_rename','file_delete'])assert.ok(tools.some(t=>t.name==='phone_'+name),name);
+    for(const name of ['event_status','event_read','event_configure','touch_begin','touch_move','touch_end','media_capture','media_status','media_stop','sim_pin_prepare','sim_pin_submit','file_mkdir','file_rename','file_delete'])assert.ok(tools.some(t=>t.name==='phone_'+name),name);
+    assert.equal(tools.find(t=>t.name==='phone_event_configure').annotations.readOnlyHint,false);
     before=seenCommands.length;
-    for(const [action,fields]of [['event_read',{epoch:'',after:-1,limit:16}],['touch_end',{touch_id:'bad'}],['media_capture',{kind:'call_audio',seconds:3}],['sim_pin_submit',{challenge, pin:'not-a-pin'}],['file_delete',{root:'workspace',path:'../other',version:'a'.repeat(64)}]])assert.equal((await api(action,lastSequence+1,fields)).status,400);
+    for(const [action,fields]of [['event_configure',{enabled:1}],['event_configure',{enabled:true,grant_android_permission:true}],['event_read',{epoch:'',after:-1,limit:16}],['touch_end',{touch_id:'bad'}],['media_capture',{kind:'call_audio',seconds:3}],['sim_pin_submit',{challenge, pin:'not-a-pin'}],['file_delete',{root:'workspace',path:'../other',version:'a'.repeat(64)}]])assert.equal((await api(action,lastSequence+1,fields)).status,400);
     assert.equal(seenCommands.length,before);await python(['status']);
+  });
+  await check('durable event task uses real CLI processes, verified completion, polling dedup and offline recovery', async () => {
+    const watch = ['--watch-id', 'notice-test'];
+    const rule = {packages:['com.example.orders'],contains:'Airtap test',goal:'Inspect the synthetic order, save its result and verify it.'};
+    const before = seenCommands.length;
+    await python(['watch-create',...watch,'--rule-stdin'], JSON.stringify(rule));
+    eventRows = [{sequence:1,at:Date.now(),kind:'notification',source:'com.example.orders',key:'a'.repeat(64),title:'Airtap test',text:'Synthetic order changed',truncated:false}];
+    const first = await python(['watch-poll',...watch]);
+    assert.equal(first.ready_count,1); assert.equal(first.phone_actions_started,false);
+    assert.deepEqual(seenCommands.slice(before).map(c=>c.action),['event_read']);
+    const item=first.watch.items[0], job=['--job-id',item.job_id];
+    await python(['watch-start',...watch,'--event-id',item.id,'--plan-stdin'],JSON.stringify([{id:'submit',title:'Verify synthetic source and save result'}]));
+    const tree=(await python(['read-tree'])).result;
+    await python([...job,'--step-id','submit','click','--package',tree.package,'--snapshot-id',tree.snapshot_id,'--node-id','1','--after-action','none']);
+    const newTree=(await python(['read-tree'])).result;
+    const replayBefore=seenCommands.length;
+    const replay=await python([...job,'--step-id','submit','click','--package',newTree.package,'--snapshot-id',newTree.snapshot_id,'--node-id','1','--after-action','none'],'',1);
+    assert.equal(replay.error,'job_step_requires_verification'); assert.equal(seenCommands.length,replayBefore);
+    const early=await python(['watch-finish',...watch,'--event-id',item.id,'--outcome','completed','--evidence-stdin'],'Not yet verified',1);
+    assert.equal(early.error,'watch_job_has_unverified_steps');
+    await python([...job,'--step-id','submit','job-resolve','--resolution','verified','--evidence-stdin'],'Synthetic result read back using a new tree');
+    await python([...job,'job-finish']);
+    const finished=await python(['watch-finish',...watch,'--event-id',item.id,'--outcome','completed','--evidence-stdin'],'Saved synthetic result verified');
+    assert.equal(finished.ready_count,0); assert.equal(finished.watch.items[0].event,null);
+    const second=await python(['watch-poll',...watch]); assert.equal(second.ready_count,0); assert.equal(second.watch.items.length,1);
+    const closed=new Promise(resolve=>phone.once('close',resolve)); phone.close(); await closed;
+    const offline=await python(['watch-poll',...watch],'',1); assert.equal(offline.error,'device_disconnected');
+    const retained=await python(['watch-show',...watch]); assert.equal(retained.watch.cursor.after,1);
+    phone=await connectPhone();
+    eventRows.push({...eventRows[0],sequence:2,at:Date.now(),text:'Another synthetic change'});
+    const recovered=await python(['watch-poll',...watch]); assert.equal(recovered.ready_count,1); assert.equal(recovered.watch.cursor.after,2);
+    await python(['watch-pause',...watch]);
+    const pauseBefore=seenCommands.length;
+    const paused=await python(['watch-poll',...watch]); assert.equal(paused.polled,false); assert.equal(seenCommands.length,pauseBefore);
+    eventRows=null;
   });
   await check('more than 200 commands remain usable; original sequence replay stays rejected', async () => {
     let seq = lastSequence;

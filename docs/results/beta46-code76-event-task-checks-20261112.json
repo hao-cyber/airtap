@@ -1,0 +1,79 @@
+{
+  "schema": "airtap-maintainer-checks-v1",
+  "recorded_at": "2026-11-12T15:32:42.801876+00:00",
+  "candidate": {
+    "version_code": 76,
+    "android_version": "0.4.0-beta.46",
+    "cli_version": "0.4.0-cli.23",
+    "deployed": false,
+    "physical_phone_updated": false
+  },
+  "changes": [
+    "Explicit delegated notification collection setup, without granting Android notification access",
+    "Private durable event intake and cursor saved atomically",
+    "Deterministic event/job identities, crash recovery, unknown outcome reconciliation and verified receipts",
+    "Journal gallery publication, file sharing, mkdir, rename and deletion before dispatch"
+  ],
+  "checks": {
+    "core_stages": {
+      "passed": true,
+      "count": 43,
+      "scope": "Host fixtures and workerd/CLI/MCP with synthetic phone; passed independent stages from the first run retained"
+    },
+    "event_watch_cases": {
+      "passed": true,
+      "count": 29,
+      "scope": "Real private filesystem with synthetic event responses; includes queue capacity, interrupted saves, Unicode and cursor regression"
+    },
+    "final_companion_protocol": {
+      "passed": 37,
+      "total": 37,
+      "cli_sha256": "e6a68dae9e0b32122ba6ca9b36a5d0f3a9c19e3473936285864175d2b7172950",
+      "scope": "Real workerd, CLI subprocesses and MCP; phone is synthetic"
+    },
+    "android_build_and_lint": {
+      "passed": true,
+      "build_type": "debug"
+    },
+    "android_native_emulator": {
+      "passed": 31,
+      "debug_apk_sha256": "1bcdfff856df3e64b75dba53d56f11ee4ba85f4ac334e664e211abf79a72bfa9",
+      "scope": "Isolated Android emulator, real notification listener/media/storage execution with test-only fixtures; not owner permission onboarding or physical capture"
+    },
+    "multi_ai_host_control": {
+      "passed": 82,
+      "scope": "Extracted production command path and synthetic Android dependencies; includes event setup lease/shape rejection"
+    },
+    "python_service_tests": {
+      "passed": 211,
+      "scope": "Final CLI source; includes 29 durable-watch tests"
+    }
+  },
+  "retained_failures": [
+    {
+      "stage": "core/test_multi_ai_control",
+      "cause": "Host NotificationEvents fixture lacked the newly added configure method",
+      "recovery": "Updated fixture and added current-lease/invalid-shape tests; remaining core stages passed"
+    },
+    {
+      "stage": "new host notification lease case",
+      "cause": "Initial fixture represented a single retained grant before lease opt-in, not the intended current lease-required grant",
+      "recovery": "Test explicitly opts into lease mode before checking rejection; no production bypass added"
+    }
+  ],
+  "limitations": [
+    "Not deployed or released to phones in this record",
+    "Physical notification delivery, camera and microphone, 72-hour background result and three business workflows remain pending",
+    "Notification history is bounded to 24 hours/64 records per AI; gaps and platform-redacted content are explicit",
+    "Polling requires the personal AI scheduler; creating a watch does not start autonomous execution",
+    "Event deduplication does not replace source-App business identifier reconciliation or provide end-to-end exactly-once effects"
+  ],
+  "source_sha256": {
+    "cli/airtap.py": "e6a68dae9e0b32122ba6ca9b36a5d0f3a9c19e3473936285864175d2b7172950",
+    "relay/worker/worker.mjs": "a64ff3956e78c33e80f4fdbc2083a574d693b8a179cdcb5496f63ac77418ca4c",
+    "relay/service/service.mjs": "d9cd7b6cd82b034ce80bbee3b6d9999e658a09e3d5ef3543ec751f9e2bb4c5a3",
+    "apps/android/app/src/main/java/io/airtap/preview/NotificationEvents.java": "a5fd633f95ea99b704a85f34c190cdeb87809c7e025fe6df3f8cd1bb9c84a58c",
+    "apps/android/app/src/main/java/io/airtap/preview/PreviewService.java": "06cab5a2719b65de7d454c4db9307f29f7933211996169f7364a84d34a46d5e7",
+    "relay/service/tests/test_event_watches.py": "b8b71b29b19ea81bc228126993ad3b7e3f8fe2dc41460d8d1a002b28e3233f2b"
+  }
+}

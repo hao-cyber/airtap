@@ -747,7 +747,7 @@ public final class PreviewService extends AccessibilityService {
                         "network_transport", network(), "last_file_command", fileCommandPerformance(owner),
                         "readiness", RelayApi.json("notifications",NotificationEvents.status(this),"media",MediaCapture.readiness(this),"sim_pin",simPinInput.status()),
                         "last_file_performance", FileScopes.performance(owner) == null ? JSONObject.NULL : FileScopes.performance(owner),
-                        "capabilities", new org.json.JSONArray().put("companion_v1").put("paged_tree_v1").put("node_text_v1").put("screen_recovery_v1").put("atomic_input_v1").put("system_actions_v1").put("drag_v1").put("gesture_v1").put("semantic_node_v1").put("windows_v1").put("visual_window_v1").put("volume_v1").put("files_v1").put("file_share_v1").put("gallery_publish_v1").put("notification_events_v1").put("touch_session_v1").put("media_capture_v1").put("sim_pin_keypad_v1").put("remote_connections_v1").put("battery_status_v1"),
+                        "capabilities", new org.json.JSONArray().put("companion_v1").put("paged_tree_v1").put("node_text_v1").put("screen_recovery_v1").put("atomic_input_v1").put("system_actions_v1").put("drag_v1").put("gesture_v1").put("semantic_node_v1").put("windows_v1").put("visual_window_v1").put("volume_v1").put("files_v1").put("file_share_v1").put("gallery_publish_v1").put("notification_events_v1").put("notification_setup_v1").put("touch_session_v1").put("media_capture_v1").put("sim_pin_keypad_v1").put("remote_connections_v1").put("battery_status_v1"),
                         "observation_limits", RelayApi.json("max_inspected_nodes", PagedTree.MAX_NODES, "max_capture_bytes", PagedTree.MAX_CAPTURE_BYTES,
                                 "max_page_nodes", PagedTree.MAX_PAGE_NODES, "max_page_bytes", TreeReadBudget.MAX_BYTES, "max_text_chunk_utf16", ObservedText.MAX_CHUNK_UTF16, "snapshot_ttl_ms", 30000),
                         "gesture_limits", RelayApi.json("max_tracks", GesturePlan.trackLimit(android.accessibilityservice.GestureDescription.getMaxStrokeCount()),
@@ -756,6 +756,12 @@ public final class PreviewService extends AccessibilityService {
                 return;
             }
             if (activeCommand != 0) { error(ws, id, "busy"); return; }
+            if ("event_configure".equals(action)) {
+                MultiAiProtocol.exact(request,"id","action","enabled");
+                boolean enabled=ServiceProtocol.bool(request,"enabled");
+                if(!authorityCurrent(authority))throw new ScopedUi.Refused("permission_denied");
+                success(ws,id,NotificationEvents.configure(this,enabled));return;
+            }
             if("battery_status".equals(action)){
                 MultiAiProtocol.exact(request,"id","action");success(ws,id,BatteryState.describe(this));return;
             }

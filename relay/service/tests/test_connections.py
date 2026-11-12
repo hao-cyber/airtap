@@ -78,6 +78,25 @@ class ConnectionCliTest(unittest.TestCase):
         self.assertNotIn('lease_id', body)
         self.assertEqual(calls, 1)
 
+    def test_notification_setup_requires_lease_and_sends_explicit_boolean_without_screenshot(self):
+        for option, enabled in [('--enable', True), ('--disable', False)]:
+            _, body, calls = self.invoke('event-configure', option)
+            self.assertEqual(body['action'], 'event_configure')
+            self.assertIs(body['enabled'], enabled)
+            self.assertEqual(body['lease_id'], 'd'*32)
+            self.assertEqual(calls, 1)
+        config = cli.load_config(self.path)
+        config['task_lease'] = {}
+        cli.save_config(self.path, config)
+        with self.assertRaises(cli.Failure) as failure:
+            self.invoke('event-configure', '--enable')
+        self.assertEqual(failure.exception.result['error'], 'task_acquire_required')
+
+    def test_notification_setup_does_not_allow_implicit_capture(self):
+        with self.assertRaises(cli.Failure) as failure:
+            self.invoke('event-configure', '--enable', '--after-action', 'image')
+        self.assertEqual(failure.exception.result['error'], 'post_action_observation_unavailable')
+
     def test_bad_code_and_identity_never_reach_transport(self):
         for code in (b'12345', b'1234567', b'123 45', '１２３４５６'.encode()):
             with self.assertRaises(cli.Failure) as caught:

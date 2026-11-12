@@ -6,7 +6,7 @@ const HEX32 = /^[a-f0-9]{32}$/;
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
 const ACTIONS = new Set(['ping', 'read_tree', 'screenshot', 'tap_test']);
 const AUDIO_STREAMS = new Set(['music', 'alarm', 'ring', 'notification', 'system', 'voice_call']);
-const CONTROL_ACTIONS = new Set(['sim_pin_submit', 'sim_pin_prepare', 'media_capture', 'media_stop', 'touch_begin', 'touch_move', 'touch_end', 'set_volume', 'adjust_volume', 'launch', 'open_url', 'click', 'long_click', 'set_text', 'scroll', 'node_action', 'tap', 'long_press', 'swipe', 'drag', 'gesture', 'back', 'home', 'recents', 'system_action', 'focus', 'set_selection', 'select_all', 'copy', 'cut', 'paste', 'insert_text', 'delete_text', 'editor_action']);
+const CONTROL_ACTIONS = new Set(['event_configure', 'sim_pin_submit', 'sim_pin_prepare', 'media_capture', 'media_stop', 'touch_begin', 'touch_move', 'touch_end', 'set_volume', 'adjust_volume', 'launch', 'open_url', 'click', 'long_click', 'set_text', 'scroll', 'node_action', 'tap', 'long_press', 'swipe', 'drag', 'gesture', 'back', 'home', 'recents', 'system_action', 'focus', 'set_selection', 'select_all', 'copy', 'cut', 'paste', 'insert_text', 'delete_text', 'editor_action']);
 const VISUAL_ACTIONS = new Set(['tap', 'long_press', 'swipe', 'drag', 'gesture', 'touch_begin', 'touch_move']);
 const FILE_READ_ACTIONS = new Set(['file_roots', 'file_list', 'file_stat', 'file_read', 'file_upload_status']);
 const FILE_WRITE_ACTIONS = new Set(['file_publish_media', 'file_mkdir', 'file_rename', 'file_delete', 'file_share', 'file_upload_begin', 'file_upload_chunk', 'file_upload_finish', 'file_upload_abort']);
@@ -115,6 +115,7 @@ function commandShape(cmd, companion = false) {
     typeof cmd.invitation_id === 'string' && HEX32.test(cmd.invitation_id) && typeof cmd.claim_id === 'string' && HEX32.test(cmd.claim_id) &&
     typeof cmd.verification_code === 'string' && /^[0-9]{6}$/.test(cmd.verification_code);
   if (companion && cmd.action === 'event_status') return exact(cmd, ['id','action']);
+  if (companion && cmd.action === 'event_configure') return exact(cmd, ['id','action','enabled']) && typeof cmd.enabled === 'boolean';
   if (companion && cmd.action === 'event_read') return exact(cmd, ['id','action','epoch','after','limit']) &&
     typeof cmd.epoch === 'string' && (cmd.epoch === '' || HEX32.test(cmd.epoch)) && Number.isSafeInteger(cmd.after) && cmd.after >= 0 && Number.isInteger(cmd.limit) && cmd.limit >= 1 && cmd.limit <= 16;
   if (FILE_READ_ACTIONS.has(cmd.action) || FILE_WRITE_ACTIONS.has(cmd.action)) return companion && fileCommandShape(cmd);
@@ -486,6 +487,7 @@ export class PairingRelay extends DurableObject {
     if (!commandShape(cmd, s.persistent === true)) return this.json(400, { error: 'invalid_command' });
     if (CONNECTION_ACTIONS.has(cmd.action) && cmd.action !== 'connection_invite') return this.json(409, { error: 'multi_api_required', admitted: false });
     if (cmd.action === 'connection_invite' && (s.allowControl !== true || s.allApps !== true)) return this.json(403, { error: 'control_permission_required', admitted: false });
+    if (cmd.action === 'event_configure' && (s.allowControl !== true || s.allApps !== true)) return this.json(403, { error: 'control_permission_required', admitted: false });
     if (cmd.package && (authorizationSurface(cmd.package) || !(s.allApps === true || (s.allowedPackages ?? []).includes(cmd.package)))) return this.json(403, { error: 'package_permission_required' });
     if (VISUAL_ACTIONS.has(cmd.action) && !cmd.package && s.allApps !== true) return this.json(403, { error: 'package_permission_required', admitted: false });
     if ((CONTROL_ACTIONS.has(cmd.action) || FILE_WRITE_ACTIONS.has(cmd.action)) && s.allowControl !== true) return this.json(403, { error: 'control_permission_required' });
@@ -991,6 +993,7 @@ export class MultiPairingRelay extends PairingRelay {
     const deniedLease = this.leaseDenied(cmd, claimId); if (deniedLease) return deniedLease;
     if (!commandShape(raw, true)) return this.json(400, { error: 'invalid_command', admitted: false });
     if (CONNECTION_ACTIONS.has(raw.action) && (!g.scope.allowControl || !g.scope.allApps)) return this.json(403, { error: 'control_permission_required', admitted: false });
+    if (raw.action === 'event_configure' && (!g.scope.allowControl || !g.scope.allApps)) return this.json(403, { error: 'control_permission_required', admitted: false });
     if (raw.package && (authorizationSurface(raw.package) || !(g.scope.allApps || g.scope.allowedPackages.includes(raw.package)))) return this.json(403, { error: 'package_permission_required', admitted: false });
     if (VISUAL_ACTIONS.has(raw.action) && !raw.package && !g.scope.allApps) return this.json(403, { error: 'package_permission_required', admitted: false });
     if ((CONTROL_ACTIONS.has(raw.action) || FILE_WRITE_ACTIONS.has(raw.action)) && !g.scope.allowControl) return this.json(403, { error: 'control_permission_required', admitted: false });

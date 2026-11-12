@@ -26,6 +26,21 @@ public final class MultiAiControlTest{
  static JSONObject approveRequest(JSONObject invite){return connectionRequest("connection_approve").put("invitation_id",invite.getString("invitation_id")).put("claim_id",B).put("verification_code","123456");}
  static JSONObject approvedReply(){return RelayApi.json("protocol_version",4,"ok",true,"claim_id",B,"persistent",true,"all_apps",true,"allow_control",true,"allow_tap",false,"allowed_packages",new JSONArray(),"session_expires_at",JSONObject.NULL);}
  public static void main(String[]args)throws Exception{
+  test("notification setup requires the current lease and never touches the screen",()->{
+    trust.requireLease(config,A);
+    int before=NotificationEvents.configurations;JSONObject q=action(A,null,1,"event_configure");q.getJSONObject("command").put("enabled",true);service.receive(q);
+    check(NotificationEvents.configurations==before&&!ws.last().getBoolean("ok"));
+    service.receive(fence(1,A));q=action(A,1L,2,"event_configure");q.getJSONObject("command").put("enabled",true);service.receive(q);
+    check(ws.last().getBoolean("ok")&&NotificationEvents.configurations==before+1&&service.ui.executions==0);
+    service.receive(fence(2,null));q=action(A,1L,3,"event_configure");q.getJSONObject("command").put("enabled",false);service.receive(q);
+    check(NotificationEvents.configurations==before+1&&!ws.last().getBoolean("ok"));
+  });
+  test("malformed notification setup cannot mutate collection",()->{
+    service.receive(fence(1,A));int before=NotificationEvents.configurations;JSONObject q=action(A,1L,1,"event_configure");q.getJSONObject("command").put("enabled",1);service.receive(q);
+    check(!ws.last().getBoolean("ok")&&NotificationEvents.configurations==before);
+    q=action(A,1L,2,"event_configure");q.getJSONObject("command").put("enabled",true).put("grant_permission",true);service.receive(q);
+    check(!ws.last().getBoolean("ok")&&NotificationEvents.configurations==before);
+  });
   test("remote invitation uses original authenticated command lease without screen actions",()->{
     service.receive(fence(1,A));JSONObject envelope=command(A,1L,1);envelope.getJSONObject("command").put("action","connection_invite");service.receive(envelope);
     check(RelayApi.requests.size()==1&&service.ui.executions==0);RelayApi.requests.get(0).respond(multiState(A),200,null);

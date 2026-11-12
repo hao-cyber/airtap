@@ -1,8 +1,8 @@
 {
   "allowlist_path": "tools/source-package-files.json",
-  "android_version": "0.4.0-beta.45",
-  "archive_root": "airtap-source-0.4.0-beta.45-code75",
-  "cli_version": "0.4.0-cli.22",
+  "android_version": "0.4.0-beta.46",
+  "archive_root": "airtap-source-0.4.0-beta.46-code76",
+  "cli_version": "0.4.0-cli.23",
   "closure_policy": "airtap-source-closure-v1",
   "files": [
     {
@@ -957,6 +957,10 @@
     },
     {
       "kind": "document",
+      "path": "docs/design/event-task-workflow.md"
+    },
+    {
+      "kind": "document",
       "path": "docs/feedback-design.md"
     },
     {
@@ -1262,6 +1266,10 @@
     {
       "kind": "result",
       "path": "docs/results/beta45-code75-readiness-checks-20261112.json"
+    },
+    {
+      "kind": "result",
+      "path": "docs/results/beta46-code76-event-task-checks-20261112.json"
     },
     {
       "kind": "result",
@@ -1573,6 +1581,10 @@
     },
     {
       "kind": "source",
+      "path": "relay/service/tests/test_event_watches.py"
+    },
+    {
+      "kind": "source",
       "path": "relay/service/tests/test_file_rate_wait.py"
     },
     {
@@ -1837,6 +1849,6 @@
   "protocol_version": 4,
   "schema": "airtap-source-allowlist-v1",
   "scope": "Reviewed current Android, CLI, relay, site, build, CI and test source closure. No Git history, credentials, private deployment state, APK, or raw phone evidence. Historical acceptance retains its original version and scope; a source ZIP is not public release approval.",
-  "version": "0.4.0-beta.45-code75",
-  "version_code": 75
+  "version": "0.4.0-beta.46-code76",
+  "version_code": 76
 }

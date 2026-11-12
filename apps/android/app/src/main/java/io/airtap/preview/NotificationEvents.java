@@ -28,6 +28,18 @@ public final class NotificationEvents extends NotificationListenerService {
         if(enabled&&!c.getSharedPreferences("device-events",0).edit().putBoolean("enabled",true).commit())throw new IllegalStateException();
         storageFailed = false;
     }
+    /** Explicit delegated setup; Android access is still granted through system Settings. */
+    static synchronized JSONObject configure(Context c, boolean enabled) throws Exception {
+        boolean changed = selected(c) != enabled;
+        // A repeated enable must retain the epoch and pending events. Disable
+        // retries cleanup, including a partially completed earlier attempt.
+        if (changed || !enabled) select(c, enabled);
+        return RelayApi.json("accepted", true, "changed", changed, "history_reset", changed || !enabled,
+                "status", status(c), "system_permission_required", enabled && !permission(c),
+                "settings_action", android.provider.Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS,
+                "settings_package", "com.android.settings", "affects", "currently_authorized_ai_connections",
+                "instruction", "If system permission is required, open Android Settings and allow Airtap notification access through the normal UI. This command does not grant that permission.");
+    }
     static JSONObject status(Context c) {
         return RelayApi.json("enabled", selected(c), "permission", permission(c), "listener_connected", connected,
                 "storage_ok", !storageFailed, "retention_hours", 24, "max_events", EventWindow.MAX_EVENTS,

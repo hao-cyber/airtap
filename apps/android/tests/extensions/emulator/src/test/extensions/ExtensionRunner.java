@@ -25,14 +25,21 @@ public final class ExtensionRunner extends Instrumentation {
   String identity=java.util.HexFormat.of().formatHex(java.security.MessageDigest.getInstance("SHA-256").digest((url+"\n"+token).getBytes(java.nio.charset.StandardCharsets.UTF_8)));
   save("trusted-ai",new JSONObject().put("identity",identity).put("claim",OWNER).put("sequence",0));
   c.getSharedPreferences("trust-state",0).edit().clear().putBoolean("stopped",false).commit();
-  call(null,type("NotificationEvents"),"select",new Class[]{Context.class,boolean.class},c,true);launch(true);
+  JSONObject configured=(JSONObject)call(null,type("NotificationEvents"),"configure",new Class[]{Context.class,boolean.class},c,true);
+  check("delegated notification setup reports actual system permission",configured.getJSONObject("status").getBoolean("enabled")&&configured.getBoolean("system_permission_required")==!configured.getJSONObject("status").getBoolean("permission"));launch(true);
   JSONObject page=null;for(int i=0;i<30;i++){page=events(OWNER);if(page.toString().contains("SYNTHETIC_EVENT_PAYLOAD"))break;Thread.sleep(200);}
   check("real Android notification delivered through listener",page.toString().contains("SYNTHETIC_EVENT_PAYLOAD"));
+  String epoch=page.getString("epoch");long cursor=page.getLong("next");
+  JSONObject repeated=(JSONObject)call(null,type("NotificationEvents"),"configure",new Class[]{Context.class,boolean.class},c,true);
+  JSONObject unchanged=events(OWNER);
+  check("repeated delegated enable preserves epoch and notification contents",!repeated.getBoolean("changed")&&!repeated.getBoolean("history_reset")&&unchanged.getString("epoch").equals(epoch)&&unchanged.getLong("next")==cursor&&unchanged.toString().contains("SYNTHETIC_EVENT_PAYLOAD"));
   byte[] disk=java.nio.file.Files.readAllBytes(new java.io.File(c.getFilesDir(),"events-"+OWNER+".aesgcm").toPath());
   check("event content encrypted at rest",!new String(disk,java.nio.charset.StandardCharsets.ISO_8859_1).contains("SYNTHETIC_EVENT_PAYLOAD"));
   check("other grant has no historical event content",!events(OTHER).toString().contains("SYNTHETIC_EVENT_PAYLOAD"));
-  call(null,type("NotificationEvents"),"select",new Class[]{Context.class,boolean.class},c,false);
+  call(null,type("NotificationEvents"),"configure",new Class[]{Context.class,boolean.class},c,false);
   check("owner opt out deletes recorded events",!new java.io.File(c.getFilesDir(),"events-"+OWNER+".aesgcm").exists());
+  JSONObject disabled=(JSONObject)call(null,type("NotificationEvents"),"configure",new Class[]{Context.class,boolean.class},c,false);
+  check("repeated delegated disable remains off without granting system permission",!disabled.getBoolean("changed")&&!disabled.getJSONObject("status").getBoolean("enabled")&&!disabled.getBoolean("system_permission_required"));
  }
  void touchTest()throws Exception{
   launch(false);JSONObject image=request(q("observe"));check("native screenshot for continued touch",image.has("observation_id"));
