@@ -1,0 +1,204 @@
+{
+  "schema": "airtap-code73-personal-ai-files-v1",
+  "date": "2026-11-12",
+  "android_version": "0.4.0-beta.43",
+  "version_code": 73,
+  "source_commit": "49e8af07e49da974936755a00eb03f5327ea69c1",
+  "apk_sha256": "d58765f870ec3e26b9158d75e0039a79b1dadfe401ac57299c689eee9b92a99b",
+  "apk_bytes": 673229,
+  "relay_revision": 35,
+  "publication": {
+    "github_release": "https://github.com/hao-cyber/airtap/releases/tag/v0.4.0-beta.43",
+    "public_download_byte_identical": true,
+    "website_promoted": false
+  },
+  "checks": {
+    "core_steps": 43,
+    "file_helper_cases": 82,
+    "android_build_lint_signature": true,
+    "native_gallery_cases": 16
+  },
+  "actual_ai_runs": [
+    {
+      "agent": "Muse",
+      "device": "test-device-A",
+      "cli_version": "0.4.0-cli.21",
+      "window_cst": [
+        "2026-11-12T17:55:42+08:00",
+        "2026-11-12T18:03:02+08:00"
+      ],
+      "remote_upgrade": {
+        "from": 72,
+        "to": 73,
+        "ping_verified": true,
+        "network_transport": "vpn",
+        "pairing_preserved": true,
+        "method": "Normal browser download and Android installer; download SHA and installed-version readback. No independent cloud apksigner check."
+      },
+      "recovered_upload": {
+        "bytes": 98304,
+        "initial_offset": 65536,
+        "added_bytes": 32768,
+        "same_transfer": true,
+        "finished": true,
+        "sha256_verified": true,
+        "elapsed_ms": 23586.16,
+        "slowest_command_ms": 10223.67
+      },
+      "fresh_upload": {
+        "bytes": 98304,
+        "initial_offset": 0,
+        "sha256": "8f65e1015c4ffa783265c5fe24846a063d625460fd268c408dd18f334de6a02f",
+        "finished": true,
+        "sha256_verified": true,
+        "elapsed_ms": 28170.75,
+        "file_commands": 6,
+        "slowest_command_ms": 7033.39
+      },
+      "failures_and_recovery": [
+        "Initially disconnected; after a bounded wait the original pairing automatically reconnected.",
+        "A post-resume stat returned lease_expired/not_dispatched while the prior lease nominally had about 57–63 seconds remaining. The pre-acquire and recovery status connection IDs differ; exact transition time/cause was not recorded. Reacquire followed by stat verified the complete file. Connection-bound lease retirement is consistent with the observation; a clock error is not established."
+      ],
+      "final": {
+        "home": true,
+        "muted": true,
+        "connected": true,
+        "task": "idle",
+        "sequence": 2043
+      }
+    },
+    {
+      "agent": "Muse",
+      "device": "test-device-A",
+      "window_cst": [
+        "2026-11-12T18:06:18+08:00",
+        "2026-11-12T18:14:57+08:00"
+      ],
+      "file": {
+        "bytes": 340265,
+        "width": 1280,
+        "height": 960,
+        "sha256": "f1fd6b9e8dadb17800ea67e60bd4b3eee29ffc390e69b269178878022f6d4ca2"
+      },
+      "documentsui": {
+        "receiving_app": "Gmail empty draft",
+        "visible": true,
+        "selected": false,
+        "new_attempts": [
+          "filename-center tap",
+          "filename-center long press",
+          "grid tile tap",
+          "Airtap folder tap"
+        ],
+        "prior_attempts": 2,
+        "navigation_controls_worked": true,
+        "content_touches_accepted_without_effect": true,
+        "cause": "Not established by the physical test. Raw clickable=false does not prove absence of a declared accessibility action."
+      },
+      "file_share": {
+        "target": "com.android.mms",
+        "preview_actually_viewed": true,
+        "correct_synthetic_image": true,
+        "attachment_count": 1,
+        "sent": false,
+        "draft_discarded": true
+      },
+      "recovery": [
+        "The first estimated visual tap on the normal Open confirmation missed its real button bounds; a fresh semantic click succeeded."
+      ],
+      "final": {
+        "home": true,
+        "muted": true,
+        "connected": true,
+        "task": "idle",
+        "sequence": 2115
+      }
+    },
+    {
+      "agent": "Instinct",
+      "device": "test-device-B",
+      "cli_version": "0.4.0-cli.22",
+      "window_cst_approx": [
+        "2026-11-12T18:08:23+08:00",
+        "2026-11-12T18:19:45+08:00"
+      ],
+      "time_basis": "Parent dispatch and final report timestamps, not independently measured execution start/end.",
+      "remote_upgrade": {
+        "to": 73,
+        "ping_verified": true,
+        "network_transport": "wifi",
+        "pairing_preserved": true,
+        "cli_and_apk_sha256_verified": true,
+        "certificate_extracted_and_compared": true,
+        "full_cloud_signature_verification": false
+      },
+      "fresh_upload": {
+        "bytes": 98304,
+        "initial_offset": 0,
+        "sha256": "8f65e1015c4ffa783265c5fe24846a063d625460fd268c408dd18f334de6a02f",
+        "finished": true,
+        "sha256_verified": true,
+        "elapsed_ms_reported_rounded": 14930,
+        "file_commands": 7,
+        "slowest_command_ms_reported_rounded": 2500
+      },
+      "existing_image": {
+        "bytes": 154491,
+        "sha256_verified": true,
+        "published": true,
+        "reused": true,
+        "readback_verified": true,
+        "stat_ms_reported_rounded": 1780,
+        "publish_ms_reported_rounded": 2480,
+        "duplicate_created": false,
+        "receiving_app_picker_selection": true,
+        "actual_attachment_preview": true,
+        "sent": false,
+        "draft_discarded": true
+      },
+      "failures_and_recovery": [
+        "First browser download was absent in both download and file manager; one normal retry of the same official URL succeeded. The parent AI approved its child retry; the owner did not intervene.",
+        "First upload begin returned file_parent_not_found. After ping and transfer-status confirmed absence, the AI created the intended directory and retried the same transfer ID once.",
+        "Transient inspection_incomplete used actual screenshots; an APK-row not_actionable used a fresh visual tap."
+      ],
+      "final": {
+        "home": true,
+        "muted": true,
+        "connected": true,
+        "pending": 0,
+        "task": "idle"
+      },
+      "owner_interventions": 0
+    }
+  ],
+  "comparison": {
+    "baseline_record": "beta42-code72-diagnostics-20261112.json",
+    "same_device_and_sample": true,
+    "same_reported_vpn_transport_and_relay": true,
+    "code72_fresh_upload": "504 with unknown outcome; recovered staged offset 65536 of 98304",
+    "code73_fresh_upload": "Completed and full SHA verified",
+    "slowest_command_ms": [
+      15951.75,
+      7033.39
+    ],
+    "limits": "One paired sample; command deadline remained 15 seconds. Different phone/network timings are not a controlled cross-device benchmark."
+  },
+  "common": {
+    "usb_used": false,
+    "pairing_reset": false,
+    "user_data_cleared": false,
+    "network_settings_changed": false,
+    "maintainer_phone_substitution": false,
+    "maintainer_role": "Prepared public artifact, coordinated tasks and reviewed AI receipts."
+  },
+  "limits": [
+    "Device A DocumentsUI selection failed on code73; the file-share attachment preview passed instead.",
+    "Does not establish all file sizes/networks, all receiving Apps, Android16 protected buttons, SIM PIN, notification delivery or media capture.",
+    "Actual AI receipts were reviewed through their original authenticated conversations; raw screenshots and cloud task logs remain private."
+  ],
+  "external_review": {
+    "backend": "Grok",
+    "usable_review": false,
+    "reason": "Focused dispatch attempts timed out; self-review is not attributed to Grok."
+  }
+}

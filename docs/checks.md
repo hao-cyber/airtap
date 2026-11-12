@@ -28,6 +28,8 @@ python3 tools/check.py --suite android
 
 设备扩展另有 `apps/android/scripts/test_extensions_emulator.py`：必须显式传入 `--isolated-emulator --serial emulator-… --apk <debug.apk> --output-dir <new-directory>`，且目标 APK 与测试夹具的 debug 签名一致。它只接受 `ro.kernel.qemu=1` 的模拟器，会清除该隔离模拟器里的 Airtap 数据、临时配置无障碍和通知监听，用正常系统界面接受合成录屏／麦克风测试授权，最后恢复设置。不得对现有真实配对或手机使用。覆盖真实通知、连续触控、系统相机、麦克风、MediaProjection 与文件回传；SIM PIN 只做默认关闭检查。`test_sim_pin.py` 的合成键盘检查另验证一次提交、字段干扰、权限失效和未知结果不重试，均不算实卡验收。
 
+系统文件选择器另用 `apps/android/scripts/test_visual_windows_emulator.py --suite documents`，同样必须明确指定隔离模拟器、匹配签名的 debug APK 与新的输出目录。它发布合成图片，先验证普通按钮视觉点击，再记录真实 DocumentsUI 的视觉点按结果；若未选中，读取当前树并经生产控件点击选择，最终由独立接收 App 核对文件完整 SHA。UiAutomation 仅提供目标及结果观察，不代点被测选择器。code74 的[21 项原生检查](results/beta44-code74-documentsui-native-20261112.json)保留了“视觉点按接受但未选中、控件声明动作成功”的区别。
+
 真实个人 AI 任务或演示录制进行中，不运行普通 `adb shell uiautomator dump`，包括带 `--compressed` 的调用，也不使用隐式 `getUiAutomation()`／`connect(0)` 的旁路观察工具。它们默认可抑制其他无障碍服务，导致 Airtap 服务解绑、连接中断及随后重绑；`--compressed` 只影响节点输出，不能避免这一干扰。见 [Android UiAutomation 标志说明](https://developer.android.com/reference/android/app/UiAutomation#FLAG_DONT_SUPPRESS_ACCESSIBILITY_SERVICES)和 [AOSP dump 实现](https://android.googlesource.com/platform/frameworks/testing/+/refs/heads/main/uiautomator/cmds/uiautomator/src/com/android/commands/uiautomator/DumpCommand.java)。
 
 - 维护者观察画面使用 `screencap`／`screenrecord`，状态使用低频 `dumpsys`／`logcat`；这些工具不经过上述无障碍抑制路径，但仍有运行开销，须记录采集方式和时段。

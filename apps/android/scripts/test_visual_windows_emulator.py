@@ -6,7 +6,7 @@ ROOT=Path(__file__).resolve().parents[1]
 def main():
     p=argparse.ArgumentParser(description=__doc__)
     p.add_argument('--serial',required=True);p.add_argument('--isolated-emulator',action='store_true',required=True)
-    p.add_argument('--suite',choices=('visual','gallery'),default='visual')
+    p.add_argument('--suite',choices=('visual','gallery','documents'),default='visual')
     p.add_argument('--apk',type=Path,required=True,help='Production-source debug APK signed with the selected debug key')
     p.add_argument('--output-dir',type=Path,required=True)
     p.add_argument('--sdk',type=Path,default=os.environ.get('ANDROID_HOME'));p.add_argument('--jdk',type=Path,default=os.environ.get('JAVA_HOME'))
@@ -44,7 +44,7 @@ def main():
         device('shell','settings','put','system','screen_off_timeout','1800000')
         with (out/'instrumentation.txt').open('w') as output:
             runner='VisualRunner' if args.suite=='visual' else 'GalleryRunner'
-            instrument=['shell','am','instrument','-w','io.airtap.fixture.visual/test.visual.'+runner]
+            instrument=['shell','am','instrument','-w',*(['-e','documents','true'] if args.suite=='documents' else []),'io.airtap.fixture.visual/test.visual.'+runner]
             process=subprocess.Popen(adb+instrument,stdout=output,stderr=subprocess.STDOUT,env=env)
             # Instrumentation restarts the target process. Rebind only this disposable emulator's service.
             time.sleep(1);device('shell','settings','put','secure','enabled_accessibility_services','null');time.sleep(.5)
@@ -59,6 +59,7 @@ def main():
         report.update({'evidence':'Production CompanionUi/WindowInventory in the installed debug APK with real Android media permission dialogs; UIAutomation only supplies an independent target/result oracle, never the tested click. Private instrumentation injects test BooleanSuppliers for authorization and transport; it does not claim pairing/relay/personal-AI acceptance.',
                        'apk_sha256':hashlib.sha256(args.apk.read_bytes()).hexdigest(),'physical_phone':False,'personal_ai':False})
         if args.suite=='gallery':report['evidence']='Production FileScopes and GalleryPublisher with real MediaStore, synthetic PNG upload, revocation/interruption/version fences, same-request retry, owner deletion, and separate-App system Photo Picker SHA256 readback. Instrumentation substitutes only task authorization and transport; no pairing/relay/personal-AI acceptance claimed.'
+        if args.suite=='documents':report['evidence']='Production FileScopes/GalleryPublisher publish a unique synthetic PNG. CompanionUi first checks visual touch in a normal App, then attempts real DocumentsUI visual touch and uses the currently advertised semantic click if selection did not occur. A separate receiving App verifies the full SHA256. UiAutomation only discovers targets and reads results, never clicks this picker. Accepted gestures without selection remain recorded. Authorization and transport are fixture substitutes; no physical-phone, relay or personal-AI acceptance claimed.'
         (out/'result.json').write_text(json.dumps(report,ensure_ascii=False,indent=2)+'\n');print(json.dumps({'passed':len(report['checks']),'output':str(out/'result.json')}))
     finally:
         if process and process.poll() is None:process.terminate();process.wait(timeout=5)

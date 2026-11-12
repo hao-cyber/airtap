@@ -68,6 +68,13 @@ final class SemanticNodeActions {
         for (AccessibilityNodeInfo.AccessibilityAction action : node.getActionList()) if (action.getId() == id) return true;
         return false;
     }
+    static boolean canClick(AccessibilityNodeInfo node, boolean longClick) {
+        // RecyclerView delegates (including DocumentsUI) can advertise click
+        // actions without setting View's clickable property. Honor the normal
+        // accessibility action rather than treating that item as inert.
+        return (longClick ? node.isLongClickable() : node.isClickable())
+                || supports(node, longClick ? AccessibilityNodeInfo.ACTION_LONG_CLICK : AccessibilityNodeInfo.ACTION_CLICK);
+    }
     static JSONArray supported(AccessibilityNodeInfo node) {
         JSONArray result = new JSONArray();
         for (Map.Entry<String, Integer> entry : ACTIONS.entrySet()) if (supports(node, entry.getValue())) result.put(entry.getKey());

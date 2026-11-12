@@ -22,6 +22,9 @@ public final class VisualActivity extends Activity {
         setContentView(layout);
         if (getIntent().getBooleanExtra("picker", false)) layout.postDelayed(() -> startActivityForResult(
                 new android.content.Intent(android.provider.MediaStore.ACTION_PICK_IMAGES).setType("image/*"), 2), 400);
+        if (getIntent().getBooleanExtra("documents", false)) layout.postDelayed(() -> startActivityForResult(
+                new android.content.Intent(android.content.Intent.ACTION_OPEN_DOCUMENT)
+                        .addCategory(android.content.Intent.CATEGORY_OPENABLE).setType("image/*"), 2), 400);
         if (getIntent().getBooleanExtra("secure", false)) getWindow().addFlags(WindowManager.LayoutParams.FLAG_SECURE);
         if (getIntent().getBooleanExtra("photos", false)) layout.postDelayed(() -> requestPermissions(
                 new String[]{Manifest.permission.READ_MEDIA_IMAGES, Manifest.permission.READ_MEDIA_VIDEO}, 1), 400);

@@ -10,6 +10,22 @@ final class SemanticNodeTest {
     static void refuses(String code, Operation operation) throws Exception { try{operation.run();throw new AssertionError("expected "+code);}catch(ScopedUi.Refused error){require(code.equals(error.getMessage()));} }
     static JSONObject q(String op) { return new JSONObject().put("id","synthetic-request").put("action","node_action").put("package","com.example.app").put("snapshot_id","synthetic-snapshot").put("node_id","1").put("operation",op); }
     public static void main(String[] args) throws Exception {
+        test("delegated click and long-click actions work without View flags and disappear when withdrawn",()->{
+            var node=new AccessibilityNodeInfo();
+            require(!SemanticNodeActions.canClick(node,false)&&!SemanticNodeActions.canClick(node,true));
+            node.actions.add(new AccessibilityAction(AccessibilityNodeInfo.ACTION_CLICK));
+            require(!node.isClickable()&&SemanticNodeActions.canClick(node,false)&&!SemanticNodeActions.canClick(node,true));
+            node.actions.add(new AccessibilityAction(AccessibilityNodeInfo.ACTION_LONG_CLICK));
+            require(!node.isLongClickable()&&SemanticNodeActions.canClick(node,true));
+            node.actions.clear();
+            require(!SemanticNodeActions.canClick(node,false)&&!SemanticNodeActions.canClick(node,true));
+        });
+        test("normal click properties remain usable without inventing other actions",()->{
+            var node=new AccessibilityNodeInfo();node.clickable=true;
+            require(SemanticNodeActions.canClick(node,false)&&!SemanticNodeActions.canClick(node,true));
+            node.clickable=false;node.longClickable=true;
+            require(!SemanticNodeActions.canClick(node,false)&&SemanticNodeActions.canClick(node,true));
+        });
         test("a node action is unavailable unless the actual target advertises it now",()->{
             var node=new AccessibilityNodeInfo();var request=q("expand");
             refuses("node_operation_unavailable",()->SemanticNodeActions.operation(request,node,SemanticNodeActions.capture(node)));

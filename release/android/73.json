@@ -1,0 +1,20 @@
+{
+  "schema": "airtap-android-update-v1",
+  "application_id": "io.airtap.preview",
+  "version_name": "0.4.0-beta.43",
+  "version_code": 73,
+  "apk_sha256": "d58765f870ec3e26b9158d75e0039a79b1dadfe401ac57299c689eee9b92a99b",
+  "apk_bytes": 673229,
+  "signer_sha256": "a2aa0c1b6fdaf1baa37aa20817387524a1318b5dab82bf7c185663141daba60f",
+  "min_sdk": 34,
+  "target_sdk": 36,
+  "debuggable": false,
+  "channel": "beta",
+  "published_at": "2026-11-12",
+  "download_path": "/download/android",
+  "notes": [
+    "减少上传和相册发布时重复的元数据检查，保留授权、撤销、配额与完整文件校验。",
+    "两台真机分别通过 Muse／Instinct 完成原连接远程升级与 96 KiB 文件上传；性能随网络变化。",
+    "升级保留有效 AI 连接和用户数据。"
+  ]
+}

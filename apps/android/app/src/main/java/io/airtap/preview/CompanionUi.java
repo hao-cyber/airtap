@@ -115,7 +115,8 @@ final class CompanionUi {
                 "hint_fingerprint", ObservedText.localFingerprint(masked ? null : node.getHintText(), masked),
                 "password", masked, "enabled", node.isEnabled(), "visible", node.isVisibleToUser(),
                 "showing_hint_text", node.isShowingHintText(),
-                "bounds", rect.toShortString(), "clickable", node.isClickable(), "editable", node.isEditable(),
+                "bounds", rect.toShortString(), "clickable", SemanticNodeActions.canClick(node, false),
+                "long_clickable", SemanticNodeActions.canClick(node, true), "editable", node.isEditable(),
                 "focused", node.isFocused(), "selected", node.isSelected(), "checked", node.isChecked(), "selection_start", node.getTextSelectionStart(), "selection_end", node.getTextSelectionEnd()).toString();
     }
     private static void exact(JSONObject request, String... fields) {
@@ -226,8 +227,8 @@ final class CompanionUi {
                         Rect rect = new Rect(); n.getBoundsInScreen(rect); String id = Integer.toString(nextId[0]++);
                         boolean masked = secret(n); AtomicInput.EditorTicket editor = AtomicInput.capture(service, r, n);
                         item = RelayApi.json("node_id", id, "class", text(n.getClassName()), "view_id", text(n.getViewIdResourceName()),
-                                "showing_hint_text", n.isShowingHintText(), "bounds", rectangle(rect), "clickable", n.isClickable(),
-                                "long_clickable", n.isLongClickable(), "editable", n.isEditable(), "scrollable", n.isScrollable(),
+                                "showing_hint_text", n.isShowingHintText(), "bounds", rectangle(rect), "clickable", SemanticNodeActions.canClick(n, false),
+                                "long_clickable", SemanticNodeActions.canClick(n, true), "editable", n.isEditable(), "scrollable", n.isScrollable(),
                                 "enabled", n.isEnabled(), "password", masked, "focused", n.isFocused(), "input_actions", AtomicInput.actions(n, editor != null));
                         ObservedText.put(item, "text", masked || n.isShowingHintText() ? "" : n.getText(), masked);
                         ObservedText.put(item, "description", masked ? "" : n.getContentDescription(), masked);
@@ -433,11 +434,13 @@ final class CompanionUi {
             operation = direction.equals("forward") ? AccessibilityNodeInfo.ACTION_SCROLL_FORWARD : AccessibilityNodeInfo.ACTION_SCROLL_BACKWARD;
         } else {
             boolean longClick = action.equals("long_click");
-            for (int i = 0; i < 8 && n != null && !(longClick ? n.isLongClickable() : n.isClickable()); i++) n = n.getParent();
-            if (n == null || !(longClick ? n.isLongClickable() : n.isClickable())) throw new ScopedUi.Refused("not_actionable");
+            for (int i = 0; i < 8 && n != null && !SemanticNodeActions.canClick(n, longClick); i++) n = n.getParent();
+            if (n == null || !SemanticNodeActions.canClick(n, longClick)) throw new ScopedUi.Refused("not_actionable");
             operation = longClick ? AccessibilityNodeInfo.ACTION_LONG_CLICK : AccessibilityNodeInfo.ACTION_CLICK;
         }
         if (!n.refresh() || !n.isEnabled() || !n.isVisibleToUser() || !packageName.equals(pkg(n)) || n.getWindowId() != root(packageName).getWindowId()) throw new ScopedUi.Refused("stale_node");
+        if ((action.equals("click") || action.equals("long_click")) && !SemanticNodeActions.canClick(n, action.equals("long_click")))
+            throw new ScopedUi.Refused("not_actionable");
         if (action.equals("node_action")) {
             // Re-check target state, advertised action and arguments after the final refresh.
             if (!target.identity.equals(identity(n))) throw new ScopedUi.Refused("stale_node");

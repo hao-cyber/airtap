@@ -1,0 +1,136 @@
+{
+  "complete": true,
+  "checks": [
+    {
+      "name": "exact source version enforced",
+      "passed": true
+    },
+    {
+      "name": "decoded image type checked",
+      "passed": true
+    },
+    {
+      "name": "revoked task cannot publish",
+      "passed": true
+    },
+    {
+      "name": "rejected operations create no gallery file",
+      "passed": true
+    },
+    {
+      "name": "interrupted unpublished write reports failure",
+      "passed": true
+    },
+    {
+      "name": "interrupted pending row cleaned without public photo",
+      "passed": true
+    },
+    {
+      "name": "MediaStore publication verifies bytes and metadata",
+      "passed": true
+    },
+    {
+      "name": "published media has indexed dimensions for receiving pickers",
+      "passed": true
+    },
+    {
+      "name": "exactly one new gallery image",
+      "passed": true
+    },
+    {
+      "name": "same request reuses publication without duplicate",
+      "passed": true
+    },
+    {
+      "name": "wire result contains no content URI or private path",
+      "passed": true
+    },
+    {
+      "name": "normal control button is available",
+      "passed": true
+    },
+    {
+      "name": "production visual touch works before DocumentsUI comparison",
+      "passed": true
+    },
+    {
+      "name": "DocumentsUI displays this exact published file",
+      "passed": true
+    },
+    {
+      "name": "production visual tap dispatched on exact DocumentsUI file",
+      "passed": true
+    },
+    {
+      "name": "current tree advertises delegated DocumentsUI item as clickable",
+      "passed": true
+    },
+    {
+      "name": "production semantic click accepts the declared DocumentsUI action",
+      "passed": true
+    },
+    {
+      "name": "Airtap-selected document reaches receiving App with identical hash",
+      "passed": true
+    },
+    {
+      "name": "published image remains after request completion",
+      "passed": true
+    },
+    {
+      "name": "owner-deleted photo is not recreated by late retry",
+      "passed": true
+    },
+    {
+      "name": "deleted photo remains absent",
+      "passed": true
+    }
+  ],
+  "sdk": 36,
+  "document_touch": {
+    "package": "com.google.android.documentsui",
+    "sensitive": false,
+    "bounds": [
+      78,
+      484,
+      380,
+      787
+    ],
+    "clickable_property": false,
+    "click_action_declared": true,
+    "tap_result": {
+      "accepted": true,
+      "action": "tap",
+      "requires_observation": true
+    },
+    "screen_bounds": [
+      0,
+      0,
+      1080,
+      2400
+    ],
+    "visual_selected_sha_matches": false,
+    "semantic_click_result": {
+      "accepted": true,
+      "action": "click",
+      "requires_observation": true
+    },
+    "selected_sha_matches": true
+  },
+  "evidence": "Production FileScopes/GalleryPublisher publish a unique synthetic PNG. CompanionUi first checks visual touch in a normal App, then attempts real DocumentsUI visual touch and uses the currently advertised semantic click if selection did not occur. A separate receiving App verifies the full SHA256. UiAutomation only discovers targets and reads results, never clicks this picker. Accepted gestures without selection remain recorded. Authorization and transport are fixture substitutes; no physical-phone, relay or personal-AI acceptance claimed.",
+  "apk_sha256": "d9c125f2ad500fbe320a0bd41eab270236d34e5cbb027bc2d22075d12fe82d17",
+  "physical_phone": false,
+  "personal_ai": false,
+  "schema": "airtap-code74-documentsui-native-v1",
+  "date": "2026-11-12",
+  "version_code": 74,
+  "baseline": {
+    "version_code": 73,
+    "normal_visual_button_passed": true,
+    "documentsui_visual_tap_accepted": true,
+    "selected_sha_matches": false,
+    "sensitive": false
+  },
+  "scope": "Isolated Android16 emulator with synthetic image and separate receiving App. No physical phone or personal-AI acceptance.",
+  "source_reference": "https://android.googlesource.com/platform/packages/apps/DocumentsUI/+/refs/heads/main/src/com/android/documentsui/dirlist/AccessibilityEventRouter.java"
+}
