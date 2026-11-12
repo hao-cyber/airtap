@@ -1673,6 +1673,10 @@
     },
     {
       "kind": "source",
+      "path": "release/android/74.json"
+    },
+    {
+      "kind": "source",
       "path": "release/build_android.py"
     },
     {
