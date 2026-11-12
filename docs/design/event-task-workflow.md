@@ -30,9 +30,13 @@ python3 airtap.py --config /private/phone.json watch-start --watch-id orders --e
 JSON
 ```
 
+`watch-create` 的规则只接受 `packages`、`contains`、`goal` 三个字段。`packages` 使用核实的通知来源包名；系统下载管理器发出的通知，来源未必是浏览器。`contains` 匹配标题与正文中的子串，不是正则表达式。测试时使用唯一合成标记，`goal` 写明机主已批准的具体任务。轮询间隔、截止时间和重试次数属于 AI 的调度计划，不能作为额外字段传给规则。
+
+创建后的 watch 状态立即为 `active`，但不会自动轮询、启用手机采集或授予系统权限。仅准备材料时保存模板，不执行 `watch-create`；来源尚未核实就不创建。已经创建而暂不执行时使用 `watch-pause`，继续前核对任务授权再 `watch-resume`。
+
 AI 先恢复已有任务，再处理新事件。它在准备好的 App 中执行最终保存动作时带上返回的 `--job-id` 和 `--step-id save`。每个有后果的操作使用独立步骤，普通观察不消耗步骤。
 
-保存成功后，需要重开草稿，核对订单标识、币种、金额和附件；请求返回 `accepted` 不等于报销草稿正确。核验后才执行：
+保存成功后，需要在手机目标 App 重开草稿，核对订单标识、币种、金额和附件。只生成云端任务记录、或请求返回 `accepted`，都不等于手机任务完成。核验后才执行：
 
 ```sh
 python3 airtap.py --config /private/phone.json --job-id JOB_ID --step-id save job-resolve --resolution verified --evidence-stdin < /private/result-check.txt
@@ -41,6 +45,12 @@ python3 airtap.py --config /private/phone.json watch-finish --watch-id orders --
 ```
 
 回执应注明结果、保存位置、实际核验、失败恢复和人工介入；私人票据留在用户私有工作区。自动回执若也可能重试，应以事件 ID 作为回执标识，避免将多次发送误记为多次办事。
+
+## 私有记录与停止
+
+CLI 会把匹配事件的标题、正文和游标一起保存到 AI 的私有 watch 文件，用于崩溃后的续接。`watch-finish` 完成或忽略事件时清除该项事件正文；超过 24 小时的正文在后续 watch 命令加载时清除。CLI 没有常驻清理进程，停止运行期间不会主动删除磁盘上的过期内容。手机历史的 24 小时／64 条上限是另一层限制；已复制到其他日志、草稿或备份的内容不随 watch 自动清除。
+
+测试回执只保留合成标记与必要技术结果，不复制无关通知正文。结束本轮测试时暂停自己的 watch、结束其调度并释放自己的手机任务。不要用 `event-configure --disable` 代替暂停：它会关闭手机采集并清除整机通知历史，影响其他已授权 AI。关闭整机采集须依据机主对该动作的指令单独判断。
 
 ## 调度与恢复
 
