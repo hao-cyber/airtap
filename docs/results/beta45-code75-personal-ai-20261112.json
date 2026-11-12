@@ -116,7 +116,42 @@
     "end_cst": "2026-11-12T19:46:00+08:00",
     "owner_phone_interventions": 0,
     "usb_used": false,
-    "consent": "Owner explicitly approved this silent calculator recording; the normal system confirmation was clicked by an authorized delegate, not the owner personally."
+    "consent": "Owner explicitly approved this silent calculator recording; the normal system confirmation was clicked by an authorized delegate, not the owner personally.",
+    "readiness": {
+      "notifications": {
+        "enabled": false,
+        "permission": false,
+        "listener_connected": false,
+        "storage_ok": true,
+        "retention_hours": 24,
+        "max_events": 64,
+        "history_complete": false,
+        "content_visibility": "platform_filtered",
+        "sms_database": false,
+        "requires_agent_polling": true
+      },
+      "media": {
+        "busy": false,
+        "photo_handler_available": true,
+        "video_handler_available": true,
+        "camera_permission": "external_camera_app",
+        "microphone_permission": false,
+        "screen_consent": "required_each_session",
+        "starts_capture": false
+      },
+      "sim_pin": {
+        "enabled": false,
+        "attempt_pending": false,
+        "pin_locked_slots": 0,
+        "puk_locked_slots": 0,
+        "sim_states_known": true,
+        "device_secure": false,
+        "keypad_verified": false,
+        "stores_pin": false
+      }
+    },
+    "readiness_readback_cst": "2026-11-12 19:55:40–19:55:57",
+    "readiness_readback_note": "Restored identity required a fresh task lease for ping; normal acquire/ping/release succeeded without observation, wake or new permissions. Final connection idle."
   },
   "interpretation": [
     "The actual returned frame shows 19×23=437 in the calculator; no audio stream was present.",
@@ -133,5 +168,18 @@
     "Multi-day background operation",
     "Additional OEMs and independent new-user installation"
   ],
-  "privacy": "Raw phone images, videos, file paths, pairing data and private chat content are not included."
+  "privacy": "Raw phone images, videos, file paths, pairing data and private chat content are not included.",
+  "background_followup": {
+    "status": "scheduled_not_completed",
+    "planned_start_cst": "2026-11-12T20:10:00+08:00",
+    "planned_check_times_cst": [
+      "2026-11-13T20:10:00+08:00",
+      "2026-11-14T20:10:00+08:00",
+      "2026-11-15T20:10:00+08:00"
+    ],
+    "cloud_jobs": 6,
+    "first_two_checks": "server status only; no lease or wake",
+    "final_check": "at least 72h elapsed, normal wake and calculator verification, HOME and release",
+    "limits": "Not continuous monitoring, deep Doze, continuous inactivity or proof of 100% uptime."
+  }
 }
