@@ -59,6 +59,18 @@ final class PrivateFileStorage {
         }}return total;
     }
     Usage usage(boolean includeReservations)throws IOException {
+        // This traversal reads private metadata only. Check authorization before it,
+        // periodically while it runs, and again before returning any result. Keep
+        // the unbatched fence for cleanup and every operation that changes files.
+        // No authorization result is cached across commands or file mutations.
+        fence.run();
+        int[] remaining={32};
+        Runnable scanFence=()->{if(--remaining[0]==0){fence.run();remaining[0]=32;}};
+        Usage result=new PrivateFileStorage(root,scanFence,sync,budget).scanUsage(includeReservations);
+        fence.run();
+        return result;
+    }
+    private Usage scanUsage(boolean includeReservations)throws IOException {
         // Count each payload once. The owner-screen workspace totals can be collected
         // in the same traversal as the all-pairing budget; scanning each workspace
         // again repeated expensive Android authority/window fences for every chunk.

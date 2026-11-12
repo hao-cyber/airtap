@@ -4,7 +4,7 @@
   "android_version": "0.4.0-beta.42",
   "version_code": 72,
   "cli_version": "0.4.0-cli.22",
-  "status": "published_candidate_pending_phone_acceptance",
+  "status": "phone_upgrade_and_dynamic_tree_passed_gallery_follow_up_in_progress_upload_performance_unresolved",
   "source_commit": "2d530dae3e970303f2dbac0cab5da4b27f0e717c",
   "apk_sha256": "3cd1cdef68a61c55ff653599ae8023094353d81f02bbcc6fd32be169270836d3",
   "apk_bytes": 673229,
@@ -53,5 +53,206 @@
     "attempts": 2,
     "result": "No usable output; both actual dispatches ended with idle timeout, exit 124. No substitute model attributed as Grok."
   },
-  "privacy": "Public record contains synthetic test metadata only; no phone content, personal AI addresses, pairing data or deployment endpoints."
+  "privacy": "Public record contains synthetic test metadata only; no phone content, personal AI addresses, pairing data or deployment endpoints.",
+  "phone_acceptance": {
+    "source": "Actual Muse cloud runner receipts, reviewed in its original conversation; CLI21 remained the active phone-task runner.",
+    "device": "test phone A",
+    "upgrade": {
+      "from_version_code": 70,
+      "to_version_code": 72,
+      "method": "normal Android installer through original Airtap connection",
+      "package_bytes_and_sha256_verified": true,
+      "original_pairing_preserved": true,
+      "usb_used": false,
+      "temporary_disconnect": true,
+      "subsequent_ping_confirmed_version": true,
+      "phone_installer_accepted_signer": "Accepted existing-app upgrade; exact signer certificate was verified separately in maintainer build checks, not by the cloud runner."
+    },
+    "dynamic_dashboard_reads": {
+      "package": "com.follow.clash",
+      "node_counts": [
+        37,
+        37,
+        37
+      ],
+      "elapsed_ms": [
+        2624.08,
+        2642.01,
+        4668.68
+      ],
+      "fresh_snapshot_required": false,
+      "scope": "Three reads of a changing dashboard; not a guarantee for every dynamic page."
+    },
+    "save_and_restart": {
+      "save_with_after_action_tree": {
+        "ok": true,
+        "top_level_post_action_tree_present": true,
+        "nodes": 38,
+        "elapsed_ms": 5131.5
+      },
+      "restart_click": {
+        "ok": false,
+        "error": "stale_node",
+        "elapsed_ms": 1900.0,
+        "retry_action": false
+      },
+      "applied_vpn_restart": false,
+      "reported_transport": "vpn",
+      "runner_correction": "Initial report looked for post_action_tree inside result and missed the actual top-level tree."
+    },
+    "original_upload_resume": {
+      "total_bytes": 340265,
+      "initial_offset": 229376,
+      "newly_transferred_bytes": 110889,
+      "last_confirmed_offset": 340265,
+      "elapsed_ms": 43557.96,
+      "file_commands": 7,
+      "slowest_file_command_ms": 14790.99,
+      "state": "finished",
+      "verification": "current_stat_sha256",
+      "sha256": "f1fd6b9e8dadb17800ea67e60bd4b3eee29ffc390e69b269178878022f6d4ca2",
+      "scope": "Resumed remaining bytes only, not a new upload benchmark. Slowest command remained below the 15000ms relay deadline; upload latency is unresolved."
+    },
+    "runner_interruption": {
+      "at": "2026-11-12T17:10:19+08:00",
+      "error": "database error: compaction summary cannot be empty",
+      "effect": "Subagent failed before gallery and final cleanup; parent recovered actual results from stored JSON and command log."
+    },
+    "recovery": {
+      "started_at": "2026-11-12T17:13:44+08:00",
+      "finished_at": "2026-11-12T17:19:05+08:00",
+      "disconnects_reported": 3,
+      "home_and_release_each_received_one_503": true,
+      "unknown_outcomes_reconciled_with_status_and_fresh_observation": true,
+      "launcher_confirmed": true,
+      "ordinary_sound_channels_muted": true,
+      "alarm_preserved": true,
+      "final_connected": true,
+      "final_task_state": "idle",
+      "lease_released": true,
+      "human_phone_intervention": false
+    },
+    "gallery_preview": "Not completed: OEM Messages routed to an unaccepted gallery first-use agreement. Existing Gmail opened Android DocumentsUI and displayed the published PNG, but reported row taps did not select it; source screenshots/targets are under review. Test draft discarded, HOME/mute/release and final connected idle confirmed. No message or email sent.",
+    "gallery_publication": {
+      "published": true,
+      "reused": false,
+      "album": "Pictures/Airtap/",
+      "width": 1280,
+      "height": 960,
+      "bytes": 340265,
+      "source_sha256_matched": true,
+      "readback_verified": true,
+      "picker_selection_verified": false,
+      "command_sequence": 1901,
+      "cli_elapsed_ms": 11888.51,
+      "phone_timeline": {
+        "phase": "reply_enqueued",
+        "elapsed_ms": 6209,
+        "main_queue_ms": 5,
+        "admission_ms": 159,
+        "preparation_ms": 48,
+        "execution_reply_ms": 5996
+      },
+      "executor_metrics": {
+        "elapsed_ms": 5948,
+        "check_count": 125,
+        "main_check_ms": 4853,
+        "io_elapsed_ms": 5872,
+        "io_finished": true
+      },
+      "limit": "Roundtrip minus phone time includes unmeasured client, HTTP/WSS queuing and network; cannot attribute it entirely to network."
+    },
+    "gallery_follow_up_cleanup": {
+      "home_confirmed": true,
+      "sound_muted": true,
+      "draft_discarded": true,
+      "message_sent": false,
+      "lease_released": true,
+      "final_connected": true,
+      "final_task_state": "idle",
+      "disconnects_reported": 4,
+      "unknown_outcomes_reconciled": true
+    }
+  },
+  "independent_connection_check": {
+    "source": "Instinct original Vault identities and actually selected SHA-verified CLI22; status only, no lease or screen actions.",
+    "initial_attempt": {
+      "at": "2026-11-12T17:10:33+08:00",
+      "result": "Both queries failed; runner did not retain error output, so no failure cause asserted."
+    },
+    "repeat": [
+      {
+        "device": "test phone A",
+        "at": "2026-11-12T17:12:44.863+08:00",
+        "ok": true,
+        "connected": true,
+        "approved": true,
+        "task_state": "idle",
+        "pending": 0,
+        "elapsed_ms": 457
+      },
+      {
+        "device": "test phone B",
+        "at": "2026-11-12T17:12:46.429+08:00",
+        "ok": true,
+        "connected": true,
+        "approved": true,
+        "task_state": "idle",
+        "pending": 0,
+        "elapsed_ms": 475
+      }
+    ],
+    "scope": "Point-in-time connectivity; does not prove all tasks finished or explain the previous failures."
+  },
+  "upload_baseline": {
+    "device": "test phone A",
+    "version_code": 72,
+    "route": "vpn",
+    "relay_changed": false,
+    "bytes": 98304,
+    "input": "Deterministic synthetic bytes: bytes(range(256)) repeated 384 times.",
+    "sha256": "8f65e1015c4ffa783265c5fe24846a063d625460fd268c408dd18f334de6a02f",
+    "started_at": "2026-11-12T17:41:49+08:00",
+    "ended_at": "2026-11-12T17:42:16+08:00",
+    "fresh_upload": true,
+    "result": "HTTP 504; outcome unknown; not retried",
+    "transfer_metrics": {
+      "elapsed_ms": 26717.85,
+      "file_commands": 3,
+      "slowest_file_command_ms": 15951.75,
+      "initial_offset": 0,
+      "last_confirmed_offset": 32768
+    },
+    "recovery": {
+      "original_identity_preserved": true,
+      "reconnected_after_wait_seconds": 55,
+      "ping_before_upload_status": true,
+      "phone_sequence": 1992,
+      "last_file_command": {
+        "action": "file_upload_chunk",
+        "phase": "reply_enqueued",
+        "elapsed_ms": 2708,
+        "main_queue_ms": 170,
+        "admission_ms": 151,
+        "preparation_ms": 33,
+        "execution_reply_ms": 2353
+      },
+      "last_file_performance": {
+        "action": "file_upload_chunk",
+        "outcome": "completed",
+        "elapsed_ms": 2317,
+        "check_count": 81,
+        "main_check_ms": 2090,
+        "io_elapsed_ms": 2263,
+        "io_finished": true
+      },
+      "upload_status": "receiving",
+      "phone_confirmed_offset": 65536,
+      "no_retransmission": true,
+      "home_muted_released": true,
+      "final_connected": true,
+      "final_task_state": "idle"
+    },
+    "interpretation": "Phone status confirms one more staged block than the CLI acknowledgement. Phone-side latest sequence is retained, but no raw cloud request/sequence match is asserted here. The transfer has no finished state yet."
+  }
 }

@@ -143,6 +143,35 @@ final class FileTransferStore {
         if (!stat(relative, false).version.equals(expected)) fail("file_changed"); fence.run();
         return new Chunk(data, offset + data.length, before.size, expected);
     }
+    /** A single local copy under the caller's workspace IO lock, not a wire read session. */
+    InputStream openRead(String relative, String expected) throws IOException {
+        Path source=path(relative,false); Entry before=stat(relative,false);
+        if(!before.kind.equals("file"))fail("file_type_unsupported");
+        if(!before.version.equals(expected))fail("file_changed");
+        if(before.size>MAX_FILE)fail("file_too_large");
+        fence.run();
+        InputStream input=Files.newInputStream(source,LinkOption.NOFOLLOW_LINKS);
+        return new InputStream(){
+            long read; boolean closed;
+            final byte[] one=new byte[1];
+            @Override public int read()throws IOException{return read(one,0,1)<0?-1:one[0]&255;}
+            @Override public int read(byte[] bytes,int start,int length)throws IOException{
+                Objects.checkFromIndexSize(start,length,bytes.length);
+                if(closed)throw new IOException("closed");
+                if(length==0)return 0;
+                fence.run();
+                if(read==before.size){if(input.read()!=-1)fail("file_changed");return -1;}
+                int n=input.read(bytes,start,(int)Math.min(length,before.size-read));
+                if(n<0)fail("file_changed");
+                read+=n;return n;
+            }
+            @Override public void close()throws IOException{
+                if(closed)return;closed=true;
+                try{if(!stat(relative,false).version.equals(expected))fail("file_changed");}
+                finally{input.close();}
+            }
+        };
+    }
     private Path meta(String id) { id(id); return transfers.resolve(id + ".properties"); }
     private Path part(String id) { id(id); return transfers.resolve(id + ".part"); }
     private Properties load(String id) throws IOException {

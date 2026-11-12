@@ -67,7 +67,7 @@ final class GalleryPublisher {
             try (OutputStream output = resolver.openOutputStream(row.uri(), "wt");
                  InputStream input = sourceStream(store, path, source, fence)) {
                 if (output == null) fail("media_publication_failed");
-                byte[] buffer = new byte[FileTransferStore.MAX_CHUNK]; int n;
+                byte[] buffer = new byte[65536]; int n;
                 while ((n = input.read(buffer)) != -1) { fence.run(); output.write(buffer, 0, n); }
             }
             Row written = find(c, name, fence);
@@ -127,22 +127,12 @@ final class GalleryPublisher {
                 "sha256", file.sha256(), "width", size.outWidth, "height", size.outHeight,
                 "readback_verified", true, "picker_selection_verified", false);
     }
-    private static InputStream sourceStream(FileTransferStore store, String path, FileTransferStore.Entry file, Runnable fence) {
-        return new InputStream() {
-            long offset; byte[] chunk = new byte[0]; int index;
-            @Override public int read() throws IOException { byte[] one = new byte[1]; return read(one, 0, 1) == -1 ? -1 : one[0] & 255; }
-            @Override public int read(byte[] bytes, int start, int length) throws IOException {
-                java.util.Objects.checkFromIndexSize(start, length, bytes.length);
-                if (length == 0) return 0; fence.run();
-                if (index == chunk.length) {
-                    if (offset == file.size()) return -1;
-                    chunk = store.read(path, offset, (int)Math.min(FileTransferStore.MAX_CHUNK, file.size() - offset), file.version()).data();
-                    offset += chunk.length; index = 0;
-                    if (chunk.length == 0) throw new EOFException();
-                }
-                int count = Math.min(length, chunk.length - index);
-                System.arraycopy(chunk, index, bytes, start, count); index += count; return count;
-            }
-        };
+    private static InputStream sourceStream(FileTransferStore store, String path, FileTransferStore.Entry file, Runnable fence) throws IOException {
+        // The workspace lock covers the whole publication. Keep one no-follow
+        // descriptor instead of reopening/statting the source for every 32KiB
+        // wire-sized piece. The stream fences each read and validates the source
+        // version on close; published bytes still get a full SHA-256 readback.
+        fence.run();
+        return store.openRead(path,file.version());
     }
 }

@@ -40,6 +40,21 @@ public final class PrivateFileStorageTest {
             file(r.resolve(A+"/workspace/nested/ok"),10);Files.createSymbolicLink(r.resolve(A+"/workspace/nested/link"),other);
             refused("file_symlink_refused",()->storage(r,200000).checkNew(1,100000000));check(Files.readString(other).equals("keep"));
         });
+        test("read-only quota scan counts all files with bounded authority checkpoints",()->{
+            Path r=fresh();for(int i=0;i<160;i++)file(r.resolve(A+"/workspace/f"+i),17);
+            AtomicInteger checks=new AtomicInteger();var s=new PrivateFileStorage(r,checks::incrementAndGet,p->{},1000000);
+            var u=s.usage(true);check(u.usedBytes()==160*17&&u.workspaceFiles()==160&&u.reservedBytes()==0);
+            check(checks.get()>2&&checks.get()<16); // Periodic cancellation, not one keystore round trip per entry.
+        });
+        test("quota scan rejects revocation at periodic and final checks without deleting files",()->{
+            for(int count:new int[]{1,160}){
+                Path r=fresh();for(int i=0;i<count;i++)file(r.resolve(A+"/workspace/f"+i),17);
+                AtomicInteger checks=new AtomicInteger();var s=new PrivateFileStorage(r,()->{if(checks.incrementAndGet()==2)FileTransferStore.fail("permission_denied");},p->{},1000000);
+                refused("permission_denied",()->s.checkNew(1,100000000));
+                check(storage(r,1000000).usage(false).usedBytes()==count*17);
+                check(checks.get()==2);
+            }
+        });
         test("new transfer reservation blocks another claim before allocation",()->{Path r=fresh();var s=storage(r,200000);s.checkNew(100000,100000000);begin(r,A,ID,100000);refused("file_private_storage_budget",()->s.checkNew(100000,100000000));});
         test("partial chunk moves bytes from reserved to used without double count",()->{Path r=fresh();var s=storage(r,200000);begin(r,A,ID,10000);long before=charged(s);FileTransferStore f=new FileTransferStore(r.resolve(A),()->{});byte[] chunk=new byte[4096];s.check(0,100000000);f.chunk(ID,0,chunk,FileTransferStore.digest(chunk));check(charged(s)==before);});
         test("same ID begin does not reserve twice and zero byte still reserves journal",()->{Path r=fresh();var s=storage(r,200000);s.checkNew(0,100000000);begin(r,A,ID,0);long before=charged(s);begin(r,A,ID,0);check(charged(s)==before&&before==PrivateFileStorage.JOURNAL_RESERVE);});

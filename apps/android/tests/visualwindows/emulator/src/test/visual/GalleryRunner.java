@@ -59,6 +59,26 @@ public final class GalleryRunner extends Instrumentation {
             for(int i=0;i<n.getChildCount();i++){var child=n.getChild(i);if(child!=null)all.add(child);}
         }return null;
     }
+    boolean clickTarget(AccessibilityNodeInfo node) {
+        // Photo Picker exposes the thumbnail image separately from its clickable
+        // tile. Use the advertised ancestor action; this is the independent
+        // receiving-App oracle, not the Airtap executor under test.
+        int window=node.getWindowId();
+        for(int depth=0;node!=null&&depth<8;depth++,node=node.getParent()){
+            if(node.getWindowId()!=window)return false;
+            if(node.isClickable())return node.performAction(AccessibilityNodeInfo.ACTION_CLICK);
+        }
+        return false;
+    }
+    JSONArray oracleState(){
+        JSONArray result=new JSONArray();var root=getUiAutomation().getRootInActiveWindow();if(root==null)return result;
+        ArrayDeque<AccessibilityNodeInfo> nodes=new ArrayDeque<>();nodes.add(root);
+        while(!nodes.isEmpty()&&result.length()<100){var n=nodes.remove();
+            result.put(new JSONObject(Map.of("class",String.valueOf(n.getClassName()),"text",String.valueOf(n.getText()),
+                    "description",String.valueOf(n.getContentDescription()),"clickable",n.isClickable(),"id",String.valueOf(n.getViewIdResourceName()))));
+            for(int i=0;i<n.getChildCount();i++){var child=n.getChild(i);if(child!=null)nodes.add(child);}
+        }return result;
+    }
     void tests() throws Exception {
         pendingBaseline=count(true);
         Class<?> scopes=Class.forName("io.airtap.preview.FileScopes");
@@ -66,6 +86,7 @@ public final class GalleryRunner extends Instrumentation {
         run=scopes.getDeclaredMethod("run",Context.class,String.class,JSONObject.class,Runnable.class,CancellationSignal.class,java.util.function.BooleanSupplier.class);run.setAccessible(true);
         Bitmap b=Bitmap.createBitmap(160,120,Bitmap.Config.ARGB_8888);Canvas canvas=new Canvas(b);canvas.drawColor(Color.rgb(35,130,90));
         Paint p=new Paint();p.setColor(Color.WHITE);p.setTextSize(16);canvas.drawText("Airtap test",15,65,p);
+        canvas.drawText(path.substring(8,16),15,100,p); // Distinct bytes prevent an older fixture photo from satisfying the hash oracle.
         ByteArrayOutputStream bytes=new ByteArrayOutputStream();b.compress(Bitmap.CompressFormat.PNG,100,bytes);b.recycle();byte[] data=bytes.toByteArray();String digest=hash(data),id=UUID.randomUUID().toString().replace("-","");
         call(q("file_upload_begin").put("root","workspace").put("path",path).put("transfer_id",id).put("size",data.length).put("sha256",digest));
         call(q("file_upload_chunk").put("transfer_id",id).put("offset",0).put("sha256",digest).put("data_base64",Base64.getEncoder().encodeToString(data)));
@@ -97,9 +118,15 @@ public final class GalleryRunner extends Instrumentation {
         AccessibilityNodeInfo thumbnail=null;
         for(int i=0;i<35&&thumbnail==null;i++){Thread.sleep(200);thumbnail=node("",true);}
         check("separate App system photo picker displays media",thumbnail!=null);
-        if(!thumbnail.performAction(AccessibilityNodeInfo.ACTION_CLICK))throw new AssertionError("picker thumbnail click");
-        Thread.sleep(400);var add=node("Add",false);if(add==null)add=node("Done",false);if(add!=null)add.performAction(AccessibilityNodeInfo.ACTION_CLICK);
-        AccessibilityNodeInfo selected=null;for(int i=0;i<30&&selected==null;i++){Thread.sleep(200);selected=node("Selected SHA256 "+digest,false);}
+        if(!clickTarget(thumbnail))throw new AssertionError("picker thumbnail click");
+        AccessibilityNodeInfo selected=null;boolean confirmed=false;
+        for(int i=0;i<30&&selected==null;i++){
+            Thread.sleep(200);selected=node("Selected SHA256 "+digest,false);
+            if(selected==null&&!confirmed){
+                var add=node("Add",false);if(add==null)add=node("Done",false);
+                if(add!=null){if(!clickTarget(add))throw new AssertionError("picker selection confirmation");confirmed=true;}
+            }
+        }
         check("separate App reads selected image with identical hash",selected!=null);
         Uri published=uri(result.getString("display_name"));check("published image remains after request completion",published!=null);
         getTargetContext().getContentResolver().delete(published,null,null);
@@ -108,7 +135,7 @@ public final class GalleryRunner extends Instrumentation {
     }
     @Override public void onCreate(Bundle b){super.onCreate(b);start();}
     @Override public void onStart(){Bundle result=new Bundle();JSONObject report=new JSONObject();
-        try{tests();report.put("complete",true);}catch(Throwable e){try{report.put("complete",false).put("error",e.toString());StringWriter out=new StringWriter();e.printStackTrace(new PrintWriter(out));report.put("stack",out.toString());}catch(Exception ignored){}}
+        try{tests();report.put("complete",true);}catch(Throwable e){try{report.put("complete",false).put("error",e.toString()).put("oracle_state",oracleState());StringWriter out=new StringWriter();e.printStackTrace(new PrintWriter(out));report.put("stack",out.toString());}catch(Exception ignored){}}
         try{report.put("checks",checks).put("sdk",Build.VERSION.SDK_INT).put("publication_metadata",publicationMetadata);}catch(Exception ignored){}result.putString("report",report.toString());finish(report.optBoolean("complete")?-1:0,result);
     }
 }

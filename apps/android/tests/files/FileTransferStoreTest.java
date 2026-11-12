@@ -128,6 +128,38 @@ public class FileTransferStoreTest {
         test("stale read version rejects replaced content", () -> {
             Path base=fresh();FileTransferStore s=store(base);upload(s,"a",bytes("abc"));String version=s.stat("a",true).version();Files.delete(base.resolve("workspace/a"));Files.writeString(base.resolve("workspace/a"),"longer");refused("file_changed",()->s.read("a",0,3,version));
         });
+        test("local copy streams identical bytes with bounded checks instead of reopening every wire chunk",()->{
+            Path base=fresh();AtomicInteger checks=new AtomicInteger();FileTransferStore s=new FileTransferStore(base,checks::incrementAndGet);
+            byte[] data=new byte[340265];new Random(73).nextBytes(data);var done=upload(s,"copy.png",data);String version=done.file().version();
+            checks.set(0);ByteArrayOutputStream old=new ByteArrayOutputStream();
+            for(int at=0;at<data.length;at+=FileTransferStore.MAX_CHUNK)old.write(s.read("copy.png",at,FileTransferStore.MAX_CHUNK,version).data());
+            int prior=checks.get();checks.set(0);ByteArrayOutputStream current=new ByteArrayOutputStream();
+            try(InputStream input=s.openRead("copy.png",version)){byte[] buffer=new byte[65536];int n;while((n=input.read(buffer))!=-1)current.write(buffer,0,n);}
+            eq(hash(old.toByteArray()),hash(data));eq(hash(current.toByteArray()),hash(data));
+            if(checks.get()>=prior/3)throw new AssertionError("local stream repeated per-chunk metadata checks");
+        });
+        test("local stream refuses stale identity, symlink and truncated source",()->{
+            Path base=fresh();FileTransferStore s=store(base);var done=upload(s,"copy",bytes("abcdef"));
+            refused("file_changed",()->s.openRead("copy","0".repeat(64)));
+            Files.createSymbolicLink(base.resolve("workspace/link"),base.resolve("workspace/copy"));
+            refused("file_symlink_refused",()->s.openRead("link",done.file().version()));
+            InputStream input=s.openRead("copy",done.file().version());eq(input.read(),(int)'a');
+            Files.write(base.resolve("workspace/copy"),bytes("a"));refused("file_changed",()->input.read());refused("file_changed",input::close);
+        });
+        test("local stream rechecks authority on next read and identity on partial close",()->{
+            Path base=fresh();AtomicBoolean active=new AtomicBoolean(true);FileTransferStore s=new FileTransferStore(base,()->{if(!active.get())FileTransferStore.fail("permission_denied");});
+            var done=upload(s,"copy",bytes("abcdef"));InputStream input=s.openRead("copy",done.file().version());
+            eq(input.read(),(int)'a');active.set(false);refused("permission_denied",()->input.read());active.set(true);
+            Files.delete(base.resolve("workspace/copy"));Files.writeString(base.resolve("workspace/copy"),"different");refused("file_changed",input::close);
+            input.close(); // A failed validation still closed the descriptor; repeat close is harmless.
+        });
+        test("local stream does not accept appended bytes and closes after partial header read",()->{
+            Path base=fresh();FileTransferStore s=store(base);var done=upload(s,"copy",bytes("abc"));
+            try(InputStream header=s.openRead("copy",done.file().version())){eq(header.read(),(int)'a');}
+            InputStream input=s.openRead("copy",done.file().version());eq(input.readNBytes(3).length,3);
+            Files.writeString(base.resolve("workspace/copy"),"extra",StandardOpenOption.APPEND);
+            refused("file_changed",()->input.read());refused("file_changed",input::close);
+        });
         test("finished receipt is historical; stat detects later deletion", () -> {Path base=fresh();FileTransferStore s=store(base);var done=upload(s,"a",bytes("abc"));Files.delete(base.resolve("workspace/a"));eq(s.status(done.id()),done);refused("file_not_found",()->s.stat("a",true));});
         test("parallel staging count bounded", () -> {FileTransferStore s=store(fresh());for(int i=0;i<4;i++)s.begin("a"+i,id(),1,hash(bytes("x")));refused("file_transfer_limit",()->s.begin("last",id(),1,hash(bytes("x"))));});
         test("streamed byte count must match provider metadata", () -> {refused("file_changed",()->FileTransferStore.digest(new ByteArrayInputStream(bytes("abc")),()->{},0));});
