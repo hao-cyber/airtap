@@ -83,8 +83,8 @@
     "videos_changed": false
   },
   "remaining": [
-    "Original long observation and task21 physical notification/media/business acceptance continue on their original plan.",
-    "Candidate code77 must receive its own affected real-device/AI UI check after the original observation; source merge or emulator pass is not phone promotion.",
+    "The owner ended the long observation early on 2026-11-13. No 72-hour completion or continuous-idle claim; its original time gate no longer blocks delivery.",
+    "Code77 real-device and personal-AI acceptance is running on original pairings, combining the code76 event capabilities and the affected owner experience. Source merge and emulator passes do not substitute for these results.",
     "Current-version real phone plus real AI installation/use videos have not replaced the existing older videos.",
     "No independent novice participants or matched human/AI task timings were collected; protocol and content-free local analysis are ready."
   ],
@@ -116,5 +116,21 @@
     "disposable_packages_removed": true,
     "owned_emulator_stopped": true,
     "original_phones_touched": false
+  },
+  "publication_update_20261113": {
+    "release_url": "https://github.com/hao-cyber/airtap/releases/tag/v0.4.0-beta.47",
+    "prerelease": true,
+    "apk_source_commit": "630cb3f686e9d05716c43e755bf70203b2bd68c4",
+    "release_assets_downloaded_and_byte_matched": 5,
+    "relay_revision": 40,
+    "relay_service_identity_preserved": true,
+    "relay_control_source_unchanged_between_39_and_40": true,
+    "cli_version": "0.4.0-cli.23",
+    "cli_sha256": "e6a68dae9e0b32122ba6ca9b36a5d0f3a9c19e3473936285864175d2b7172950",
+    "agent_guide_sha256": "dc935078da5afdc33f7b362e53e6ec8abf3aa1a00f5158993a89ccd33e5ddf6c",
+    "relay_public_assets_downloaded_and_byte_matched": 2,
+    "official_site_recommended_code": 75,
+    "physical_results": "In progress; not yet accepted.",
+    "superseded_intermediate_code": 76
   }
 }
