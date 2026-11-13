@@ -1,0 +1,47 @@
+{
+  "schema": "airtap-site-publication-v1",
+  "date": "2026-11-13",
+  "source_commit": "c218483a47aae05d8b88568f7323d6bcfa633406",
+  "url": "https://airtap.memtrix.dev",
+  "deployment_kind": "site_refresh",
+  "worker_version_id": "58af3914-aed8-4559-bf63-274de43b51ec",
+  "change": "Homepage and media help now link the actual physical-photo, short-audio and saved billing-note evidence. Notification and broader task acceptance remain pending.",
+  "changed_pages": [
+    "/",
+    "/help"
+  ],
+  "recommended_android_code": 75,
+  "apk_sha256": "fb60e7b3d99520106ea8ce002d308fad8186e2e83d902234cda5beb6e992e7a9",
+  "apk_changed": false,
+  "videos_changed": false,
+  "phone_or_relay_changes": false,
+  "checks": {
+    "local_frozen_files": 43,
+    "local_browser_widths": [
+      390,
+      1440
+    ],
+    "public_browser_width": 390,
+    "public_pages_opened": [
+      "/",
+      "/help"
+    ],
+    "scope_details_opened_and_visible": true,
+    "horizontal_overflow": false,
+    "public_http_checks": 101,
+    "public_http_passed": true,
+    "unchanged_media_and_apks_byte_matched": true,
+    "download_head_range_and_retired_responses_checked": true
+  },
+  "managed_robots_transformations": [
+    {
+      "path": "/robots.txt",
+      "kind": "reviewed_managed_robots_prefix",
+      "prefix_bytes": 2676,
+      "prefix_sha256": "3073d1e371afb3271c7666148766fedc5145f7d8440f7114062db79b7bd58add",
+      "source_sha256": "d58c84797c04e430e32b11fffbcb73b63a0afd82b00b5f2134574a52c414306e",
+      "public_sha256": "542678d4397ddd6bf8c14d764a94e7f08d46e73aeb4a3c6751844c3dbb13920f"
+    }
+  ],
+  "scope": "Website publication only. It does not complete code78 notification, remaining phone business tasks or the new installation/use films; previous videos retain their actual version labels."
+}
