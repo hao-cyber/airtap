@@ -1,7 +1,7 @@
 {
   "schema": "airtap-targeted-acceptance-v1",
   "date": "2026-11-13",
-  "status": "published-prerelease; physical notification task result pending",
+  "status": "published-prerelease; physical notification task and polling-process recovery verified",
   "source_commit": "3367f6c90cfac9660a016fbeb6a9d9cb568c5e2c",
   "release_url": "https://github.com/hao-cyber/airtap/releases/tag/v0.4.0-beta.48",
   "android": {
@@ -52,7 +52,27 @@
     "original_pairing_preserved": true,
     "failure_and_recovery": "File-share did not offer the installer; normal browser installation succeeded. The app restart lost the task lease; the AI reacquired it and continued with the original pairing.",
     "usb_or_owner_phone_operation": false,
-    "notification_settings_and_event_task_result": "pending; upgrade success is not notification acceptance"
+    "notification_settings_and_event_task_result": "The normal notification-access page opened; authorized UI approval was followed by enabled, permission and listener_connected readback, then a real notification task."
+  },
+  "physical_notification_workflow": {
+    "executed_on": "2026-11-13",
+    "receipt_retrieved_on": "2026-11-14",
+    "agent": "Instinct, current owner-authorized account",
+    "device": "Meizu Note 16 / Android 15",
+    "actual_runner_cli": "0.4.0-cli.24",
+    "phone_version_code": 78,
+    "event": "A temporary Clock alarm produced a real notification captured by Airtap. Its stable event ID was used to start one task.",
+    "business_result": "The AI saved a test note, closed and reopened it, verified its contents, then completed both the job and event receipt.",
+    "recovery": "The local polling process was terminated during a request (exit 137). With the same saved cursor and job state, the next pull added no duplicate item; starting the completed event was rejected as watch_event_closed and no second phone task ran.",
+    "failure_and_recovery": [
+      "An earlier browser-download marker notification was not captured. The cause is unknown; unrelated notification volume was observed, but buffer pressure was not established as the cause.",
+      "One phone action returned fresh_snapshot_required and was recorded as not applied. A new observation allowed the task to continue."
+    ],
+    "cleanup": "The temporary alarm was removed, existing alarms were preserved, test watches were paused, and the task lease was released. No polling job or schedule remained active.",
+    "audio_scope": "The test alarm sounded. Media, ringtone and notification streams were muted; the alarm stream had a device minimum of one. This was not a wholly silent test.",
+    "usb_or_owner_phone_operation": false,
+    "evidence_scope": "The maintainer retrieved and read the actual sanitized receipt through the original conversation. Raw notification content and private notes are not published.",
+    "limits": "One event and one polling-process interruption, not every app notification, cross-notification business deduplication, phone network loss, reboot or continuous unattended operation."
   },
   "earlier_same_day_code77_results": {
     "source_commit": "630cb3f686e9d05716c43e755bf70203b2bd68c4",
@@ -65,11 +85,23 @@
     },
     "instinct_billing_note": "One owner-attributed carrier billing SMS was summarized in a phone note and verified after closing and reopening. This does not establish formal invoice collection or reimbursement submission.",
     "billing_source_failures": "One shopping app presented a security-verification wall; other available accounts had no relevant orders, and expired or absent logins were skipped. No verification bypass, login change or submission.",
-    "muse_business_and_new_video_receipts": "pending; cloud drafts and accepted recording instructions are not completed phone outputs or video files"
+    "muse_business": {
+      "executed_on": "2026-11-13",
+      "receipt_retrieved_on": "2026-11-14",
+      "actual_runner_cli": "0.4.0-cli.23",
+      "phone_version_code": 77,
+      "jobs": "Five specific job pages were attempted in the phone browser. Four were inspected; the fifth was blocked by a human-verification page. Geographic eligibility, missing pay and contradictory wording remained explicit unknowns.",
+      "application_drafts": "Three unsent Gmail drafts were saved, closed and reopened to verify subjects and complete text. Recipient and sensitive contact fields were blank; no applications were submitted.",
+      "content_draft": "An unsent 365-character Airtap introduction with an existing owner-created image was saved and reopened to verify the subject, text and embedded image. The existing gallery image was reused, not newly published in this run.",
+      "connection_recovery": "Two observed disconnections lasted approximately 6.5 minutes and one minute. The AI checked status and acquired a new lease. After an uncertain text operation, it verified the field was empty before entering the text again. The cause of the disconnections was not established.",
+      "video_status": "Three silent screen captures reported finished, but their file downloads returned 503/504. Raw files remain in the phone workspace; this is not successful footage delivery. The requested Muse conversation take was not recorded.",
+      "usb_or_owner_phone_operation": false,
+      "evidence_scope": "Maintainer read the original Muse result and its detailed artifact. Drafts and raw phone media are private. This does not establish five eligible jobs, recruitment outcomes, publication or a completed promotional video."
+    }
   },
   "remaining": [
-    "Physical notification-access result, actual notification-to-AI-to-phone task, bounded recovery and duplicate handling.",
-    "Muse job checks, three phone application drafts and a content draft, each saved and reopened.",
+    "Recover the existing phone recordings and resolve the observed file-download failures; add the missing actual Muse conversation footage.",
+    "Muse original-connection upgrade to code78/CLI.24 and affected-state checks; the completed business tasks above used code77/CLI.23.",
     "New privacy-reviewed installation and usage films containing actual phone and Muse recordings.",
     "The original long observation ended early at the owner's request; it is not a 72-hour pass and no longer blocks delivery.",
     "Independent novice testing, additional device models and a full mobile-network task remain unverified."

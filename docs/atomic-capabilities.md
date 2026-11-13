@@ -10,7 +10,7 @@ code75 增加 `ping.readiness`：不启动录制、不弹授权页、不创建 P
 
 code76 / CLI.23 候选增加显式通知采集设置和持久事件任务：收取与游标原子保存、按同一事件恢复任务、结果核验后回执；图片入库和文件变更也纳入操作进度。该实现随 code77 进入两机测试；code76 未单独发布装机。使用与限制见[通知到任务](design/event-task-workflow.md)，检查范围见[候选检查记录](results/beta46-code76-event-task-checks-20261112.json)。
 
-code78 / CLI.24 根据 Flyme 真机卡点增加 `event-configure --enable --open-settings`：在原授权和租约内打开正常通知使用权页面，不自动授予权限。Instinct 已核验原连接升级和能力声明，实际通知链路仍待回执。同日 code77 实体拍照、短麦克风采集和一条账单笔记保存重开已有实际 AI 回执；这些结果不代替正式票据汇总或三类完整任务。[本轮分项记录](results/beta48-code78-notification-settings-20261113.json)
+code78 / CLI.24 根据 Flyme 真机卡点增加 `event-configure --enable --open-settings`：在原授权和租约内打开正常通知使用权页面，不自动授予权限。Instinct 已通过正常页面完成授权，核验实际通知触发、手机笔记保存重开、轮询进程中断后恢复及同一事件去重。首次浏览器下载通知未捕获，原因未知；该测试不证明所有通知可达，也不是手机断网或重启测试。同日 code77 实体拍照、短麦克风采集和一条账单笔记保存重开已有实际 AI 回执；这些结果不代替正式票据汇总或三类完整任务。[本轮分项记录](results/beta48-code78-notification-settings-20261113.json)
 
 连续触摸、语义控件、文本编辑、系统导航、音量、窗口、分页观察、长文本、范围内文件传输与分享，以及多 AI 连接和任务租约已有实现。历史 code51 在一台已配置的魅族 Android 15 手机上分别完成 [Muse 息屏任务](results/beta21-code51-muse-cli12-wake-20261103.json)、[Instinct 息屏任务](results/beta21-code51-instinct-cli12-wake-20261103.json)和[双 AI 互斥与交接](results/beta21-code51-two-ai-handoff-20261103.json)；[短时断网恢复](results/beta21-code51-network-recovery-20261102.json)与[供电静置观察](results/beta21-code51-idle-20261103.json)是另行记录的维护者检查。原子能力实测仍保留各自版本、任务和失败范围，详见后文。
 

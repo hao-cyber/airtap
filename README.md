@@ -51,8 +51,8 @@ AI 可以组合这些动作完成跨 App 任务，不限于计算器等演示应
 官网推荐 **0.4.0-beta.45（code75）**，目前提供 Android 客户端。Muse 和 Instinct 已分别保留原连接远程升级；两台魅族 Note 16 / Android 15 有跨 App、双 AI 交接、短时息屏恢复和系统选图实测。一台还完成了无声录屏与文件回传。各记录注明实际版本和条件，不能由一次成功推断所有设备都可用。
 
 - 系统保护的画面、按钮和身份验证仍有边界。普通弹窗应先由 AI 看清并尝试正常操作。
-- 新版测试中，Instinct 已完成实体拍照、短录音回传，以及一条真实账单信息保存后重开的核验；[记录保留具体范围和失败恢复](docs/results/beta48-code78-notification-settings-20261113.json)。
-- 通知实际投递与任务续办、实卡 SIM PIN、多日无人值守和纯移动网络完整任务仍有未验项。通知与 SIM PIN 功能默认关闭。
+- Instinct 已完成实体拍照、短录音回传、账单笔记保存重开，以及一次真实通知触发的手机任务；轮询进程中断后恢复，未重复执行同一事件。[查看实际范围与失败记录](docs/results/beta48-code78-notification-settings-20261113.json)。
+- 这不保证所有 App 通知都能捕获。实卡 SIM PIN、多日无人值守和纯移动网络完整任务仍有未验项；通知与 SIM PIN 功能默认关闭。
 - 更多机型、其他 AI 和独立新用户首装尚未验证；目前没有 iOS 客户端。
 
 [完整能力与验证范围](docs/atomic-capabilities.md) · [当前版两位 AI 实测](docs/results/beta45-code75-personal-ai-20261112.json) · [更新说明](release/android/75.json)
