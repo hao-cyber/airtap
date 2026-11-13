@@ -1,0 +1,55 @@
+{
+  "schema": "airtap-publication-verification-v1",
+  "date": "2026-11-14",
+  "android": {
+    "version_name": "0.4.0-beta.48",
+    "version_code": 78,
+    "apk_sha256": "0eb448f44707d867726947dd65b961f35fc05a44370a7a43e6ff4e5deca86ae9",
+    "apk_bytes": 681421,
+    "apk_source_commit": "3367f6c90cfac9660a016fbeb6a9d9cb568c5e2c",
+    "signer_sha256": "a2aa0c1b6fdaf1baa37aa20817387524a1318b5dab82bf7c185663141daba60f"
+  },
+  "site": {
+    "version_id": "2ecb7645-d972-4afc-a106-9209c18e7d8e",
+    "local_files_verified": 44,
+    "public_http_checks": 104,
+    "passed": true,
+    "source_changed": [
+      "README.md",
+      "release/README.md",
+      "release/android/78.json",
+      "release/site/index.html"
+    ],
+    "browser_observation": "Published homepage displays Muse code77 job/draft result and Instinct code78 notification result; actual Android browser install page loaded. Existing reviewed code39/40 videos unchanged.",
+    "transport": "First normal HTTP run failed retrieving an existing usage video with URLError. Repeated once without this maintenance process HTTP proxy for the official site only; all checks passed. Hostname TLS verification unchanged; phone network not changed."
+  },
+  "relay": {
+    "revision": 42,
+    "source_commit": "b975c14",
+    "artifacts": [
+      {
+        "path": "/cli/airtap.py",
+        "status": 200,
+        "bytes": 153450,
+        "sha256": "54192466411155d565ea3ebabbc62036b9d095700e12c5871f347e3323b6676b",
+        "matches": true
+      },
+      {
+        "path": "/agent.md",
+        "status": 200,
+        "bytes": 134815,
+        "sha256": "adb14f6aa2098537d54afc6a4c3f7b514a4cef1bae475a205e45b00fab10d30a",
+        "matches": true
+      }
+    ],
+    "service_identity_and_settings_preserved": true
+  },
+  "acceptance_scope": {
+    "code78": "Instinct original-pair upgrade and notification setting/event/task/resume/duplicate checks completed; details in beta48-code78-notification-settings-20261113.json",
+    "cli25": "Maintainer physical synthetic upload/download completed; personal-AI runner verification pending",
+    "muse": "Original code77/CLI23 jobs and drafts completed; code78 affected upgrade still pending after current filming",
+    "videos": "New installation and usage films incomplete; no unreviewed new clips published",
+    "long_observation": "72-hour requirement withdrawn by user; observation ended early, not passed",
+    "independent_first_user": "Not performed; not a new release gate"
+  }
+}

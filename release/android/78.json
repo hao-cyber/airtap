@@ -10,7 +10,7 @@
   "target_sdk": 36,
   "debuggable": false,
   "channel": "beta",
-  "published_at": "2026-11-13",
+  "published_at": "2026-11-14",
   "download_path": "/download/android",
   "notes": [
     "个人 AI 可保存通知游标和任务进度，断线后查明结果并续办；同一事件关联同一份任务记录。",
