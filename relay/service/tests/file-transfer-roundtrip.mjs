@@ -74,15 +74,22 @@ async function python(args, stdin = '', expectedExit = 0) {
       try {
         assert.equal(code, expectedExit, 'CLI exit mismatch: ' + stdout);
         const result = JSON.parse(stdout);
-        if (args.includes('file-upload') && (expectedExit === 0 || result.transfer_metrics)) {
+        const transferKind = args.includes('file-upload') ? 'upload' : args.includes('file-download') ? 'download' : null;
+        if (transferKind && (expectedExit === 0 || result.transfer_metrics)) {
+          const prefix = `Airtap ${transferKind}: `;
           const records = stderr.trim().split('\n').map(line => {
-            assert.ok(line.startsWith('Airtap upload: '));
-            const record = JSON.parse(line.slice('Airtap upload: '.length));
+            assert.ok(line.startsWith(prefix));
+            const record = JSON.parse(line.slice(prefix.length));
             assert.deepEqual(Object.keys(record).sort(), ['stage', 'elapsed_ms', 'file_commands', 'file_command_ms', 'slowest_file_command_ms', 'last_confirmed_offset', 'initial_offset', 'total_bytes'].sort());
             return record;
           });
-          assert.equal(records[0].stage, 'checking_transfer');
-          assert.equal(records.at(-1).stage, expectedExit === 0 ? 'verified' : 'stopped_check_status');
+          assert.equal(records[0].stage, transferKind === 'upload' ? 'checking_transfer'
+            : result.transfer_metrics.file_commands === 0 ? 'interrupted' : 'stat');
+          assert.equal(records.at(-1).stage, expectedExit === 0 ? 'verified' : transferKind === 'upload' ? 'stopped_check_status' : 'interrupted');
+          if (transferKind === 'download' && expectedExit === 0) {
+            assert.equal(result.transfer_metrics.last_confirmed_offset, result.result.bytes);
+            assert.equal(records.at(-1).last_confirmed_offset, result.result.bytes);
+          }
         } else assert.equal(stderr, '');
         assert.equal((stdout + stderr).includes(d.token), false);
         if (controller) assert.equal((stdout + stderr).includes(controller), false);

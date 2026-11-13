@@ -2,7 +2,7 @@
   "allowlist_path": "tools/source-package-files.json",
   "android_version": "0.4.0-beta.48",
   "archive_root": "airtap-source-0.4.0-beta.48-code78",
-  "cli_version": "0.4.0-cli.24",
+  "cli_version": "0.4.0-cli.25",
   "closure_policy": "airtap-source-closure-v1",
   "files": [
     {
@@ -1386,6 +1386,10 @@
     {
       "kind": "result",
       "path": "docs/results/cli22-device-address-20261112.json"
+    },
+    {
+      "kind": "result",
+      "path": "docs/results/cli25-download-progress-20261114.json"
     },
     {
       "kind": "result",

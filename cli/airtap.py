@@ -26,7 +26,7 @@ TOKEN = re.compile(r'^[0-9a-f]{64}$')
 TICKET = re.compile(r'^[0-9a-f]{32}$')
 MAX_RESPONSE = 512 * 1024
 MAX_COMMAND = 65536
-VERSION = '0.4.0-cli.24'
+VERSION = '0.4.0-cli.25'
 PAIRING_TTL_SECONDS = 60 * 60
 PAIRING_CLOCK_TOLERANCE_SECONDS = 30
 PACKAGE = re.compile(r'^[A-Za-z_][A-Za-z0-9_]*(?:\.[A-Za-z_][A-Za-z0-9_]*)+$')
@@ -1490,15 +1490,26 @@ def file_command(args, config):
         private_write(args.output, data, replace=False)
         response['result'].update(output=str(args.output.absolute()), bytes=len(data))
         return response
-    if command == 'file-download':
+    if command == 'file-download': return file_download(args, config)
+    if command == 'file-upload':
+        with local_file_stream(args.input) as (stream, before):
+            return file_upload_stream(args,config,stream,before)
+    raise Failure('unknown_file_command')
+
+
+def file_download(args, config):
+    progress = TransferProgress(None, kind='download')
+    stage, partial_validated, output_published = 'stat', False, False
+    try:
         if args.output.exists() or args.output.is_symlink(): raise Failure('file_already_exists')
-        metadata = file_call(args, config, 'file_stat', root=args.root, path=args.path)['result']
+        metadata = progress.call(args, config, 'file_stat', root=args.root, path=args.path)['result']
         size, version, expected_hash = metadata.get('size'), metadata.get('version'), metadata.get('sha256')
         if (metadata.get('root') != args.root or metadata.get('path') != args.path or metadata.get('kind') != 'file'
                 or type(size) is not int or not 0 <= size <= FILE_LIMIT
                 or not isinstance(version, str) or not TOKEN.fullmatch(version)
                 or not isinstance(expected_hash, str) or not TOKEN.fullmatch(expected_hash)):
             raise Failure('file_not_downloadable_with_verified_hash')
+        progress.size = size
         spec={'identity':job_identity(config),'root':args.root,'path':args.path,'size':size,'version':version,'sha256':expected_hash}
         identity=hashlib.sha256(json_bytes(spec)).hexdigest()
         directory=private_directory(args.config.parent/'downloads')
@@ -1510,13 +1521,19 @@ def file_command(args, config):
             if not stat.S_ISREG(info.st_mode) or info.st_uid!=os.getuid() or info.st_mode&0o077 or info.st_size>size:
                 raise Failure('unsafe_download_partial')
             offset=info.st_size;stream.seek(offset)
+            partial_validated = True
+            progress.acknowledged(offset, stage='receiving', force=True)
             while offset<size:
                 length=min(FILE_CHUNK_LIMIT,size-offset)
-                response=file_call(args,config,'file_read',root=args.root,path=args.path,offset=offset,length=length,version=version)['result']
+                stage = 'read'
+                response=progress.call(args,config,'file_read',root=args.root,path=args.path,offset=offset,length=length,version=version)['result']
                 chunk=checked_file_chunk(response,args.root,args.path,offset,length,version,size)
                 stream.write(chunk);stream.flush();os.fsync(stream.fileno());offset+=len(chunk)
+                progress.acknowledged(offset, stage='receiving')
+            stage = 'verify'
             if stream_hash(stream)!=expected_hash:
                 raise Failure('file_hash_mismatch',retry_action=False,partial=str(part),instruction='Inspect and remove this corrupt private partial before a fresh download.')
+            stage = 'publish'
             output=pathlib.Path(args.output);target=private_directory(output.parent)
             dfd=os.open(target,os.O_RDONLY|os.O_DIRECTORY|os.O_NOFOLLOW)
             temp='.airtap-'+secrets.token_hex(12)
@@ -1529,7 +1546,9 @@ def file_command(args, config):
                         if not chunk:break
                         destination.write(chunk)
                     destination.flush();os.fsync(destination.fileno())
-                try:os.link(temp,output.name,src_dir_fd=dfd,dst_dir_fd=dfd,follow_symlinks=False)
+                try:
+                    os.link(temp,output.name,src_dir_fd=dfd,dst_dir_fd=dfd,follow_symlinks=False)
+                    output_published = True
                 except FileExistsError:raise Failure('file_already_exists')
                 os.fsync(dfd)
             finally:
@@ -1537,16 +1556,23 @@ def file_command(args, config):
                 except FileNotFoundError:pass
                 os.close(dfd)
         part.unlink()
-        return {'ok':True,'result':{'root':args.root,'path':args.path,'bytes':size,'sha256':expected_hash,'output':str(args.output.absolute())}}
-    if command == 'file-upload':
-        with local_file_stream(args.input) as (stream, before):
-            return file_upload_stream(args,config,stream,before)
-    raise Failure('unknown_file_command')
+        progress.report('verified', force=True)
+        return {'ok':True,'result':{'root':args.root,'path':args.path,'bytes':size,'sha256':expected_hash,'output':str(args.output.absolute())},
+                'transfer_metrics':progress.metrics()}
+    except (Failure, OSError, ValueError, KeyboardInterrupt) as error:
+        failure = error if isinstance(error, Failure) else Failure('local_operation_failed_or_interrupted')
+        failure.result.update(retry_action=False, download_stage=stage,
+                              transfer_metrics=progress.metrics(), partial_preserved=partial_validated,
+                              output_published=output_published,
+                              resume_instruction=failure.result.get('instruction', 'Keep the original --config directory and source. After checking status and restoring the normal task lease, run the same file-download again. Matching private partial bytes resume automatically; the output appears only after the full checksum passes. Inspect an existing output before retrying.'))
+        progress.report('interrupted', force=True)
+        raise failure
 
 
-class UploadProgress:
-    """Staging acknowledgements are progress; only final stat proves completion."""
-    def __init__(self, size):
+class TransferProgress:
+    """Acknowledged bytes are progress; publication needs the full checksum."""
+    def __init__(self, size, kind='upload'):
+        self.kind = kind
         self.started = time.monotonic()
         self.last_report = None
         self.size = size
@@ -1569,17 +1595,17 @@ class UploadProgress:
             return
         self.last_report = now
         # No paths, input bytes, tokens or device/transfer identifiers in progress.
-        # A consumer closing stderr must not interrupt an otherwise valid upload.
+        # A consumer closing stderr must not interrupt an otherwise valid transfer.
         try:
-            print('Airtap upload: ' + json.dumps({'stage': stage, **self.metrics()}), file=sys.stderr, flush=True)
+            print('Airtap ' + self.kind + ': ' + json.dumps({'stage': stage, **self.metrics()}), file=sys.stderr, flush=True)
         except (OSError, ValueError):
             pass
 
-    def acknowledged(self, offset):
+    def acknowledged(self, offset, stage='staging', force=False):
         self.confirmed = offset
         if self.initial_offset is None:
             self.initial_offset = offset
-        self.report('staging')
+        self.report(stage, force=force)
 
     def call(self, args, config, action, **fields):
         self.report(action.removeprefix('file_upload_').removeprefix('file_'))
@@ -1607,7 +1633,7 @@ def file_upload_stream(args,config,stream,before):
     spec['transfer_id'] = transfer
     # Persist identity BEFORE dispatch so an uncertain begin is resumable.
     config['last_file_upload'] = spec; save_config(args.config, config)
-    progress = UploadProgress(before.st_size)
+    progress = TransferProgress(before.st_size)
     progress.report('checking_transfer', force=True)
     try:
         if prior == spec:

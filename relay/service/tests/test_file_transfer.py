@@ -156,4 +156,94 @@ class FilesTest(unittest.TestCase):
         self.assertEqual(result['transfer_metrics']['last_confirmed_offset'], 0)
         self.assertEqual([x[0] for x in calls], ['file_upload_begin', 'file_upload_finish', 'file_stat'])
 
+    def download_fixture(self, data):
+        args = types.SimpleNamespace(root='workspace', path='private-recording.mp4',
+                                     output=self.root/'result.mp4', config=self.root/'config.json',
+                                     command='file-download')
+        config = {'url':'https://fixture.example', 'claim_id':'a'*32, 'controller_token':'not-for-progress'}
+        metadata = {'root':args.root, 'path':args.path, 'kind':'file', 'size':len(data),
+                    'sha256':hashlib.sha256(data).hexdigest(), 'version':'b'*64}
+        reads = []
+        def server(args, config, action, **fields):
+            if action == 'file_stat': return {'ok':True, 'result':dict(metadata)}
+            self.assertEqual(action, 'file_read')
+            reads.append(fields['offset'])
+            offset = fields['offset']; chunk = data[offset:offset+fields['length']]
+            return {'ok':True, 'result':{'root':args.root, 'path':args.path, 'offset':offset,
+                    'next_offset':offset+len(chunk), 'data_base64':base64.b64encode(chunk).decode(),
+                    'sha256':hashlib.sha256(chunk).hexdigest(), 'eof':offset+len(chunk)==len(data),
+                    'size':len(data), 'version':metadata['version']}}
+        return args, config, metadata, reads, server
+
+    def test_download_unknown_chunk_reports_durable_partial_and_resumes_without_replaying(self):
+        data = b'x' * (cli.FILE_CHUNK_LIMIT*2+13)
+        args, config, metadata, reads, server = self.download_fixture(data)
+        stderr = io.StringIO(); stdout = io.StringIO()
+        def lose_second(*a, **kw):
+            result = server(*a, **kw)
+            if a[2] == 'file_read' and kw['offset'] == cli.FILE_CHUNK_LIMIT:
+                raise cli.Failure('http_error', status=504, outcome='unknown')
+            return result
+        with patch.object(cli, 'file_call', side_effect=lose_second), patch.object(cli.sys, 'stderr', stderr), patch.object(cli.sys, 'stdout', stdout):
+            with self.assertRaises(cli.Failure) as caught: cli.file_command(args, config)
+        failure = caught.exception.result
+        self.assertEqual(reads, [0, cli.FILE_CHUNK_LIMIT])  # No implicit network retry.
+        self.assertEqual(failure['download_stage'], 'read')
+        self.assertEqual(failure['transfer_metrics']['last_confirmed_offset'], cli.FILE_CHUNK_LIMIT)
+        self.assertTrue(failure['partial_preserved']); self.assertFalse(failure['output_published'])
+        self.assertFalse(args.output.exists()); self.assertFalse(failure['retry_action'])
+        self.assertEqual(next((self.root/'downloads').glob('*.part')).stat().st_size, cli.FILE_CHUNK_LIMIT)
+        self.assertEqual(stdout.getvalue(), '')
+        self.assertNotIn('"stage": "verified"', stderr.getvalue())
+        for private in (args.path, config['claim_id'], config['controller_token'], str(args.config)):
+            self.assertNotIn(private, stderr.getvalue())
+        with patch.object(cli, 'file_call', side_effect=server), patch.object(cli.sys, 'stderr', stderr):
+            result = cli.file_command(args, config)
+        self.assertEqual(result['transfer_metrics']['initial_offset'], cli.FILE_CHUNK_LIMIT)
+        self.assertEqual(reads[2:], [cli.FILE_CHUNK_LIMIT, cli.FILE_CHUNK_LIMIT*2])
+        self.assertEqual(args.output.read_bytes(), data)
+        self.assertEqual(args.output.stat().st_mode & 0o777, 0o600)
+        self.assertFalse(list((self.root/'downloads').glob('*.part')))
+        self.assertEqual(json.loads(stderr.getvalue().splitlines()[-1].removeprefix('Airtap download: '))['stage'], 'verified')
+
+    def test_download_stat_failure_does_not_claim_zero_downloaded_or_delete_partial(self):
+        args, config, metadata, reads, server = self.download_fixture(b'abc')
+        directory = self.root/'downloads'; directory.mkdir(mode=0o700)
+        previous = directory/'previous.part'; previous.write_bytes(b'keep')
+        with patch.object(cli, 'file_call', side_effect=cli.Failure('http_error', status=503, outcome='unknown')), patch.object(cli.sys, 'stderr', io.StringIO()):
+            with self.assertRaises(cli.Failure) as caught: cli.file_command(args, config)
+        self.assertEqual(caught.exception.result['download_stage'], 'stat')
+        self.assertIsNone(caught.exception.result['transfer_metrics']['last_confirmed_offset'])
+        self.assertIsNone(caught.exception.result['transfer_metrics']['total_bytes'])
+        self.assertEqual(previous.read_bytes(), b'keep')
+
+    def test_download_full_checksum_failure_is_never_published_or_reported_verified(self):
+        args, config, metadata, reads, server = self.download_fixture(b'abc')
+        metadata['sha256'] = '0'*64; stderr = io.StringIO()
+        with patch.object(cli, 'file_call', side_effect=server), patch.object(cli.sys, 'stderr', stderr):
+            with self.assertRaises(cli.Failure) as caught: cli.file_command(args, config)
+        self.assertEqual(caught.exception.result['error'], 'file_hash_mismatch')
+        self.assertEqual(caught.exception.result['download_stage'], 'verify')
+        self.assertEqual(caught.exception.result['transfer_metrics']['last_confirmed_offset'], 3)
+        self.assertIn('corrupt', caught.exception.result['resume_instruction'])
+        self.assertFalse(args.output.exists())
+        self.assertNotIn('"stage": "verified"', stderr.getvalue())
+
+    def test_download_changed_metadata_does_not_reuse_another_versions_partial(self):
+        args, config, metadata, reads, server = self.download_fixture(b'a'*(cli.FILE_CHUNK_LIMIT+3))
+        def lose_last(*a, **kw):
+            if a[2]=='file_read' and kw['offset']>0: raise cli.Failure('http_error', status=504, outcome='unknown')
+            return server(*a, **kw)
+        with patch.object(cli, 'file_call', side_effect=lose_last), patch.object(cli.sys, 'stderr', io.StringIO()):
+            with self.assertRaises(cli.Failure): cli.file_command(args, config)
+        old_part = next((self.root/'downloads').glob('*.part'))
+        args, config, metadata, reads, server = self.download_fixture(b'new')
+        metadata['version'] = 'c'*64
+        closed = io.StringIO(); closed.close()
+        with patch.object(cli, 'file_call', side_effect=server), patch.object(cli.sys, 'stderr', closed):
+            result = cli.file_command(args, config)
+        self.assertEqual(result['transfer_metrics']['initial_offset'], 0)
+        self.assertEqual(args.output.read_bytes(), b'new')
+        self.assertTrue(old_part.exists())
+
 if __name__ == '__main__': unittest.main()
