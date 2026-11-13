@@ -1,0 +1,78 @@
+{
+  "schema": "airtap-targeted-acceptance-v1",
+  "date": "2026-11-13",
+  "status": "published-prerelease; physical notification task result pending",
+  "source_commit": "3367f6c90cfac9660a016fbeb6a9d9cb568c5e2c",
+  "release_url": "https://github.com/hao-cyber/airtap/releases/tag/v0.4.0-beta.48",
+  "android": {
+    "version_code": 78,
+    "version_name": "0.4.0-beta.48",
+    "apk_sha256": "0eb448f44707d867726947dd65b961f35fc05a44370a7a43e6ff4e5deca86ae9",
+    "apk_bytes": 681421,
+    "signer_sha256": "a2aa0c1b6fdaf1baa37aa20817387524a1318b5dab82bf7c185663141daba60f",
+    "min_sdk": 34,
+    "target_sdk": 36,
+    "debuggable": false
+  },
+  "cli": {
+    "version": "0.4.0-cli.24",
+    "sha256": "907294aa575d5fe1af5d4c52307480c8191737b33ca9276eebeef5fafa59aba3",
+    "bytes": 151809
+  },
+  "problem": "During an actual Instinct task on Flyme, the AI could not locate notification-listener access through Settings. The prior command returned an action name but could not open its page.",
+  "change": "event-configure --enable --open-settings explicitly opens the fixed normal Android notification-access page after the existing authority, lease and screen-recovery checks. It never grants permission. Omitting the option retains the no-screen behavior.",
+  "result_semantics": "settings_opened means Android accepted the launch, not that the permission was granted or a notification arrived. Observe the real page and check event-status separately.",
+  "checks": {
+    "core_steps_passed": 43,
+    "connection_cases_passed": 11,
+    "multi_ai_control_cases_passed": 84,
+    "android_build_lint_and_signature": "passed",
+    "native_settings_cases_passed": 4,
+    "native_scope": "Isolated Android 15 emulator: real Settings page contains Airtap; launch from service succeeds; permission and listener remain disabled until normal approval. Not a Flyme notification-delivery test.",
+    "fixture_failure": "The existing multi-AI test harness used the older owner-page render signature. Updated it to the production signature and retained the failed run before the passing rerun.",
+    "disposable_packages_removed_and_emulator_stopped": true
+  },
+  "publication": {
+    "github_assets_downloaded_and_byte_matched": 5,
+    "relay_revision": 41,
+    "relay_service_identity_and_settings_preserved": true,
+    "relay_cli_and_guide_byte_matched": true,
+    "guide_sha256": "91997488951d979453c847579114147b5cabe569c17234c6d2ff5ca1e84ea2e2",
+    "official_site_recommended_code": 75,
+    "website_candidate_deployed": false
+  },
+  "physical_upgrade": {
+    "agent": "Instinct, current owner-authorized account",
+    "device": "Meizu Note 16 / Android 15",
+    "verified_at": "2026-11-13T17:18:00+08:00",
+    "actual_runner_cli": "0.4.0-cli.24",
+    "actual_cli_and_apk_hashes_verified": true,
+    "phone_ping_version_code": 78,
+    "notification_settings_v1_capability": true,
+    "original_pairing_preserved": true,
+    "failure_and_recovery": "File-share did not offer the installer; normal browser installation succeeded. The app restart lost the task lease; the AI reacquired it and continued with the original pairing.",
+    "usb_or_owner_phone_operation": false,
+    "notification_settings_and_event_task_result": "pending; upgrade success is not notification acceptance"
+  },
+  "earlier_same_day_code77_results": {
+    "source_commit": "630cb3f686e9d05716c43e755bf70203b2bd68c4",
+    "two_ai_original_pairing_upgrades": "Muse and Instinct each verified code77 and actual CLI.23 on their respective device.",
+    "instinct_media": {
+      "calculator_visual_result": "7 x 6 = 42",
+      "physical_camera": "finished capture; 2062240-byte image downloaded and hash-checked by the AI in its private workspace",
+      "physical_microphone": "finished capture; actual 2.856-second AAC recording, 44100 Hz mono, 37607 bytes, downloaded and hash-checked by the AI; no playback",
+      "evidence_scope": "A sanitized receipt was retrieved and read by the maintainer; original image and audio stayed in the AI private workspace. This is not a maintainer inspection of the original media."
+    },
+    "instinct_billing_note": "One owner-attributed carrier billing SMS was summarized in a phone note and verified after closing and reopening. This does not establish formal invoice collection or reimbursement submission.",
+    "billing_source_failures": "One shopping app presented a security-verification wall; other available accounts had no relevant orders, and expired or absent logins were skipped. No verification bypass, login change or submission.",
+    "muse_business_and_new_video_receipts": "pending; cloud drafts and accepted recording instructions are not completed phone outputs or video files"
+  },
+  "remaining": [
+    "Physical notification-access result, actual notification-to-AI-to-phone task, bounded recovery and duplicate handling.",
+    "Muse job checks, three phone application drafts and a content draft, each saved and reopened.",
+    "New privacy-reviewed installation and usage films containing actual phone and Muse recordings.",
+    "The original long observation ended early at the owner's request; it is not a 72-hour pass and no longer blocks delivery.",
+    "Independent novice testing, additional device models and a full mobile-network task remain unverified."
+  ],
+  "privacy": "No private phone numbers, connection identities, event contents, billing details, media files or raw chats are included. No new analytics were added."
+}

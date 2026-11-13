@@ -20,6 +20,8 @@ code63 将首次及新增 AI 的邀请改为八位数字。数字只定位短期
 
 ## 当前发布身份
 
+code78 / beta.48 已作为 [GitHub 测试版](https://github.com/hao-cyber/airtap/releases/tag/v0.4.0-beta.48)公开；公共中继已更新至 revision41 / CLI.24。它补上 AI 打开正常通知使用权设置页的入口，不自动授予权限。Instinct 已经原连接完成一台真机覆盖升级，通知任务结果仍待核验；[构建、发布与实际范围](../docs/results/beta48-code78-notification-settings-20261113.json)分别记录。官网推荐暂未切换。
+
 当前官网推荐 Android `0.4.0-beta.45`（code75），[版本资料](android/75.json)固定制品身份。新增 `ping.readiness`，只读查询通知、媒体采集和 SIM PIN 准备状态，不自动开启权限。[两位 AI 真机回归](../docs/results/beta45-code75-personal-ai-20261112.json)完成原连接远程升级及状态回读；Instinct 另完成计算器无声录屏与私有文件回传。两台最终回桌面、静音、释放任务，无 USB 或机主操作手机；录屏系统确认由已获当次授权的代理操作。保留短时掉线、下载重试、早期失败及录屏播放时长差异。[发布核验](../docs/results/beta45-code75-publication-20261112.json)记录实际部署。
 
 code73 已在 GitHub 发布候选，Muse 与 Instinct 分别经两台原连接完成远程升级及 96 KiB 完整上传。小红走 VPN 的一次同样本对照由 code72 超时改善为 28.17 秒完成；小黑走 Wi-Fi 的独立样本为 14.93 秒，不能把两台设备当作同条件测速。小黑完成实际选图附件预览，小红完成文件分享预览，但系统文件选择器仍未选中，见[实际记录](../docs/results/beta43-code73-personal-ai-files-20261112.json)。

@@ -132,5 +132,10 @@
     "official_site_recommended_code": 75,
     "physical_results": "In progress; not yet accepted.",
     "superseded_intermediate_code": 76
+  },
+  "physical_followup_20261113": {
+    "evidence": "beta48-code78-notification-settings-20261113.json",
+    "code77_installed_by_original_ai_on_both_devices": true,
+    "note": "The presentation/emulator evidence above retains its original scope. Both AIs later upgraded using original pairings; substantive business and new video results are still pending. The notification Settings fix is a separate code78 build."
   }
 }
