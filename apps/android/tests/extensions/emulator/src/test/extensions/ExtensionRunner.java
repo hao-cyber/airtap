@@ -4,7 +4,8 @@ import java.lang.reflect.*;import java.util.*;import java.util.concurrent.*;impo
 public final class ExtensionRunner extends Instrumentation {
  static final String OWNER="a".repeat(32),OTHER="b".repeat(32),FIXTURE="io.airtap.fixture.extensions";
  final JSONArray checks=new JSONArray();final AtomicBoolean allowed=new AtomicBoolean(true);Object ui,service;Class<?> replyClass;Method execute;int downs,ups;
- @Override public void onCreate(Bundle b){super.onCreate(b);start();}
+ boolean settingsOnly;
+ @Override public void onCreate(Bundle b){super.onCreate(b);settingsOnly=b!=null&&"true".equals(b.getString("settings_only"));start();}
  Class<?> type(String name)throws Exception{return Class.forName("io.airtap.preview."+name);}
  Object call(Object instance,Class<?> cls,String name,Class<?>[] types,Object...args)throws Exception{Method m=cls.getDeclaredMethod(name,types);m.setAccessible(true);try{return m.invoke(instance,args);}catch(InvocationTargetException e){throw new RuntimeException(e.getCause());}}
  Object make(String name,Class<?>[] signature,Object...args)throws Exception{Constructor<?> c=type(name).getDeclaredConstructor(signature);c.setAccessible(true);return c.newInstance(args);}
@@ -19,6 +20,19 @@ public final class ExtensionRunner extends Instrumentation {
  void launch(boolean notify)throws Exception{getContext().startActivity(new Intent().setClassName(FIXTURE,"test.extensions.ExtensionActivity").putExtra("notify",notify).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK|Intent.FLAG_ACTIVITY_CLEAR_TASK));Thread.sleep(900);}
  void save(String purpose,JSONObject value)throws Exception{Object store=make("EnrollmentStore",new Class[]{Context.class,String.class},getTargetContext(),purpose);call(store,type("EnrollmentStore"),"saveRecord",new Class[]{JSONObject.class},value);}
  JSONObject events(String owner)throws Exception{return (JSONObject)call(null,type("NotificationEvents"),"read",new Class[]{Context.class,String.class,JSONObject.class},getTargetContext(),owner,new JSONObject().put("epoch","").put("after",0).put("limit",16));}
+ void notificationSettingsTest()throws Exception{
+  Context c=(Context)service;
+  JSONObject before=(JSONObject)call(null,type("NotificationEvents"),"status",new Class[]{Context.class},c);
+  check("notification access starts ungranted on isolated device",!before.getBoolean("permission"));
+  AtomicReference<JSONObject> value=new AtomicReference<>();AtomicReference<Throwable> error=new AtomicReference<>();
+  runOnMainSync(()->{try{value.set((JSONObject)call(null,type("NotificationEvents"),"configure",new Class[]{Context.class,boolean.class,boolean.class},c,true,true));}catch(Throwable e){error.set(e);}});
+  if(error.get()!=null)throw new RuntimeException(error.get());
+  JSONObject result=value.get();check("native service requests notification access Settings",result.getBoolean("settings_opened")&&result.getBoolean("system_permission_required"));
+  String page="";for(int i=0;i<40;i++){page=labels(getUiAutomation(UiAutomation.FLAG_DONT_SUPPRESS_ACCESSIBILITY_SERVICES).getRootInActiveWindow());if(page.startsWith("com.android.settings:")&&page.contains("Airtap"))break;Thread.sleep(150);}
+  check("real system Settings shows Airtap listener without menu search",page.startsWith("com.android.settings:")&&page.contains("Airtap"));
+  JSONObject after=(JSONObject)call(null,type("NotificationEvents"),"status",new Class[]{Context.class},c);
+  check("opening Settings never grants notification access",after.getBoolean("enabled")&&!after.getBoolean("permission")&&!after.getBoolean("listener_connected"));
+ }
  void eventsTest()throws Exception{
   Context c=getTargetContext();String device="c".repeat(32),token="d".repeat(64),origin="https://fixture.invalid",url=origin+"/d/"+device;
   save("enrollment",new JSONObject().put("protocol_version",3).put("origin",origin).put("device_id",device).put("device_token",token).put("registered",true).put("enrollment_expires_at",JSONObject.NULL));
@@ -150,6 +164,7 @@ public final class ExtensionRunner extends Instrumentation {
    Field f=type("PreviewService").getDeclaredField("instance");f.setAccessible(true);for(int i=0;i<150&&service==null;i++){service=f.get(null);if(service==null)Thread.sleep(200);}if(service==null)throw new AssertionError("no accessibility service");
    ui=make("CompanionUi",new Class[]{android.accessibilityservice.AccessibilityService.class,BooleanSupplier.class},service,(BooleanSupplier)allowed::get);replyClass=type("CompanionUi$Reply");
    execute=type("CompanionUi").getDeclaredMethod("execute",JSONObject.class,replyClass,BooleanSupplier.class,String.class,BooleanSupplier.class);execute.setAccessible(true);
+   if(settingsOnly){notificationSettingsTest();result.putString("report",new JSONObject().put("complete",true).put("checks",checks).toString());finish(-1,result);return;}
    eventsTest();touchTest();captureTest();cameraTest("photo");cameraTest("video");audioTest();
    Object pin=make("SimPinInput",new Class[]{android.accessibilityservice.AccessibilityService.class},service);boolean denied=false;
    try{call(pin,type("SimPinInput"),"prepare",new Class[]{String.class},OWNER);}catch(RuntimeException e){denied=e.getCause().getMessage().equals("sim_pin_entry_not_enabled");}

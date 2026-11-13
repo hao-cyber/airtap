@@ -663,6 +663,8 @@ try {
     await python(['event-configure','--enable']);
     assert.equal(seenCommands.length,setupBefore+1); assert.equal(seenCommands.at(-1).action,'event_configure'); assert.equal(seenCommands.at(-1).enabled,true);
     await python(['event-configure','--disable']); assert.equal(seenCommands.at(-1).enabled,false);
+    await python(['event-configure','--enable','--open-settings']); assert.equal(seenCommands.at(-1).open_settings,true);
+    assert.equal((await python(['event-configure','--disable','--open-settings'],'',1)).error,'open_settings_requires_enable');
     observedPackage='com.example.app';let image=(await python(['observe'])).result;
     const held=await python(['touch-begin','--package','com.example.app','--observation-id',image.observation_id,'--x','.3','--y','.3']);assert.equal(held.result.held,true);
     image=held.observation;
@@ -676,8 +678,10 @@ try {
     const tools=(await (await mcp('tools/list',{})).json()).result.tools;
     for(const name of ['event_status','event_read','event_configure','touch_begin','touch_move','touch_end','media_capture','media_status','media_stop','sim_pin_prepare','sim_pin_submit','file_mkdir','file_rename','file_delete'])assert.ok(tools.some(t=>t.name==='phone_'+name),name);
     assert.equal(tools.find(t=>t.name==='phone_event_configure').annotations.readOnlyHint,false);
+    assert.equal(tools.find(t=>t.name==='phone_event_configure').inputSchema.properties.open_settings.type,'boolean');
+    assert.equal(tools.find(t=>t.name==='phone_event_configure').inputSchema.required.includes('open_settings'),false);
     before=seenCommands.length;
-    for(const [action,fields]of [['event_configure',{enabled:1}],['event_configure',{enabled:true,grant_android_permission:true}],['event_read',{epoch:'',after:-1,limit:16}],['touch_end',{touch_id:'bad'}],['media_capture',{kind:'call_audio',seconds:3}],['sim_pin_submit',{challenge, pin:'not-a-pin'}],['file_delete',{root:'workspace',path:'../other',version:'a'.repeat(64)}]])assert.equal((await api(action,lastSequence+1,fields)).status,400);
+    for(const [action,fields]of [['event_configure',{enabled:true,open_settings:'true'}],['event_configure',{enabled:false,open_settings:true}],['event_configure',{enabled:1}],['event_configure',{enabled:true,grant_android_permission:true}],['event_read',{epoch:'',after:-1,limit:16}],['touch_end',{touch_id:'bad'}],['media_capture',{kind:'call_audio',seconds:3}],['sim_pin_submit',{challenge, pin:'not-a-pin'}],['file_delete',{root:'workspace',path:'../other',version:'a'.repeat(64)}]])assert.equal((await api(action,lastSequence+1,fields)).status,400);
     assert.equal(seenCommands.length,before);await python(['status']);
   });
   await check('durable event task uses real CLI processes, verified completion, polling dedup and offline recovery', async () => {

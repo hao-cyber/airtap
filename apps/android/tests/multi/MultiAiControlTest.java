@@ -41,6 +41,22 @@ public final class MultiAiControlTest{
     q=action(A,1L,2,"event_configure");q.getJSONObject("command").put("enabled",true).put("grant_permission",true);service.receive(q);
     check(!ws.last().getBoolean("ok")&&NotificationEvents.configurations==before);
   });
+  test("notification Settings require a valid current lease and normal screen preparation",()->{
+    trust.requireLease(config,A);int configured=NotificationEvents.configurations,opened=NotificationEvents.opens;
+    JSONObject q=action(A,null,1,"event_configure");q.getJSONObject("command").put("enabled",true).put("open_settings",true);service.receive(q);
+    check(!ws.last().getBoolean("ok")&&NotificationEvents.opens==opened&&NotificationEvents.configurations==configured);
+    service.receive(fence(1,A));q=action(A,1L,2,"event_configure");q.getJSONObject("command").put("enabled",true).put("open_settings",true);service.receive(q);
+    check(ws.last().getBoolean("ok")&&NotificationEvents.opens==opened+1&&service.recovery.preparations==1&&service.ui.executions==0);
+    service.recovery.failure="device_locked";q=action(A,1L,3,"event_configure");q.getJSONObject("command").put("enabled",true).put("open_settings",true);service.receive(q);
+    check(!ws.last().getBoolean("ok")&&NotificationEvents.opens==opened+1&&NotificationEvents.configurations==configured+1);
+  });
+  test("invalid notification Settings options cannot mutate collection or open UI",()->{
+    service.receive(fence(1,A));int configured=NotificationEvents.configurations,opened=NotificationEvents.opens;
+    JSONObject q=action(A,1L,1,"event_configure");q.getJSONObject("command").put("enabled",false).put("open_settings",true);service.receive(q);
+    check(!ws.last().getBoolean("ok")&&NotificationEvents.opens==opened&&NotificationEvents.configurations==configured);
+    q=action(A,1L,2,"event_configure");q.getJSONObject("command").put("enabled",true).put("open_settings","true");service.receive(q);
+    check(!ws.last().getBoolean("ok")&&NotificationEvents.opens==opened&&NotificationEvents.configurations==configured);
+  });
   test("remote invitation uses original authenticated command lease without screen actions",()->{
     service.receive(fence(1,A));JSONObject envelope=command(A,1L,1);envelope.getJSONObject("command").put("action","connection_invite");service.receive(envelope);
     check(RelayApi.requests.size()==1&&service.ui.executions==0);RelayApi.requests.get(0).respond(multiState(A),200,null);

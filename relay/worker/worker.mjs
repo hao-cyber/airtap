@@ -115,7 +115,8 @@ function commandShape(cmd, companion = false) {
     typeof cmd.invitation_id === 'string' && HEX32.test(cmd.invitation_id) && typeof cmd.claim_id === 'string' && HEX32.test(cmd.claim_id) &&
     typeof cmd.verification_code === 'string' && /^[0-9]{6}$/.test(cmd.verification_code);
   if (companion && cmd.action === 'event_status') return exact(cmd, ['id','action']);
-  if (companion && cmd.action === 'event_configure') return exact(cmd, ['id','action','enabled']) && typeof cmd.enabled === 'boolean';
+  if (companion && cmd.action === 'event_configure') return exact(cmd, ['id','action','enabled', ...('open_settings' in cmd ? ['open_settings'] : [])]) && typeof cmd.enabled === 'boolean' &&
+    (!('open_settings' in cmd) || typeof cmd.open_settings === 'boolean' && (!cmd.open_settings || cmd.enabled));
   if (companion && cmd.action === 'event_read') return exact(cmd, ['id','action','epoch','after','limit']) &&
     typeof cmd.epoch === 'string' && (cmd.epoch === '' || HEX32.test(cmd.epoch)) && Number.isSafeInteger(cmd.after) && cmd.after >= 0 && Number.isInteger(cmd.limit) && cmd.limit >= 1 && cmd.limit <= 16;
   if (FILE_READ_ACTIONS.has(cmd.action) || FILE_WRITE_ACTIONS.has(cmd.action)) return companion && fileCommandShape(cmd);

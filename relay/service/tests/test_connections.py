@@ -85,12 +85,23 @@ class ConnectionCliTest(unittest.TestCase):
             self.assertIs(body['enabled'], enabled)
             self.assertEqual(body['lease_id'], 'd'*32)
             self.assertEqual(calls, 1)
+            self.assertNotIn('open_settings', body)
         config = cli.load_config(self.path)
         config['task_lease'] = {}
         cli.save_config(self.path, config)
         with self.assertRaises(cli.Failure) as failure:
             self.invoke('event-configure', '--enable')
         self.assertEqual(failure.exception.result['error'], 'task_acquire_required')
+
+    def test_notification_settings_is_explicit_enable_only_and_keeps_lease(self):
+        _, body, calls = self.invoke('event-configure', '--enable', '--open-settings')
+        self.assertIs(body['open_settings'], True)
+        self.assertIs(body['enabled'], True)
+        self.assertEqual(body['lease_id'], 'd'*32)
+        self.assertEqual(calls, 1)
+        with self.assertRaises(cli.Failure) as failure:
+            self.invoke('event-configure', '--disable', '--open-settings')
+        self.assertEqual(failure.exception.result['error'], 'open_settings_requires_enable')
 
     def test_notification_setup_does_not_allow_implicit_capture(self):
         with self.assertRaises(cli.Failure) as failure:

@@ -4,6 +4,8 @@ import android.app.Notification;
 import android.app.NotificationManager;
 import android.content.ComponentName;
 import android.content.Context;
+import android.content.Intent;
+import android.content.ActivityNotFoundException;
 import android.service.notification.NotificationListenerService;
 import android.service.notification.StatusBarNotification;
 import org.json.JSONArray;
@@ -39,6 +41,22 @@ public final class NotificationEvents extends NotificationListenerService {
                 "settings_action", android.provider.Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS,
                 "settings_package", "com.android.settings", "affects", "currently_authorized_ai_connections",
                 "instruction", "If system permission is required, open Android Settings and allow Airtap notification access through the normal UI. This command does not grant that permission.");
+    }
+    /** Open only the platform's notification-access page; never grant access ourselves. */
+    static synchronized JSONObject configure(Context c, boolean enabled, boolean openSettings) throws Exception {
+        if (openSettings && !enabled) throw new IllegalArgumentException();
+        JSONObject result = configure(c, enabled);
+        if (!openSettings) return result;
+        try {
+            c.startActivity(new Intent(android.provider.Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS)
+                    .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
+            result.put("settings_opened", true);
+        } catch (ActivityNotFoundException unavailable) {
+            result.put("settings_opened", false).put("settings_error", "settings_activity_unavailable");
+        } catch (SecurityException denied) {
+            result.put("settings_opened", false).put("settings_error", "settings_activity_blocked");
+        }
+        return result.put("instruction", "Collection is configured. settings_opened only reports that Android accepted the Settings launch. Observe the actual page, use its normal permission UI, then check event_status.permission and listener_connected. No permission is granted by this command.");
     }
     static JSONObject status(Context c) {
         return RelayApi.json("enabled", selected(c), "permission", permission(c), "listener_connected", connected,

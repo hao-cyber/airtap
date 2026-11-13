@@ -26,7 +26,7 @@ TOKEN = re.compile(r'^[0-9a-f]{64}$')
 TICKET = re.compile(r'^[0-9a-f]{32}$')
 MAX_RESPONSE = 512 * 1024
 MAX_COMMAND = 65536
-VERSION = '0.4.0-cli.23'
+VERSION = '0.4.0-cli.24'
 PAIRING_TTL_SECONDS = 60 * 60
 PAIRING_CLOCK_TOLERANCE_SECONDS = 30
 PACKAGE = re.compile(r'^[A-Za-z_][A-Za-z0-9_]*(?:\.[A-Za-z_][A-Za-z0-9_]*)+$')
@@ -2229,6 +2229,7 @@ def main():
             toggle = child.add_mutually_exclusive_group(required=True)
             toggle.add_argument('--enable', dest='enabled', action='store_true')
             toggle.add_argument('--disable', dest='enabled', action='store_false')
+            child.add_argument('--open-settings', action='store_true', help='With --enable, wake the phone and open Android notification-access Settings; does not grant permission')
         if command in ('touch-move','touch-end'): child.add_argument('--touch-id',required=True)
         if command == 'touch-move': child.add_argument('--duration-ms',type=int,default=500)
         if command == 'swipe':
@@ -2356,7 +2357,10 @@ def main():
     if args.command=='media-capture':
         if not 1<=args.seconds<=60:raise Failure('invalid_duration')
         body.update(kind=args.kind,seconds=args.seconds)
-    if args.command == 'event-configure': body['enabled'] = args.enabled
+    if args.command == 'event-configure':
+        if args.open_settings and not args.enabled: raise Failure('open_settings_requires_enable')
+        body['enabled'] = args.enabled
+        if args.open_settings: body['open_settings'] = True
     if args.command in ('touch-move','touch-end'):
         if not TICKET.fullmatch(args.touch_id):raise Failure('invalid_touch_id')
         body['touch_id']=args.touch_id
