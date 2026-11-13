@@ -1,0 +1,21 @@
+{
+  "schema": "airtap-android-update-v1",
+  "application_id": "io.airtap.preview",
+  "version_name": "0.4.0-beta.48",
+  "version_code": 78,
+  "apk_sha256": "0eb448f44707d867726947dd65b961f35fc05a44370a7a43e6ff4e5deca86ae9",
+  "apk_bytes": 681421,
+  "signer_sha256": "a2aa0c1b6fdaf1baa37aa20817387524a1318b5dab82bf7c185663141daba60f",
+  "min_sdk": 34,
+  "target_sdk": 36,
+  "debuggable": false,
+  "channel": "beta",
+  "published_at": "2026-11-13",
+  "download_path": "/download/android",
+  "notes": [
+    "个人 AI 可保存通知游标和任务进度，断线后查明结果并续办；同一事件关联同一份任务记录。",
+    "个人 AI 可直接打开通知使用权设置页，按已有授权完成正常系统设置；通知任务需要 AI 自己的定时执行能力。",
+    "连接页面优先显示当前需要完成的步骤，并可复制一条保存后重开核验的示例任务。",
+    "正常升级保留已有 AI 连接与用户数据，不自动开启系统权限。"
+  ]
+}
