@@ -8,6 +8,8 @@
 
 隔离界面检查可运行 `python3 apps/android/scripts/test_experience_emulator.py --serial emulator-XXXX --output-dir /private/new-experience-check`，需设置 `JAVA_HOME` 和 `ANDROID_HOME`。只接受真实模拟器，使用无网络权限的独立包，复用生产显示组件；不会连接中继或改动正式 Airtap。输出目录必须新建，结束后移除夹具。原手机长时观察期间无需重复运行手机任务。
 
+完整页面检查复用 `apps/android/tests/multi/native/prepare.py` 的独立测试包与专用模拟器；`run_owner.py --suite experience` 验证首件任务、管理展开、真实邀请批准、两位测试控制者交接与停止，`--suite invitation` 检查相应异常恢复。按脚本 `--help` 提供 SDK、JDK、构建目录和新输出目录；仅在专用可 root 模拟器配置系统权限和本地 TLS 转发，不对真实手机运行。该测试保留生产 Java 与受保护窗口，测试驱动调用真实按钮监听器；它不等于首次系统授权或个人 AI 验收。
+
 准备 Python 3.12+、Node.js 22+（包含 npm）、JDK 17+；`JAVA_HOME` 指向实际 JDK。停用的云端模板记录 Node 22、Temurin 17、Python 3.12，当前不执行。主机 Java 测试以 `--release 17` 编译。无需模型 key、Cloudflare 登录、SSH、手机、USB 或正式签名。
 
 ```sh

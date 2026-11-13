@@ -217,17 +217,20 @@ final class MultiAiOwner {
             boolean revokePending=!OwnerRevocations.claimsPending(owner,identity).isEmpty();
             if(revokePending){text(box,"部分 AI 已在本机停止，服务端解除还在确认。",15);box.addView(button("继续确认解除",()->flushRevokes()));}
             JSONObject pending=trust.pending(identity),invitation=trust.invitation(identity),candidate=null;
-            if(!grants.isEmpty()){
+            boolean connecting=pending!=null||invitation!=null;
+            // Keep the owner's current invitation/approval ahead of optional daily-use content.
+            if(!grants.isEmpty()&&!connecting){
                 text(box,OwnerStatus.title(recovery,activeAi),28);text(box,OwnerStatus.detail(recovery),16);
                 if(OwnerStatus.canStartTask(recovery))box.addView(FirstTask.button(owner));
                 text(box,"回到原来的 AI 对话就能交代任务。换 App 不用重新批准 Airtap。",14);
-                boolean mustShow=pending!=null||invitation!=null||revokePending;
-                if(!mustShow){
+                if(!revokePending){
                     box.addView(button(managementExpanded?"收起 AI 连接管理":"我的 AI 连接（"+grants.size()+"）",()->{managementExpanded=!managementExpanded;changed.run();}));
                     if(!managementExpanded){box.addView(button("停止并解除所有 AI",this::stopAll));return;}
                 }
             }
-            text(box,"我的 AI 连接",22);text(box,"每次由一位 AI 接手任务。它们共同使用这部手机的账号和画面；你也可以让已连接的 AI 代办添加或解除其他 AI。",15);
+            text(box,connecting?"连接自己的 AI":"我的 AI 连接",22);
+            text(box,connecting?(grants.isEmpty()?"核对自己的 AI 返回的数字，再确认连接。":"已连接的 AI 继续可用，不用解除原连接。")
+                    :"每次由一位 AI 接手任务。它们共同使用这部手机的账号和画面；你也可以让已连接的 AI 代办添加或解除其他 AI。",15);
             boolean expiredInvitation=pending==null&&invitation!=null&&("ready".equals(invitation.getString("phase"))||"canceled".equals(invitation.getString("phase")))
                     &&invitation.getLong("pairing_expires_at")>0&&invitation.getLong("pairing_expires_at")<=System.currentTimeMillis()/1000;
             if(!expiredInvitation&&remote!=null&&!remote.isNull("invitation")){JSONObject r=remote.getJSONObject("invitation");if(invitation!=null&&invitation.getString("invitation_id").equals(r.getString("invitation_id"))&&invitation.getLong("invitation_sequence")==r.getLong("invitation_sequence")&&!r.isNull("candidate")&&!"canceled".equals(invitation.getString("phase")))candidate=r.getJSONObject("candidate");}

@@ -6,7 +6,7 @@ HERE=Path(__file__).resolve().parent;ROOT=HERE.parents[4]
 CLIENT='io.airtap.fixture.multi';TARGET='io.airtap.fixture.multitarget'
 
 def main():
-    p=argparse.ArgumentParser(description=__doc__);p.add_argument('--serial',required=True);p.add_argument('--build',type=Path,required=True);p.add_argument('--output',type=Path,required=True);p.add_argument('--sdk',type=Path,required=True);p.add_argument('--reset-created',action='store_true');p.add_argument('--source-root',type=Path,required=True);p.add_argument('--suite',choices=['migration','invitation'],default='migration');a=p.parse_args()
+    p=argparse.ArgumentParser(description=__doc__);p.add_argument('--serial',required=True);p.add_argument('--build',type=Path,required=True);p.add_argument('--output',type=Path,required=True);p.add_argument('--sdk',type=Path,required=True);p.add_argument('--reset-created',action='store_true');p.add_argument('--source-root',type=Path,required=True);p.add_argument('--suite',choices=['migration','invitation','experience'],default='migration');a=p.parse_args()
     if not a.serial.startswith('emulator-'):p.error('Only disposable emulator targets are accepted')
     out=a.output.resolve();out.mkdir(mode=0o700,parents=True,exist_ok=False);base=a.build.resolve()
     metadata=json.loads((base/'build-metadata.private.json').read_text());production=a.source_root.resolve()
@@ -119,6 +119,9 @@ def main():
         return result
     def open_owner():
         device('shell','am','start','-n',CLIENT+'/io.airtap.preview.MainActivity');wait(lambda:find_button('设置'))
+    def expand_management():
+        label=next((v['text'] for v in ui() if v['button'] and re.fullmatch(r'我的 AI 连接（[1-4]）',v['text'])),None)
+        if label:click(label)
     def capture_ui(name):
         value=ui();(out/(name+'.private.json')).write_text(json.dumps(value,ensure_ascii=False,indent=2));return value
     def assert_single(fence,seq):
@@ -147,7 +150,67 @@ def main():
         remote=ok(d['base']+'/v1/device/pairing',d['token']);assert remote['mode']=='multi';return local
     d=A=None;failure=None
     try:
-        if a.suite=='migration':
+        if a.suite=='experience':
+            def has_text(text):return any(v['text']==text for v in ui())
+            def collapsed(count):return find_button('我的 AI 连接（'+str(count)+'）')
+            def single_first_task():
+                fence=new_single();open_owner();wait(lambda:find_button('交给 AI 第一件事'))
+                before=bridge('inspect');click('交给 AI 第一件事');wait(lambda:find_button('复制任务'))
+                assert has_text('试着让 AI 跨 App 做件事')
+                click('返回');after=bridge('inspect')
+                assert before['grants']==after['grants'] and before['grant_fence']==after['grant_fence'] and not after['task_live']
+                assert has_text('你的 AI 已连接')
+                return {'real_single_activity':True,'dialog_open_cancel_preserves_grant':True,'example_does_not_start_task':True}
+            check('single owner first-task dialog leaves connection and task state unchanged',single_first_task)
+            def multi_default():
+                start_enable();wait(lambda:bridge('inspect')['multi'],25);connect()
+                task=acquire(A);release(A,task)
+                wait(lambda:collapsed(1));assert not find_button('添加另一位自己的 AI')
+                click('停止并解除所有 AI');wait(lambda:find_button('停止所有'));click('返回')
+                assert len(bridge('inspect')['grants'])==1 and bridge('inspect')['authorized']
+                click('我的 AI 连接（1）');wait(lambda:find_button('添加另一位自己的 AI'))
+                assert find_button('收起 AI 连接管理')
+                click('收起 AI 连接管理');wait(lambda:collapsed(1))
+                assert not find_button('添加另一位自己的 AI')
+                return {'actual_single_to_multi_preserved_A':True,'default_collapsed':True,'expand_collapse_callbacks':2,'stop_confirmation_cancel_keeps_connection':True}
+            check('multi owner defaults to compact controls while management and stop remain usable',multi_default)
+            B={'name':'Experience synthetic B','token':secrets.token_hex(32),'seq':0}
+            def pending_visibility():
+                click('我的 AI 连接（1）');click('添加另一位自己的 AI');wait(lambda:find_button('复制给我的 AI'),20)
+                ui(recreate=True);wait(lambda:find_button('复制给我的 AI'),15)
+                assert not collapsed(1) and has_text('连接自己的 AI')
+                assert not has_text('交给 AI 第一件事')
+                digits=wait(lambda:next((v['text'].replace(' ','') for v in ui() if re.fullmatch(r'[0-9]{4} [0-9]{4}',v['text'])),None),15)
+                resolved=ok('/v1/invitations/resolve',body={'code':digits})
+                candidate=ok(d['base']+'/v1/pair',body={'ticket':resolved['ticket'],'controller_token':B['token'],'name':B['name'],'capabilities':['task_lease_v1']});B['claim']=candidate['claim_id']
+                wait(lambda:find_button('数字一致，连接这位 AI'),15)
+                shown=candidate['verification_code'][:3]+' '+candidate['verification_code'][3:]
+                assert has_text(shown) and not collapsed(1) and not has_text('交给 AI 第一件事')
+                assert has_text('与自己的 AI 告诉你的六位数字核对。确认后它可持续查看和操作整台手机，也能按你的指令管理 AI 连接。AI 会自动核实连接，不用再回复“已点”。')
+                click('数字一致，连接这位 AI');wait(lambda:len(bridge('inspect')['grants'])==2,20);connect();wait(lambda:collapsed(2),20)
+                assert request('/v1/invitations/resolve',body={'code':digits})[0]==404
+                return {'actual_invitation_and_resolve':True,'activity_recreation_does_not_hide_invitation':True,'matching_six_digit_candidate_visible':True,'actual_approval_callback':True,'approved_view_collapses_without_losing_A':True,'consumed_code_unusable':True}
+            check('live invitation and matching approval remain visible through recreation and collapse only after completion',pending_visibility)
+            def holder_handoff():
+                for controller in [A,B]:
+                    task=acquire(controller);good(controller,lease=task)
+                    wait(lambda:has_text(controller['name']+' 已接手任务'),15)
+                    assert not any('已完成任务' in v['text'] for v in ui())
+                    release(controller,task);wait(lambda:has_text('你的 AI 已连接'),15)
+                    assert not has_text(controller['name']+' 已接手任务')
+                assert len(bridge('inspect')['grants'])==2
+                return {'A_and_B_real_commands':True,'current_holder_displayed':True,'released_holder_removed':True,'no_task_completion_inferred':True}
+            check('actual lease handoff changes owner title and release clears stale holder',holder_handoff)
+            def stop_compact():
+                wait(lambda:collapsed(2));click('停止并解除所有 AI');click('停止所有')
+                wait(lambda:not bridge('inspect')['grants'],15);wait(lambda:not bridge('inspect')['all_stop_pending'],15)
+                assert not bridge('inspect')['authorized'] and ok(d['base']+'/v1/device/grants',d['token'])['grants']==[]
+                wait(lambda:not find_button('交给 AI 第一件事'),15)
+                assert request(d['base']+'/v1/status',A['token'])[0] in [401,403]
+                assert request(d['base']+'/v1/status',B['token'])[0] in [401,403]
+                return {'actual_compact_stop_confirmation':True,'local_and_relay_grants_removed':True,'both_controllers_denied':True,'first_task_not_offered_without_grant':True}
+            check('compact owner stop disables both controllers and removes the first-task affordance',stop_compact)
+        elif a.suite=='migration':
             fence=new_single();open_owner();baseline_seq=A['seq']
             for mode in ['missing_caps','disconnect']:
                 def refused(mode=mode):
@@ -196,12 +259,14 @@ def main():
             def multi_setup(reset):
                 admin('fault_clear');new_single(reset);start_enable();wait(lambda:bridge('inspect')['multi'],25);connect()
                 task=acquire(A);release(A,task)
+                wait(lambda:any(v['button'] and re.fullmatch(r'我的 AI 连接（[1-4]）',v['text']) for v in ui()),15);expand_management()
                 wait(lambda:find_button('添加另一位自己的 AI'),15)
             def unknown_remote():
                 fid=set_fault('grants','disconnect');ui(recreate=True)
                 wait(lambda:fault_state(fid)['hits']==1,15)
                 state=wait(lambda:(lambda s:s if s.get('visible') and not s.get('busy') and not s.get('remote_known') else None)(owner_state()),15)
                 assert not state['invitation_read'] and fault_state(fid)['failures']==0
+                expand_management()
                 return state
             def hold_explicit(label='添加另一位自己的 AI'):
                 unknown_remote();before=metrics()['request_counts']['invitation'];fid=set_fault('grants','hold_response')
@@ -252,7 +317,7 @@ def main():
                 f=fault_state(fid);local=native_invitation();assert f['commit_acknowledged']==1 and f['hits']==1 and f['failures']==0 and local['phase']=='creating',(f,local)
                 return fid,before,local
             def late_cancel():
-                multi_setup(True);drop,unused,original=start_unknown_invitation();fid,before=hold_explicit('继续准备原邀请');click('取消这次邀请')
+                multi_setup(True);drop,unused,original=start_unknown_invitation();fid,before=hold_explicit('继续准备原邀请');click('取消本次邀请')
                 wait(lambda:native_invitation() is None,10);released(fid,True);time.sleep(1)
                 assert native_invitation() is None and metrics()['request_counts']['invitation']==before
                 assert ok(d['base']+'/v1/device/grants',d['token'])['invitation'] is None
