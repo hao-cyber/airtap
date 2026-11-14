@@ -1,0 +1,51 @@
+{
+  "schema": "airtap-personal-ai-acceptance-v1",
+  "date": "2026-11-14",
+  "actor": "Muse, using the existing private device configuration in its cloud runner",
+  "device": "Second Meizu Note 16 / Android 15 test phone",
+  "window_cst": "17:24–17:37",
+  "coordination": "Maintainer coordinated the owner's authorized task; phone actions were performed by Muse. No owner phone action or USB was used.",
+  "artifacts": {
+    "version_code": 78,
+    "version_name": "0.4.0-beta.48",
+    "apk_source_commit": "3367f6c90cfac9660a016fbeb6a9d9cb568c5e2c",
+    "apk_bytes": 681421,
+    "apk_sha256": "0eb448f44707d867726947dd65b961f35fc05a44370a7a43e6ff4e5deca86ae9",
+    "signer_sha256": "a2aa0c1b6fdaf1baa37aa20817387524a1318b5dab82bf7c185663141daba60f",
+    "actual_cli": "0.4.0-cli.25",
+    "cli_sha256": "54192466411155d565ea3ebabbc62036b9d095700e12c5871f347e3323b6676b",
+    "guide_sha256": "adb14f6aa2098537d54afc6a4c3f7b514a4cef1bae475a205e45b00fab10d30a",
+    "relay_revision": 42
+  },
+  "results": {
+    "original_pairing_upgrade": "Normal package installer accepted the update; actual ping returned release code78. Existing Muse and Instinct grants remained approved; no new pairing or data reset.",
+    "wake": {"screen_off_seconds": 60, "observe_elapsed_ms": 4247.71, "result": "Returned to the previously foregrounded installer page; installation success visible."},
+    "calculator": {"expression": "37 × 24", "result": 888, "visual_verified": true, "method": "Muse opened the actual screenshot for visual grounding; both the large result and history row matched."},
+    "drafts": "Three application drafts and one content draft remained in Gmail. Content text and the owned test image were reopened and checked read-only, with no editing or sending.",
+    "synthetic_file": {
+      "bytes": 98304,
+      "round_trip_sha256_match": true,
+      "upload_elapsed_ms": 22212.64,
+      "download_elapsed_ms": 16743.21,
+      "slowest_upload_command_ms": 9010.01,
+      "slowest_download_command_ms": 6824.39,
+      "download_progress": "stderr reported stat, receiving at 0/32768/65536/98304 bytes, then verified; final JSON contained transfer_metrics."
+    },
+    "notification_settings": "Capability appeared in ping. This round did not grant notification access or functionally repeat the setting test already performed by Instinct on the other phone.",
+    "finish": "HOME verified, media/ringer/notification sound muted, lease released; final status connected and idle. Existing alarm volume was not changed."
+  },
+  "failures_and_recovery": [
+    "Open URL and screen lock first required a fresh observation; Muse observed before retrying.",
+    "One click lacked the required package argument and was rejected by the CLI before dispatch; corrected argument succeeded.",
+    "First APK download stalled for about 81 seconds; a new normal browser request completed in about 6 seconds. Root cause not established.",
+    "Install interrupted the lease. Muse checked service status, waited, acquired a new lease and verified code78 before continuing; no re-pairing. Root cause of the connection change not independently established.",
+    "One draft click used an old snapshot; a fresh snapshot resolved it without repeating an unknown write."
+  ],
+  "evidence": "Actual original Muse chat and its downloaded structured receipt were reviewed; raw steps, identity fields, screenshots and private drafts remain outside the public repository.",
+  "limits": [
+    "One 60-second screen-off wake is not a multi-day background result.",
+    "One 96 KiB transfer does not establish fast bulk-media transport; earlier slow and retried video downloads remain recorded.",
+    "The original business task was performed on code77; this round checked its saved outputs after the upgrade.",
+    "No new notification-access grant, job application, message sending, network change, data clearing or pairing was performed."
+  ]
+}

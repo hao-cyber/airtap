@@ -77,5 +77,10 @@
     "Physical happy path passed; interruption, changed identity and corrupt full hash tested with fixtures.",
     "Muse recovered one original recording using existing CLI.23 resume; not a CLI.25 personal AI result.",
     "No claim that intermittent HTTP 503/504 root cause is fixed."
-  ]
+  ],
+  "later_completion_20261114": {
+    "muse": "beta48-code78-muse-cli25-20261114.json",
+    "videos": "two-videos-20261114.json",
+    "note": "Later evidence closes the then-pending Muse affected checks and new films; earlier results retain their original version and scope."
+  }
 }

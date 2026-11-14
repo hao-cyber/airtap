@@ -128,9 +128,9 @@ def reviewed_media(media_file, kind='usage'):
     poster = read_exact(ROOT / 'site' / p['filename'], p)
     src = '/media/' + m['filename']
     player_id = 'demo' if kind == 'usage' else 'install-demo'
-    summary = ('Muse 在小红书读路线，写入手机便签，再打开核对。最后，回到原来的对话汇报。'
-               if kind == 'usage' else '看看官网下载与系统设置的真实操作，再了解邀请和核码。当前接入流程以本页文字为准。')
-    heading = '一句话，跨 App 完成。' if kind == 'usage' else '跟着画面，了解每一步。'
+    summary = ('Muse 的真实回执、手机里的申请草稿，以及重新打开的图文稿。片中回看已经完成的任务，未发送或投递。'
+               if kind == 'usage' else '真机演示官网下载和安装入口；手机设置、邀请与核码用步骤说明。示例手机已有连接。')
+    heading = '草稿，确实留在了手机里。' if kind == 'usage' else '下载之后，怎样接入自己的 AI。'
     level = 'h2' if kind == 'usage' else 'h3'
     block = ('<figure class="usage-demo" id="' + player_id + '"><div class="demo-player">'
              '<video controls playsinline preload="none" width="1080" height="1920" '

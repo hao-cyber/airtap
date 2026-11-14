@@ -1,15 +1,18 @@
 {
   "schema": "airtap-reviewed-usage-video-v1",
-  "filename": "airtap-usage-code39-20261029.mp4",
-  "sha256": "ffa11c4e893f22c7ba96ebb12bf72a390574134bb57e02cf5a434d7ea80c3fd0",
-  "bytes": 7568335,
-  "duration_seconds": 90,
-  "version_code": 39,
-  "title": "90 秒，看 Muse 操作手机（beta.9 实录）",
-  "description": "同一部安卓手机的真实录屏：Muse 接到任务，在小红书读路线，写入便签并重新打开核对，再回到对话汇报。Airtap beta.9（code39）；静音剪辑，部分等待为 5 倍速或省略。维护者通过 USB 发送任务并录屏，临时开启充电常亮，结束后恢复；片中保留错误与恢复说明。这段视频展示接入后的使用，不是首次安装教程，也不证明自主唤醒或长期后台稳定。",
+  "filename": "airtap-use-20261114.mp4",
+  "sha256": "5aac722ba64dccfcca2f4fe9b3e571b5a9757fd3714b2e663ea3815e3a5bf0b7",
+  "bytes": 1446708,
+  "duration_seconds": 40,
+  "version_code": 77,
+  "title": "40 秒，Muse 任务结果实录",
+  "description": "code77 / Android 15 真实手机录屏：Gmail 中的3份申请草稿与1份图文稿、实际打开内容草稿核对，以及任务后补录的 Muse 回执。业务由 Muse 原连接完成，录制与取回由维护端受委托协调；未用 USB。视频回看保存结果，不是研究、写作和发送的完整连续记录；任务示例卡不是实际发送画面。4个岗位页面经手机核对，另1个遇到验证后停止；资格与报酬未知项仍保留。自有测试图片用于附件核验，没有发送、投递或发布。原速节选、无音轨，片长不等于任务耗时。",
   "poster": {
-    "filename": "usage-code39-poster.jpg",
-    "sha256": "d048bff7ae5bf63301ac53fed809c98d2ed3cba0ae6008fff540b5d1a8e486e9",
-    "bytes": 59218
-  }
+    "filename": "airtap-usage-20261114-poster.jpg",
+    "sha256": "faa97d4fb023794d76dbe9374c2bc5557881aac4491bbc261ad52f40ebf89668",
+    "bytes": 69448
+  },
+  "recorded_version_codes": [
+    77
+  ]
 }

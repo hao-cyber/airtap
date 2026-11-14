@@ -20,7 +20,7 @@ code63 将首次及新增 AI 的邀请改为八位数字。数字只定位短期
 
 ## 当前发布身份
 
-code78 / beta.48 的[制品身份](android/78.json)已固定，已作为 [GitHub 测试版](https://github.com/hao-cyber/airtap/releases/tag/v0.4.0-beta.48)公开；公共中继已更新至 revision42 / CLI.25。它补上 AI 打开正常通知使用权设置页的入口，不自动授予权限。Instinct 已在原连接完成覆盖升级、正常通知授权、真实事件触发的手机任务，以及轮询进程中断恢复和同一事件去重；首次下载通知未捕获等失败保留在[分项记录](../docs/results/beta48-code78-notification-settings-20261113.json)。2026-11-14 官网推荐切换到此版本，保留原签名和已连接 AI；[104 项公网回读](../docs/results/beta48-code78-publication-20261114.json)通过。CLI.25 另补下载进度与断点恢复提示，见[检查与实测](../docs/results/cli25-download-progress-20261114.json)。
+code78 / beta.48 的[制品身份](android/78.json)已固定，已作为 [GitHub 测试版](https://github.com/hao-cyber/airtap/releases/tag/v0.4.0-beta.48)公开；公共中继已更新至 revision42 / CLI.25。它补上 AI 打开正常通知使用权设置页的入口，不自动授予权限。Instinct 已在原连接完成覆盖升级、正常通知授权、真实事件触发的手机任务，以及轮询进程中断恢复和同一事件去重；首次下载通知未捕获等失败保留在[分项记录](../docs/results/beta48-code78-notification-settings-20261113.json)。2026-11-14 官网推荐切换到此版本，保留原签名和已连接 AI；[104 项公网回读](../docs/results/beta48-code78-publication-20261114.json)通过。CLI.25 另补下载进度与断点恢复提示，见[检查与实测](../docs/results/cli25-download-progress-20261114.json)。 Muse 随后使用实际 CLI.25 完成原配对 code78 升级、息屏唤醒、草稿重开及文件往返，见[专项回执](../docs/results/beta48-code78-muse-cli25-20261114.json)。两条新版视频独立记录于[视频发布核验](../docs/results/two-videos-20261114.json)。
 
 此前官网推荐 Android `0.4.0-beta.45`（code75），[版本资料](android/75.json)固定制品身份。新增 `ping.readiness`，只读查询通知、媒体采集和 SIM PIN 准备状态，不自动开启权限。[两位 AI 真机回归](../docs/results/beta45-code75-personal-ai-20261112.json)完成原连接远程升级及状态回读；Instinct 另完成计算器无声录屏与私有文件回传。两台最终回桌面、静音、释放任务，无 USB 或机主操作手机；录屏系统确认由已获当次授权的代理操作。保留短时掉线、下载重试、早期失败及录屏播放时长差异。[发布核验](../docs/results/beta45-code75-publication-20261112.json)记录实际部署。
 

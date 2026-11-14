@@ -1,19 +1,19 @@
 {
   "schema": "airtap-reviewed-install-video-v1",
-  "filename": "airtap-install-guide-20261030-r2.mp4",
-  "sha256": "7d5fe76f511bb95784c546663bef83070ecb3f5d280db87741f4eda4841bc8ad",
-  "bytes": 1927930,
-  "duration_seconds": 70,
-  "version_code": 39,
-  "title": "70 秒，看安装和接入步骤（旧版界面）",
-  "description": "用真机演示官网下载、操作权限与通知设置，再讲解邀请和核码。示例手机已接入，权限与通知原已开启；首次安装、权限批准、发送邀请和核码未实录。素材包含 beta.9 与 beta.10，教程参考录制时的 beta.9（code39），不是新版首装实录。维护者通过 USB 导航录屏，原连接未改；这是接入指南，不代表独立新用户首用验收。",
+  "filename": "airtap-install-20261114.mp4",
+  "sha256": "046e74418805311c826b7ff51017481a3bab8ad6e688934d97a98d56030e3c66",
+  "bytes": 1347351,
+  "duration_seconds": 57,
+  "version_code": 78,
+  "title": "57 秒，安装与接入指南",
+  "description": "2026年11月14日录制：code78 真机官网下载与打开安装包，安装入口另用明确标注的真机截图。手机设置、八位邀请和六位核码是步骤说明；末段为 code77 已接入手机的真实 Muse 任务回执补录。示例手机原本已安装并连接，没有重演首装、授予权限或重新配对。下载部分由维护端独立 Airtap 连接操作；Muse 片段由 Muse 原连接录制。本轮素材不使用 USB，原速剪辑、省略等待、无音轨。不是独立新用户验收。",
   "poster": {
-    "filename": "airtap-install-guide-20261030-r2-poster.jpg",
-    "sha256": "ba3fb2e6c3686fcfdc5c657dcd0563269b9619688c18c8e35656fbfe16ed85d4",
-    "bytes": 72774
+    "filename": "airtap-install-20261114-poster.jpg",
+    "sha256": "147da3ea817c460a7268c55f4309f223fb7121dddaabca212c2edb732d4e1ccb",
+    "bytes": 131118
   },
   "recorded_version_codes": [
-    39,
-    40
+    77,
+    78
   ]
 }

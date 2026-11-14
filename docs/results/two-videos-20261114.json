@@ -1,0 +1,73 @@
+{
+  "schema": "airtap-reviewed-real-video-publication-v1",
+  "date": "2026-11-14",
+  "status": "published_and_verified",
+  "films": [
+    {
+      "filename": "airtap-install-20261114.mp4",
+      "sha256": "046e74418805311c826b7ff51017481a3bab8ad6e688934d97a98d56030e3c66",
+      "bytes": 1347351,
+      "duration_seconds": 57,
+      "recorded_version_codes": [
+        77,
+        78
+      ],
+      "description": "2026年11月14日录制：code78 真机官网下载与打开安装包，安装入口另用明确标注的真机截图。手机设置、八位邀请和六位核码是步骤说明；末段为 code77 已接入手机的真实 Muse 任务回执补录。示例手机原本已安装并连接，没有重演首装、授予权限或重新配对。下载部分由维护端独立 Airtap 连接操作；Muse 片段由 Muse 原连接录制。本轮素材不使用 USB，原速剪辑、省略等待、无音轨。不是独立新用户验收。"
+    },
+    {
+      "filename": "airtap-use-20261114.mp4",
+      "sha256": "5aac722ba64dccfcca2f4fe9b3e571b5a9757fd3714b2e663ea3815e3a5bf0b7",
+      "bytes": 1446708,
+      "duration_seconds": 40,
+      "recorded_version_codes": [
+        77
+      ],
+      "description": "code77 / Android 15 真实手机录屏：Gmail 中的3份申请草稿与1份图文稿、实际打开内容草稿核对，以及任务后补录的 Muse 回执。业务由 Muse 原连接完成，录制与取回由维护端受委托协调；未用 USB。视频回看保存结果，不是研究、写作和发送的完整连续记录；任务示例卡不是实际发送画面。4个岗位页面经手机核对，另1个遇到验证后停止；资格与报酬未知项仍保留。自有测试图片用于附件核验，没有发送、投递或发布。原速节选、无音轨，片长不等于任务耗时。"
+    }
+  ],
+  "verification": {
+    "full_video_decode": true,
+    "audio_streams": 0,
+    "resolution": [
+      1080,
+      1920
+    ],
+    "source_hashes_matched_finished_and_download_receipts": true,
+    "selected_source_intervals_and_scene_cuts_reviewed": true,
+    "privacy_review": "Public website, owner-approved task drafts without recipients or personal resume, relevant Muse receipt; no credentials, invitation or verification codes, notifications, phone numbers or unrelated conversations in selected frames. Original recordings and receipts remain private.",
+    "grok_review": "Real Grok via llm-cli reviewed only the sanitized shot text, not the videos. Applied clear separation of instructional cards, already-paired examples and later-recorded receipts; no review claims about video pixels.",
+    "browser": {
+      "local": "Actual click-play, seek and pause for both videos; usage Space key paused the player. 390px and320px views had no horizontal overflow; temporary viewport override reset.",
+      "public": "Both current public video URLs actually played, reported readyState4 and40/57-second durations; seek and pause worked."
+    }
+  },
+  "limits": [
+    "Installation is a guide, not a first-user installation or pairing acceptance.",
+    "Usage video shows real saved results and reopening, not continuous original research or writing.",
+    "File transfer required bounded retries/resume; successful hashes do not establish fast bulk-media transport.",
+    "No 72-hour or independent-new-user acceptance claim."
+  ],
+  "publication": {
+    "deployed": true,
+    "site_version_id": "4a338b0f-4063-46ba-8f2c-12db8f92d707",
+    "recommended_version_code": 78,
+    "relay_revision_unchanged": 42,
+    "frozen_manifest_sha256": "ab70012e6d87e722278e3187ab43e567f1a626c52a4845a9c5f5a18ddd79a721",
+    "local_files_verified": 44,
+    "public_http_checks": 104,
+    "public_transformations": [
+      {
+        "path": "/robots.txt",
+        "kind": "reviewed_managed_robots_prefix",
+        "prefix_bytes": 2676,
+        "prefix_sha256": "3073d1e371afb3271c7666148766fedc5145f7d8440f7114062db79b7bd58add",
+        "source_sha256": "d58c84797c04e430e32b11fffbcb73b63a0afd82b00b5f2134574a52c414306e",
+        "public_sha256": "542678d4397ddd6bf8c14d764a94e7f08d46e73aeb4a3c6751844c3dbb13920f"
+      }
+    ],
+    "first_failure": "Initial check rejected the longer robots.txt response. Full public text was read: reviewed Cloudflare Managed prefix plus the exact frozen robots.txt. The second104-check run passed with that exact prefix; shared Cloudflare settings were not changed.",
+    "media_checks": "Both films matched complete public bytes and SHA256; HEAD lengths and206 byte ranges passed. Recommended APK and retired-download responses also passed.",
+    "install_url": "https://airtap.memtrix.dev/install#install-demo",
+    "usage_url": "https://airtap.memtrix.dev/#demo"
+  }
+}

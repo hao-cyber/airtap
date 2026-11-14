@@ -51,5 +51,10 @@
     "videos": "New installation and usage films incomplete; no unreviewed new clips published",
     "long_observation": "72-hour requirement withdrawn by user; observation ended early, not passed",
     "independent_first_user": "Not performed; not a new release gate"
+  },
+  "later_completion_20261114": {
+    "muse": "beta48-code78-muse-cli25-20261114.json",
+    "videos": "two-videos-20261114.json",
+    "note": "Later evidence closes the then-pending Muse affected checks and new films; earlier results retain their original version and scope."
   }
 }

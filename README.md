@@ -12,15 +12,15 @@ Android 14+ · 公开测试版 · Muse、Instinct 已有实测
 
 ## 已经做过的任务
 
-[观看 90 秒真机使用演示](https://airtap.memtrix.dev/#demo)：Muse 对话 → 手机执行 → 返回结果。
+[观看 40 秒任务结果实录](https://airtap.memtrix.dev/#demo)：手机里的草稿 → Muse 的真实回执 → 重新打开核对。
 
-这段旧版演示中，Muse 在小红书读取两条徒步路线，整理到新便签里，保存后重新打开核对，再回到对话汇报。设备是魅族 Note 16 / Android 15，录制版本为 beta.9（code39），任务由 Muse 通过自己的云端工具执行。[查看这轮结果](docs/results/beta9-code39-muse-20261029.json)
+Muse 在手机上核对了 4 个岗位页面，另一个遇到验证后停止；3 份申请草稿和 1 份图文稿已保存并重开核对，没有发送或投递。视频使用 code77 的真机录屏和任务后补录的 Muse 回执，展示保存结果，没有重演研究与写作过程。[视频来源与说明](docs/results/two-videos-20261114.json)
 
 查资料、编辑文字、跨 App 整理内容，都由你原有的 AI 规划；Airtap 提供操作手机的能力。它不要求每个 App 单独提供 API，也不需要你先搭好固定工作流。具体任务仍取决于 AI、App 和手机系统。
 
 ## 开始使用
 
-[观看 70 秒安装与接入指南](https://airtap.memtrix.dev/install#install-demo)。真机演示官网下载和系统设置，邀请与核码配合步骤说明。视频使用 beta.9／beta.10 的旧版界面；示例手机已接入，并非首次安装全程实录。
+[观看 57 秒安装与接入指南](https://airtap.memtrix.dev/install#install-demo)。用 code78 真机演示官网下载与安装入口，再说明手机设置、邀请和核码。示例手机已有连接，未重演首次安装或配对。
 
 1. 在 Android 14 或更新的手机上安装 Airtap。
 2. 打开 App，按引导完成操作权限、通知和后台运行设置。
@@ -62,6 +62,7 @@ AI 可以组合这些动作完成跨 App 任务，不限于计算器等演示应
 
 | 记录 | 实际范围 |
 | --- | --- |
+| [code78 Muse 升级与继续使用](docs/results/beta48-code78-muse-cli25-20261114.json) | 原配对升级，60 秒息屏后唤醒、计算器看图、草稿重开和 CLI.25 文件往返。 |
 | [code74 系统选图](docs/results/beta44-code74-personal-ai-picker-20261112.json) | Muse 将图片选入 Gmail；Instinct 在信息 App 查看附件预览，均未发送。 |
 | [code64 两位 AI 交接](docs/results/beta34-code64-two-ai-20261110.json) | 两机互斥交接，90 秒息屏后再次使用；准备阶段有维护者操作。 |
 | [code65 持续操作与文件](docs/results/beta35-code65-muse-20261110.json) | 持续触控、任务保存、文件往返与短时息屏恢复。 |

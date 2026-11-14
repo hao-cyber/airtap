@@ -1301,6 +1301,10 @@
     },
     {
       "kind": "result",
+      "path": "docs/results/beta48-code78-muse-cli25-20261114.json"
+    },
+    {
+      "kind": "result",
       "path": "docs/results/beta48-code78-notification-settings-20261113.json"
     },
     {
@@ -1518,6 +1522,10 @@
     {
       "kind": "result",
       "path": "docs/results/tls-incident-20261027.json"
+    },
+    {
+      "kind": "result",
+      "path": "docs/results/two-videos-20261114.json"
     },
     {
       "kind": "result",
@@ -1789,9 +1797,15 @@
     },
     {
       "kind": "binary",
-      "path": "release/site/airtap-install-guide-20261030-r2-poster.jpg",
-      "review": "Reviewed public installation guide title card,1080x1920 JPEG: product/date, Android14+, existing-phone demonstration, actual download/settings navigation and separate connection instructions. Root visually inspected exact JPEG: no accounts, private phone content, invitations, pairing codes or private paths. Mixed code39/code40 sources belong to the video; this poster is a title card. Exact bytes pinned; no raw recording or MP4 in source.",
-      "sha256": "ba3fb2e6c3686fcfdc5c657dcd0563269b9619688c18c8e35656fbfe16ed85d4"
+      "path": "release/site/airtap-install-20261114-poster.jpg",
+      "sha256": "147da3ea817c460a7268c55f4309f223fb7121dddaabca212c2edb732d4e1ccb",
+      "review": "Derived poster from reviewed 2026-11-14 silent film. Installation poster shows only public Airtap website; usage poster contains only the labelled task-example card. Exact selected frame visually reviewed: no accounts, pairing codes, personal chats, phone identifiers or private paths. Original recordings remain private."
+    },
+    {
+      "kind": "binary",
+      "path": "release/site/airtap-usage-20261114-poster.jpg",
+      "sha256": "faa97d4fb023794d76dbe9374c2bc5557881aac4491bbc261ad52f40ebf89668",
+      "review": "Derived poster from reviewed 2026-11-14 silent film. Installation poster shows only public Airtap website; usage poster contains only the labelled task-example card. Exact selected frame visually reviewed: no accounts, pairing codes, personal chats, phone identifiers or private paths. Original recordings remain private."
     },
     {
       "kind": "source",
@@ -1838,12 +1852,6 @@
     {
       "kind": "source",
       "path": "release/site/style.css"
-    },
-    {
-      "kind": "binary",
-      "path": "release/site/usage-code39-poster.jpg",
-      "review": "Public title-card poster from the reviewed Android code39 usage film at 2 seconds. Visually checked at original resolution: only product/task introduction and test date, no phone screen, user dialogue, accounts, connection data or private paths. Exact JPEG bytes pinned; raw video is not included in source.",
-      "sha256": "d048bff7ae5bf63301ac53fed809c98d2ed3cba0ae6008fff540b5d1a8e486e9"
     },
     {
       "kind": "source",
