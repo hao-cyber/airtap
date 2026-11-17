@@ -2,7 +2,7 @@
   "allowlist_path": "tools/source-package-files.json",
   "android_version": "0.4.0-beta.48",
   "archive_root": "airtap-source-0.4.0-beta.48-code78",
-  "cli_version": "0.4.0-cli.25",
+  "cli_version": "0.4.0-cli.26",
   "closure_policy": "airtap-source-closure-v1",
   "files": [
     {
@@ -1625,6 +1625,10 @@
     },
     {
       "kind": "source",
+      "path": "relay/service/tests/test_bulk_transport.py"
+    },
+    {
+      "kind": "source",
       "path": "relay/service/tests/test_cli_tls.py"
     },
     {
@@ -1798,14 +1802,14 @@
     {
       "kind": "binary",
       "path": "release/site/airtap-install-20261114-poster.jpg",
-      "sha256": "147da3ea817c460a7268c55f4309f223fb7121dddaabca212c2edb732d4e1ccb",
-      "review": "Derived poster from reviewed 2026-11-14 silent film. Installation poster shows only public Airtap website; usage poster contains only the labelled task-example card. Exact selected frame visually reviewed: no accounts, pairing codes, personal chats, phone identifiers or private paths. Original recordings remain private."
+      "review": "Derived poster from reviewed 2026-11-14 silent film. Installation poster shows only public Airtap website; usage poster contains only the labelled task-example card. Exact selected frame visually reviewed: no accounts, pairing codes, personal chats, phone identifiers or private paths. Original recordings remain private.",
+      "sha256": "147da3ea817c460a7268c55f4309f223fb7121dddaabca212c2edb732d4e1ccb"
     },
     {
       "kind": "binary",
       "path": "release/site/airtap-usage-20261114-poster.jpg",
-      "sha256": "faa97d4fb023794d76dbe9374c2bc5557881aac4491bbc261ad52f40ebf89668",
-      "review": "Derived poster from reviewed 2026-11-14 silent film. Installation poster shows only public Airtap website; usage poster contains only the labelled task-example card. Exact selected frame visually reviewed: no accounts, pairing codes, personal chats, phone identifiers or private paths. Original recordings remain private."
+      "review": "Derived poster from reviewed 2026-11-14 silent film. Installation poster shows only public Airtap website; usage poster contains only the labelled task-example card. Exact selected frame visually reviewed: no accounts, pairing codes, personal chats, phone identifiers or private paths. Original recordings remain private.",
+      "sha256": "faa97d4fb023794d76dbe9374c2bc5557881aac4491bbc261ad52f40ebf89668"
     },
     {
       "kind": "source",

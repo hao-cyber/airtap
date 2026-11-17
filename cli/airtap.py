@@ -13,6 +13,7 @@ import os
 import pathlib
 import re
 import secrets
+import selectors
 import ssl
 import stat
 import subprocess
@@ -26,7 +27,7 @@ TOKEN = re.compile(r'^[0-9a-f]{64}$')
 TICKET = re.compile(r'^[0-9a-f]{32}$')
 MAX_RESPONSE = 512 * 1024
 MAX_COMMAND = 65536
-VERSION = '0.4.0-cli.25'
+VERSION = '0.4.0-cli.26'
 PAIRING_TTL_SECONDS = 60 * 60
 PAIRING_CLOCK_TOLERANCE_SECONDS = 30
 PACKAGE = re.compile(r'^[A-Za-z_][A-Za-z0-9_]*(?:\.[A-Za-z_][A-Za-z0-9_]*)+$')
@@ -403,62 +404,175 @@ def connection_for_url(parsed, timeout):
     return conn
 # END proxy transport.
 
-def _request_child():
-    """Secrets arrive via stdin. Parent enforces deadline including DNS and download."""
-    request = json.loads(sys.stdin.buffer.read(MAX_COMMAND + 8193))
-    parsed = urllib.parse.urlsplit(request['url'])
-    conn = None
-    http_attempted = False
-    try:
-        # Retry only connection establishment, before any application request is sent.
-        # A stalled TLS/proxy handshake must not spend the entire operation deadline.
-        for attempt in range(3):
-            conn = connection_for_url(parsed, min(5, request['timeout']))
-            try:
-                conn.connect()
-                if conn.sock is not None:
-                    conn.sock.settimeout(request['timeout'])
-                break
-            except ssl.SSLCertVerificationError:
-                # A definitive pre-request rejection is not a transient network failure.
-                conn.close()
-                raise
-            except (OSError, TimeoutError):
-                conn.close()
-                if attempt == 2:
-                    raise
-        headers = {'Accept': 'application/json, image/jpeg', 'User-Agent': 'airtap-preview/' + VERSION}
-        if request.get('token'):
-            headers['Authorization'] = 'Bearer ' + request['token']
-        body = None
-        if request.get('body') is not None:
-            headers['Content-Type'] = 'application/json'
-            body = json_bytes(request['body'])
-        # A public service gives each phone a canonical, non-secret base path.
-        # Never drop that path: doing so could route a credential to another
-        # phone namespace. The same connection/proxy/TLS checks still apply.
-        http_attempted = True
-        conn.request(request['method'], parsed.path.rstrip('/') + request['path'], body, headers)
-        response = conn.getresponse()
-        raw = response.read(MAX_RESPONSE + 1)
-        if len(raw) > MAX_RESPONSE:
-            result = {'transport_error': 'response_too_large'}
-        else:
+class HTTPTransport:
+    """One sequential connection, confined to one device URL and credential."""
+    def __init__(self):
+        self.conn = None
+        self.identity = None
+
+    def close(self):
+        if self.conn is not None:
+            self.conn.close()
+        self.conn = self.identity = None
+
+    def perform(self, request):
+        parsed = urllib.parse.urlsplit(request['url'])
+        identity = (request['url'], request.get('token'))
+        http_attempted = False
+        try:
+            if identity != self.identity or self.conn is not None and self.conn.sock is None:
+                self.close()
+            if self.conn is None:
+                # Only connection establishment can retry. Once HTTP starts,
+                # a lost reply stays unknown, including on a reused connection.
+                for attempt in range(3):
+                    self.conn = connection_for_url(parsed, min(5, request['timeout']))
+                    try:
+                        self.conn.connect()
+                        self.identity = identity
+                        break
+                    except ssl.SSLCertVerificationError:
+                        self.close()
+                        raise
+                    except (OSError, TimeoutError):
+                        self.close()
+                        if attempt == 2:
+                            raise
+            if self.conn.sock is not None:
+                self.conn.sock.settimeout(request['timeout'])
+            headers = {'Accept': 'application/json, image/jpeg', 'User-Agent': 'airtap-preview/' + VERSION}
+            if request.get('token'):
+                headers['Authorization'] = 'Bearer ' + request['token']
+            body = None
+            if request.get('body') is not None:
+                headers['Content-Type'] = 'application/json'
+                body = json_bytes(request['body'])
+            # Retain the canonical phone namespace on every request.
+            http_attempted = True
+            self.conn.request(request['method'], parsed.path.rstrip('/') + request['path'], body, headers)
+            response = self.conn.getresponse()
+            raw = response.read(MAX_RESPONSE + 1)
+            if len(raw) > MAX_RESPONSE:
+                self.close()
+                return {'transport_error': 'response_too_large'}
             result = {'status': response.status, 'content_type': response.getheader('Content-Type', '').split(';')[0],
                       'body': base64.b64encode(raw).decode()}
-    except ProxyConfigurationError as error:
-        result = {'transport_error': str(error)}
-    except TLSVerificationError as error:
-        result = {'transport_error': error.code, 'outcome': 'unknown' if http_attempted else 'not_dispatched'}
-    except ssl.SSLCertVerificationError:
-        result = {'transport_error': 'tls_certificate_verification_failed',
-                  'outcome': 'unknown' if http_attempted else 'not_dispatched'}
-    except Exception:
-        result = {'transport_error': 'network_failure'}
+            if response.will_close:
+                self.close()
+            return result
+        except ProxyConfigurationError as error:
+            result = {'transport_error': str(error)}
+        except TLSVerificationError as error:
+            result = {'transport_error': error.code, 'outcome': 'unknown' if http_attempted else 'not_dispatched'}
+        except ssl.SSLCertVerificationError:
+            result = {'transport_error': 'tls_certificate_verification_failed',
+                      'outcome': 'unknown' if http_attempted else 'not_dispatched'}
+        except Exception:
+            result = {'transport_error': 'network_failure'}
+        self.close()
+        return result
+
+
+def _request_child(persistent=False):
+    """Secrets use private pipes. The parent bounds DNS, TLS, and body time."""
+    transport = HTTPTransport()
+    try:
+        while True:
+            raw = (sys.stdin.buffer.readline(MAX_COMMAND + 8193) if persistent
+                   else sys.stdin.buffer.read(MAX_COMMAND + 8193))
+            if not raw:
+                return
+            if len(raw) > MAX_COMMAND + 8192 or persistent and not raw.endswith(b'\n'):
+                return
+            result = transport.perform(json.loads(raw))
+            sys.stdout.write(json.dumps(result) + ('\n' if persistent else ''))
+            sys.stdout.flush()
+            if not persistent:
+                return
     finally:
-        if conn is not None:
-            conn.close()
-    sys.stdout.write(json.dumps(result))
+        transport.close()
+
+
+class RequestSession:
+    """Killable worker for one bulk transfer; no daemon, replay, or shared token."""
+    def __init__(self):
+        self.process = None
+
+    def close(self):
+        process, self.process = self.process, None
+        if process is None:
+            return
+        # No request remains in flight at normal exit. On failure the worker is
+        # killed immediately; cleanup must not extend the operation deadline.
+        if process.poll() is None:
+            process.kill()
+        process.wait()
+        process.stdin.close()
+        process.stdout.close()
+
+    def exchange(self, payload, timeout):
+        deadline = time.monotonic() + timeout
+        incoming = bytearray()
+        outgoing = memoryview(json_bytes(payload) + b'\n')
+        try:
+            if self.process is None:
+                self.process = subprocess.Popen(
+                    [sys.executable, str(pathlib.Path(__file__).resolve()), '_request_session'],
+                    stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, bufsize=0)
+                os.set_blocking(self.process.stdin.fileno(), False)
+                os.set_blocking(self.process.stdout.fileno(), False)
+            with selectors.DefaultSelector() as selector:
+                selector.register(self.process.stdin, selectors.EVENT_WRITE)
+                selector.register(self.process.stdout, selectors.EVENT_READ)
+                while True:
+                    remaining = deadline - time.monotonic()
+                    if remaining <= 0:
+                        raise Failure('total_deadline_exceeded', outcome='unknown', retry_action=False)
+                    for key, _ in selector.select(remaining):
+                        if key.fileobj is self.process.stdin:
+                            try:
+                                written = os.write(key.fd, outgoing)
+                            except BlockingIOError:
+                                continue
+                            outgoing = outgoing[written:]
+                            if not outgoing:
+                                selector.unregister(key.fileobj)
+                        else:
+                            try:
+                                chunk = os.read(key.fd, 65536)
+                            except BlockingIOError:
+                                continue
+                            if not chunk:
+                                raise Failure('request_failed', outcome='unknown', retry_action=False)
+                            incoming.extend(chunk)
+                            if len(incoming) > MAX_RESPONSE * 4 // 3 + 8192:
+                                raise Failure('invalid_transport_response', outcome='unknown', retry_action=False)
+                            if b'\n' in incoming:
+                                if outgoing or not incoming.endswith(b'\n') or incoming.count(b'\n') != 1:
+                                    raise Failure('invalid_transport_response', outcome='unknown', retry_action=False)
+                                return bytes(incoming)
+        except OSError:
+            self.close()
+            raise Failure('network_failure', outcome='unknown', retry_action=False) from None
+        except BaseException:
+            self.close()
+            raise
+
+
+_request_session = None
+
+
+@contextlib.contextmanager
+def bulk_request_session():
+    global _request_session
+    previous = _request_session
+    session = RequestSession()
+    _request_session = session
+    try:
+        yield
+    finally:
+        _request_session = previous
+        session.close()
 
 def request(url, path, token=None, body=None, method='GET', timeout=25, local_test=False):
     url = origin(url, local_test)
@@ -467,14 +581,19 @@ def request(url, path, token=None, body=None, method='GET', timeout=25, local_te
     started = time.monotonic()
     payload = dict(url=url, path=path, token=token, body=body, method=method, timeout=timeout)
     try:
-        completed = subprocess.run([sys.executable, str(pathlib.Path(__file__).resolve()), '_request'],
-                                   input=json_bytes(payload), capture_output=True, timeout=timeout,
-                                   check=False)
+        if _request_session is not None:
+            output = _request_session.exchange(payload, timeout)
+            returncode = 0
+        else:
+            completed = subprocess.run([sys.executable, str(pathlib.Path(__file__).resolve()), '_request'],
+                                       input=json_bytes(payload), capture_output=True, timeout=timeout,
+                                       check=False)
+            output, returncode = completed.stdout, completed.returncode
     except subprocess.TimeoutExpired:
         raise Failure('total_deadline_exceeded', outcome='unknown', retry_action=False)
     try:
-        result = json.loads(completed.stdout)
-        if completed.returncode or result.get('transport_error'):
+        result = json.loads(output)
+        if returncode or result.get('transport_error'):
             raise Failure(result.get('transport_error', 'request_failed'),
                           outcome=result.get('outcome', 'unknown'), retry_action=False)
         raw = base64.b64decode(result.pop('body'), validate=True)
@@ -1490,9 +1609,11 @@ def file_command(args, config):
         private_write(args.output, data, replace=False)
         response['result'].update(output=str(args.output.absolute()), bytes=len(data))
         return response
-    if command == 'file-download': return file_download(args, config)
+    if command == 'file-download':
+        with bulk_request_session():
+            return file_download(args, config)
     if command == 'file-upload':
-        with local_file_stream(args.input) as (stream, before):
+        with local_file_stream(args.input) as (stream, before), bulk_request_session():
             return file_upload_stream(args,config,stream,before)
     raise Failure('unknown_file_command')
 
@@ -2529,6 +2650,8 @@ def main():
 if __name__ == '__main__':
     if sys.argv[1:] == ['_request']:
         _request_child()
+    elif sys.argv[1:] == ['_request_session']:
+        _request_child(persistent=True)
     else:
         try:
             print(json.dumps(main(), ensure_ascii=False))

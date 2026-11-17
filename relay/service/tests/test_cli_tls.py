@@ -113,6 +113,7 @@ class QuietHTTP(http.server.BaseHTTPRequestHandler):
         self.server.received.append(dict(self.headers.items()))
         self.send_response(200)
         self.send_header('Content-Type', 'application/json')
+        self.send_header('Content-Length', '11')
         self.end_headers()
         self.wfile.write(b'{"ok":true}')
 
@@ -227,6 +228,25 @@ class LocalTLSAndProxy(unittest.TestCase):
         self.assertNotIn(b'dummy-test-bearer', connect)
         self.assertEqual(self.http.received[0].get('Authorization'), 'Bearer dummy-test-bearer-never-real')
         self.assertNotIn('Proxy-Authorization', self.http.received[0])
+
+    def test_reused_tls_connection_keeps_connect_credentials_private(self):
+        os.environ['https_proxy'] = 'http://test-user:test-proxy-password@127.0.0.1:' + str(self.proxy.server_address[1])
+        transport = CLI.HTTPTransport()
+        payload = {'url': 'https://localhost:' + str(self.http.server_port), 'path': '/', 'method': 'GET',
+                   'token': 'synthetic-controller-token', 'body': None, 'timeout': 3}
+        try:
+            with patch.object(CLI.ssl, 'create_default_context', lambda: self.real_context(cafile=str(self.ca))), \
+                 patch.object(QuietHTTP, 'protocol_version', 'HTTP/1.1'):
+                for _ in range(2):
+                    self.assertEqual(transport.perform(payload)['status'], 200)
+        finally:
+            transport.close()
+        self.assertEqual(len(self.proxy.received), 1)
+        self.assertEqual(len(self.http.received), 2)
+        self.assertNotIn(b'synthetic-controller-token', self.proxy.received[0])
+        for headers in self.http.received:
+            self.assertEqual(headers.get('Authorization'), 'Bearer synthetic-controller-token')
+            self.assertNotIn('Proxy-Authorization', headers)
 
     def test_connect_blocked_key_never_sends_bearer_and_does_not_retry(self):
         result = self.request(proxy=True, blocked=True)
