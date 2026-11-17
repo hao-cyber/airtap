@@ -63,6 +63,7 @@ AI 可以组合这些动作完成跨 App 任务，不限于计算器等演示应
 | 记录 | 实际范围 |
 | --- | --- |
 | [code78 Muse 升级与继续使用](docs/results/beta48-code78-muse-cli25-20261114.json) | 原配对升级，60 秒息屏后唤醒、计算器看图、草稿重开和 CLI.25 文件往返。 |
+| [文件传输优化](docs/results/cli26-bulk-transport-20261117.json) | CLI.26 复用连接。维护者同机 256 KiB 对照中，下载用时减少约 15%–20%，上传减少约 17%；大文件仍可能需要数分钟。 |
 | [code74 系统选图](docs/results/beta44-code74-personal-ai-picker-20261112.json) | Muse 将图片选入 Gmail；Instinct 在信息 App 查看附件预览，均未发送。 |
 | [code64 两位 AI 交接](docs/results/beta34-code64-two-ai-20261110.json) | 两机互斥交接，90 秒息屏后再次使用；准备阶段有维护者操作。 |
 | [code65 持续操作与文件](docs/results/beta35-code65-muse-20261110.json) | 持续触控、任务保存、文件往返与短时息屏恢复。 |

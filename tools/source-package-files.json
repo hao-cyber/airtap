@@ -1400,6 +1400,10 @@
       "path": "docs/results/cli25-download-progress-20261114.json"
     },
     {
+      "path": "docs/results/cli26-bulk-transport-20261117.json",
+      "kind": "result"
+    },
+    {
       "kind": "result",
       "path": "docs/results/client-recovery-v040-delivery.json"
     },

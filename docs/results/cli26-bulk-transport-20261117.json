@@ -1,0 +1,187 @@
+{
+  "schema": "airtap-cli-bulk-transport-acceptance-v1",
+  "date": "2026-11-17",
+  "cli_version": "0.4.0-cli.26",
+  "implementation_commit": "8e03f699bad245d09539ab440b39d29915e143bb",
+  "cli_sha256": "9e41980bdf1664a1b10232743e8e8187378d21f0b1cddf7b6bf17a06cc3c9977",
+  "change": "Reuse one killable child and verified HTTPS connection within one file upload/download. Preserve sequential chunks, acknowledgement/hash checks, total request deadlines and unknown-result reconciliation.",
+  "checks": {
+    "host_core_steps_reused": 29,
+    "python_service_tests_passed": 226,
+    "site_python_tests_passed": 35,
+    "protocol_steps_passed": 12,
+    "bulk_transport_tests": 9,
+    "tls_policy_and_connect_tests": 12,
+    "covered": [
+      "same-device keepalive",
+      "server close before next request",
+      "lost mutation response sent once",
+      "different device path or bearer uses a new connection",
+      "total deadline while response bytes keep arriving",
+      "stalled child before network",
+      "bounded oversized response",
+      "binary replies larger than pipe buffer",
+      "worker cleanup and scoped context restoration",
+      "TLS trust/hostname/blocked keys",
+      "CONNECT proxy credentials stay outside target request",
+      "existing file resume/hash and lease/tenant protocol regression"
+    ],
+    "retained_failures": [
+      "First direct full Python run used the unavailable default system javac; rerun with the installed JDK passed.",
+      "First core run exposed a shared HTTP test fixture switched to keepalive without response lengths in a reports subclass. Keepalive is now scoped to the new reuse test; all226service tests passed."
+    ]
+  },
+  "physical": {
+    "actor": "maintainer using an independently approved original Airtap identity; not a Muse/Instinct run",
+    "device": "Meizu Note16",
+    "client": {
+      "platform": "android",
+      "version_name": "0.4.0-beta.48",
+      "version_code": 78,
+      "build_type": "release"
+    },
+    "network_reported": "wifi",
+    "new_pairing": false,
+    "usb_control": false,
+    "phone_or_network_configuration_changed": false,
+    "synthetic_file_bytes": 262144,
+    "synthetic_sha256": "2312394bd99545d9de131c24efb781e765ac1aec243f2ed9347597a793a415e9",
+    "sequential_same_phone_trials": [
+      {
+        "trial": "old-upload256",
+        "ok": true,
+        "metrics": {
+          "elapsed_ms": 42183.13,
+          "file_commands": 11,
+          "file_command_ms": 42180.15,
+          "slowest_file_command_ms": 4507.58,
+          "last_confirmed_offset": 262144,
+          "initial_offset": 0,
+          "total_bytes": 262144
+        }
+      },
+      {
+        "trial": "new-download256",
+        "ok": true,
+        "metrics": {
+          "elapsed_ms": 23153.83,
+          "file_commands": 9,
+          "file_command_ms": 23135.93,
+          "slowest_file_command_ms": 4171.79,
+          "last_confirmed_offset": 262144,
+          "initial_offset": 0,
+          "total_bytes": 262144
+        }
+      },
+      {
+        "trial": "old-download256",
+        "ok": true,
+        "metrics": {
+          "elapsed_ms": 27131.81,
+          "file_commands": 9,
+          "file_command_ms": 27123.09,
+          "slowest_file_command_ms": 3689.79,
+          "last_confirmed_offset": 262144,
+          "initial_offset": 0,
+          "total_bytes": 262144
+        }
+      },
+      {
+        "trial": "new-upload256",
+        "ok": true,
+        "metrics": {
+          "elapsed_ms": 34897.69,
+          "file_commands": 11,
+          "file_command_ms": 34894.27,
+          "slowest_file_command_ms": 3993.01,
+          "last_confirmed_offset": 262144,
+          "initial_offset": 0,
+          "total_bytes": 262144
+        }
+      },
+      {
+        "trial": "new-download256-r2",
+        "ok": true,
+        "metrics": {
+          "elapsed_ms": 21641.65,
+          "file_commands": 9,
+          "file_command_ms": 21629.33,
+          "slowest_file_command_ms": 2975.31,
+          "last_confirmed_offset": 262144,
+          "initial_offset": 0,
+          "total_bytes": 262144
+        }
+      }
+    ],
+    "large_existing_recording": {
+      "bytes": 3567744,
+      "checksum_matched": true,
+      "metrics": {
+        "elapsed_ms": 301672.99,
+        "file_commands": 110,
+        "file_command_ms": 301602.44,
+        "slowest_file_command_ms": 5217.93,
+        "last_confirmed_offset": 3567744,
+        "initial_offset": 0,
+        "total_bytes": 3567744
+      },
+      "historical_cli25_elapsed_ms": 496578.39,
+      "comparison_limit": "Same existing file on November14 versus November17. Network conditions were not controlled; not a causal speedup estimate."
+    },
+    "cleanup": "Both synthetic phone test files removed after matching the expected SHA256 and using each current version; original recording and pairs retained; maintainer lease released."
+  },
+  "publication": {
+    "relay_revision": 43,
+    "relay_deployed": true,
+    "runtime_and_settings_changed": false,
+    "only_relay_assets_changed": [
+      "cli/airtap.py",
+      "agent.md"
+    ],
+    "public_artifacts": {
+      "checked_at": "2026-11-17T22:55:29+0800",
+      "revision": 43,
+      "checks": [
+        {
+          "path": "/cli/airtap.py",
+          "status": 200,
+          "bytes": 158566,
+          "sha256": "9e41980bdf1664a1b10232743e8e8187378d21f0b1cddf7b6bf17a06cc3c9977",
+          "matches": true
+        },
+        {
+          "path": "/agent.md",
+          "status": 200,
+          "bytes": 135559,
+          "sha256": "41172994500695b684636b8af48b8d9f2e8681a5e0e3f09116c6616de9471d71",
+          "matches": true
+        }
+      ],
+      "passed": true
+    },
+    "website": {
+      "deployed": true,
+      "deployment_id": "93075eb8-894a-4c63-bedb-6e6ca6601c5c",
+      "local_files_verified": 44,
+      "public_http_checks": 104,
+      "passed": true,
+      "changed_public_files": [
+        "help.html"
+      ],
+      "apk_and_reviewed_video_bytes_unchanged": true,
+      "managed_robots_prefix": "Previously reviewed exact public prefix plus frozen robots.txt; no other content transformations accepted."
+    }
+  },
+  "external_review": {
+    "backend": "Grok through llm-cli",
+    "completed": false,
+    "attempts": 2,
+    "result": "Both bounded attempts ended on idle timeout without a completed review. No external-review pass claimed."
+  },
+  "limits": [
+    "Phone performance remains network- and device-dependent; a3.57MB transfer still took about5minutes.",
+    "32KiB chunks,64MiB file limit and public ingress limits are unchanged.",
+    "No actual Muse or Instinct CLI.26 runner verification in this record.",
+    "No new independent-user, additional physical model, SIM PIN or72hour claim."
+  ]
+}
