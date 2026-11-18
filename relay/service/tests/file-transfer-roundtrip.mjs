@@ -120,7 +120,11 @@ async function connectPhone() {
     }
     if (commandError) { ws.send(JSON.stringify({ id: cmd.id, ok: false, error: commandError })); return; }
     if (cmd.action.startsWith('file_')) {
-      try { ws.send(JSON.stringify({id:cmd.id,ok:true,result:fileResponse(cmd)})); }
+      try {
+        const json = JSON.stringify({id:cmd.id,ok:true,result:fileResponse(cmd)});
+        // Android's JSONStringer escapes slashes, including in Base64 file bytes.
+        ws.send(cmd.action === 'file_read' ? json.replaceAll('/', '\\/') : json);
+      }
       catch (error) { ws.send(JSON.stringify({id:cmd.id,ok:false,error:{code:error.message}})); }
       return;
     }
@@ -279,8 +283,9 @@ try {
     const text=result.content.find(x=>x.type==='text').text;assert.equal(text.includes('data_base64'),false);assert.equal(text.includes(bytes.subarray(0,20).toString('base64')),false);
     await python(['status']);
   });
-  await check('negotiated 128 KiB reads cross the real relay and the old phone keeps its smaller replies', async () => {
+  await check('128 KiB Android-escaped reads cross the real relay and the old phone keeps its smaller replies', async () => {
     const path = 'large-read.bin', root = 'workspace', data = randomBytes(330000);
+    data.fill(0xff, 131072, 262144);
     const file = metadata(root, path, data);
     files.set(root + '/' + path, data);
     const status = (await python(['file-stat', '--root', root, '--path', path])).result;

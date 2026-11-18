@@ -542,8 +542,14 @@ export class PairingRelay extends DurableObject {
     const entry = this.pending;
     if (!entry || entry.generation !== this.state.generation) { this.disconnect('unsolicited_response', 502); return; }
     if (typeof data === 'string') {
-      if (encode(data).byteLength > entry.textLimit) { this.disconnect('response_too_large', 502); return; }
+      const wireBytes = encode(data).byteLength;
+      // Android JSONStringer may encode each Base64 slash as two bytes on the wire.
+      const wireLimit = entry.action === 'file_read' ? 2 * entry.textLimit : entry.textLimit;
+      if (wireBytes > wireLimit) { this.disconnect('response_too_large', 502); return; }
       let body; try { body = JSON.parse(data); } catch { this.disconnect('invalid_json_response', 502); return; }
+      if (wireBytes > entry.textLimit && encode(JSON.stringify(body)).byteLength > entry.textLimit) {
+        this.disconnect('response_too_large', 502); return;
+      }
       if (!body || Array.isArray(body) || typeof body !== 'object' || body.id !== entry.id || typeof body.ok !== 'boolean' || (entry.action === 'screenshot' && body.ok)) { this.disconnect('invalid_response', 502); return; }
       if (entry.action === 'file_stat' && body.ok && body.result?.device_max_read_bytes === FILE_READ_LIMIT) {
         // Only a capable relay AND phone advertise the larger end-to-end reply.
