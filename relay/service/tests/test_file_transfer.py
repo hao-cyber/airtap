@@ -8,6 +8,7 @@ import json
 import os
 from pathlib import Path
 import tempfile
+import time
 import types
 import unittest
 from unittest.mock import patch
@@ -205,6 +206,52 @@ class FilesTest(unittest.TestCase):
         self.assertEqual(args.output.stat().st_mode & 0o777, 0o600)
         self.assertFalse(list((self.root/'downloads').glob('*.part')))
         self.assertEqual(json.loads(stderr.getvalue().splitlines()[-1].removeprefix('Airtap download: '))['stage'], 'verified')
+
+    def test_transport_loss_rechecks_same_task_and_rereads_only_the_unconfirmed_range(self):
+        data = os.urandom(cli.FILE_CHUNK_LIMIT + 7)
+        args, config, metadata, reads, server = self.download_fixture(data)
+        lease = {'task_id': '1' * 32, 'lease_id': '2' * 32, 'lease_epoch': 3, 'state': 'ready',
+                 'recorded_at': time.time() - 1, 'local_expires_at': time.time() + 100}
+        config.update(connection_id='socket', mode='multi', task_lease=lease)
+        status = {'deviceConnected': True, 'pending': 0, 'connection_id': 'socket', 'mode': 'multi', 'task': lease}
+
+        def lost_once(*args, **fields):
+            response = server(*args, **fields)
+            if args[2] == 'file_read' and reads == [0, cli.FILE_CHUNK_LIMIT]:
+                raise cli.Failure('network_failure', outcome='unknown')
+            return response
+
+        with patch.object(cli, 'file_call', side_effect=lost_once), patch.object(cli.sys, 'stderr', io.StringIO()), \
+             patch.object(cli, 'status_request', return_value=status) as checked:
+            result = cli.file_command(args, config)
+        checked.assert_called_once_with(args, config)
+        self.assertEqual(reads, [0, cli.FILE_CHUNK_LIMIT, cli.FILE_CHUNK_LIMIT])
+        self.assertEqual(result['transfer_metrics']['read_retries'], 1)
+        self.assertEqual(args.output.read_bytes(), data)
+
+    def test_transport_recovery_obeys_connection_lease_pending_and_retry_limits(self):
+        args, config, _, reads, server = self.download_fixture(b'file')
+        lease = {'task_id': '1' * 32, 'lease_id': '2' * 32, 'lease_epoch': 7, 'state': 'ready',
+                 'recorded_at': time.time() - 1, 'local_expires_at': time.time() + 100}
+        config.update(connection_id='socket', mode='multi', task_lease=lease)
+        live = {'deviceConnected': True, 'pending': 0, 'connection_id': 'socket', 'mode': 'multi', 'task': lease}
+
+        def lost(*args, **fields):
+            response = server(*args, **fields)
+            if args[2] == 'file_read':
+                raise cli.Failure('network_failure', outcome='unknown')
+            return response
+
+        for change, expected_reads in [({'deviceConnected': False}, 1), ({'pending': 1}, 1),
+                                       ({'connection_id': 'new'}, 1), ({'task': {'state': 'idle'}}, 1),
+                                       ({'task': {**lease, 'lease_epoch': 8}}, 1), ({}, 3)]:
+            with self.subTest(change=change), patch.object(cli, 'file_call', side_effect=lost), \
+                 patch.object(cli, 'status_request', return_value={**live, **change}), \
+                 patch.object(cli.sys, 'stderr', io.StringIO()), self.assertRaises(cli.Failure):
+                reads.clear()
+                cli.file_command(args, config)
+            self.assertEqual(reads, [0] * expected_reads)
+            self.assertFalse(args.output.exists())
 
     def test_partial_resumes_across_read_size_upgrade(self):
         data = os.urandom(2 * cli.FILE_READ_LIMIT + 27)

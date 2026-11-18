@@ -27,7 +27,7 @@ TOKEN = re.compile(r'^[0-9a-f]{64}$')
 TICKET = re.compile(r'^[0-9a-f]{32}$')
 MAX_RESPONSE = 512 * 1024
 MAX_COMMAND = 65536
-VERSION = '0.4.0-cli.27'
+VERSION = '0.4.0-cli.28'
 CONFIG_LIMIT = 8192
 # Older snapshots serialized as many as 2,048 four-digit IDs in a JSON list.
 LEGACY_CONFIG_LIMIT = CONFIG_LIMIT + 2048 * 7 + 2
@@ -1668,6 +1668,19 @@ def file_command(args, config):
     raise Failure('unknown_file_command')
 
 
+def download_read_still_authorized(args, config, connection, lease, failure):
+    if failure.result['error'] not in ('network_failure', 'total_deadline_exceeded') or not connection:
+        return False
+    status = status_request(args, config)
+    if not status['deviceConnected'] or status['pending'] or status['connection_id'] != connection:
+        return False
+    if status.get('mode') != 'multi':
+        return not lease
+    task = status['task']
+    return bool(lease and task['state'] == 'ready' and same_lease(lease, task)
+                and task_live(config.get('task_lease', {})))
+
+
 def file_download(args, config):
     progress = TransferProgress(None, kind='download')
     stage, partial_validated, output_published = 'stat', False, False
@@ -1681,6 +1694,8 @@ def file_download(args, config):
                 or not isinstance(expected_hash, str) or not TOKEN.fullmatch(expected_hash)):
             raise Failure('file_not_downloadable_with_verified_hash')
         progress.size = size
+        connection = config.get('connection_id')
+        lease = dict(config.get('task_lease', {}))
         read_size = metadata.get('max_read_bytes', FILE_CHUNK_LIMIT)
         if type(read_size) is not int or not 1 <= read_size <= FILE_READ_LIMIT:
             raise Failure('invalid_file_read_limit')
@@ -1700,7 +1715,16 @@ def file_download(args, config):
             while offset<size:
                 length=min(read_size,size-offset)
                 stage = 'read'
-                response=progress.call(args,config,'file_read',root=args.root,path=args.path,offset=offset,length=length,version=version)['result']
+                try:
+                    response = progress.call(args, config, 'file_read', root=args.root, path=args.path,
+                                             offset=offset, length=length, version=version)['result']
+                except Failure as failure:
+                    if progress.read_retries >= 2 or not download_read_still_authorized(args, config, connection, lease, failure):
+                        raise
+                    # A new request reads only this exact version and uncommitted range.
+                    progress.read_retries += 1
+                    progress.report('retrying_read', force=True)
+                    continue
                 chunk=checked_file_chunk(response,args.root,args.path,offset,length,version,size)
                 stream.write(chunk);stream.flush();os.fsync(stream.fileno());offset+=len(chunk)
                 progress.acknowledged(offset, stage='receiving')
@@ -1755,13 +1779,14 @@ class TransferProgress:
         self.commands = 0
         self.command_ms = 0
         self.slowest_ms = 0
+        self.read_retries = 0
 
     def metrics(self):
         return {'elapsed_ms': round((time.monotonic() - self.started) * 1000, 2),
                 'file_commands': self.commands, 'file_command_ms': round(self.command_ms, 2),
                 'slowest_file_command_ms': round(self.slowest_ms, 2),
                 'last_confirmed_offset': self.confirmed, 'initial_offset': self.initial_offset,
-                'total_bytes': self.size}
+                'total_bytes': self.size, **({'read_retries': self.read_retries} if self.read_retries else {})}
 
     def report(self, stage, force=False):
         now = time.monotonic()
