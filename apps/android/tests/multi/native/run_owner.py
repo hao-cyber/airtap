@@ -187,6 +187,7 @@ def main():
                 shown=candidate['verification_code'][:3]+' '+candidate['verification_code'][3:]
                 assert has_text(shown) and not collapsed(1) and not has_text('交给 AI 第一件事')
                 assert has_text('与自己的 AI 告诉你的六位数字核对。确认后它可持续查看和操作整台手机，也能按你的指令管理 AI 连接。AI 会自动核实连接，不用再回复“已点”。')
+                assert has_text('屏幕、输入和文件会经过中继，默认的公共中继可以读取这些内容。你可以在 Airtap 或连接通知里随时停止。')
                 click('数字一致，连接这位 AI');wait(lambda:len(bridge('inspect')['grants'])==2,20);connect();wait(lambda:collapsed(2),20)
                 assert request('/v1/invitations/resolve',body={'code':digits})[0]==404
                 return {'actual_invitation_and_resolve':True,'activity_recreation_does_not_hide_invitation':True,'matching_six_digit_candidate_visible':True,'actual_approval_callback':True,'approved_view_collapses_without_losing_A':True,'consumed_code_unusable':True}

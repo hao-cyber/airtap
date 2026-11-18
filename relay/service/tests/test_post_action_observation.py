@@ -230,7 +230,51 @@ class PostActionObservationTest(unittest.TestCase):
         result = self.run_cli('home', '--after-action', 'tree')
         self.assertEqual(result['post_action_tree']['next_offset'], 1)
         self.assertEqual(self.commands(), ['home', 'read_tree'])
-        self.assertEqual(self.saved()['snapshot']['node_ids'], ['1'])
+        self.assertTrue(cli.snapshot_has_node(self.saved()['snapshot'], '1'))
+        self.assertFalse(cli.snapshot_has_node(self.saved()['snapshot'], '2'))
+
+    def test_all_2048_nodes_and_status_use_the_original_config(self):
+        def server(url, path, token=None, body=None, **options):
+            if path == '/v1/status':
+                return {'data': dict(self.config, protocol_version=4, deviceConnected=True, pending=0,
+                                     session_expires_at=None, connection_id='fixture'), 'elapsed_ms': 1}
+            offset = body.get('offset', 0)
+            end = offset + 128
+            value = dict(self.tree, nodes=[{'node_id': str(i + 1)} for i in range(offset, end)],
+                         offset=offset, returned_nodes=128, total_nodes=2048, total_inspected_nodes=2048,
+                         traversal_complete=True, next_offset=end if end < 2048 else None, truncated=end < 2048)
+            return {'data': {'id': body['id'], 'ok': True, 'result': value}, 'elapsed_ms': 1}
+        self.run_cli('read-tree', send=server)
+        # A later page does not grant access to skipped nodes.
+        for offset in [1920, *range(128, 1920, 128)]:
+            self.run_cli('read-tree-page', '--package', 'new.app', '--snapshot-id', NEW, '--offset', str(offset), send=server)
+            snapshot = self.saved()['snapshot']
+            self.assertTrue(cli.snapshot_has_node(snapshot, str(offset + 128)))
+            if offset == 1920:
+                self.assertFalse(cli.snapshot_has_node(snapshot, '129'))
+        self.assertLess(self.path.stat().st_size, cli.CONFIG_LIMIT)
+        self.assertEqual(cli.saved_node_mask(self.saved()['snapshot']).bit_count(), 2048)
+        self.assertTrue(self.run_cli('status', send=server)['deviceConnected'])
+        self.assertEqual(self.saved()['controller_token'], TOKEN)
+
+    def test_old_oversize_snapshot_recovers_without_resetting_identity_or_pending_work(self):
+        self.give_lease()
+        old = self.saved()
+        old['snapshot'] = dict(self.config['snapshot'], node_ids=[str(i) for i in range(1, 2049)])
+        old['last_file_upload'] = {'transfer_id': 'a' * 32}
+        self.path.write_text(json.dumps(old, separators=(',', ':')))
+        self.assertGreater(self.path.stat().st_size, cli.CONFIG_LIMIT)
+        expected = dict(old)
+        del expected['snapshot']
+        self.assertEqual(self.saved(), expected)
+        self.assertEqual(json.loads(self.path.read_text()), expected)
+        self.assertEqual(self.path.stat().st_mode & 0o777, 0o600)
+
+    def test_overlimit_durable_data_never_replaces_a_working_config(self):
+        before = self.path.read_bytes()
+        with self.assertRaisesRegex(cli.Failure, 'config_too_large'):
+            cli.save_config(self.path, dict(self.config, other='x' * cli.CONFIG_LIMIT))
+        self.assertEqual(self.path.read_bytes(), before)
 
     def test_invalid_tree_packages_never_become_cached_targets(self):
         for package in (None, '', 'wrong', 'io.airtap.preview', 'io.airtap.preview.child', 123):

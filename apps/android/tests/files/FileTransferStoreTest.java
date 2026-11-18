@@ -43,7 +43,13 @@ public class FileTransferStoreTest {
         test("new file and chunk bounds accept a file above old eight MiB limit",()->{
             FileTransferStore s=store(fresh());byte[] data=new byte[9*1024*1024+17];new Random(8).nextBytes(data);String id=id();s.begin("large",id,data.length,hash(data));
             for(int offset=0;offset<data.length;offset+=32768){byte[] chunk=Arrays.copyOfRange(data,offset,Math.min(data.length,offset+32768));s.chunk(id,offset,chunk,hash(chunk));}
-            eq(s.finish(id).file().sha256(),hash(data));refused("invalid_request",()->s.begin("oversize",id(),64L*1024*1024+1,hash(new byte[0])));
+            var file = s.finish(id).file();
+            eq(file.sha256(), hash(data));
+            int maxRead = FileTransferStore.MAX_READ_BYTES;
+            var block = s.read("large", 17, maxRead, file.version());
+            eq(hash(block.data()), hash(Arrays.copyOfRange(data, 17, 17 + maxRead)));
+            refused("invalid_request", () -> s.read("large", 0, maxRead + 1, file.version()));
+            refused("invalid_request",()->s.begin("oversize",id(),64L*1024*1024+1,hash(new byte[0])));
         });
         test("empty upload supports stable repeated finish", () -> {
             FileTransferStore s=store(fresh());var done=upload(s,"empty",new byte[0]);eq(s.finish(done.id()),done);eq(s.stat("empty",true).size(),0L);

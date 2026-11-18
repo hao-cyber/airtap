@@ -235,7 +235,17 @@ final class MultiAiOwner {
                     &&invitation.getLong("pairing_expires_at")>0&&invitation.getLong("pairing_expires_at")<=System.currentTimeMillis()/1000;
             if(!expiredInvitation&&remote!=null&&!remote.isNull("invitation")){JSONObject r=remote.getJSONObject("invitation");if(invitation!=null&&invitation.getString("invitation_id").equals(r.getString("invitation_id"))&&invitation.getLong("invitation_sequence")==r.getLong("invitation_sequence")&&!r.isNull("candidate")&&!"canceled".equals(invitation.getString("phase")))candidate=r.getJSONObject("candidate");}
             if(pending!=null){text(box,"正在完成你已核码确认的连接，其他 AI 的授权保持有效。",16);box.addView(button("继续核实",()->{if(PreviewService.instance!=null)PreviewService.instance.restore();poll(false);}));}
-            else if(candidate!=null){String claim=MultiAiProtocol.hex(candidate,"claim_id"),code=candidate.getString("verification_code"),name=candidate.getString("name");if(!code.matches("[0-9]{6}"))throw new IllegalArgumentException();text(box,name+" 请求连接（名称由对方提供）",18);text(box,code.substring(0,3)+" "+code.substring(3),44);text(box,"有效至 "+new java.text.SimpleDateFormat("HH:mm",java.util.Locale.getDefault()).format(new Date(invitation.getLong("pairing_expires_at")*1000)),14);text(box,"与自己的 AI 告诉你的六位数字核对。确认后它可持续查看和操作整台手机，也能按你的指令管理 AI 连接。AI 会自动核实连接，不用再回复“已点”。",16);box.addView(primaryButton("数字一致，连接这位 AI",()->approve(claim,name)));}
+            else if (candidate != null) {
+                String claim = MultiAiProtocol.hex(candidate, "claim_id");
+                String code = candidate.getString("verification_code"), name = candidate.getString("name");
+                if (!code.matches("[0-9]{6}")) throw new IllegalArgumentException();
+                text(box, name + " 请求连接（名称由对方提供）", 18);
+                text(box, code.substring(0, 3) + " " + code.substring(3), 44);
+                text(box, "有效至 " + new java.text.SimpleDateFormat("HH:mm", java.util.Locale.getDefault()).format(new Date(invitation.getLong("pairing_expires_at") * 1000)), 14);
+                text(box, "与自己的 AI 告诉你的六位数字核对。确认后它可持续查看和操作整台手机，也能按你的指令管理 AI 连接。AI 会自动核实连接，不用再回复“已点”。", 16);
+                text(box, owner.getString(R.string.pairing_relay_notice), 16);
+                box.addView(primaryButton("数字一致，连接这位 AI", () -> approve(claim, name)));
+            }
             else if(expiredInvitation){text(box,"这次邀请已过期",18);text(box,"重新生成后，把新邀请码交给自己的 AI。已有 AI 的连接不受影响。",16);box.addView(primaryButton("重新生成邀请码",()->cancel(true)));}
             else if(invitation!=null){String phase=invitation.getString("phase");text(box,"canceled".equals(phase)?"正在确认取消这次邀请":"邀请已保存，交给另一位自己的 AI",18);
                 if("ready".equals(phase)&&invitation.getLong("pairing_expires_at")>System.currentTimeMillis()/1000){invitationCode.render(box,identity,invitation.getString("ticket"),invitation.getLong("pairing_expires_at"));box.addView(button("完整邀请与校验信息",()->show(invitation)));}

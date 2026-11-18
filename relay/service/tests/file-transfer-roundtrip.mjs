@@ -155,7 +155,12 @@ function fileResponse(cmd) {
   if (cmd.action === 'file_list') return {root:cmd.root,path:cmd.path,entries:[...files].filter(([k])=>k.startsWith(cmd.root+'/')).map(([k,v])=>metadata(cmd.root,k.slice(cmd.root.length+1),v)),next_offset:null,truncated:false};
   if(cmd.action==='file_publish_media'){if(!files.has(key))throw Error('file_not_found');if(digest(files.get(key))!==cmd.version)throw Error('file_changed');return {published:true,publication_id:digest(files.get(key)),album:'Pictures/Airtap/',mime_type:cmd.mime_type,readback_verified:true,picker_selection_verified:false};}
   if(cmd.action==='file_share'){if(!files.has(key))throw Error('file_not_found');if(digest(files.get(key))!==cmd.version)throw Error('file_changed');return {accepted:true,share_id:hex(16),root:cmd.root,path:cmd.path,mime_type:cmd.mime_type,target_package:cmd.target_package||null,expires_in_ms:300000,read_only:true,chooser_requested:true,delivery_verified:false,requires_observation:true};}
-  if (cmd.action === 'file_stat') { if(!files.has(key)) throw Error('file_not_found'); return metadata(cmd.root,cmd.path,files.get(key)); }
+  if (cmd.action === 'file_stat') {
+    if (!files.has(key)) throw Error('file_not_found');
+    const result = metadata(cmd.root, cmd.path, files.get(key));
+    if (cmd.path === 'large-read.bin') result.device_max_read_bytes = 131072;
+    return result;
+  }
   if (cmd.action === 'file_read') {
     if(failReadOnce&&cmd.offset===32768){failReadOnce=false;throw Error('file_provider_timeout');}
     const data=files.get(key);if(!data) throw Error('file_not_found'); if(digest(data)!==cmd.version) throw Error('file_version_changed');
@@ -274,6 +279,20 @@ try {
     const text=result.content.find(x=>x.type==='text').text;assert.equal(text.includes('data_base64'),false);assert.equal(text.includes(bytes.subarray(0,20).toString('base64')),false);
     await python(['status']);
   });
+  await check('negotiated 128 KiB reads cross the real relay and the old phone keeps its smaller replies', async () => {
+    const path = 'large-read.bin', root = 'workspace', data = randomBytes(330000);
+    const file = metadata(root, path, data);
+    files.set(root + '/' + path, data);
+    const status = (await python(['file-stat', '--root', root, '--path', path])).result;
+    assert.equal(status.max_read_bytes, 131072);
+    const before = seenCommands.length, output = join(temp, 'large-read-output.bin');
+    const downloaded = await python(['file-download', '--root', root, '--path', path, '--output', output]);
+    assert.deepEqual(seenCommands.slice(before).filter(c => c.action === 'file_read').map(c => c.length), [131072, 131072, 67856]);
+    assert.equal(downloaded.result.sha256, file.sha256);
+    assert.deepEqual(await readFile(output), data);
+    const oldPhone = (await python(['file-stat', '--root', root, '--path', 'sample.bin'])).result;
+    assert.equal(oldPhone.max_read_bytes, undefined);
+  });
   await check('strict wire rejects traversal, foreign roots, extra fields, binary abuse and bounds before dispatch',async()=>{
     const read={root:'workspace',path:'sample.bin',offset:0,length:1,version:digest(bytes)};
     const begin={root:'workspace',path:'next.bin',transfer_id:hex(16),size:1,sha256:digest(Buffer.from('a'))};
@@ -282,7 +301,7 @@ try {
       ['file_roots',{path:''}],['file_stat',{root:'workspace',path:'../private'}],['file_stat',{root:'workspace',path:'/etc/passwd'}],
       ['file_stat',{root:'workspace',path:'a//b'}],['file_stat',{root:'workspace',path:'a\\b'}],['file_stat',{root:'workspace',path:'content://x'}],
       ['file_stat',{root:'private',path:'x'}],['file_stat',{root:'workspace',path:'x/'+'.'.repeat(2)}],['file_list',{root:'workspace',path:'',offset:-1,limit:64}],
-      ['file_list',{root:'workspace',path:'',offset:4097,limit:1}],['file_read',{...read,length:32769}],['file_read',{...read,offset:true}],['file_read',{...read,version:'bad'}],['file_read',{...read,url:'https://example.test/file'}],
+      ['file_list',{root:'workspace',path:'',offset:4097,limit:1}],['file_read',{...read,length:131073}],['file_read',{...read,offset:true}],['file_read',{...read,version:'bad'}],['file_read',{...read,url:'https://example.test/file'}],
       ['file_upload_begin',{...begin,root:'saf_bad'}],['file_upload_begin',{...begin,size:67108865}],['file_upload_begin',{...begin,overwrite:true}],
       ['file_upload_chunk',{...chunk,data_base64:'YQ'}],['file_upload_chunk',{...chunk,data_base64:'YR=='}],['file_upload_chunk',{...chunk,data_base64:'YQ==\n'}],
       ['file_upload_chunk',{...chunk,data_base64:Buffer.alloc(32769).toString('base64')}],['file_upload_chunk',{...chunk,offset:67108864}],

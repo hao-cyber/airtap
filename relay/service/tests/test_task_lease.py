@@ -639,7 +639,7 @@ class CredentialRestoreTest(unittest.TestCase):
         return {'website': 'https://relay.example/d/' + 'd' * 32, 'username': CLAIM, 'password': TOKEN}
 
     def paired(self):
-        # The real pair-status endpoint does not include mode; status supplies it.
+        # Older relay versions supplied mode only on status.
         data = {key: self.config[key] for key in ('persistent', 'all_apps', 'allow_control', 'claim_id')}
         return {'data': {**data, 'protocol_version': 4, 'state': 'approved',
                          'session_expires_at': None, 'command_sequence': 40}, 'elapsed_ms': 5}
@@ -1063,6 +1063,22 @@ class InvitationCodeTest(unittest.TestCase):
                 with self.assertRaises(cli.Failure) as failure: self.invoke(request)
                 self.assertEqual(failure.exception.result['error'], 'invalid_short_invitation_response')
                 self.assertFalse(self.path.exists()); self.assertEqual(len(calls), 1)
+
+    def test_pairing_receipt_guides_the_ai_through_owner_approval_and_its_first_task(self):
+        def request(url, endpoint, *args, **kwargs):
+            return {'data': self.invite if endpoint.endswith('/resolve') else {**self.pending, 'mode': 'multi'}}
+        pending = self.invoke(request)
+        self.assertEqual(pending['verification_code'], '123456')
+        self.assertIn('pair-status --wait', pending['instruction'])
+        self.assertIn('task-acquire after approval, then wait-ready', pending['instruction'])
+        self.args.wait = False
+        approved = {**self.pending, 'state': 'approved', 'session_expires_at': None,
+                    'lease_required': True, 'allow_control': True, 'allow_tap': False,
+                    'allowed_packages': [], 'persistent': True, 'all_apps': True}
+        with patch.object(cli, 'request', return_value={'data': approved}):
+            saved = cli.poll_pair(self.args, cli.load_config(self.path))
+        self.assertIn('task-acquire after approval, then wait-ready', saved['instruction'])
+        self.assertEqual(cli.load_config(self.path)['state'], 'approved')
 
     def test_wait_continues_past_old_five_minute_limit_and_observes_approval(self):
         self.args.wait = True

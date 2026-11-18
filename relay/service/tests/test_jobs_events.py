@@ -30,6 +30,43 @@ class JobsEventsTest(unittest.TestCase):
     def test_read_does_not_change_control_step(self):
         self.assertIsNone(cli.job_before(self.args,self.config,{'action':'observe'}))
         self.assertEqual(cli.job_load(self.args,self.config)['steps'][0]['state'],'planned')
+
+    def test_file_step_is_journaled_through_real_command_entry(self):
+        self.config.update(controller_token='d' * 64, state='approved', all_apps=True,
+                           allow_control=True, persistent=True)
+        cli.save_config(self.args.config, self.config)
+        for command, extra in [
+            ('file-share', ['--version', 'f' * 64, '--mime-type', 'text/plain']),
+            ('file-publish-media', ['--version', 'f' * 64, '--mime-type', 'image/png']),
+            ('file-mkdir', []), ('file-delete', ['--version', 'f' * 64]),
+            ('file-rename', ['--version', 'f' * 64, '--destination', 'new']),
+        ]:
+            for lost in (False, True):
+                with self.subTest(command=command, lost=lost):
+                    cli.job_save(self.args, self.job)
+                    argv = ['airtap', '--config', str(self.args.config), '--job-id', 'demo', '--step-id',
+                            'submit', command, '--root', 'workspace', '--path', 'sample', *extra]
+                    def transport(url, path, token, body, **options):
+                        self.assertEqual(cli.job_load(self.args, self.config)['steps'][0]['state'], 'outcome_unknown')
+                        if lost:
+                            raise cli.Failure('network_failure', outcome='unknown')
+                        return {'data': {'id': body['id'], 'ok': True, 'result': {'accepted': True}}, 'elapsed_ms': 1}
+                    with patch.object(cli.sys, 'argv', argv), patch.object(cli, 'request', side_effect=transport) as sent:
+                        try:
+                            if lost:
+                                with self.assertRaisesRegex(cli.Failure, 'network_failure'): cli.main()
+                            else:
+                                self.assertTrue(cli.main()['ok'])
+                        finally:
+                            cli.unlock_config()
+                        step = cli.job_load(self.args, self.config)['steps'][0]
+                        self.assertEqual(step['state'], 'outcome_unknown' if lost else 'needs_verification')
+                        self.assertEqual(len(step['attempts']), 1)
+                        try:
+                            with self.assertRaisesRegex(cli.Failure, 'job_step_requires_verification'): cli.main()
+                        finally:
+                            cli.unlock_config()
+                        sent.assert_called_once()
     def test_event_status_skips_lease_and_screen_preparation(self):
         with patch.object(cli,'_command_request',return_value={'ok':True}) as request,patch.object(cli,'ensure_task',side_effect=AssertionError('lease was acquired')):
             result=cli.command_request(self.args,{'lease_required':True},{'action':'event_status'})

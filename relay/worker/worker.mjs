@@ -14,11 +14,20 @@ const EVENT_ACTIONS = new Set(['event_status', 'event_read']);
 const CONNECTION_ACTIONS = new Set(['connection_status', 'connection_invite', 'connection_approve', 'connection_cancel', 'connection_revoke']);
 const FILE_LIMIT = 64 * 1024 * 1024;
 const FILE_CHUNK_LIMIT = 32768;
+export const FILE_READ_LIMIT = 128 * 1024;
 const SYSTEM_ACTIONS = new Set(['notifications', 'quick_settings', 'dismiss_notification_shade', 'all_apps', 'dpad_up', 'dpad_down', 'dpad_left', 'dpad_right', 'dpad_center', 'power_dialog', 'lock_screen', 'split_screen']);
 const NODE_OPERATIONS = new Set(['accessibility_focus', 'clear_accessibility_focus', 'next_granularity', 'previous_granularity', 'custom', 'select', 'clear_selection', 'clear_focus', 'context_click', 'expand', 'collapse', 'dismiss', 'show_on_screen', 'scroll_up', 'scroll_down', 'scroll_left', 'scroll_right', 'page_up', 'page_down', 'page_left', 'page_right', 'scroll_to_position', 'set_progress', 'drag_start', 'drag_drop', 'drag_cancel']);
 const PACKAGE = /^[A-Za-z_][A-Za-z0-9_]*(?:\.[A-Za-z_][A-Za-z0-9_]*)+$/;
 const IMAGE_LIMIT = 512 * 1024;
 const TEXT_LIMIT = 64 * 1024;
+export function textReplyLimit(cmd) {
+  if (cmd.action === 'observe') return IMAGE_LIMIT;
+  if (cmd.action === 'file_read' && cmd.length > FILE_CHUNK_LIMIT) {
+    // Base64 plus the existing small envelope (path, version and checksum).
+    return Math.max(TEXT_LIMIT, 4 * Math.ceil(Math.min(cmd.length, FILE_READ_LIMIT) / 3) + 4096);
+  }
+  return TEXT_LIMIT;
+}
 const COMMAND_LIMIT = 64 * 1024;
 const H = { 'Cache-Control': 'no-store, no-cache, no-transform', 'X-Content-Type-Options': 'nosniff', 'X-Airtap-Protocol-Version': '2' };
 const json = (status, data) => new Response(JSON.stringify(data), { status, headers: { ...H, 'Content-Type': 'application/json' } });
@@ -75,7 +84,7 @@ function fileCommandShape(cmd) {
     Number.isInteger(cmd.offset) && cmd.offset >= 0 && cmd.offset <= 4096 && Number.isInteger(cmd.limit) && cmd.limit >= 1 && cmd.limit <= 64;
   if (cmd.action === 'file_stat') return exact(cmd, [...base, 'root', 'path']) && validFilePath(cmd.path, true);
   if (cmd.action === 'file_read') return exact(cmd, [...base, 'root', 'path', 'offset', 'length', 'version']) && validFilePath(cmd.path) &&
-    fileInteger(cmd.offset) && Number.isInteger(cmd.length) && cmd.length >= 1 && cmd.length <= FILE_CHUNK_LIMIT &&
+    fileInteger(cmd.offset) && Number.isInteger(cmd.length) && cmd.length >= 1 && cmd.length <= FILE_READ_LIMIT &&
     typeof cmd.version === 'string' && HEX64.test(cmd.version);
   if (cmd.action === 'file_upload_begin') return exact(cmd, [...base, 'root', 'path', 'transfer_id', 'size', 'sha256']) && validFilePath(cmd.path) &&
     typeof cmd.transfer_id === 'string' && HEX32.test(cmd.transfer_id) && fileInteger(cmd.size) && typeof cmd.sha256 === 'string' && HEX64.test(cmd.sha256);
@@ -507,7 +516,7 @@ export class PairingRelay extends DurableObject {
     if (!this.active()) { this.disconnect('expired', 410); return this.json(410, { error: 'expired_request_consumed' }); }
     if (!this.connected() || admittedDevice !== this.device) return this.json(503, { error: 'connection_changed_request_consumed' });
     const pendingResponse = new Promise(resolve => {
-      const entry = { id: cmd.id, action: cmd.action, generation: s.generation, resolve, timer: null }; this.pending = entry;
+      const entry = { id: cmd.id, action: cmd.action, textLimit: textReplyLimit(cmd), generation: s.generation, resolve, timer: null }; this.pending = entry;
       entry.timer = setTimeout(() => {
         if (this.pending !== entry) return;
         if (!this.active()) { this.disconnect('expired_outcome_unknown', 410); return; }
@@ -533,9 +542,13 @@ export class PairingRelay extends DurableObject {
     const entry = this.pending;
     if (!entry || entry.generation !== this.state.generation) { this.disconnect('unsolicited_response', 502); return; }
     if (typeof data === 'string') {
-      if (encode(data).byteLength > (entry.action === 'observe' ? IMAGE_LIMIT : TEXT_LIMIT)) { this.disconnect('response_too_large', 502); return; }
+      if (encode(data).byteLength > entry.textLimit) { this.disconnect('response_too_large', 502); return; }
       let body; try { body = JSON.parse(data); } catch { this.disconnect('invalid_json_response', 502); return; }
       if (!body || Array.isArray(body) || typeof body !== 'object' || body.id !== entry.id || typeof body.ok !== 'boolean' || (entry.action === 'screenshot' && body.ok)) { this.disconnect('invalid_response', 502); return; }
+      if (entry.action === 'file_stat' && body.ok && body.result?.device_max_read_bytes === FILE_READ_LIMIT) {
+        // Only a capable relay AND phone advertise the larger end-to-end reply.
+        body.result.max_read_bytes = FILE_READ_LIMIT;
+      }
       this.finish(this.json(200, body)); return;
     }
     if (entry.action !== 'screenshot' || !(data instanceof ArrayBuffer) || data.byteLength < 40 || data.byteLength > 36 + IMAGE_LIMIT) { this.disconnect('invalid_image', 502); return; }
@@ -654,7 +667,7 @@ export class MultiPairingRelay extends PairingRelay {
   }
   pairState(identity) {
     const g = this.state.grants[identity.id], i = this.state.invitation;
-    return { state: g ? 'approved' : 'pending', claim_id: identity.id, verification_code: identity.code,
+    return { mode: 'multi', state: g ? 'approved' : 'pending', claim_id: identity.id, verification_code: identity.code,
       pairing_expires_at: g ? identity.pairingExpires : i.expiresAt,
       ...(g ? { session_expires_at: null, allow_tap: g.scope.allowTap, ...scope(g.scope), command_sequence: g.sequence,
         lease_required: g.lease_required, lease_ready: g.lease_ready } : {}) };
@@ -1013,7 +1026,7 @@ export class MultiPairingRelay extends PairingRelay {
     socket.serializeAttachment({ ...attachment(socket), pendingCommand: true });
     await this.persist({ ...this.state, grants: { ...this.state.grants, [claimId]: { ...fresh, sequence: raw.sequence, seen: [...fresh.seen, raw.id].slice(-200) } } });
     const pendingResponse = new Promise(resolve => {
-      const entry = { id: raw.id, action: raw.action, generation, claimId, leaseId: lease_id ?? null, epoch: lease_epoch ?? null, resolve, timer: null };
+      const entry = { id: raw.id, action: raw.action, textLimit: textReplyLimit(raw), generation, claimId, leaseId: lease_id ?? null, epoch: lease_epoch ?? null, resolve, timer: null };
       this.pending = entry;
       entry.timer = setTimeout(() => { if (this.pending === entry) { this.finish(this.json(504, { error: 'device_timeout', detail: 'Outcome unknown; inspect before another action.' })); this.disconnect('timeout', 503, 1011); } }, 15000);
       try { socket.send(JSON.stringify({ type: 'command', claim_id: claimId, lease_id: lease_id ?? null, lease_epoch: lease_epoch ?? null, command: raw })); }

@@ -206,6 +206,24 @@ class FilesTest(unittest.TestCase):
         self.assertFalse(list((self.root/'downloads').glob('*.part')))
         self.assertEqual(json.loads(stderr.getvalue().splitlines()[-1].removeprefix('Airtap download: '))['stage'], 'verified')
 
+    def test_partial_resumes_across_read_size_upgrade(self):
+        data = os.urandom(2 * cli.FILE_READ_LIMIT + 27)
+        args, config, metadata, reads, server = self.download_fixture(data)
+        def interrupted(*pos, **fields):
+            if pos[2] == 'file_read' and fields['offset'] == cli.FILE_CHUNK_LIMIT:
+                raise cli.Failure('device_timeout', outcome='unknown')
+            return server(*pos, **fields)
+        with patch.object(cli.sys, 'stderr', io.StringIO()):
+            with patch.object(cli, 'file_call', side_effect=interrupted), self.assertRaises(cli.Failure):
+                cli.file_command(args, config)
+            self.assertFalse(args.output.exists())
+            metadata['max_read_bytes'] = cli.FILE_READ_LIMIT
+            with patch.object(cli, 'file_call', side_effect=server):
+                result = cli.file_command(args, config)
+        self.assertEqual(reads, [0, cli.FILE_CHUNK_LIMIT, cli.FILE_CHUNK_LIMIT + cli.FILE_READ_LIMIT])
+        self.assertEqual(result['transfer_metrics']['initial_offset'], cli.FILE_CHUNK_LIMIT)
+        self.assertEqual(args.output.read_bytes(), data)
+
     def test_download_stat_failure_does_not_claim_zero_downloaded_or_delete_partial(self):
         args, config, metadata, reads, server = self.download_fixture(b'abc')
         directory = self.root/'downloads'; directory.mkdir(mode=0o700)

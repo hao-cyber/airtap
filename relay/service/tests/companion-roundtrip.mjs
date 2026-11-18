@@ -186,7 +186,7 @@ try {
       assert.equal(tree.nodes[0].text, treeText); assert.equal(tree.nodes.length, 128); assert.equal(tree.next_offset, 128);
       const saved = JSON.parse(await readFile(config));
       assert.equal(saved.snapshot.id, tree.snapshot_id); assert.equal(saved.snapshot.package, tree.package);
-      assert.equal(saved.snapshot.node_ids.length, 128); assert.equal(saved.observation, undefined);
+      assert.equal(saved.snapshot.node_mask, ((1n << 128n) - 1n).toString(16)); assert.equal(saved.observation, undefined);
       const staleCount = seenCommands.length;
       const stale = await python(['click', '--package', prior.package, '--snapshot-id', prior.snapshot_id, '--node-id', '1', '--after-action', 'none'], '', 1);
       assert.equal(stale.error, 'fresh_snapshot_required'); assert.equal(seenCommands.length, staleCount);

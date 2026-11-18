@@ -9,7 +9,7 @@ import java.util.*;
 
 /** Private per-pair workspace. No Android APIs; tests exercise the real filesystem and crash journal. */
 final class FileTransferStore {
-    static final int MAX_FILE = 64 * 1024 * 1024, MAX_CHUNK = 32768, MAX_ENTRIES = 4096;
+    static final int MAX_FILE = 64 * 1024 * 1024, MAX_CHUNK = 32768, MAX_READ_BYTES = 128 * 1024, MAX_ENTRIES = 4096;
     static final int MAX_UPLOADS = 4, MAX_RECORDS = 128;
     static final long TTL = 24 * 60 * 60 * 1000L;
     record Entry(String path, String name, String kind, long size, long modified, String version, String sha256) {}
@@ -134,7 +134,7 @@ final class FileTransferStore {
         if (!before.kind.equals("file")) fail("file_type_unsupported");
         if (!before.version.equals(expected)) fail("file_changed");
         if (before.size > MAX_FILE) fail("file_too_large");
-        if (offset < 0 || offset > before.size || length < 1 || length > MAX_CHUNK) fail("invalid_request");
+        if (offset < 0 || offset > before.size || length < 1 || length > MAX_READ_BYTES) fail("invalid_request");
         byte[] data = new byte[(int)Math.min(length, before.size - offset)]; fence.run();
         try (var in = Files.newByteChannel(p, Set.of(StandardOpenOption.READ, LinkOption.NOFOLLOW_LINKS))) {
             in.position(offset); java.nio.ByteBuffer b = java.nio.ByteBuffer.wrap(data);

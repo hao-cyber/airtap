@@ -27,7 +27,10 @@ TOKEN = re.compile(r'^[0-9a-f]{64}$')
 TICKET = re.compile(r'^[0-9a-f]{32}$')
 MAX_RESPONSE = 512 * 1024
 MAX_COMMAND = 65536
-VERSION = '0.4.0-cli.26'
+VERSION = '0.4.0-cli.27'
+CONFIG_LIMIT = 8192
+# Older snapshots serialized as many as 2,048 four-digit IDs in a JSON list.
+LEGACY_CONFIG_LIMIT = CONFIG_LIMIT + 2048 * 7 + 2
 PAIRING_TTL_SECONDS = 60 * 60
 PAIRING_CLOCK_TOLERANCE_SECONDS = 30
 PACKAGE = re.compile(r'^[A-Za-z_][A-Za-z0-9_]*(?:\.[A-Za-z_][A-Za-z0-9_]*)+$')
@@ -41,6 +44,7 @@ CONTROL_COMMANDS = {'event-configure', 'sim-pin-submit', 'media-capture', 'media
 NODE_OPERATIONS = ('accessibility_focus', 'clear_accessibility_focus', 'next_granularity', 'previous_granularity', 'custom', 'select', 'clear_selection', 'clear_focus', 'context_click', 'expand', 'collapse', 'dismiss', 'show_on_screen', 'scroll_up', 'scroll_down', 'scroll_left', 'scroll_right', 'page_up', 'page_down', 'page_left', 'page_right', 'scroll_to_position', 'set_progress', 'drag_start', 'drag_drop', 'drag_cancel')
 FILE_LIMIT = 64 * 1024 * 1024
 FILE_CHUNK_LIMIT = 32768
+FILE_READ_LIMIT = 128 * 1024
 FILE_COMMANDS = ('file-publish-media', 'file-mkdir', 'file-rename', 'file-delete', 'file-share', 'file-roots', 'file-list', 'file-stat', 'file-read', 'file-download', 'file-upload', 'file-upload-status', 'file-upload-finish', 'file-upload-abort')
 DEFAULT_CONFIG = pathlib.Path.home() / '.config/airtap/preview.json'
 MAX_INTEGER = 9007199254740991
@@ -136,7 +140,10 @@ def private_write(path, data, *, replace=True):
         os.close(dfd)
 
 def save_config(path, value, *, replace=True):
-    private_write(path, json.dumps(value, separators=(',', ':')).encode(), replace=replace)
+    raw = json_bytes(value)
+    if len(raw) > CONFIG_LIMIT:
+        raise Failure('config_too_large')
+    private_write(path, raw, replace=replace)
 
 def load_config(path, local_test=False):
     path = pathlib.Path(path)
@@ -148,10 +155,12 @@ def load_config(path, local_test=False):
             info = os.fstat(stream.fileno())
             if not stat.S_ISREG(info.st_mode) or info.st_uid != os.getuid() or stat.S_IMODE(info.st_mode) != 0o600:
                 raise Failure('config_must_be_owned_regular_file_mode_0600')
-            raw = stream.read(8193)
-        if len(raw) > 8192:
+            raw = stream.read(LEGACY_CONFIG_LIMIT + 1)
+        if len(raw) > LEGACY_CONFIG_LIMIT:
             raise Failure('config_too_large')
         value = json.loads(raw)
+        if not isinstance(value, dict):
+            raise ValueError()
         value['url'] = origin(value['url'], local_test)
         if not TOKEN.fullmatch(value.get('controller_token', '')):
             raise ValueError()
@@ -160,6 +169,17 @@ def load_config(path, local_test=False):
         if 'restore_fresh_task_required' in value and (
                 type(value['restore_fresh_task_required']) is not bool or 'credential_claim_id' not in value):
             raise ValueError()
+        snapshot = value.get('snapshot')
+        legacy_nodes = snapshot.get('node_ids') if isinstance(snapshot, dict) else None
+        if len(raw) > CONFIG_LIMIT:
+            if not isinstance(legacy_nodes, list):
+                raise Failure('config_too_large')
+            node_mask(legacy_nodes)  # Only recover a bounded legacy node cache.
+            value.pop('snapshot')
+            save_config(path, value)
+        elif legacy_nodes is not None:
+            snapshot['node_mask'] = format(node_mask(legacy_nodes), 'x')
+            del snapshot['node_ids']
         return value
     except Failure:
         raise
@@ -664,6 +684,25 @@ def valid_observed_package(value):
 def valid_node(value):
     return isinstance(value, str) and NODE.fullmatch(value) and int(value) <= 2048
 
+def node_mask(ids):
+    if not isinstance(ids, list) or len(ids) > 2048:
+        raise Failure('invalid_snapshot_response')
+    mask = 0
+    for node in ids:
+        if not valid_node(node):
+            raise Failure('invalid_snapshot_response')
+        mask |= 1 << (int(node) - 1)
+    return mask
+
+def saved_node_mask(snapshot):
+    encoded = snapshot.get('node_mask', '')
+    if not isinstance(encoded, str) or not re.fullmatch('[0-9a-f]{1,512}', encoded):
+        raise Failure('fresh_snapshot_required')
+    return int(encoded, 16)
+
+def snapshot_has_node(snapshot, node):
+    return valid_node(node) and bool(saved_node_mask(snapshot) & (1 << (int(node) - 1)))
+
 def open_url(value):
     """HTTP(S) browser navigation on the authorized phone, never a relay fetch.
 
@@ -753,6 +792,19 @@ def safe_pair_status(data):
         result.update(safe_scope(data), session_expires_at=None, allow_tap=False)
     return result
 
+def pairing_result(status):
+    instructions = ['Keep this private connection for future tasks.']
+    if status['state'] == 'pending':
+        instructions.append('Give the owner the six-digit code now, then use pair-status --wait to detect approval.')
+    if status['state'] in ('pending', 'approved'):
+        if status.get('mode') == 'multi' or status.get('lease_required'):
+            instructions.append('For an authorized phone task, run task-acquire after approval, then wait-ready and observe.')
+        elif status['state'] == 'pending':
+            instructions.append('After approval, run task-acquire if the connection requires a lease, then wait-ready and observe for the authorized task.')
+        else:
+            instructions.append('For an authorized phone task, run wait-ready after approval, then observe.')
+    return {'ok': True, **status, 'instruction': ' '.join(instructions)}
+
 def poll_pair(args, config):
     deadline = time.monotonic() + PAIRING_TTL_SECONDS
     while True:
@@ -762,11 +814,11 @@ def poll_pair(args, config):
         status = safe_pair_status(result['data'])
         if status['state'] == 'approved':
             remember_approval(args, config, status)
-            return {'ok': True, **status}
+            return pairing_result(status)
         if status['state'] == 'revoked':
             raise Failure('pairing_revoked')
         if not args.wait:
-            return {'ok': True, **status, 'instruction': 'Compare the code on the phone, then approve there.'}
+            return pairing_result(status)
         if time.monotonic() >= deadline or time.time() >= status.get('pairing_expires_at', 0):
             raise Failure('pairing_wait_expired')
         time.sleep(2)
@@ -1378,12 +1430,10 @@ def remember_snapshot(args, config, value, package, request_started, continuatio
         if (previous.get('id') != snapshot or previous.get('package') != package
                 or snapshot != args.snapshot_id or value.get('offset') != args.offset):
             raise Failure('invalid_snapshot_response')
-        ids = list(dict.fromkeys([*previous.get('node_ids', []), *ids]))
-        if len(ids) > 2048: raise Failure('invalid_snapshot_response')
-        config['snapshot'] = {**previous, 'node_ids': ids,
+        config['snapshot'] = {**previous, 'node_mask': format(saved_node_mask(previous) | node_mask(ids), 'x'),
                               'expires_at': min(previous['expires_at'], request_started + expiry / 1000)}
     else:
-        config['snapshot'] = {'id': snapshot, 'package': package, 'node_ids': ids,
+        config['snapshot'] = {'id': snapshot, 'package': package, 'node_mask': format(node_mask(ids), 'x'),
                               'issued_at': request_started, 'expires_at': request_started + expiry / 1000}
     if config.get('task_lease'): config['task_needs_observation'] = False
     save_config(args.config, config)
@@ -1505,7 +1555,7 @@ def local_file_bytes(path):
 def file_call(args, config, action, **fields):
     while True:
         try:
-            return command_request(args, config, {'id': str(uuid.uuid4()), 'action': action, **fields})
+            return journaled_command(args, config, {'id': str(uuid.uuid4()), 'action': action, **fields})
         except Failure as failure:
             # Only the convenience transfer loops wait automatically. Unknown
             # outcomes never enter this branch; every retry consumes a new
@@ -1602,7 +1652,7 @@ def file_command(args, config):
         return file_call(args, config, 'file_list', root=args.root, path=args.path, offset=args.offset, limit=args.limit)
     if command == 'file-stat': return file_call(args, config, 'file_stat', root=args.root, path=args.path)
     if command == 'file-read':
-        if not 0 <= args.offset <= FILE_LIMIT or not 1 <= args.length <= FILE_CHUNK_LIMIT or not TOKEN.fullmatch(args.version):
+        if not 0 <= args.offset <= FILE_LIMIT or not 1 <= args.length <= FILE_READ_LIMIT or not TOKEN.fullmatch(args.version):
             raise Failure('invalid_file_range')
         response = file_call(args, config, 'file_read', root=args.root, path=args.path, offset=args.offset, length=args.length, version=args.version)
         data = checked_file_chunk(response['result'], args.root, args.path, args.offset, args.length, args.version)
@@ -1631,6 +1681,9 @@ def file_download(args, config):
                 or not isinstance(expected_hash, str) or not TOKEN.fullmatch(expected_hash)):
             raise Failure('file_not_downloadable_with_verified_hash')
         progress.size = size
+        read_size = metadata.get('max_read_bytes', FILE_CHUNK_LIMIT)
+        if type(read_size) is not int or not 1 <= read_size <= FILE_READ_LIMIT:
+            raise Failure('invalid_file_read_limit')
         spec={'identity':job_identity(config),'root':args.root,'path':args.path,'size':size,'version':version,'sha256':expected_hash}
         identity=hashlib.sha256(json_bytes(spec)).hexdigest()
         directory=private_directory(args.config.parent/'downloads')
@@ -1645,7 +1698,7 @@ def file_download(args, config):
             partial_validated = True
             progress.acknowledged(offset, stage='receiving', force=True)
             while offset<size:
-                length=min(FILE_CHUNK_LIMIT,size-offset)
+                length=min(read_size,size-offset)
                 stage = 'read'
                 response=progress.call(args,config,'file_read',root=args.root,path=args.path,offset=offset,length=length,version=version)['result']
                 chunk=checked_file_chunk(response,args.root,args.path,offset,length,version,size)
@@ -1825,11 +1878,11 @@ def start_pairing(args, supplied_ticket=None):
             status = safe_pair_status(known['data'])
             if status['state'] == 'approved':
                 remember_approval(args, config, status)
-                return {'ok': True, **status, 'instruction': 'The owner already approved this connection. Run wait-ready and keep this private config.'}
+                return pairing_result(status)
             if status['state'] != 'pending':
                 raise Failure('pairing_not_pending', retry_action=False)
             config.update(status); save_config(args.config, config)
-            return {'ok': True, **status, 'instruction': 'Tell the owner the code now. Wait for approval on their phone, then run wait-ready. Keep this private config for future tasks.'}
+            return pairing_result(status)
     else:
         config = {'url': url, 'controller_token': secrets.token_hex(32), 'state': 'pending', 'pairing_name': args.name}
         if args.task_lease: config['pairing_capabilities'] = ['task_lease_v1']
@@ -1838,7 +1891,7 @@ def start_pairing(args, supplied_ticket=None):
     if config.get('pairing_capabilities'): pair_body['capabilities'] = config['pairing_capabilities']
     result = request(url, '/v1/pair', body=pair_body, method='POST', timeout=args.timeout, local_test=args.allow_local_http)
     status = safe_pair_status(result['data']); config.update(status); save_config(args.config, config)
-    return {'ok': True, **status, 'instruction': 'Tell the owner the code now. Wait for approval on their phone, then run wait-ready. Keep this private config for future tasks.'}
+    return pairing_result(status)
 
 
 def pair_with_code(args):
@@ -1873,7 +1926,7 @@ def pair_with_code(args):
                 existing.update(status); save_config(args.config, existing)
             else:
                 raise Failure('pairing_not_pending', retry_action=False)
-            return {'ok': True, **status, 'instruction': 'Keep this original identity. Wait for the owner or their authorized paired AI to approve if pending; do not request another invitation.'}
+            return pairing_result(status)
     result = request(service, '/v1/invitations/resolve', body={'code': code}, method='POST',
                      timeout=args.timeout, local_test=args.allow_local_http)['data']
     required = {'protocol_version', 'device_base_path', 'ticket', 'pairing_expires_at', 'cli_sha256', 'agent_sha256', 'task_lease_required'}
@@ -2011,6 +2064,16 @@ def job_after(args, job, result=None, failure=None):
         # Even a known rejection doesn't prove a multi-part UI effect had no side effects.
         step['state']='outcome_unknown'; attempt['outcome']='needs_inspection'
     job_save(args,job)
+
+def journaled_command(args, config, body):
+    job = job_before(args, config, body)
+    try:
+        result = command_request(args, config, body)
+    except BaseException as failure:
+        job_after(args, job, failure=failure)
+        raise
+    job_after(args, job, result=result)
+    return result
 
 
 def event_command(args, config):
@@ -2531,12 +2594,12 @@ def main():
             if not 0 <= args.offset <= 2048 or not 1 <= args.limit <= 128: raise Failure('invalid_page')
             body.update(offset=args.offset, limit=args.limit)
         else:
-            if args.node_id not in snapshot.get('node_ids', []): raise Failure('fresh_snapshot_required')
+            if not snapshot_has_node(snapshot, args.node_id): raise Failure('fresh_snapshot_required')
             if not 0 <= args.offset <= 2147483647 or not 2 <= args.length <= 4096: raise Failure('invalid_text_range')
             body.update(node_id=args.node_id, field=args.field, offset=args.offset, length=args.length)
     if args.command in NODE_COMMANDS:
         snapshot = config.get('snapshot', {})
-        if (snapshot.get('id') != args.snapshot_id or snapshot.get('package') != package or args.node_id not in snapshot.get('node_ids', [])
+        if (snapshot.get('id') != args.snapshot_id or snapshot.get('package') != package or not snapshot_has_node(snapshot, args.node_id)
                 or not snapshot.get('issued_at', 0) <= time.time() < snapshot.get('expires_at', 0)):
             raise Failure('fresh_snapshot_required')
         body.update(snapshot_id=args.snapshot_id, node_id=args.node_id)
@@ -2603,14 +2666,8 @@ def main():
     if len(json_bytes(body)) > 8192: raise Failure('request_too_large')
     if args.command in CONTROL_COMMANDS:
         config.pop('snapshot', None); config.pop('observation', None); save_config(args.config, config)
-    job = job_before(args,config,body)
     started = time.time()
-    try:
-        result = command_request(args, config, body)
-    except BaseException as failure:
-        job_after(args,job,failure=failure)
-        raise
-    job_after(args,job,result=result)
+    result = journaled_command(args, config, body)
     if args.command == 'connection-invite' and result.get('result', {}).get('state') == 'migration_pending':
         result['instruction'] = 'Original pairing is preserved. Check status until mode is multi, then task-acquire and resume connection-invite. Do not re-pair or replay an unknown request.'
     if args.command in ('read-tree', 'read-tree-page'): remember_snapshot(args, config, result['result'], result['result'].get('package'), started, continuation=args.command == 'read-tree-page')

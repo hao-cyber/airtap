@@ -145,7 +145,7 @@ final class FileScopes {
             case "file_roots": exact(q); break;
             case "file_list": exact(q, "root", "path", "offset", "limit"); integer(q, "offset", 0, FileTransferStore.MAX_ENTRIES); integer(q, "limit", 1, 64); break;
             case "file_stat": exact(q, "root", "path"); break;
-            case "file_read": exact(q, "root", "path", "offset", "length", "version"); integer(q, "offset", 0, FileTransferStore.MAX_FILE); integer(q, "length", 1, FileTransferStore.MAX_CHUNK); FileTransferStore.hash(text(q, "version")); break;
+            case "file_read": exact(q, "root", "path", "offset", "length", "version"); integer(q, "offset", 0, FileTransferStore.MAX_FILE); integer(q, "length", 1, FileTransferStore.MAX_READ_BYTES); FileTransferStore.hash(text(q, "version")); break;
             case "file_upload_begin": exact(q, "root", "path", "transfer_id", "size", "sha256"); integer(q, "size", 0, FileTransferStore.MAX_FILE); FileTransferStore.hash(text(q, "sha256")); break;
             case "file_upload_chunk": {
                 exact(q, "transfer_id", "offset", "data_base64", "sha256"); integer(q, "offset", 0, FileTransferStore.MAX_FILE); FileTransferStore.hash(text(q, "sha256"));
@@ -382,7 +382,11 @@ final class FileScopes {
         if(a.equals("file_rename"))return entry("workspace",store.rename(q.getString("path"),q.getString("destination"),q.getString("version")));
         if(a.equals("file_delete")){store.delete(q.getString("path"),q.getString("version"));return RelayApi.json("root","workspace","path",q.getString("path"),"deleted",true);}
         String path = q.getString("path"); Saf saf = root.equals("workspace") ? null : new Saf(c, owner, root, fence, signal);
-        if (a.equals("file_stat")) return entry(root, saf == null ? store.stat(path, true) : saf.stat(path, true));
+        if (a.equals("file_stat")) {
+            JSONObject metadata = entry(root, saf == null ? store.stat(path, true) : saf.stat(path, true));
+            if ("file".equals(metadata.getString("kind"))) metadata.put("device_max_read_bytes", FileTransferStore.MAX_READ_BYTES);
+            return metadata;
+        }
         if (a.equals("file_list")) {
             List<FileTransferStore.Entry> entries = saf == null ? store.list(path) : saf.list(path);
             int offset = q.getInt("offset"), end = Math.min(entries.size(), offset + q.getInt("limit"));
