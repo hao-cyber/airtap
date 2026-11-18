@@ -1,0 +1,261 @@
+{
+  "schema": "airtap-remote-android-candidate-acceptance-v1",
+  "dates_local": "2026-11-18 to 2026-11-19 (Asia/Shanghai)",
+  "scope": {
+    "operator": "Codex using its existing maintainer pairing",
+    "devices": "one physical Meizu Android phone over the public relay",
+    "new_users_recruited": 0,
+    "other_personal_ai_runs_this_round": 0
+  },
+  "artifacts": {
+    "android_source": "199a19e993b70398a899bcc3ec13b49b4c202221",
+    "android_candidate": {
+      "version_code": 79,
+      "version_name": "0.4.0-beta.49",
+      "matches_previous_signer": true,
+      "debuggable": false,
+      "size": 681421,
+      "sha256": "f037271c5cd03cabb7de81b8d08a7d15768a039eeb661a4959530baab1258d08"
+    },
+    "relay_and_cli_source": "08e2345f3a3009875e3dde8a3f6a6724f8a3e651",
+    "public_relay_revision": 46,
+    "public_cli": "0.4.0-cli.28",
+    "public_artifacts_verified": [
+      "/agent.md",
+      "/cli/airtap.py"
+    ],
+    "website_recommended_code_verified": 78
+  },
+  "upgrade": {
+    "from": 78,
+    "to": 79,
+    "same_signer_verified": true,
+    "original_pairing_worked": true,
+    "seconds_from_installer_confirmation_to_verified_ping": 18.68,
+    "physical_user_actions": 0
+  },
+  "daily_task": {
+    "source": "Official install page in the phone browser",
+    "saved": "A synthetic note containing the recommended version and the installed test version",
+    "first_task": "Saved in Flyme Notes, returned to launcher and released the lease",
+    "second_task": "Acquired a fresh task with the original pairing, reopened the saved note from the list and verified its full body through the UI tree and visible pixels",
+    "human_interventions": 0,
+    "final_lease_released": true
+  },
+  "physical_file_job": {
+    "fixture": "disposable synthetic file",
+    "injected_local_loss_after_actual_phone_read": true,
+    "same_version_and_range": true,
+    "automatic_read_retries": 1,
+    "whole_file_sha256_matched": true,
+    "actual_file_rename_verified": true,
+    "duplicate_prevented_before_phone_sequence_was_consumed": true,
+    "rename_dispatch_attempts": 1,
+    "job_finished": true,
+    "synthetic_phone_file_removed": true,
+    "lease_released": true
+  },
+  "local_checks": {
+    "core_steps_passed": 42,
+    "native_owner_experience_checks_passed": 5,
+    "release_assemble_and_lint": true,
+    "scope": [
+      "2048-node partial and out-of-order page traversal, fresh targets and private config migration",
+      "file job journal, acknowledgement loss and duplicate action prevention",
+      "privacy disclosure on the native approval surface, owner stop and handoff",
+      "bounded Android-escaped read replies, file integrity and network-read recovery that preserves the same task"
+    ]
+  },
+  "transfer": {
+    "sample_bytes": 3567744,
+    "metrics_scope": "Each download invocation timed file-stat, file-read, integrity checks and local publication. The end-to-end comparison includes intermediate waits, task reacquisition and resumes. Initial task acquisition and final release are outside the timing window. Each completed copy was independently hashed locally with SHA-256.",
+    "pre_upgrade_reference": {
+      "client": "CLI.26, code78, revision43, direct HTTPS",
+      "trials": [
+        {
+          "completed": true,
+          "initial_bytes": 0,
+          "final_bytes": 3567744,
+          "seconds": 290.65,
+          "file_commands": 110,
+          "read_retries": 0,
+          "independent_sha256_matched": true
+        }
+      ]
+    },
+    "same_phone_comparison": {
+      "environment": "Both clients on code79 and revision46, same phone, recording, host and configured TLS proxy. Durations are individual samples.",
+      "cli26_control": [
+        {
+          "completed": false,
+          "initial_bytes": 0,
+          "confirmed_bytes": 524288,
+          "seconds": 50.57,
+          "error": "http_error",
+          "http_status": 503,
+          "partial_preserved": true
+        },
+        {
+          "completed": false,
+          "initial_bytes": null,
+          "confirmed_bytes": null,
+          "seconds": 6.81,
+          "error": "http_error",
+          "http_status": 503,
+          "partial_preserved": false
+        },
+        {
+          "completed": false,
+          "initial_bytes": 524288,
+          "confirmed_bytes": 1245184,
+          "seconds": 75.15,
+          "error": "http_error",
+          "http_status": 503,
+          "partial_preserved": true
+        },
+        {
+          "completed": false,
+          "initial_bytes": 1245184,
+          "confirmed_bytes": 2293760,
+          "seconds": 92.9,
+          "error": "http_error",
+          "http_status": 503,
+          "partial_preserved": true
+        },
+        {
+          "completed": false,
+          "initial_bytes": 2293760,
+          "confirmed_bytes": 3244032,
+          "seconds": 154.32,
+          "error": "http_error",
+          "http_status": 504,
+          "partial_preserved": true
+        },
+        {
+          "completed": true,
+          "initial_bytes": 3244032,
+          "final_bytes": 3567744,
+          "seconds": 29.34,
+          "file_commands": 11,
+          "read_retries": 0,
+          "independent_sha256_matched": true
+        }
+      ],
+      "cli28_candidate": [
+        {
+          "completed": true,
+          "initial_bytes": 0,
+          "final_bytes": 3567744,
+          "seconds": 85.03,
+          "file_commands": 29,
+          "read_retries": 0,
+          "independent_sha256_matched": true
+        }
+      ],
+      "first_transfer_from_zero": {
+        "method": "From the beginning of the first measured download call with an empty partial to the verified file receipt, including any interruption, lease recovery and subsequent download invocations. Earlier nonzero-offset resumes are reported separately.",
+        "cli26": {
+          "wall_seconds_including_recovery": 618.82,
+          "download_call_seconds": 409.1,
+          "file_commands": 119,
+          "download_invocations": 6,
+          "automatic_read_retries": 0,
+          "interruptions": [
+            "http_error",
+            "http_error",
+            "http_error",
+            "http_error",
+            "http_error"
+          ],
+          "sha256_verified": true
+        },
+        "cli28": {
+          "wall_seconds_including_recovery": 85.03,
+          "download_call_seconds": 85.03,
+          "file_commands": 29,
+          "download_invocations": 1,
+          "automatic_read_retries": 0,
+          "interruptions": [],
+          "sha256_verified": true
+        },
+        "seconds_saved": 533.79,
+        "elapsed_ratio": 7.28
+      }
+    },
+    "first_cli28_phone_trial": {
+      "runs": [
+        {
+          "completed": true,
+          "initial_bytes": 1966080,
+          "final_bytes": 3567744,
+          "seconds": 41.64,
+          "file_commands": 14,
+          "read_retries": 0,
+          "independent_sha256_matched": true
+        },
+        {
+          "completed": false,
+          "initial_bytes": 0,
+          "confirmed_bytes": 2621440,
+          "seconds": 62.39,
+          "error": "device_disconnected",
+          "http_status": 503,
+          "partial_preserved": true
+        },
+        {
+          "completed": false,
+          "initial_bytes": 2621440,
+          "confirmed_bytes": 2621440,
+          "seconds": 24.65,
+          "error": "http_error",
+          "http_status": 504,
+          "partial_preserved": true
+        },
+        {
+          "completed": false,
+          "initial_bytes": 2621440,
+          "confirmed_bytes": 2752512,
+          "seconds": 11.89,
+          "error": "http_error",
+          "http_status": 503,
+          "partial_preserved": true
+        },
+        {
+          "completed": true,
+          "initial_bytes": 2752512,
+          "final_bytes": 3567744,
+          "seconds": 30.33,
+          "file_commands": 8,
+          "read_retries": 0,
+          "independent_sha256_matched": true
+        }
+      ],
+      "scope": "Includes the first normal resume from previous bytes, subsequent phone disconnects, and recovery after correcting the measurement runner to reuse its pending task identity. These are excluded from the matched comparison."
+    },
+    "recovered_during_development": {
+      "revision44_interrupted_at_bytes": 131072,
+      "reproduced_with_android_json_encoding": true,
+      "revision45_read_past_that_offset": true,
+      "separate_phone_disconnect_preserved_bytes": 393216,
+      "next_run": {
+        "completed": true,
+        "initial_bytes": 393216,
+        "final_bytes": 3567744,
+        "seconds": 78.87,
+        "file_commands": 26,
+        "read_retries": 0,
+        "independent_sha256_matched": true
+      },
+      "interim_cli27_interruption_counts": {
+        "network_failure": 2,
+        "total_deadline_exceeded": 2,
+        "http_error": 1
+      },
+      "later_independently_verified_resumes": 1
+    }
+  },
+  "limits": [
+    "This run used one phone and a maintainer identity. Public release choice and independent new-user adoption are separate decisions.",
+    "Transfer speed and availability vary with the phone, network and relay. A changed phone connection or lost task preserves the partial download and requires the authorized agent to reacquire and resume."
+  ]
+}

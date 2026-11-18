@@ -20,6 +20,8 @@ code63 将首次及新增 AI 的邀请改为八位数字。数字只定位短期
 
 ## 当前发布身份
 
+2026-11-19 公共中继已更新至 revision46，提供 CLI.28。Android 候选 code79 / beta.49 已在一台测试手机上覆盖安装并沿用原配对，官网当前推荐 code78 / beta.48。同机下载 3,567,744 字节录屏，计入等待和续传，CLI.26 用时 618.82 秒（中断五次），CLI.28 用时 85.03 秒（一次完成）。两份文件的 SHA-256 均与手机源文件一致。下载对照条件和跨任务便签核对见[候选实测记录](../docs/results/cli28-android79-remote-tasks-20261119.json)。
+
 2026-11-17 公共中继更新至 revision43 / CLI.26，仅更新接入工具和说明。文件传输复用 HTTPS 连接，保留超时与续传语义；维护者真机对照与未验证范围见[CLI.26 记录](../docs/results/cli26-bulk-transport-20261117.json)。手机推荐包仍为下方 code78，不需重新安装或配对；此前 Muse／Instinct 记录保留各自实际工具版本。
 
 code78 / beta.48 的[制品身份](android/78.json)已固定，已作为 [GitHub 测试版](https://github.com/hao-cyber/airtap/releases/tag/v0.4.0-beta.48)公开；当时公共中继更新至 revision42 / CLI.25。它补上 AI 打开正常通知使用权设置页的入口，不自动授予权限。Instinct 已在原连接完成覆盖升级、正常通知授权、真实事件触发的手机任务，以及轮询进程中断恢复和同一事件去重；首次下载通知未捕获等失败保留在[分项记录](../docs/results/beta48-code78-notification-settings-20261113.json)。2026-11-14 官网推荐切换到此版本，保留原签名和已连接 AI；[104 项公网回读](../docs/results/beta48-code78-publication-20261114.json)通过。CLI.25 另补下载进度与断点恢复提示，见[检查与实测](../docs/results/cli25-download-progress-20261114.json)。 Muse 随后使用实际 CLI.25 完成原配对 code78 升级、息屏唤醒、草稿重开及文件往返，见[专项回执](../docs/results/beta48-code78-muse-cli25-20261114.json)。两条新版视频独立记录于[视频发布核验](../docs/results/two-videos-20261114.json)。

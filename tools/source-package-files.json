@@ -1405,6 +1405,10 @@
     },
     {
       "kind": "result",
+      "path": "docs/results/cli28-android79-remote-tasks-20261119.json"
+    },
+    {
+      "kind": "result",
       "path": "docs/results/client-recovery-v040-delivery.json"
     },
     {
