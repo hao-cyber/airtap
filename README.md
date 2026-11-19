@@ -48,20 +48,21 @@ AI 可以组合这些动作完成跨 App 任务，不限于计算器等演示应
 
 ## 当前支持情况
 
-官网推荐 **0.4.0-beta.48（code78）**，目前提供 Android 客户端。Muse 和 Instinct 已分别保留原连接远程升级；两台魅族 Note 16 / Android 15 有跨 App、双 AI 交接、短时息屏恢复和系统选图实测。一台还完成了无声录屏与文件回传。各记录注明实际版本和条件，不能由一次成功推断所有设备都可用。
+官网推荐 **0.4.0-beta.49（code79）**，目前提供 Android 客户端。维护者在一台测试手机上从 code78 升级，沿用原配对保存便签，退出后再次打开并核对全文。此前 Muse 和 Instinct 已分别保留原连接远程升级；两台魅族 Note 16 / Android 15 有跨 App、双 AI 交接、短时息屏恢复和系统选图实测。一台还完成了无声录屏与文件回传。各记录注明实际版本和条件，不能由一次成功推断所有设备都可用。
 
 - 系统保护的画面、按钮和身份验证仍有边界。普通弹窗应先由 AI 看清并尝试正常操作。
 - Instinct 已完成实体拍照、短录音回传、账单笔记保存重开，以及一次真实通知触发的手机任务；轮询进程中断后恢复，未重复执行同一事件。[查看实际范围与失败记录](docs/results/beta48-code78-notification-settings-20261113.json)。
 - 这不保证所有 App 通知都能捕获。实卡 SIM PIN、多日无人值守和纯移动网络完整任务仍有未验项；通知与 SIM PIN 功能默认关闭。
 - 更多机型、其他 AI 和独立新用户首装尚未验证；目前没有 iOS 客户端。
 
-[完整能力与验证范围](docs/atomic-capabilities.md) · [code75 两位 AI 实测](docs/results/beta45-code75-personal-ai-20261112.json) · [更新说明](release/android/78.json)
+[完整能力与验证范围](docs/atomic-capabilities.md) · [code75 两位 AI 实测](docs/results/beta45-code75-personal-ai-20261112.json) · [更新说明](release/android/79.json)
 
 <details>
 <summary>查看具体任务与恢复记录</summary>
 
 | 记录 | 实际范围 |
 | --- | --- |
+| [code79 升级与文件回传](docs/results/cli28-android79-remote-tasks-20261119.json) | 同机回传 3,567,744 字节录屏，CLI.28 用时 85.03 秒，文件摘要与手机原件一致。 |
 | [code78 Muse 升级与继续使用](docs/results/beta48-code78-muse-cli25-20261114.json) | 原配对升级，60 秒息屏后唤醒、计算器看图、草稿重开和 CLI.25 文件往返。 |
 | [文件传输优化](docs/results/cli26-bulk-transport-20261117.json) | CLI.26 复用连接。维护者同机 256 KiB 对照中，下载用时减少约 15%–20%，上传减少约 17%；大文件仍可能需要数分钟。 |
 | [code74 系统选图](docs/results/beta44-code74-personal-ai-picker-20261112.json) | Muse 将图片选入 Gmail；Instinct 在信息 App 查看附件预览，均未发送。 |

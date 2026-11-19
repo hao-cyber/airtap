@@ -1,0 +1,58 @@
+{
+  "date": "2026-11-19",
+  "recommended": {
+    "from": 78,
+    "to": 79,
+    "version": "0.4.0-beta.49",
+    "application_id": "io.airtap.preview",
+    "apk_source_commit": "199a19e993b70398a899bcc3ec13b49b4c202221",
+    "relay_cli_source_commit": "08e2345f3a3009875e3dde8a3f6a6724f8a3e651",
+    "apk_bytes": 681421,
+    "apk_sha256": "f037271c5cd03cabb7de81b8d08a7d15768a039eeb661a4959530baab1258d08",
+    "signer_sha256": "a2aa0c1b6fdaf1baa37aa20817387524a1318b5dab82bf7c185663141daba60f",
+    "same_signer_as_code78": true
+  },
+  "website": {
+    "origin": "https://airtap.memtrix.dev",
+    "deployment_id": "ab05f7ca-782e-4d1b-9c96-49417c146471",
+    "kind": "android_update",
+    "checks": {
+      "python_site_tests": 35,
+      "worker_tests": 17,
+      "frozen_files": 45,
+      "public_http_checks": 107,
+      "public_install_download": {
+        "fixed_route_status": 302,
+        "final_route": "/downloads/f037271c5cd03cabb7de81b8d08a7d15768a039eeb661a4959530baab1258d08.apk",
+        "bytes": 681421,
+        "sha256": "f037271c5cd03cabb7de81b8d08a7d15768a039eeb661a4959530baab1258d08"
+      },
+      "downloaded_apk_signature_verified": true,
+      "retained_preexisting_apks": 20,
+      "retired_apk_paths_checked": 6,
+      "public_media": [
+        "install",
+        "usage"
+      ],
+      "public_transformations": [
+        {
+          "path": "/robots.txt",
+          "kind": "reviewed_managed_robots_prefix",
+          "prefix_bytes": 2676,
+          "prefix_sha256": "3073d1e371afb3271c7666148766fedc5145f7d8440f7114062db79b7bd58add",
+          "source_sha256": "d58c84797c04e430e32b11fffbcb73b63a0afd82b00b5f2134574a52c414306e",
+          "public_sha256": "542678d4397ddd6bf8c14d764a94e7f08d46e73aeb4a3c6751844c3dbb13920f"
+        }
+      ],
+      "install_page_viewport_widths": [
+        320,
+        390,
+        768,
+        1440
+      ],
+      "all_widths_show_download_and_current_version_without_horizontal_overflow": true
+    }
+  },
+  "device_evidence": "cli28-android79-remote-tasks-20261119.json",
+  "scope": "Public Android recommendation and distribution of the same signed build verified on one paired test phone. The earlier device record covers its stated operator, device, tasks and versions."
+}

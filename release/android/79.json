@@ -1,0 +1,20 @@
+{
+  "schema": "airtap-android-update-v1",
+  "application_id": "io.airtap.preview",
+  "version_name": "0.4.0-beta.49",
+  "version_code": 79,
+  "apk_sha256": "f037271c5cd03cabb7de81b8d08a7d15768a039eeb661a4959530baab1258d08",
+  "apk_bytes": 681421,
+  "signer_sha256": "a2aa0c1b6fdaf1baa37aa20817387524a1318b5dab82bf7c185663141daba60f",
+  "min_sdk": 34,
+  "target_sdk": 36,
+  "debuggable": false,
+  "channel": "beta",
+  "published_at": "2026-11-19",
+  "download_path": "/download/android",
+  "notes": [
+    "手机与新版 AI 接入工具配合，可分块下载较大的文件。传输中断后，可以从已经校验的位置继续。",
+    "AI 保存文件任务的进度，恢复后核对已完成的操作，避免再次执行同一项改名。",
+    "已安装上一推荐版时，直接覆盖安装即可。在测试手机上，升级后沿用原配对完成了保存便签、退出后重新打开并核对全文。"
+  ]
+}
